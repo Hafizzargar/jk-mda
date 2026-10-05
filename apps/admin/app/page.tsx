@@ -116,6 +116,15 @@ export default function DashboardPage() {
           <strong>Supabase auth:</strong> {status}
         </div>
 
+        <div className="mb-8 flex justify-end">
+          <a
+            href="/articles/new"
+            className="rounded-full bg-cyan-500 px-5 py-2.5 font-semibold text-slate-950 hover:bg-cyan-400"
+          >
+            New article
+          </a>
+        </div>
+
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {stats.map((item) => (
             <div key={item.label} className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
