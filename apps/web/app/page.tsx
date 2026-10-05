@@ -1,3 +1,8 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+
 const stories = [
   'Verified district reporting',
   'Multilingual coverage in English, Urdu, and Hindi',
@@ -6,6 +11,23 @@ const stories = [
 ];
 
 export default function HomePage() {
+  const [status, setStatus] = useState('Checking Supabase connection...');
+
+  useEffect(() => {
+    async function checkSupabase() {
+      try {
+        const { error } = await supabase.auth.getSession();
+        setStatus(
+          error ? `Supabase connection issue: ${error.message}` : 'Supabase Auth connected successfully.'
+        );
+      } catch (error) {
+        setStatus(error instanceof Error ? error.message : 'Supabase connection failed.');
+      }
+    }
+
+    checkSupabase();
+  }, []);
+
   return (
     <main className="min-h-screen bg-slate-950 text-white">
       <section className="mx-auto flex min-h-screen max-w-7xl flex-col justify-center px-6 py-20">
@@ -20,6 +42,10 @@ export default function HomePage() {
         <p className="mt-6 max-w-2xl text-lg text-slate-300 md:text-xl">
           KJIN brings together verified reporting, public-interest news, multilingual updates, and a rigorous editorial process built for trust.
         </p>
+
+        <div className="mt-8 rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-4 text-cyan-100">
+          <strong>Supabase status:</strong> {status}
+        </div>
 
         <div className="mt-10 flex flex-wrap gap-4">
           <a

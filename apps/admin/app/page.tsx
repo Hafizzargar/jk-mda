@@ -1,3 +1,8 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
+
 const stats = [
   { label: 'Drafts', value: '24' },
   { label: 'Pending review', value: '8' },
@@ -6,6 +11,23 @@ const stats = [
 ];
 
 export default function DashboardPage() {
+  const [status, setStatus] = useState('Checking auth session...');
+
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        setStatus(
+          error ? `Auth session error: ${error.message}` : data.session ? 'Authenticated session detected.' : 'No active session yet.'
+        );
+      } catch (error) {
+        setStatus(error instanceof Error ? error.message : 'Authentication check failed.');
+      }
+    }
+
+    checkAuth();
+  }, []);
+
   return (
     <main className="min-h-screen bg-slate-950 p-8 text-white">
       <div className="mx-auto max-w-7xl">
@@ -18,6 +40,10 @@ export default function DashboardPage() {
             New article
           </button>
         </header>
+
+        <div className="mb-8 rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-4 text-cyan-100">
+          <strong>Supabase auth:</strong> {status}
+        </div>
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {stats.map((item) => (

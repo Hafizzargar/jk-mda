@@ -6,6 +6,8 @@ coverage
 .env.local
 .env.*
 !.env.example
+supabase/.branches
+supabase/.temp
 .DS_Store
 npm-debug.log*
 pnpm-debug.log*
