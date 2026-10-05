@@ -20,6 +20,9 @@ importers:
       '@kjin/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@kjin/db':
+        specifier: workspace:*
+        version: link:../../packages/db
       '@kjin/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -109,7 +112,11 @@ importers:
 
   packages/auth: {}
 
-  packages/db: {}
+  packages/db:
+    dependencies:
+      '@kjin/types':
+        specifier: workspace:*
+        version: link:../types
 
   packages/types: {}
 
