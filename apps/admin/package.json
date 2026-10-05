@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@kjin/auth": "workspace:*",
     "@supabase/supabase-js": "^2.56.1",
     "next": "^15.3.5",
     "react": "^19.0.0",
