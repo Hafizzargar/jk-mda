@@ -1,8 +1,19 @@
-import type { ArticleDraft, NewsLanguage } from '@kjin/types';
+import type { ArticleDraft, ArticleStatus, NewsLanguage } from '@kjin/types';
 
 export const dbConfig = {
   schema: 'public',
   tablePrefix: 'kjin',
+};
+
+export type DashboardStat = {
+  label: string;
+  value: number;
+};
+
+export type DashboardQueueItem = {
+  title: string;
+  status: ArticleStatus;
+  summary: string;
 };
 
 export const articleStatusOptions = ['draft', 'review', 'published', 'archived'] as const;
@@ -18,5 +29,43 @@ export function normalizeArticleInsert(article: ArticleDraft) {
     language: article.language,
     status: article.status,
   };
+}
+
+export function summarizeArticleQueue(articles: Array<Pick<ArticleDraft, 'title' | 'summary' | 'status'>>) {
+  const counts = {
+    draft: 0,
+    review: 0,
+    published: 0,
+    archived: 0,
+  };
+
+  for (const article of articles) {
+    const status = article.status ?? 'draft';
+    if (status in counts) {
+      counts[status] += 1;
+    }
+  }
+
+  const queue = [...articles]
+    .filter((article) => article.title)
+    .sort((left, right) => {
+      const order = { review: 0, draft: 1, published: 2, archived: 3 } as const;
+      return (order[left.status ?? 'draft'] ?? 99) - (order[right.status ?? 'draft'] ?? 99);
+    })
+    .slice(0, 6)
+    .map((article) => ({
+      title: article.title,
+      status: article.status ?? 'draft',
+      summary: article.summary || 'No summary available yet.',
+    }));
+
+  const stats: DashboardStat[] = [
+    { label: 'Drafts', value: counts.draft },
+    { label: 'Pending review', value: counts.review },
+    { label: 'Published today', value: counts.published },
+    { label: 'Alerts', value: counts.archived },
+  ];
+
+  return { stats, queue };
 }
 

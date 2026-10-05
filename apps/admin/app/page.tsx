@@ -3,13 +3,13 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { canAccessRole } from '@kjin/auth';
+import { summarizeArticleQueue } from '@kjin/db';
 import { supabase } from '@/lib/supabase';
 
-const stats = [
-  { label: 'Drafts', value: '24' },
-  { label: 'Pending review', value: '8' },
-  { label: 'Published today', value: '12' },
-  { label: 'Alerts', value: '3' },
+const fallbackQueue = [
+  { title: 'District update: Srinagar power outage', status: 'review', summary: 'Awaiting editorial sign-off.' },
+  { title: 'Election monitoring brief', status: 'draft', summary: 'Ready for final review.' },
+  { title: 'Local development coverage', status: 'published', summary: 'Published to the public desk.' },
 ];
 
 export default function DashboardPage() {
@@ -17,6 +17,13 @@ export default function DashboardPage() {
   const [status, setStatus] = useState('Checking auth session...');
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+  const [queue, setQueue] = useState(fallbackQueue);
+  const [stats, setStats] = useState([
+    { label: 'Drafts', value: 1 },
+    { label: 'Pending review', value: 1 },
+    { label: 'Published today', value: 1 },
+    { label: 'Alerts', value: 0 },
+  ]);
 
   useEffect(() => {
     async function checkAuth() {
@@ -55,6 +62,36 @@ export default function DashboardPage() {
 
     checkAuth();
   }, [router]);
+
+  useEffect(() => {
+    async function loadQueue() {
+      if (isAuthorized !== true) {
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('articles')
+          .select('*')
+          .order('updated_at', { ascending: false })
+          .limit(6);
+
+        if (error) {
+          return;
+        }
+
+        const summary = summarizeArticleQueue(data ?? []);
+        if (summary.queue.length > 0) {
+          setQueue(summary.queue);
+          setStats(summary.stats);
+        }
+      } catch {
+        // keep the fallback data when the table is unavailable
+      }
+    }
+
+    loadQueue();
+  }, [isAuthorized]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -138,18 +175,26 @@ export default function DashboardPage() {
           <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
             <h2 className="text-xl font-semibold">Editorial queue</h2>
             <ul className="mt-6 space-y-4 text-slate-300">
-              <li className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950 p-4">
-                <span>District update: Srinagar power outage</span>
-                <span className="rounded-full bg-amber-500/15 px-2 py-1 text-xs text-amber-300">Review</span>
-              </li>
-              <li className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950 p-4">
-                <span>Election monitoring brief</span>
-                <span className="rounded-full bg-cyan-500/15 px-2 py-1 text-xs text-cyan-300">Ready</span>
-              </li>
-              <li className="flex items-center justify-between rounded-xl border border-slate-800 bg-slate-950 p-4">
-                <span>Local development coverage</span>
-                <span className="rounded-full bg-emerald-500/15 px-2 py-1 text-xs text-emerald-300">Published</span>
-              </li>
+              {queue.map((item) => {
+                const tagClass =
+                  item.status === 'review'
+                    ? 'bg-amber-500/15 text-amber-300'
+                    : item.status === 'published'
+                      ? 'bg-emerald-500/15 text-emerald-300'
+                      : 'bg-cyan-500/15 text-cyan-300';
+
+                return (
+                  <li key={`${item.title}-${item.status}`} className="flex items-center justify-between gap-4 rounded-xl border border-slate-800 bg-slate-950 p-4">
+                    <div>
+                      <p className="font-medium text-white">{item.title}</p>
+                      <p className="mt-1 text-sm text-slate-400">{item.summary}</p>
+                    </div>
+                    <span className={`rounded-full px-2 py-1 text-xs font-medium ${tagClass}`}>
+                      {item.status}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           </div>
 
