@@ -2,19 +2,11 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import type { ArticleStatus, NewsLanguage } from '@kjin/types';
+import { normalizeArticleInsert } from '@kjin/db';
+import type { ArticleDraft, ArticleStatus, NewsLanguage } from '@kjin/types';
+import { supabase } from '@/lib/supabase';
 
-type DraftArticle = {
-  title: string;
-  summary: string;
-  body: string;
-  category: string;
-  author: string;
-  language: NewsLanguage;
-  status: ArticleStatus;
-};
-
-const emptyDraft: DraftArticle = {
+const emptyDraft: ArticleDraft = {
   title: '',
   summary: '',
   body: '',
@@ -25,23 +17,50 @@ const emptyDraft: DraftArticle = {
 };
 
 export default function NewArticlePage() {
-  const [draft, setDraft] = useState<DraftArticle>(emptyDraft);
+  const [draft, setDraft] = useState<ArticleDraft>(emptyDraft);
   const [notice, setNotice] = useState('Draft saved locally.');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const previewTitle = useMemo(() => draft.title.trim() || 'Untitled article', [draft.title]);
 
-  const updateField = <K extends keyof DraftArticle>(field: K, value: DraftArticle[K]) => {
+  const updateField = <K extends keyof ArticleDraft>(field: K, value: ArticleDraft[K]) => {
     setDraft((current) => ({ ...current, [field]: value }));
   };
 
-  const handleSaveDraft = () => {
-    setNotice(`Draft saved for ${draft.author || 'anonymous author'} at ${new Date().toLocaleTimeString()}.`);
+  const saveArticle = async (nextStatus: ArticleStatus) => {
+    if (!draft.title.trim() || !draft.body.trim()) {
+      setNotice('Title and article body are required before saving.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setNotice('Saving article to Supabase...');
+
+    const payload = normalizeArticleInsert({ ...draft, status: nextStatus });
+
+    try {
+      const { error } = await supabase.from('articles').insert([payload]);
+
+      if (error) {
+        throw error;
+      }
+
+      setDraft((current) => ({ ...current, status: nextStatus }));
+      setNotice(
+        nextStatus === 'review'
+          ? 'Article submitted for editorial review.'
+          : `Draft saved for ${payload.author || 'anonymous author'}.`
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to save article right now.';
+      setNotice(`Save failed: ${message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleSubmitForReview = () => {
-    updateField('status', 'review');
-    setNotice('Article submitted for editorial review.');
-  };
+  const handleSaveDraft = () => saveArticle('draft');
+  const handleSubmitForReview = () => saveArticle('review');
 
   return (
     <main className="min-h-screen bg-slate-950 p-8 text-white">
@@ -130,16 +149,18 @@ export default function NewArticlePage() {
               <button
                 type="button"
                 onClick={handleSaveDraft}
-                className="rounded-full border border-slate-700 bg-slate-950 px-5 py-2.5 font-semibold text-white hover:border-slate-500 hover:bg-slate-800"
+                disabled={isSubmitting}
+                className="rounded-full border border-slate-700 bg-slate-950 px-5 py-2.5 font-semibold text-white hover:border-slate-500 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Save draft
+                {isSubmitting ? 'Saving...' : 'Save draft'}
               </button>
               <button
                 type="button"
                 onClick={handleSubmitForReview}
-                className="rounded-full bg-cyan-500 px-5 py-2.5 font-semibold text-slate-950 hover:bg-cyan-400"
+                disabled={isSubmitting}
+                className="rounded-full bg-cyan-500 px-5 py-2.5 font-semibold text-slate-950 hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Submit for review
+                {isSubmitting ? 'Submitting...' : 'Submit for review'}
               </button>
             </div>
           </section>
