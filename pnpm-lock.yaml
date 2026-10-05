@@ -17,6 +17,9 @@ importers:
 
   apps/admin:
     dependencies:
+      '@kjin/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
       '@supabase/supabase-js':
         specifier: ^2.56.1
         version: 2.117.2
