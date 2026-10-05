@@ -7,9 +7,9 @@ import { summarizeArticleQueue } from '@kjin/db';
 import { supabase } from '@/lib/supabase';
 
 const fallbackQueue = [
-  { title: 'District update: Srinagar power outage', status: 'review', summary: 'Awaiting editorial sign-off.' },
-  { title: 'Election monitoring brief', status: 'draft', summary: 'Ready for final review.' },
-  { title: 'Local development coverage', status: 'published', summary: 'Published to the public desk.' },
+  { id: 'fallback-review-1', title: 'District update: Srinagar power outage', status: 'review', summary: 'Awaiting editorial sign-off.' },
+  { id: 'fallback-draft-1', title: 'Election monitoring brief', status: 'draft', summary: 'Ready for final review.' },
+  { id: 'fallback-published-1', title: 'Local development coverage', status: 'published', summary: 'Published to the public desk.' },
 ];
 
 export default function DashboardPage() {
@@ -17,7 +17,7 @@ export default function DashboardPage() {
   const [status, setStatus] = useState('Checking auth session...');
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
-  const [queue, setQueue] = useState(fallbackQueue);
+  const [queue, setQueue] = useState<Array<{ id?: string; title: string; status: string; summary: string }>>(fallbackQueue);
   const [stats, setStats] = useState([
     { label: 'Drafts', value: 1 },
     { label: 'Pending review', value: 1 },
@@ -184,14 +184,18 @@ export default function DashboardPage() {
                       : 'bg-cyan-500/15 text-cyan-300';
 
                 return (
-                  <li key={`${item.title}-${item.status}`} className="flex items-center justify-between gap-4 rounded-xl border border-slate-800 bg-slate-950 p-4">
-                    <div>
-                      <p className="font-medium text-white">{item.title}</p>
-                      <p className="mt-1 text-sm text-slate-400">{item.summary}</p>
+                  <li key={`${item.id ?? item.title}-${item.status}`} className="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <a href={item.id ? `/articles/${item.id}/review` : '#'} className="font-medium text-white hover:text-cyan-300">
+                          {item.title}
+                        </a>
+                        <p className="mt-1 text-sm text-slate-400">{item.summary}</p>
+                      </div>
+                      <span className={`rounded-full px-2 py-1 text-xs font-medium ${tagClass}`}>
+                        {item.status}
+                      </span>
                     </div>
-                    <span className={`rounded-full px-2 py-1 text-xs font-medium ${tagClass}`}>
-                      {item.status}
-                    </span>
                   </li>
                 );
               })}

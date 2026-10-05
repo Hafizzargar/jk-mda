@@ -11,6 +11,7 @@ export type DashboardStat = {
 };
 
 export type DashboardQueueItem = {
+  id?: string;
   title: string;
   status: ArticleStatus;
   summary: string;
@@ -31,7 +32,7 @@ export function normalizeArticleInsert(article: ArticleDraft) {
   };
 }
 
-export function summarizeArticleQueue(articles: Array<Pick<ArticleDraft, 'title' | 'summary' | 'status'>>) {
+export function summarizeArticleQueue(articles: Array<Pick<ArticleDraft, 'id' | 'title' | 'summary' | 'status'>>) {
   const counts = {
     draft: 0,
     review: 0,
@@ -54,6 +55,7 @@ export function summarizeArticleQueue(articles: Array<Pick<ArticleDraft, 'title'
     })
     .slice(0, 6)
     .map((article) => ({
+      id: article.id,
       title: article.title,
       status: article.status ?? 'draft',
       summary: article.summary || 'No summary available yet.',
