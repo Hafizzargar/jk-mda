@@ -134,6 +134,10 @@ create table if not exists public.employee_invite_requests (
   reviewed_at timestamptz
 );
 
+create unique index if not exists idx_employee_invite_request_pending_email
+on public.employee_invite_requests (lower(email))
+where status = 'pending';
+
 create table if not exists public.employee_invites (
   id uuid primary key default gen_random_uuid(),
   email text not null,
@@ -376,6 +380,7 @@ declare
   request_id uuid;
   actor_rank smallint;
   requested_rank smallint;
+  recent_requests integer;
 begin
   if auth.uid() is null or not public.has_permission('employee.invite.request') then
     raise exception 'Active employee access is required';
@@ -383,6 +388,12 @@ begin
   if nullif(trim(coalesce(p_reason, '')), '') is null then raise exception 'A reason is required'; end if;
   if p_requested_role not in ('author', 'editor', 'admin', 'superadmin') then
     raise exception 'Owner invitations require the controlled bootstrap process';
+  end if;
+  if length(trim(coalesce(p_email, ''))) > 254
+    or trim(coalesce(p_email, '')) !~ '^[^[:space:]@]+@[^[:space:]@]+\.[^[:space:]@]+$'
+    or length(trim(coalesce(p_display_name, ''))) not between 1 and 120
+    or length(trim(coalesce(p_reason, ''))) > 1000 then
+    raise exception 'Invitation request fields are invalid';
   end if;
   select roles.hierarchy_rank into actor_rank
   from public.profiles profiles
@@ -392,6 +403,10 @@ begin
   if requested_rank is null or requested_rank > actor_rank then
     raise exception 'You cannot request an employee above your role level';
   end if;
+  select count(*) into recent_requests
+  from public.employee_invite_requests
+  where requested_by = auth.uid() and created_at > now() - interval '24 hours';
+  if recent_requests >= 10 then raise exception 'Daily employee invitation request limit reached'; end if;
 
   insert into public.employee_invite_requests (requested_by, email, display_name, requested_role, reason)
   values (auth.uid(), lower(trim(p_email)), trim(coalesce(p_display_name, '')), p_requested_role, trim(coalesce(p_reason, '')))
@@ -515,6 +530,7 @@ declare
 begin
   if not public.has_permission('employee.deletion.request') then raise exception 'Employee deletion request access is required'; end if;
   if nullif(trim(coalesce(p_reason, '')), '') is null then raise exception 'A reason is required'; end if;
+  if length(trim(p_reason)) > 1000 then raise exception 'Reason is too long'; end if;
   if nullif(trim(coalesce(p_reason, '')), '') is null then raise exception 'A reason is required'; end if;
   select role_key into target_role from public.profiles where id = p_target_id;
   if target_role is null or target_role = 'owner' or p_target_id = auth.uid() then raise exception 'This employee cannot be requested for deletion'; end if;

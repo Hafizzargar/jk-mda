@@ -192,6 +192,14 @@ select extensions.throws_ok(
   $$ select public.request_employee_invite('missing-reason@test.invalid', 'Missing Reason', 'author', '') $$,
   'P0001', 'A reason is required', 'Invitation request requires a reason'
 );
+select extensions.lives_ok(
+  $$ select public.request_employee_invite('duplicate-request@test.invalid', 'Duplicate Request', 'author', 'First request') $$,
+  'First pending request for an email is accepted'
+);
+select extensions.throws_ok(
+  $$ select public.request_employee_invite('DUPLICATE-REQUEST@test.invalid', 'Duplicate Request', 'author', 'Second request') $$,
+  '23505', null, 'Duplicate pending invitation requests are rejected case-insensitively'
+);
 select extensions.throws_ok(
   $$ select public.request_employee_deletion('10000000-0000-0000-0000-000000000001', 'Protect Owner') $$,
   'P0001', 'This employee cannot be requested for deletion', 'Admin cannot request Owner deletion'
@@ -286,6 +294,22 @@ select extensions.throws_ok(
 select extensions.is(
   has_table_privilege('authenticated', 'public.role_permissions', 'select'),
   false, 'Authenticated users cannot read permission grants directly'
+);
+select extensions.is(
+  has_table_privilege('authenticated', 'public.permissions', 'select'),
+  false, 'Authenticated users cannot read the permission catalog directly'
+);
+select extensions.is(
+  has_table_privilege('authenticated', 'public.profiles', 'update'),
+  false, 'Authenticated users cannot directly update employee profiles'
+);
+select extensions.is(
+  has_table_privilege('authenticated', 'public.profiles', 'insert'),
+  false, 'Authenticated users cannot directly insert employee profiles'
+);
+select extensions.is(
+  has_table_privilege('authenticated', 'public.audit_logs', 'insert'),
+  false, 'Authenticated users cannot directly write audit events'
 );
 
 select * from extensions.finish();

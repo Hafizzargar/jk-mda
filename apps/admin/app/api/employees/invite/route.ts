@@ -54,6 +54,34 @@ export async function POST(request: Request) {
   if (!/^\S+@\S+\.\S+$/.test(email) || !displayName || !Object.hasOwn(roleRanks, roleKey)) {
     return Response.json({ error: 'A valid email, name, and role are required.' }, { status: 400 });
   }
+  if (email.length > 254 || displayName.length > 120 || reason.length > 1000) {
+    return Response.json({ error: 'Invitation fields exceed the allowed length.' }, { status: 400 });
+  }
+
+  const now = new Date();
+  await authorization.service
+    .from('employee_invites')
+    .update({ status: 'revoked' })
+    .eq('email', email)
+    .in('status', ['sending', 'invited'])
+    .lt('expires_at', now.toISOString());
+
+  const { error: rateLimitError } = await authorization.userClient.rpc('claim_employee_invitation_attempt');
+  if (rateLimitError?.message.includes('Daily employee invitation limit')) {
+    await authorization.service.from('audit_logs').insert({
+      actor_profile_id: authorization.user.id,
+      action: 'employee.invite_rate_limited',
+      target_type: 'employee_invite',
+      result: 'denied',
+      reason,
+      details: { email, role_key: roleKey, limit: 20 },
+      ...authorization.auditContext,
+    });
+    return Response.json({ error: 'Daily employee invitation limit reached.' }, { status: 429 });
+  }
+  if (rateLimitError) {
+    return Response.json({ error: 'Unable to validate invitation limits.' }, { status: 503 });
+  }
 
   const { data: actorRole } = await authorization.service
     .from('roles')
@@ -97,13 +125,40 @@ export async function POST(request: Request) {
     return Response.json({ error: inviteRowError?.message ?? 'Unable to create invitation.' }, { status: 409 });
   }
 
-  const { data: invited, error: authError } = await authorization.service.auth.admin.inviteUserByEmail(email, {
+  const sendInvite = () => authorization.service.auth.admin.inviteUserByEmail(email, {
     data: {
       display_name: displayName,
       employee_invite_id: invite.id,
     },
     redirectTo: `${process.env.NEXT_PUBLIC_ADMIN_URL ?? 'http://localhost:3001'}/login`,
   });
+  let inviteResult = await sendInvite();
+
+  if (inviteResult.error) {
+    const { data: staleProfile } = await authorization.service
+      .from('profiles')
+      .select('id')
+      .eq('email', email)
+      .eq('status', 'invited')
+      .maybeSingle();
+
+    if (staleProfile) {
+      const { data: expiredInvite } = await authorization.service
+        .from('employee_invites')
+        .select('id')
+        .eq('auth_user_id', staleProfile.id)
+        .eq('status', 'revoked')
+        .lt('expires_at', now.toISOString())
+        .maybeSingle();
+
+      if (expiredInvite) {
+        const { error: deleteError } = await authorization.service.auth.admin.deleteUser(staleProfile.id);
+        if (!deleteError) inviteResult = await sendInvite();
+      }
+    }
+  }
+
+  const { data: invited, error: authError } = inviteResult;
 
   if (authError || !invited.user) {
     const failureReason = authError?.message ?? 'Auth did not return an invited user.';
