@@ -58,7 +58,10 @@ export default function ArticleReviewPage() {
     setIsSubmitting(true);
     setStatusMessage(`Updating article to ${nextStatus}...`);
 
-    const { error } = await supabase.from('articles').update({ status: nextStatus }).eq('id', article.id);
+    const { error } = await supabase.rpc('transition_article_status', {
+      p_article_id: article.id,
+      p_next_status: nextStatus,
+    });
 
     if (error) {
       setStatusMessage(`Failed to update article: ${error.message}`);

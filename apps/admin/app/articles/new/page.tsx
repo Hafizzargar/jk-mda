@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { normalizeArticleInsert } from '@kjin/db';
 import type { ArticleDraft, ArticleStatus, NewsLanguage } from '@kjin/types';
 import { supabase } from '@/lib/supabase';
 
@@ -36,10 +35,15 @@ export default function NewArticlePage() {
     setIsSubmitting(true);
     setNotice('Saving article to Supabase...');
 
-    const payload = normalizeArticleInsert({ ...draft, status: nextStatus });
-
     try {
-      const { error } = await supabase.from('articles').insert([payload]);
+      const { error } = await supabase.rpc('create_article', {
+        p_title: draft.title.trim(),
+        p_summary: draft.summary.trim(),
+        p_body: draft.body.trim(),
+        p_category: draft.category.trim(),
+        p_language: draft.language,
+        p_submit_for_review: nextStatus === 'review',
+      });
 
       if (error) {
         throw error;
@@ -49,7 +53,7 @@ export default function NewArticlePage() {
       setNotice(
         nextStatus === 'review'
           ? 'Article submitted for editorial review.'
-          : `Draft saved for ${payload.author || 'anonymous author'}.`
+          : 'Draft saved.'
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to save article right now.';
@@ -88,15 +92,6 @@ export default function NewArticlePage() {
                   onChange={(event) => updateField('title', event.target.value)}
                   className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition focus:border-cyan-500"
                   placeholder="Srinagar launches new civic alert system"
-                />
-              </label>
-
-              <label className="block text-sm text-slate-300">
-                <span className="mb-2 block">Author</span>
-                <input
-                  value={draft.author}
-                  onChange={(event) => updateField('author', event.target.value)}
-                  className="w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none transition focus:border-cyan-500"
                 />
               </label>
 
@@ -180,7 +175,7 @@ export default function NewArticlePage() {
                   <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{draft.category}</p>
                   <h2 className="mt-3 text-2xl font-bold text-white">{previewTitle}</h2>
                   <p className="mt-3 text-sm text-slate-300">{draft.summary || 'Add a summary to describe the article.'}</p>
-                  <p className="mt-4 text-xs text-slate-400">By {draft.author || 'Unknown author'} • {draft.language.toUpperCase()}</p>
+                  <p className="mt-4 text-xs text-slate-400">Author assigned from your account • {draft.language.toUpperCase()}</p>
                 </div>
                 <div className="rounded-xl border border-slate-800 bg-slate-950 p-4 text-sm text-slate-300 whitespace-pre-line">
                   {draft.body || 'The article content will appear here.'}

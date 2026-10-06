@@ -17,7 +17,7 @@ export default function LoginPage() {
     setStatus('Signing in with Supabase Auth...');
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -28,8 +28,7 @@ export default function LoginPage() {
         return;
       }
 
-      const role = data.user?.app_metadata?.role ?? 'editor';
-      setStatus(`Signed in successfully as ${role}. Redirecting...`);
+      setStatus('Signed in successfully. Checking your KJIN profile...');
       router.push('/');
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Unable to sign in right now.');

@@ -73,6 +73,8 @@ test('summarizePublishedArticles keeps only public stories and returns a clean c
 test('canTransitionArticleStatus enforces the allowed editorial state machine', () => {
   assert.equal(canTransitionArticleStatus('draft', 'review'), true);
   assert.equal(canTransitionArticleStatus('review', 'published'), true);
+  assert.equal(canTransitionArticleStatus('draft', 'published'), false);
+  assert.equal(canTransitionArticleStatus('draft', 'archived'), false);
   assert.equal(canTransitionArticleStatus('published', 'draft'), false);
   assert.equal(canTransitionArticleStatus('review', 'archived'), true);
   assert.equal(canTransitionArticleStatus('archived', 'published'), false);

@@ -21,7 +21,7 @@ export const articleStatusOptions = ['draft', 'review', 'published', 'archived']
 export const articleLanguageOptions: NewsLanguage[] = ['en', 'ur', 'hi'];
 
 export const articleStatusTransitions: Record<ArticleStatus, ArticleStatus[]> = {
-  draft: ['review', 'archived'],
+  draft: ['review'],
   review: ['draft', 'published', 'archived'],
   published: ['archived'],
   archived: [],

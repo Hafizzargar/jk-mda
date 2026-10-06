@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { canAccessRole, resolveUserRole } from '@kjin/auth';
+import { canAccessRole } from '@kjin/auth';
 import { summarizeArticleQueue } from '@kjin/db';
 import { supabase } from '@/lib/supabase';
 
@@ -43,11 +43,23 @@ export default function DashboardPage() {
           return;
         }
 
-        const sessionUserRole = resolveUserRole(data.session.user);
-        setUserRole(sessionUserRole ?? null);
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role, status')
+          .eq('id', data.session.user.id)
+          .single();
+
+        if (profileError || profile.status !== 'active') {
+          setStatus('No active KJIN profile is associated with this account.');
+          setIsAuthorized(false);
+          return;
+        }
+
+        const sessionUserRole = profile.role;
+        setUserRole(sessionUserRole);
 
         if (!sessionUserRole) {
-          setStatus('No valid editor role was found in the current Supabase account metadata.');
+          setStatus('No valid role is associated with this profile.');
           setIsAuthorized(false);
           return;
         }

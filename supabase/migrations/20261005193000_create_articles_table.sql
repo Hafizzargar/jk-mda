@@ -1,4 +1,10 @@
-create type public.article_status as enum ('draft', 'review', 'published', 'archived');
+do $$
+begin
+  create type public.article_status as enum ('draft', 'review', 'published', 'archived');
+exception
+  when duplicate_object then null;
+end;
+$$;
 
 create table if not exists public.articles (
   id uuid primary key default gen_random_uuid(),
@@ -27,6 +33,7 @@ begin
 end;
 $$;
 
+drop trigger if exists articles_set_updated_at on public.articles;
 create trigger articles_set_updated_at
 before update on public.articles
 for each row
@@ -39,7 +46,7 @@ returns boolean
 language sql
 stable
 as $$
-  select lower(coalesce((auth.jwt() -> 'app_metadata' ->> 'role'), (auth.jwt() -> 'user_metadata' ->> 'role'), 'author')) in ('owner', 'superadmin', 'admin', 'editor');
+  select false;
 $$;
 
 create or replace function public.user_has_author_access()
@@ -50,22 +57,26 @@ as $$
   select auth.uid() is not null;
 $$;
 
+drop policy if exists "Published articles are public" on public.articles;
 create policy "Published articles are public"
 on public.articles
 for select
 using (status = 'published' or public.user_has_editor_access());
 
+drop policy if exists "Authors can create draft articles" on public.articles;
 create policy "Authors can create draft articles"
 on public.articles
 for insert
-with check (public.user_has_author_access() and status in ('draft', 'review'));
+with check (public.user_has_author_access() and status = 'draft');
 
+drop policy if exists "Editors can update article state" on public.articles;
 create policy "Editors can update article state"
 on public.articles
 for update
 using (public.user_has_editor_access())
 with check (public.user_has_editor_access());
 
+drop policy if exists "Editors can delete articles" on public.articles;
 create policy "Editors can delete articles"
 on public.articles
 for delete
