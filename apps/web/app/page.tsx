@@ -1,17 +1,32 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { summarizePublishedArticles } from '@kjin/db';
 import { supabase } from '@/lib/supabase';
 
-const stories = [
-  'Verified district reporting',
-  'Multilingual coverage in English, Urdu, and Hindi',
-  'AI-assisted newsroom with human review',
-  'Transparent sourcing and editorial checks',
+const fallbackStories = [
+  {
+    id: 'fallback-1',
+    title: 'Verified district reporting',
+    summary: 'High-trust local coverage built around community accountability.',
+    category: 'Local',
+    author: 'KJIN desk',
+    language: 'en',
+  },
+  {
+    id: 'fallback-2',
+    title: 'Multilingual public updates',
+    summary: 'Daily reporting across English, Urdu, and Hindi to reduce information gaps.',
+    category: 'Languages',
+    author: 'KJIN desk',
+    language: 'ur',
+  },
 ];
 
 export default function HomePage() {
   const [status, setStatus] = useState('Checking Supabase connection...');
+  const [stories, setStories] = useState<Array<{ id?: string; title: string; summary: string; category: string; author: string; language: string }>>(fallbackStories);
 
   useEffect(() => {
     async function checkSupabase() {
@@ -26,6 +41,30 @@ export default function HomePage() {
     }
 
     checkSupabase();
+  }, []);
+
+  useEffect(() => {
+    async function loadPublishedStories() {
+      try {
+        const { data, error } = await supabase
+          .from('articles')
+          .select('*')
+          .eq('status', 'published')
+          .order('created_at', { ascending: false })
+          .limit(6);
+
+        if (error || !data || data.length === 0) {
+          return;
+        }
+
+        const publicStories = summarizePublishedArticles(data);
+        setStories(publicStories);
+      } catch {
+        // keep the fallback copy when public rows are not yet available
+      }
+    }
+
+    loadPublishedStories();
   }, []);
 
   return (
@@ -64,10 +103,17 @@ export default function HomePage() {
 
         <div id="features" className="mt-16 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {stories.map((story) => (
-            <div key={story} className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5 shadow-lg shadow-cyan-950/20">
+            <Link
+              key={story.id}
+              href={story.id ? `/articles/${story.id}` : '#'}
+              className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5 shadow-lg shadow-cyan-950/20 transition hover:border-cyan-500/60 hover:bg-slate-900"
+            >
               <div className="mb-3 h-2 w-12 rounded-full bg-cyan-400" />
-              <p className="text-base text-slate-200">{story}</p>
-            </div>
+              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{story.category}</p>
+              <h2 className="mt-3 text-xl font-semibold text-white">{story.title}</h2>
+              <p className="mt-3 text-base text-slate-200">{story.summary}</p>
+              <p className="mt-4 text-xs uppercase tracking-[0.15em] text-cyan-300">{story.language.toUpperCase()}</p>
+            </Link>
           ))}
         </div>
       </section>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { canTransitionArticleStatus } from '@kjin/db';
 import { supabase } from '@/lib/supabase';
 
 type ReviewArticle = {
@@ -46,6 +47,11 @@ export default function ArticleReviewPage() {
 
   const updateStatus = async (nextStatus: ReviewArticle['status']) => {
     if (!article) {
+      return;
+    }
+
+    if (!canTransitionArticleStatus(article.status, nextStatus)) {
+      setStatusMessage(`Invalid transition from ${article.status} to ${nextStatus}.`);
       return;
     }
 

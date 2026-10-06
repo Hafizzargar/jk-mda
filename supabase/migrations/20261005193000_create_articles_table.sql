@@ -34,23 +34,39 @@ execute function public.set_updated_at();
 
 alter table public.articles enable row level security;
 
-create policy "Authenticated users can read articles"
+create or replace function public.user_has_editor_access()
+returns boolean
+language sql
+stable
+as $$
+  select lower(coalesce((auth.jwt() -> 'app_metadata' ->> 'role'), (auth.jwt() -> 'user_metadata' ->> 'role'), 'author')) in ('owner', 'superadmin', 'admin', 'editor');
+$$;
+
+create or replace function public.user_has_author_access()
+returns boolean
+language sql
+stable
+as $$
+  select auth.uid() is not null;
+$$;
+
+create policy "Published articles are public"
 on public.articles
 for select
-using (auth.uid() is not null);
+using (status = 'published' or public.user_has_editor_access());
 
-create policy "Authenticated users can create articles"
+create policy "Authors can create draft articles"
 on public.articles
 for insert
-with check (auth.uid() is not null);
+with check (public.user_has_author_access() and status in ('draft', 'review'));
 
-create policy "Authenticated users can update articles"
+create policy "Editors can update article state"
 on public.articles
 for update
-using (auth.uid() is not null)
-with check (auth.uid() is not null);
+using (public.user_has_editor_access())
+with check (public.user_has_editor_access());
 
-create policy "Authenticated users can delete articles"
+create policy "Editors can delete articles"
 on public.articles
 for delete
-using (auth.uid() is not null);
+using (public.user_has_editor_access());

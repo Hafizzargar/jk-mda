@@ -20,6 +20,18 @@ export type DashboardQueueItem = {
 export const articleStatusOptions = ['draft', 'review', 'published', 'archived'] as const;
 export const articleLanguageOptions: NewsLanguage[] = ['en', 'ur', 'hi'];
 
+export const articleStatusTransitions: Record<ArticleStatus, ArticleStatus[]> = {
+  draft: ['review', 'archived'],
+  review: ['draft', 'published', 'archived'],
+  published: ['archived'],
+  archived: [],
+};
+
+export function canTransitionArticleStatus(currentStatus: ArticleStatus | null | undefined, nextStatus: ArticleStatus) {
+  const validTransitions = articleStatusTransitions[currentStatus ?? 'draft'] ?? [];
+  return validTransitions.includes(nextStatus);
+}
+
 export function normalizeArticleInsert(article: ArticleDraft) {
   return {
     title: article.title.trim(),
@@ -69,5 +81,19 @@ export function summarizeArticleQueue(articles: Array<Pick<ArticleDraft, 'id' | 
   ];
 
   return { stats, queue };
+}
+
+export function summarizePublishedArticles(articles: Array<Pick<ArticleDraft, 'id' | 'title' | 'summary' | 'category' | 'author' | 'language' | 'status'>>) {
+  return articles
+    .filter((article) => article.status === 'published')
+    .sort((left, right) => (right.title || '').localeCompare(left.title || ''))
+    .map((article) => ({
+      id: article.id,
+      title: article.title,
+      summary: article.summary || 'Read the latest report from KJIN.',
+      category: article.category || 'General',
+      author: article.author || 'KJIN desk',
+      language: article.language || 'en',
+    }));
 }
 

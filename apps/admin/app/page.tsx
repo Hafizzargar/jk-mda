@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { canAccessRole } from '@kjin/auth';
+import { canAccessRole, resolveUserRole } from '@kjin/auth';
 import { summarizeArticleQueue } from '@kjin/db';
 import { supabase } from '@/lib/supabase';
 
@@ -36,13 +36,19 @@ export default function DashboardPage() {
           return;
         }
 
-        const sessionUserRole = data.session?.user?.app_metadata?.role ?? 'editor';
-        setUserRole(sessionUserRole);
-
         if (!data.session) {
           setStatus('No active session. Redirecting to sign in.');
           setIsAuthorized(false);
           router.push('/login');
+          return;
+        }
+
+        const sessionUserRole = resolveUserRole(data.session.user);
+        setUserRole(sessionUserRole ?? null);
+
+        if (!sessionUserRole) {
+          setStatus('No valid editor role was found in the current Supabase account metadata.');
+          setIsAuthorized(false);
           return;
         }
 
