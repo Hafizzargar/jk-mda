@@ -2,10 +2,11 @@
   "name": "@kjin/admin",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3001",
+    "dev": "node --env-file=../../.env.local ./node_modules/next/dist/bin/next dev --port 3001",
     "build": "next build",
     "start": "next start --port 3001",
     "lint": "next lint",
+    "bootstrap-owner": "node --env-file=../../.env.local --experimental-strip-types scripts/bootstrap-owner.mts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

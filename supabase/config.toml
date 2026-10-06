@@ -13,7 +13,8 @@ shadow_port = 54320
 port = 54323
 
 [auth]
-site_url = "http://localhost:3000"
+site_url = "http://localhost:3001"
+enable_signup = false
 
 [storage]
 file_size_limit = "50MiB"

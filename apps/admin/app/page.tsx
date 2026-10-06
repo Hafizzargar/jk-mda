@@ -172,12 +172,20 @@ export default function DashboardPage() {
         </div>
 
         <div className="mb-8 flex justify-end">
-          <a
-            href="/articles/new"
-            className="rounded-full bg-cyan-500 px-5 py-2.5 font-semibold text-slate-950 hover:bg-cyan-400"
-          >
-            New article
-          </a>
+          <div className="flex gap-3">
+            <a
+              href="/employees"
+              className="rounded-full border border-slate-700 px-5 py-2.5 font-semibold text-white hover:border-cyan-500"
+            >
+              Employees
+            </a>
+            <a
+              href="/articles/new"
+              className="rounded-full bg-cyan-500 px-5 py-2.5 font-semibold text-slate-950 hover:bg-cyan-400"
+            >
+              New article
+            </a>
+          </div>
         </div>
 
         <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
