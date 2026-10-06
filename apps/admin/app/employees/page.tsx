@@ -271,29 +271,6 @@ export default function EmployeesPage() {
     await loadWorkspace();
   };
 
-  const updateContact = async (employee: Employee) => {
-    const email = window.prompt('Employee email:', employee.email ?? '');
-    if (email === null) return;
-    const phone = window.prompt('Employee phone:', employee.phone ?? '');
-    if (phone === null) return;
-    const reason = window.prompt('Reason for this contact change:');
-    if (!reason?.trim()) return;
-    const { data } = await supabase.auth.getSession();
-    setIsSubmitting(true);
-    const response = await fetch(`/api/employees/${employee.id}/contact`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(data.session?.access_token ? { Authorization: `Bearer ${data.session.access_token}` } : {}),
-      },
-      body: JSON.stringify({ email, phone, reason: reason.trim() }),
-    });
-    const result = (await response.json()) as { error?: string };
-    setStatus(response.ok ? 'Contact update submitted to Supabase Auth.' : `Contact update failed: ${result.error ?? 'Unknown error.'}`);
-    setIsSubmitting(false);
-    await loadWorkspace();
-  };
-
   const updateEmployeeStatus = async (employee: Employee, nextStatus: 'active' | 'disabled') => {
     const reason = window.prompt(`Reason for ${nextStatus === 'disabled' ? 'disabling' : 'enabling'} this employee:`);
     if (!reason?.trim()) return;
@@ -406,6 +383,12 @@ export default function EmployeesPage() {
 
         {isLoading ? <p className="py-12 text-center text-slate-400">Loading employee records...</p> : null}
 
+        {!isLoading && can('employee.contact.update') ? (
+          <p className="mb-6 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
+            Login email and phone changes are paused until target verification and recent reauthentication are available.
+          </p>
+        ) : null}
+
         {!isLoading && activeTab === 'add' ? (
           <section className="grid gap-8 lg:grid-cols-2">
             {can('employee.invite') ? (
@@ -504,7 +487,6 @@ export default function EmployeesPage() {
                       <td className="px-3 py-4">
                         <div className="flex flex-wrap gap-2">
                           {employee.can_manage && can('employee.basic.update') ? <button type="button" disabled={isSubmitting} onClick={() => void updateBasicDetails(employee)} className="rounded-md border border-slate-700 px-2.5 py-1.5 hover:border-cyan-400">Edit name</button> : null}
-                          {employee.can_manage && can('employee.contact.update') ? <button type="button" disabled={isSubmitting} onClick={() => void updateContact(employee)} className="rounded-md border border-slate-700 px-2.5 py-1.5 hover:border-cyan-400">Change contact</button> : null}
                           {employee.can_manage && can('employee.role.change') ? (
                             <select aria-label={`Change role for ${employee.display_name}`} value={employee.role_key} disabled={isSubmitting} onChange={(event) => void changeRole(employee, event.target.value as AuthRole)} className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 capitalize">
                               {[...new Set([employee.role_key, ...assignableRoles])].map((item) => <option key={item} value={item}>{item}</option>)}

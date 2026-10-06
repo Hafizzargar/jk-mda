@@ -20,22 +20,25 @@ type ReviewArticle = {
 export default function ArticleReviewPage() {
   const params = useParams<{ id: string }>();
   const [article, setArticle] = useState<ReviewArticle | null>(null);
+  const [permissions, setPermissions] = useState<string[]>([]);
   const [statusMessage, setStatusMessage] = useState('Loading article...');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     async function loadArticle() {
-      const { data, error } = await supabase
-        .from('articles')
-        .select('*')
-        .eq('id', params.id)
-        .single();
+      const [{ data, error }, permissionResult] = await Promise.all([
+        supabase.from('articles').select('*').eq('id', params.id).single(),
+        supabase.rpc('current_user_permissions'),
+      ]);
 
       if (error) {
         setStatusMessage(`Unable to load article: ${error.message}`);
         return;
       }
 
+      if (!permissionResult.error) {
+        setPermissions((permissionResult.data as string[] | null) ?? []);
+      }
       setArticle(data as ReviewArticle);
       setStatusMessage(`Article loaded with status: ${data.status}.`);
     }
@@ -117,30 +120,33 @@ export default function ArticleReviewPage() {
             <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6">
               <p className="text-sm uppercase tracking-[0.2em] text-cyan-300">Decision</p>
               <div className="mt-5 space-y-3">
-                <button
+                {permissions.includes('article.publish') ? <button
                   type="button"
                   onClick={() => updateStatus('published')}
                   disabled={isSubmitting}
                   className="w-full rounded-full bg-emerald-500 px-5 py-2.5 font-semibold text-slate-950 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Approve and publish
-                </button>
-                <button
+                </button> : null}
+                {permissions.includes('article.review') ? <button
                   type="button"
                   onClick={() => updateStatus('draft')}
                   disabled={isSubmitting}
                   className="w-full rounded-full border border-slate-700 bg-slate-950 px-5 py-2.5 font-semibold text-white hover:border-slate-500 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Send back to draft
-                </button>
-                <button
+                </button> : null}
+                {permissions.includes('article.review') ? <button
                   type="button"
                   onClick={() => updateStatus('archived')}
                   disabled={isSubmitting}
                   className="w-full rounded-full border border-red-500/40 bg-red-500/10 px-5 py-2.5 font-semibold text-red-200 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Reject and archive
-                </button>
+                </button> : null}
+                {!permissions.includes('article.publish') && !permissions.includes('article.review') ? (
+                  <p className="text-sm text-slate-400">Your account does not have a review action for this article.</p>
+                ) : null}
               </div>
             </div>
 

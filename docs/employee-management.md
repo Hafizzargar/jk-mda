@@ -6,6 +6,8 @@ Authorization is enforced through `profiles.role_key`, explicit `role_permission
 
 Role order is Owner, Superadmin, Admin, Editor, Author. Managers may only invite, update, change the role of, enable, or disable employees below their own rank. Owner cannot be assigned through the employee workspace. The database also prevents modifying an Owner and permits only one Owner profile.
 
+Article publication is explicitly reserved to Owner and Superadmin. Admin and Editor can review articles and return/archive them, but the publish RPC and RLS transition trigger deny publication to those roles. The review UI only presents the publish action when `article.publish` is granted.
+
 | Capability | Owner | Superadmin | Admin | Editor | Author |
 |---|---:|---:|---:|---:|---:|
 | Employee directory | Yes | Yes | Yes | Yes | Yes |
@@ -46,3 +48,5 @@ Deletion approval is a soft deprovision: the profile becomes disabled and Auth s
 Sensitive actions produce append-only audit rows with actor, action, target, result, reason, time, and available session/request/user-agent context. IP is nullable because it is only reliable when supplied by a trusted reverse proxy. Direct table writes are unavailable to browser roles.
 
 MFA, critical-action reauthentication, phone changes by invitation, hard deletion/anonymization retention policy, and employee MFA enforcement remain follow-up authentication/compliance work; this release does not claim those controls are complete.
+
+Login email and phone changes are currently blocked by the Admin API with an audited `501` response. They must not be enabled until the target proves control of the new contact and the acting manager completes recent reauthentication; updating Auth with a service key alone is not an acceptable verification flow.

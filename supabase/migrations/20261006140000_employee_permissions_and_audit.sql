@@ -69,6 +69,7 @@ from public.permissions as permissions
 where permissions.permission_key in (
   'employee.directory.read', 'employee.contacts.view', 'employee.invite.request',
   'employee.invite', 'employee.invite.review', 'employee.basic.update',
+  'employee.role.change',
   'employee.deletion.request', 'employee.deletion.view', 'employee.audit.read', 'article.create',
   'article.submit_review', 'article.review', 'article.publish',
   'advertisement.submit', 'advertisement.manage'
