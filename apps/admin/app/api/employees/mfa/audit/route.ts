@@ -21,6 +21,10 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Invalid audit action.' }, { status: 400 });
   }
 
+  if (body.action !== 'employee.mfa_challenge_failed' && auth.aal !== 'aal2') {
+    return Response.json({ error: 'MFA not fully verified.' }, { status: 400 });
+  }
+
   // Check if we already audited this factor recently to prevent spam
   const { data: recentAudit } = await auth.service
     .from('audit_logs')

@@ -35,8 +35,8 @@ export default function MFAEnrollmentPage() {
 
         // If nextLevel is aal2, they have enrolled but just need to verify (Login challenge)
         if (aalData.nextLevel === 'aal2') {
-          setStatus('MFA is already enrolled. Please log in again to perform the MFA challenge.');
-          // We will build the challenge page later, for now just redirect or show message
+          setStatus('MFA is already enrolled. Redirecting to verification...');
+          setTimeout(() => router.push('/mfa/challenge'), 500);
           return;
         }
 

@@ -189,6 +189,7 @@ export default function EmployeesPage() {
 
   useEffect(() => {
     void loadWorkspace();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const submitInviteRequest = async (event: FormEvent<HTMLFormElement>) => {

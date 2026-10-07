@@ -10,7 +10,7 @@ type QueryState = {
   terminal: 'single' | 'maybe' | null;
   limit: number | null;
 };
-type SupabaseResult = { data: unknown; error: { message: string; code?: string } | null };
+type SupabaseResult = { data: unknown; error: { message: string; code?: string } | null; count?: number | null };
 type RecordedCall =
   | { kind: 'auth'; op: string; arg?: string }
   | { kind: 'from'; table: string; action: string; filters: QueryFilter[] }
@@ -23,7 +23,7 @@ export const EXISTING_SUPERADMIN_ID = 'dddddddd-dddd-dddd-dddd-dddddddddddd';
 
 const ROLE_RANKS: Record<string, number> = { owner: 500, superadmin: 400, admin: 300, editor: 200, author: 100 };
 
-const ok = (data: unknown): SupabaseResult => ({ data, error: null });
+const ok = (data: unknown, count?: number | null): SupabaseResult => ({ data, error: null, count });
 const fail = (message: string, code?: string): SupabaseResult => ({ data: null, error: { message, code } });
 
 function matches(row: Record<string, unknown>, filter: QueryFilter): boolean {
@@ -108,13 +108,17 @@ export class Harness {
           return ok(null);
         }
         let rows = (this.fixtures[table] ?? []).filter((row) => state.filters.every((filter) => matches(row, filter)));
+        const totalCount = rows.length;
         if (state.limit != null) rows = rows.slice(0, state.limit);
-        if (state.terminal === 'single') return rows[0] ? ok(rows[0]) : fail('JSON object requested, multiple (or no) rows returned', 'PGRST116');
-        if (state.terminal === 'maybe') return ok(rows[0] ?? null);
-        return ok(rows);
+        if (state.terminal === 'single') return rows[0] ? ok(rows[0], totalCount) : fail('JSON object requested, multiple (or no) rows returned', 'PGRST116');
+        if (state.terminal === 'maybe') return ok(rows[0] ?? null, totalCount);
+        return ok(rows, totalCount);
       };
       const builder: Record<string, unknown> = {
-        select() {
+        select(columns?: string, options?: { count?: string; head?: boolean }) {
+          if (options?.head) {
+            state.terminal = 'maybe';
+          }
           return builder;
         },
         insert(payload: Record<string, unknown>) {
@@ -180,6 +184,13 @@ export class Harness {
             recordAuth('deleteUser', id);
             return ok({});
           },
+        },
+        mfa: {
+          verify: async (params: { factorId: string; challengeId: string; code: string }) => {
+            recordAuth('mfa.verify', params.code);
+            if (params.code === '000000') return ok({ session: { access_token: 'new-token' } });
+            return fail('Invalid code');
+          }
         },
       },
       from,

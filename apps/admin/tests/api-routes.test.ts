@@ -1,7 +1,7 @@
 import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { Harness, setHarness, TARGET_ID, EXISTING_SUPERADMIN_ID } from './support/harness.ts';
+import { Harness, setHarness, TARGET_ID, EXISTING_SUPERADMIN_ID, ACTOR_ID } from './support/harness.ts';
 
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key';
 
@@ -472,6 +472,83 @@ test('mfa: audit endpoint logs valid actions successfully', async () => {
     assert.equal(res.status, 200, `Failed for action ${action}`);
     assert.ok(harness.audits.some((row) => row.action === action));
   }
+});
+
+test('mfa: verify proxy enforces rate limiting', async () => {
+  const { POST } = await import('../app/api/employees/mfa/verify/route.ts');
+  configure({ role: 'admin' });
+  
+  // Seed 5 failed attempts
+  if (!harness.fixtures.audit_logs) harness.fixtures.audit_logs = [];
+  for (let i = 0; i < 5; i++) {
+    harness.fixtures.audit_logs.push({
+      id: crypto.randomUUID(),
+      actor_profile_id: ACTOR_ID,
+      action: 'employee.mfa_challenge_failed',
+      target_type: 'profile',
+      target_id: ACTOR_ID,
+      result: 'denied',
+      reason: 'Invalid TOTP code',
+      details: {},
+      created_at: new Date().toISOString(),
+    });
+  }
+
+  const res = await POST(
+    jsonRequest('http://localhost/api/employees/mfa/verify', {
+      token: 'dummy.eyJzZXNzaW9uX2lkIjogIm1vY2stc2Vzc2lvbiIsICJhYWwiOiAiYWFsMSJ9.dummy',
+      body: { factorId: 'fact-123', challengeId: 'chal-123', code: '000000' },
+    })
+  );
+  
+  const body = await res.json();
+  
+  assert.equal(res.status, 429);
+  assert.equal(body.error, 'Too many failed verification attempts. Please try again later.');
+});
+
+test('mfa: verify proxy rejects unauthenticated requests', async () => {
+  const { POST } = await import('../app/api/employees/mfa/verify/route.ts');
+  const res = await POST(
+    jsonRequest('http://localhost/api/employees/mfa/verify', {
+      body: { factorId: 'fact-123', challengeId: 'chal-123', code: '000000' },
+    })
+  );
+  assert.equal(res.status, 401);
+});
+
+test('mfa: verify proxy logs success and returns upgraded session on valid code', async () => {
+  const { POST } = await import('../app/api/employees/mfa/verify/route.ts');
+  configure({ role: 'admin' });
+  
+  const res = await POST(
+    jsonRequest('http://localhost/api/employees/mfa/verify', {
+      token: 'dummy.eyJzZXNzaW9uX2lkIjogIm1vY2stc2Vzc2lvbiIsICJhYWwiOiAiYWFsMSJ9.dummy',
+      body: { factorId: 'fact-123', challengeId: 'chal-123', code: '000000' },
+    })
+  );
+  
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.data.session.access_token, 'new-token');
+  assert.ok(harness.audits.some((row) => row.action === 'employee.mfa_challenge_success'));
+});
+
+test('mfa: verify proxy logs failure and returns 400 on invalid code', async () => {
+  const { POST } = await import('../app/api/employees/mfa/verify/route.ts');
+  configure({ role: 'admin' });
+  
+  const res = await POST(
+    jsonRequest('http://localhost/api/employees/mfa/verify', {
+      token: 'dummy.eyJzZXNzaW9uX2lkIjogIm1vY2stc2Vzc2lvbiIsICJhYWwiOiAiYWFsMSJ9.dummy',
+      body: { factorId: 'fact-123', challengeId: 'chal-123', code: '999999' },
+    })
+  );
+  
+  assert.equal(res.status, 400);
+  const body = await res.json();
+  assert.equal(body.error, 'Invalid code. Please check your authenticator app and try again.');
+  assert.ok(harness.audits.some((row) => row.action === 'employee.mfa_challenge_failed'));
 });
 
 

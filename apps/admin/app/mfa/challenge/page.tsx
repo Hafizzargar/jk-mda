@@ -71,21 +71,7 @@ function MFAChallengeForm() {
     initChallenge();
   }, [router, searchParams]);
 
-  const auditMfa = async (action: string) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      await fetch('/api/employees/mfa/audit', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`
-        },
-        body: JSON.stringify({ action }),
-      });
-    } catch {
-      // Best effort audit
-    }
-  };
+
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,25 +87,39 @@ function MFAChallengeForm() {
         throw new Error('Authentication challenge failed. Please try again.');
       }
       
-      const verifyResponse = await supabase.auth.mfa.verify({
-        factorId,
-        challengeId: challengeResponse.data.id,
-        code: verificationCode,
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const verifyResponse = await fetch('/api/employees/mfa/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`
+        },
+        body: JSON.stringify({
+          factorId,
+          challengeId: challengeResponse.data.id,
+          code: verificationCode,
+        }),
       });
       
-      if (verifyResponse.error) {
-        throw new Error('Invalid code. Please check your authenticator app and try again.');
+      const verifyResult = await verifyResponse.json();
+      
+      if (!verifyResponse.ok) {
+        throw new Error(verifyResult.error ?? 'Invalid code. Please check your authenticator app and try again.');
+      }
+      
+      // The API returns the upgraded session. We MUST set it so the browser knows we are AAL2.
+      if (verifyResult.data?.session) {
+        await supabase.auth.setSession(verifyResult.data.session);
       }
       
       // Verify the session actually became aal2
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      const { data: updatedSessionData, error: sessionError } = await supabase.auth.getSession();
       const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
       
-      if (sessionError || !session || aalData?.currentLevel !== 'aal2') {
+      if (sessionError || !updatedSessionData.session || aalData?.currentLevel !== 'aal2') {
         throw new Error('Session did not reach required security level.');
       }
-
-      await auditMfa('employee.mfa_challenge_success');
       
       setStatus('Verification successful! Redirecting...');
       const nextUrl = searchParams.get('next');
@@ -130,7 +130,6 @@ function MFAChallengeForm() {
       }
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Invalid code or verification failed.');
-      await auditMfa('employee.mfa_challenge_failed');
     } finally {
       setIsVerifying(false);
       setVerificationCode('');
