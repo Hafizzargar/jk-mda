@@ -1,4 +1,4 @@
-import { authorizeEmployeeRequest, isEmployeeAuthorization } from '@/lib/employee-server';
+import { authenticateEmployeeRequest, checkEmployeePermission, isEmployeeAuthorization } from '@/lib/employee-server';
 
 type EmployeeOperation =
   | 'request-invite'
@@ -49,6 +49,9 @@ function rpcArguments(operation: EmployeeOperation, body: Record<string, unknown
 }
 
 export async function POST(request: Request) {
+  const authorization = await authenticateEmployeeRequest(request);
+  if (!isEmployeeAuthorization(authorization)) return authorization;
+
   let body: Record<string, unknown>;
   try {
     body = (await request.json()) as Record<string, unknown>;
@@ -62,8 +65,8 @@ export async function POST(request: Request) {
   }
 
   const typedOperation = operation as EmployeeOperation;
-  const authorization = await authorizeEmployeeRequest(request, operationPermissions[typedOperation]);
-  if (!isEmployeeAuthorization(authorization)) return authorization;
+  const permissionError = await checkEmployeePermission(authorization, request, operationPermissions[typedOperation]);
+  if (permissionError) return permissionError;
 
   const { data, error } = await authorization.userClient.rpc(
     operationRpc[typedOperation],

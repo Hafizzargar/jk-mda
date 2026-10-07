@@ -23,9 +23,8 @@ type EmployeeAuthorization = {
   };
 };
 
-export async function authorizeEmployeeRequest(
-  request: Request,
-  permission: string
+export async function authenticateEmployeeRequest(
+  request: Request
 ): Promise<EmployeeAuthorization | Response> {
   const authorization = request.headers.get('authorization');
   const token = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
@@ -78,33 +77,53 @@ export async function authorizeEmployeeRequest(
       target_type: 'api_operation',
       result: 'denied',
       reason: 'An active employee profile is required.',
-      details: { permission, method: request.method, path: new URL(request.url).pathname },
+      details: { method: request.method, path: new URL(request.url).pathname },
       ...auditContext,
     });
     return Response.json({ error: 'An active KJIN employee profile is required.' }, { status: 403 });
   }
 
-  const { data: grant, error: grantError } = await service
+  return { user: userData.user, profile, service, userClient, auditContext };
+}
+
+export async function checkEmployeePermission(
+  auth: EmployeeAuthorization,
+  request: Request,
+  permission: string
+): Promise<Response | null> {
+  const { data: grant, error: grantError } = await auth.service
     .from('role_permissions')
     .select('permission_key')
-    .eq('role_key', profile.role_key)
+    .eq('role_key', auth.profile.role_key)
     .eq('permission_key', permission)
     .maybeSingle();
 
   if (grantError || !grant) {
-    await service.from('audit_logs').insert({
-      actor_profile_id: userData.user.id,
+    await auth.service.from('audit_logs').insert({
+      actor_profile_id: auth.user.id,
       action: 'employee.permission_denied',
       target_type: 'api_operation',
       result: 'denied',
       reason: `Missing permission: ${permission}`,
       details: { permission, method: request.method, path: new URL(request.url).pathname },
-      ...auditContext,
+      ...auth.auditContext,
     });
     return Response.json({ error: 'You do not have permission to perform this action.' }, { status: 403 });
   }
+  return null;
+}
 
-  return { user: userData.user, profile, service, userClient, auditContext };
+export async function authorizeEmployeeRequest(
+  request: Request,
+  permission: string
+): Promise<EmployeeAuthorization | Response> {
+  const auth = await authenticateEmployeeRequest(request);
+  if (auth instanceof Response) return auth;
+
+  const permissionError = await checkEmployeePermission(auth, request, permission);
+  if (permissionError) return permissionError;
+
+  return auth;
 }
 
 export function isEmployeeAuthorization(
