@@ -434,6 +434,46 @@ test('mfa: editor and author requests without AAL2 are allowed', async () => {
   }
 });
 
+test('mfa: audit endpoint rejects unauthenticated requests', async () => {
+  const { POST } = await import('../app/api/employees/mfa/audit/route.ts');
+  const res = await POST(jsonRequest('http://localhost/api/employees/mfa/audit', { body: { action: 'employee.mfa_enrolled' } }));
+  assert.equal(res.status, 401);
+});
+
+test('mfa: audit endpoint requires valid JSON action', async () => {
+  const { POST } = await import('../app/api/employees/mfa/audit/route.ts');
+  configure({ role: 'admin' });
+  const res = await POST(
+    jsonRequest('http://localhost/api/employees/mfa/audit', {
+      token: 'dummy.eyJzZXNzaW9uX2lkIjogIm1vY2stc2Vzc2lvbiIsICJhYWwiOiAiYWFsMiJ9.dummy',
+      body: { action: 'invalid_action' },
+    })
+  );
+  assert.equal(res.status, 400);
+});
+
+test('mfa: audit endpoint logs valid actions successfully', async () => {
+  const { POST } = await import('../app/api/employees/mfa/audit/route.ts');
+  configure({ role: 'admin' });
+  
+  const actions = [
+    'employee.mfa_enrolled',
+    'employee.mfa_challenge_success',
+    'employee.mfa_challenge_failed',
+  ];
+
+  for (const action of actions) {
+    const res = await POST(
+      jsonRequest('http://localhost/api/employees/mfa/audit', {
+        token: 'dummy.eyJzZXNzaW9uX2lkIjogIm1vY2stc2Vzc2lvbiIsICJhYWwiOiAiYWFsMiJ9.dummy',
+        body: { action },
+      })
+    );
+    assert.equal(res.status, 200, `Failed for action ${action}`);
+    assert.ok(harness.audits.some((row) => row.action === action));
+  }
+});
+
 
 
 
