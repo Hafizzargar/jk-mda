@@ -16,6 +16,7 @@
     "@kjin/types": "workspace:*",
     "@supabase/supabase-js": "^2.56.1",
     "next": "^15.3.5",
+    "qrcode.react": "^4.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },

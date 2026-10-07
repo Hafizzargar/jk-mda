@@ -64,6 +64,23 @@ export default function DashboardPage() {
           return;
         }
 
+        const mfaRequired = ['owner', 'superadmin', 'admin'].includes(sessionUserRole);
+        
+        if (mfaRequired) {
+          const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+          if (aalData?.currentLevel !== 'aal2') {
+            if (aalData?.nextLevel === 'aal2') {
+              setStatus('MFA is required. Redirecting to verification...');
+              router.push('/mfa/challenge'); // We will build this later
+              return;
+            } else {
+              setStatus('MFA setup is required. Redirecting to enrollment...');
+              router.push('/mfa/enroll');
+              return;
+            }
+          }
+        }
+
         const allowed = canAccessRole(sessionUserRole, 'editor');
         setIsAuthorized(allowed);
         setStatus(

@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { authRoles, type AuthRole } from '@kjin/auth';
 import { supabase } from '@/lib/supabase';
 
@@ -72,6 +73,7 @@ const tabs = [
 type TabId = (typeof tabs)[number]['id'];
 
 export default function EmployeesPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabId>('all');
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [inviteRequests, setInviteRequests] = useState<InviteRequest[]>([]);
@@ -126,7 +128,28 @@ export default function EmployeesPage() {
       return;
     }
 
-    setRole((roleResult.data as AuthRole | null) ?? null);
+    const sessionUserRole = roleResult.data as string | null;
+    if (!sessionUserRole) {
+      setStatus('No valid role found.');
+      setIsLoading(false);
+      return;
+    }
+
+    const mfaRequired = ['owner', 'superadmin', 'admin'].includes(sessionUserRole);
+    if (mfaRequired) {
+      const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aalData?.currentLevel !== 'aal2') {
+        if (aalData?.nextLevel === 'aal2') {
+          router.push('/mfa/challenge');
+          return;
+        } else {
+          router.push('/mfa/enroll');
+          return;
+        }
+      }
+    }
+
+    setRole((sessionUserRole as AuthRole | null) ?? null);
     setPermissions((permissionResult.data as string[] | null) ?? []);
     setEmployees((employeesResult.data as Employee[] | null) ?? []);
 
