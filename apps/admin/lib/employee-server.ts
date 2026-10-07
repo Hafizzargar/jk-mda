@@ -21,6 +21,7 @@ type EmployeeAuthorization = {
     request_id: string | null;
     user_agent: string | null;
   };
+  aal: string | null;
 };
 
 export async function authenticateEmployeeRequest(
@@ -52,12 +53,15 @@ export async function authenticateEmployeeRequest(
     auth: { persistSession: false, autoRefreshToken: false },
   });
   let sessionId: string | null = null;
+  let aal: string | null = null;
   try {
     const tokenPayload = token.split('.')[1];
-    const claims = JSON.parse(Buffer.from(tokenPayload, 'base64url').toString('utf8')) as { session_id?: string };
+    const claims = JSON.parse(Buffer.from(tokenPayload, 'base64url').toString('utf8')) as { session_id?: string, aal?: string };
     sessionId = claims.session_id ?? null;
+    aal = claims.aal ?? null;
   } catch {
     sessionId = null;
+    aal = null;
   }
   const auditContext = {
     session_id: sessionId,
@@ -83,7 +87,7 @@ export async function authenticateEmployeeRequest(
     return Response.json({ error: 'An active KJIN employee profile is required.' }, { status: 403 });
   }
 
-  return { user: userData.user, profile, service, userClient, auditContext };
+  return { user: userData.user, profile, service, userClient, auditContext, aal };
 }
 
 export async function checkEmployeePermission(
@@ -91,6 +95,20 @@ export async function checkEmployeePermission(
   request: Request,
   permission: string
 ): Promise<Response | null> {
+  const mfaRequired = ['owner', 'superadmin', 'admin'].includes(auth.profile.role_key);
+  if (mfaRequired && auth.aal !== 'aal2') {
+    await auth.service.from('audit_logs').insert({
+      actor_profile_id: auth.user.id,
+      action: 'employee.mfa_denied',
+      target_type: 'api_operation',
+      result: 'denied',
+      reason: 'Multi-factor authentication is required.',
+      details: { method: request.method, path: new URL(request.url).pathname },
+      ...auth.auditContext,
+    });
+    return Response.json({ error: 'Multi-factor authentication is required.' }, { status: 403 });
+  }
+
   const { data: grant, error: grantError } = await auth.service
     .from('role_permissions')
     .select('permission_key')

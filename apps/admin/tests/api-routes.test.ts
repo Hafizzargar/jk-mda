@@ -64,7 +64,7 @@ test('invite: rank-denied request returns 403 without consuming the daily quota'
   configure({ role: 'admin', grants: ['employee.invite'] });
   const res = await inviteRoute.POST(
     jsonRequest('http://localhost/api/employees/invite', {
-      token: 'test-token',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjogIm1vY2stc2Vzc2lvbiIsICJhYWwiOiAiYWFsMiJ9.dummy',
       body: { email: 'wannabe@example.com', display_name: 'Wannabe', role_key: 'superadmin', reason: 'Rank test' },
     })
   );
@@ -78,7 +78,7 @@ test('invite: second superadmin is rejected with 409 before any quota claim', as
   harness.addProfile({ id: EXISTING_SUPERADMIN_ID, role_key: 'superadmin', status: 'active' });
   const res = await inviteRoute.POST(
     jsonRequest('http://localhost/api/employees/invite', {
-      token: 'test-token',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjogIm1vY2stc2Vzc2lvbiIsICJhYWwiOiAiYWFsMiJ9.dummy',
       body: { email: 'second-super@example.com', display_name: 'Second Super', role_key: 'superadmin', reason: 'Slot test' },
     })
   );
@@ -99,7 +99,7 @@ test('invite: rate limit returns 429 after rank checks and audits the denial', a
   };
   const res = await inviteRoute.POST(
     jsonRequest('http://localhost/api/employees/invite', {
-      token: 'test-token',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjogIm1vY2stc2Vzc2lvbiIsICJhYWwiOiAiYWFsMiJ9.dummy',
       body: { email: 'newhire@example.com', display_name: 'New Hire', role_key: 'author', reason: 'Initial provisioning' },
     })
   );
@@ -117,7 +117,7 @@ test('invite: auth send failure does not leak internal error details', async () 
   };
   const res = await inviteRoute.POST(
     jsonRequest('http://localhost/api/employees/invite', {
-      token: 'test-token',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjogIm1vY2stc2Vzc2lvbiIsICJhYWwiOiAiYWFsMiJ9.dummy',
       body: { email: 'newhire@example.com', display_name: 'New Hire', role_key: 'author', reason: 'Initial provisioning' },
     })
   );
@@ -138,7 +138,7 @@ test('invite: pending-invite conflict maps to a friendly 409', async () => {
   };
   const res = await inviteRoute.POST(
     jsonRequest('http://localhost/api/employees/invite', {
-      token: 'test-token',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjogIm1vY2stc2Vzc2lvbiIsICJhYWwiOiAiYWFsMiJ9.dummy',
       body: { email: 'newhire@example.com', display_name: 'New Hire', role_key: 'author', reason: 'Initial provisioning' },
     })
   );
@@ -154,14 +154,14 @@ test('invite: pending-invite conflict maps to a friendly 409', async () => {
 
 test('operations: invalid JSON body returns 400', async () => {
   const res = await operationsRoute.POST(
-    jsonRequest('http://localhost/api/employees/operations', { body: 'not-json', token: 'test-token' })
+    jsonRequest('http://localhost/api/employees/operations', { body: 'not-json', token: 'dummy.eyJzZXNzaW9uX2lkIjogIm1vY2stc2Vzc2lvbiIsICJhYWwiOiAiYWFsMiJ9.dummy' })
   );
   assert.equal(res.status, 400);
 });
 
 test('operations: unsupported operation returns 400', async () => {
   const res = await operationsRoute.POST(
-    jsonRequest('http://localhost/api/employees/operations', { body: { operation: 'self-destruct' }, token: 'test-token' })
+    jsonRequest('http://localhost/api/employees/operations', { body: { operation: 'self-destruct' }, token: 'dummy.eyJzZXNzaW9uX2lkIjogIm1vY2stc2Vzc2lvbiIsICJhYWwiOiAiYWFsMiJ9.dummy' })
   );
   assert.equal(res.status, 400);
   const body = (await res.json()) as { error?: string };
@@ -183,7 +183,7 @@ test('operations: deliberate database raises pass through to the client', async 
   harness.rpcErrors.change_employee_role = { message: 'A reason is required', code: 'P0001' };
   const res = await operationsRoute.POST(
     jsonRequest('http://localhost/api/employees/operations', {
-      token: 'test-token',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjogIm1vY2stc2Vzc2lvbiIsICJhYWwiOiAiYWFsMiJ9.dummy',
       body: { operation: 'change-role', target_id: VALID_UUID, role_key: 'editor', reason: 'Testing' },
     })
   );
@@ -201,7 +201,7 @@ test('operations: internal database errors are hidden from the client but audite
   };
   const res = await operationsRoute.POST(
     jsonRequest('http://localhost/api/employees/operations', {
-      token: 'test-token',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjogIm1vY2stc2Vzc2lvbiIsICJhYWwiOiAiYWFsMiJ9.dummy',
       body: { operation: 'change-role', target_id: VALID_UUID, role_key: 'editor', reason: 'Testing' },
     })
   );
@@ -231,7 +231,7 @@ test('status: authenticated request with an invalid status returns 400', async (
   const res = await statusRoute.PATCH(
     jsonRequest('http://localhost/api/employees/status', {
       method: 'PATCH',
-      token: 'test-token',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjogIm1vY2stc2Vzc2lvbiIsICJhYWwiOiAiYWFsMiJ9.dummy',
       body: { status: 'bogus', reason: 'Testing' },
     }),
     params(VALID_UUID)
@@ -246,7 +246,7 @@ test('status: non-uuid id returns 400 before any profile lookup', async () => {
   const res = await statusRoute.PATCH(
     jsonRequest('http://localhost/api/employees/status', {
       method: 'PATCH',
-      token: 'test-token',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjogIm1vY2stc2Vzc2lvbiIsICJhYWwiOiAiYWFsMiJ9.dummy',
       body: { status: 'disabled', reason: 'Testing' },
     }),
     params('not-a-uuid')
@@ -263,7 +263,7 @@ test('status: target at or above actor rank returns 403', async () => {
   const res = await statusRoute.PATCH(
     jsonRequest('http://localhost/api/employees/status', {
       method: 'PATCH',
-      token: 'test-token',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjogIm1vY2stc2Vzc2lvbiIsICJhYWwiOiAiYWFsMiJ9.dummy',
       body: { status: 'disabled', reason: 'Testing' },
     }),
     params(VALID_UUID)
@@ -280,7 +280,7 @@ test('status: deliberate database raises pass through to the client', async () =
   const res = await statusRoute.PATCH(
     jsonRequest('http://localhost/api/employees/status', {
       method: 'PATCH',
-      token: 'test-token',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjogIm1vY2stc2Vzc2lvbiIsICJhYWwiOiAiYWFsMiJ9.dummy',
       body: { status: 'disabled', reason: 'x'.repeat(1001) },
     }),
     params(VALID_UUID)
@@ -301,7 +301,7 @@ test('status: internal database errors are hidden from the client but audited', 
   const res = await statusRoute.PATCH(
     jsonRequest('http://localhost/api/employees/status', {
       method: 'PATCH',
-      token: 'test-token',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjogIm1vY2stc2Vzc2lvbiIsICJhYWwiOiAiYWFsMiJ9.dummy',
       body: { status: 'disabled', reason: 'Testing' },
     }),
     params(VALID_UUID)
@@ -321,7 +321,7 @@ test('status: Auth ban failure returns 502 without leaking internal details', as
   const res = await statusRoute.PATCH(
     jsonRequest('http://localhost/api/employees/status', {
       method: 'PATCH',
-      token: 'test-token',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjogIm1vY2stc2Vzc2lvbiIsICJhYWwiOiAiYWFsMiJ9.dummy',
       body: { status: 'disabled', reason: 'Testing' },
     }),
     params(VALID_UUID)
@@ -340,7 +340,7 @@ test('status: happy path disables the employee and bans the auth user', async ()
   const res = await statusRoute.PATCH(
     jsonRequest('http://localhost/api/employees/status', {
       method: 'PATCH',
-      token: 'test-token',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjogIm1vY2stc2Vzc2lvbiIsICJhYWwiOiAiYWFsMiJ9.dummy',
       body: { status: 'disabled', reason: 'Policy violation' },
     }),
     params(VALID_UUID)
@@ -370,7 +370,7 @@ test('contact: non-uuid id returns 400 with no audit row', async () => {
   const res = await contactRoute.PATCH(
     jsonRequest('http://localhost/api/employees/contact', {
       method: 'PATCH',
-      token: 'test-token',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjogIm1vY2stc2Vzc2lvbiIsICJhYWwiOiAiYWFsMiJ9.dummy',
       body: { reason: 'Testing' },
     }),
     params('not-a-uuid')
@@ -384,7 +384,7 @@ test('contact: valid request stays deferred with 501 and audited intent', async 
   const res = await contactRoute.PATCH(
     jsonRequest('http://localhost/api/employees/contact', {
       method: 'PATCH',
-      token: 'test-token',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjogIm1vY2stc2Vzc2lvbiIsICJhYWwiOiAiYWFsMiJ9.dummy',
       body: { reason: 'Phone number changed' },
     }),
     params(VALID_UUID)
@@ -395,6 +395,43 @@ test('contact: valid request stays deferred with 501 and audited intent', async 
   const audit = harness.audits.find((row) => row.action === 'employee.contact_update_deferred');
   assert.ok(audit, 'the deferral must remain audited');
   assert.equal(audit?.target_id, VALID_UUID);
+});
+
+// ---------------------------------------------------------------------------
+// MFA Enforcement
+// ---------------------------------------------------------------------------
+
+test('mfa: owner, superadmin, and admin requests without AAL2 are rejected with 403', async () => {
+  for (const role of ['owner', 'superadmin', 'admin']) {
+    configure({ role, grants: ['employee.invite'] });
+    const res = await inviteRoute.POST(
+      jsonRequest('http://localhost/api/employees/invite', {
+        token: 'dummy.eyJzZXNzaW9uX2lkIjogIm1vY2stc2Vzc2lvbiIsICJhYWwiOiAiYWFsMSJ9.dummy',
+        body: { email: 'new@example.com', display_name: 'New', role_key: 'author', reason: 'Test' },
+      })
+    );
+    assert.equal(res.status, 403, `Role ${role} should be rejected`);
+    const body = (await res.json()) as { error?: string };
+    assert.equal(body.error, 'Multi-factor authentication is required.');
+    assert.ok(harness.audits.some((row) => row.action === 'employee.mfa_denied'));
+  }
+});
+
+test('mfa: editor and author requests without AAL2 are allowed', async () => {
+  for (const role of ['editor', 'author']) {
+    configure({ role, grants: ['employee.basic.update'] });
+    // We mock a deliberate error from the RPC just to verify it reached the RPC phase instead of 403ing
+    harness.rpcErrors.update_employee_basic = { message: 'Passed MFA check', code: 'P0001' };
+    const res = await operationsRoute.POST(
+      jsonRequest('http://localhost/api/employees/operations', {
+        token: 'dummy.eyJzZXNzaW9uX2lkIjogIm1vY2stc2Vzc2lvbiIsICJhYWwiOiAiYWFsMSJ9.dummy',
+        body: { operation: 'update-basic', target_id: VALID_UUID, display_name: 'Test', reason: 'Test' },
+      })
+    );
+    assert.equal(res.status, 400); // Because of the mocked RPC error, NOT 403
+    const body = (await res.json()) as { error?: string };
+    assert.equal(body.error, 'Passed MFA check');
+  }
 });
 
 
