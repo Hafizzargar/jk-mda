@@ -1,10 +1,16 @@
 import { authorizeEmployeeRequest, isEmployeeAuthorization } from '@/lib/employee-server';
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   const authorization = await authorizeEmployeeRequest(request, 'employee.contact.update');
   if (!isEmployeeAuthorization(authorization)) return authorization;
 
   const { id } = await context.params;
+  if (!UUID_PATTERN.test(id)) {
+    return Response.json({ error: 'A valid employee id is required.' }, { status: 400 });
+  }
+
   let body: { reason?: string };
   try {
     body = (await request.json()) as { reason?: string };

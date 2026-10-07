@@ -1,22 +1,29 @@
 import { authorizeEmployeeRequest, isEmployeeAuthorization } from '@/lib/employee-server';
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
   let body: { status?: 'active' | 'disabled'; reason?: string };
   try {
     body = (await request.json()) as { status?: 'active' | 'disabled'; reason?: string };
   } catch {
-    return Response.json({ error: 'Invalid request body.' }, { status: 400 });
+    body = {};
   }
+
+  // Authenticate before validating input so unauthenticated callers always get 401.
+  const permission = body.status === 'disabled' ? 'employee.disable' : 'employee.enable';
+  const authorization = await authorizeEmployeeRequest(request, permission);
+  if (!isEmployeeAuthorization(authorization)) return authorization;
 
   if (body.status !== 'active' && body.status !== 'disabled') {
     return Response.json({ error: 'Status must be active or disabled.' }, { status: 400 });
   }
 
-  const permission = body.status === 'disabled' ? 'employee.disable' : 'employee.enable';
-  const authorization = await authorizeEmployeeRequest(request, permission);
-  if (!isEmployeeAuthorization(authorization)) return authorization;
-
   const { id } = await context.params;
+  if (!UUID_PATTERN.test(id)) {
+    return Response.json({ error: 'A valid employee id is required.' }, { status: 400 });
+  }
+
   const { data: target } = await authorization.service.from('profiles').select('id, role_key').eq('id', id).maybeSingle();
   const { data: actorRole } = await authorization.service.from('roles').select('hierarchy_rank').eq('role_key', authorization.profile.role_key).single();
   const { data: targetRole } = target
@@ -43,7 +50,12 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       details: { requested_status: body.status },
       ...authorization.auditContext,
     });
-    return Response.json({ error: profileError.message }, { status: 400 });
+    // Deliberate raise-exception messages (P0001) are authored by us and safe to show.
+    const clientMessage =
+      profileError.code === 'P0001'
+        ? profileError.message
+        : 'The employee status could not be changed.';
+    return Response.json({ error: clientMessage }, { status: 400 });
   }
 
   const { error: banError } = await authorization.service.auth.admin.updateUserById(id, {
@@ -61,7 +73,10 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       details: { requested_status: body.status, error: banError.message },
       ...authorization.auditContext,
     });
-    return Response.json({ error: `Profile access changed, but Auth status update failed: ${banError.message}` }, { status: 502 });
+    return Response.json(
+      { error: 'Profile access changed, but the Auth status update failed. Contact support if this persists.' },
+      { status: 502 }
+    );
   }
 
   return Response.json({ status: body.status });

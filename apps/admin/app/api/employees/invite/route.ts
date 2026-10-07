@@ -58,6 +58,58 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Invitation fields exceed the allowed length.' }, { status: 400 });
   }
 
+  const { data: actorRole } = await authorization.service
+    .from('roles')
+    .select('hierarchy_rank')
+    .eq('role_key', authorization.profile.role_key)
+    .single();
+  const { data: targetRole } = await authorization.service
+    .from('roles')
+    .select('hierarchy_rank')
+    .eq('role_key', roleKey)
+    .single();
+
+  if (!actorRole || !targetRole || roleKey === 'owner' || targetRole.hierarchy_rank >= actorRole.hierarchy_rank) {
+    await authorization.service.from('audit_logs').insert({
+      actor_profile_id: authorization.user.id,
+      action: 'employee.invite_denied',
+      target_type: 'employee_invite',
+      result: 'denied',
+      reason,
+      details: { email, role_key: roleKey },
+      ...authorization.auditContext,
+    });
+    return Response.json({ error: 'You cannot invite an employee at this role level.' }, { status: 403 });
+  }
+
+  if (roleKey === 'superadmin') {
+    const { data: superadminRows } = await authorization.service
+      .from('profiles')
+      .select('id')
+      .eq('role_key', 'superadmin')
+      .limit(1);
+    const { data: pendingSuperadminInvite } = await authorization.service
+      .from('employee_invites')
+      .select('id')
+      .eq('role_key', 'superadmin')
+      .in('status', ['sending', 'invited'])
+      .gt('expires_at', new Date().toISOString())
+      .maybeSingle();
+
+    if ((superadminRows && superadminRows.length > 0) || pendingSuperadminInvite) {
+      await authorization.service.from('audit_logs').insert({
+        actor_profile_id: authorization.user.id,
+        action: 'employee.invite_denied',
+        target_type: 'employee_invite',
+        result: 'denied',
+        reason,
+        details: { email, role_key: roleKey, reason_code: 'second_superadmin_exists' },
+        ...authorization.auditContext,
+      });
+      return Response.json({ error: 'Only one Second Superadmin is allowed.' }, { status: 409 });
+    }
+  }
+
   const now = new Date();
   await authorization.service
     .from('employee_invites')
@@ -83,30 +135,6 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Unable to validate invitation limits.' }, { status: 503 });
   }
 
-  const { data: actorRole } = await authorization.service
-    .from('roles')
-    .select('hierarchy_rank')
-    .eq('role_key', authorization.profile.role_key)
-    .single();
-  const { data: targetRole } = await authorization.service
-    .from('roles')
-    .select('hierarchy_rank')
-    .eq('role_key', roleKey)
-    .single();
-
-  if (!actorRole || !targetRole || roleKey === 'owner' || targetRole.hierarchy_rank >= actorRole.hierarchy_rank) {
-    await authorization.service.from('audit_logs').insert({
-      actor_profile_id: authorization.user.id,
-      action: 'employee.invite_denied',
-      target_type: 'employee_invite',
-      result: 'denied',
-      reason,
-      details: { email, role_key: roleKey },
-      ...authorization.auditContext,
-    });
-    return Response.json({ error: 'You cannot invite an employee at this role level.' }, { status: 403 });
-  }
-
   const { data: invite, error: inviteRowError } = await authorization.service
     .from('employee_invites')
     .insert({
@@ -122,7 +150,19 @@ export async function POST(request: Request) {
     .single();
 
   if (inviteRowError || !invite) {
-    return Response.json({ error: inviteRowError?.message ?? 'Unable to create invitation.' }, { status: 409 });
+    await authorization.service.from('audit_logs').insert({
+      actor_profile_id: authorization.user.id,
+      action: 'employee.invite_failed',
+      target_type: 'employee_invite',
+      result: 'failure',
+      reason: inviteRowError?.message ?? 'Invite row was not created.',
+      details: { email, role_key: roleKey, stage: 'invite_row' },
+      ...authorization.auditContext,
+    });
+    if (inviteRowError?.code === '23505') {
+      return Response.json({ error: 'An invitation for this email is already pending.' }, { status: 409 });
+    }
+    return Response.json({ error: 'Unable to create the invitation.' }, { status: 409 });
   }
 
   const sendInvite = () => authorization.service.auth.admin.inviteUserByEmail(email, {
@@ -173,7 +213,7 @@ export async function POST(request: Request) {
       details: { email, role_key: roleKey },
       ...authorization.auditContext,
     });
-    return Response.json({ error: failureReason }, { status: 400 });
+    return Response.json({ error: 'Unable to send the invitation email.' }, { status: 400 });
   }
 
   const { error: profileError } = await authorization.service

@@ -81,7 +81,13 @@ export async function POST(request: Request) {
       details: { operation: typedOperation, request_id: body.request_id ?? null },
       ...authorization.auditContext,
     });
-    return Response.json({ error: error.message }, { status: 400 });
+    // Only deliberate raise-exception messages (SQLSTATE P0001) are safe to show;
+    // every other database error is internal and must not reach the browser.
+    const clientMessage =
+      error.code === 'P0001'
+        ? error.message
+        : 'The employee operation could not be completed.';
+    return Response.json({ error: clientMessage }, { status: 400 });
   }
 
   return Response.json({ data });

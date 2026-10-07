@@ -102,17 +102,49 @@ select extensions.is(
 );
 
 select pg_temp.assume_employee('10000000-0000-0000-0000-000000000001');
+select extensions.throws_ok(
+  $$ select public.change_employee_role('10000000-0000-0000-0000-000000000005', 'superadmin', 'Second Superadmin slot occupied') $$,
+  'P0001', 'Only one Second Superadmin is allowed', 'Promotion to Superadmin is blocked while the slot is occupied'
+);
+select extensions.lives_ok(
+  $$ select public.change_employee_role('10000000-0000-0000-0000-000000000002', 'admin', 'Free the single Superadmin slot') $$,
+  'Owner can demote the existing Superadmin to free the slot'
+);
 select extensions.lives_ok(
   $$ select public.change_employee_role('10000000-0000-0000-0000-000000000005', 'superadmin', 'Owner bootstrap matrix test') $$,
   'Owner can promote a lower-ranked employee to Superadmin'
+);
+select extensions.throws_ok(
+  $$ select public.change_employee_role('10000000-0000-0000-0000-000000000006', 'superadmin', 'Second Superadmin slot occupied again') $$,
+  'P0001', 'Only one Second Superadmin is allowed', 'Only one Superadmin profile can exist at a time'
 );
 select extensions.lives_ok(
   $$ select public.change_employee_role('10000000-0000-0000-0000-000000000005', 'admin', 'Owner demotion matrix test') $$,
   'Owner can manage a Superadmin employee'
 );
+select extensions.lives_ok(
+  $$ select public.change_employee_role('10000000-0000-0000-0000-000000000002', 'superadmin', 'Restore the fixture Superadmin') $$,
+  'Owner can restore the single Superadmin'
+);
 select extensions.throws_ok(
   $$ select public.change_employee_role('10000000-0000-0000-0000-000000000001', 'author', 'Owner must remain protected') $$,
   'P0001', 'You cannot change this employee role', 'Owner cannot modify the Owner profile'
+);
+select extensions.throws_ok(
+  $$ select public.change_employee_role('10000000-0000-0000-0000-000000000006', 'editor', repeat('x', 1001)) $$,
+  'P0001', 'Reason is too long', 'Role changes reject reasons above 1000 characters'
+);
+select extensions.throws_ok(
+  $$ select public.update_employee_basic('10000000-0000-0000-0000-000000000006', repeat('x', 121), 'Valid reason') $$,
+  'P0001', 'Display name must be 1 to 120 characters', 'Basic updates reject display names above 120 characters'
+);
+select extensions.throws_ok(
+  $$ select public.set_employee_status('10000000-0000-0000-0000-000000000006', 'disabled', repeat('x', 1001)) $$,
+  'P0001', 'Reason is too long', 'Status changes reject reasons above 1000 characters'
+);
+select extensions.throws_ok(
+  $$ select public.request_employee_invite('second-superadmin@test.invalid', 'Second Superadmin', 'superadmin', 'Slot test') $$,
+  'P0001', 'Only one Second Superadmin is allowed', 'Invitation requests for Superadmin are blocked while the slot is occupied'
 );
 select extensions.throws_ok(
   $$ select public.update_employee_basic('10000000-0000-0000-0000-000000000001', 'Changed Owner', 'Should be denied') $$,
@@ -199,6 +231,10 @@ select extensions.lives_ok(
 select extensions.throws_ok(
   $$ select public.request_employee_invite('DUPLICATE-REQUEST@test.invalid', 'Duplicate Request', 'author', 'Second request') $$,
   '23505', null, 'Duplicate pending invitation requests are rejected case-insensitively'
+);
+select extensions.throws_ok(
+  format('select public.reject_employee_invite_request(%L, %L)', (select id from public.employee_invite_requests where status = 'pending' order by created_at limit 1), repeat('x', 1001)),
+  'P0001', 'Reason is too long', 'Rejections reject reasons above 1000 characters'
 );
 select extensions.throws_ok(
   $$ select public.request_employee_deletion('10000000-0000-0000-0000-000000000001', 'Protect Owner') $$,

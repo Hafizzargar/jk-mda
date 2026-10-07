@@ -2,7 +2,7 @@
 
 **Date:** 2026-10-06
 **Scope:** Every HTTP API route, server-side action, Supabase RPC, RLS policy, and grant in the monorepo (admin app, web app, shared packages, Supabase migrations).
-**Method:** Static code review of the working tree (including uncommitted changes). The pgTAP suite (44 assertions) already covers the database layer and was not rerun.
+**Method:** Static code review of the working tree before commit `41cdae5`. The pgTAP suite covers the database layer; it was rerun after the hardening pass (section 8) with **59/59 assertions passing**. Route-level tests were added afterwards (22/22 passing, section 8).
 **Verdict scale:** PASS / FAIL / NEEDS HARDENING.
 
 ---
@@ -141,16 +141,48 @@ The 44 pgTAP assertions cover DB/RLS/RPC only. The 4 API routes (auth → permis
 
 - Static review only; no live exploitation or traffic shaping was performed.
 - Hosted (production) Supabase settings are outside this repo and were not inspected.
-- Working tree includes uncommitted changes (invite route, migration …140000, test file modified; migration …160000 untracked) — findings reflect their current content.
+- Audit snapshot: performed before commit `41cdae5`; the reviewed code is now committed. A follow-up hardening pass addressed several findings — see section 8.
 - No dependency vulnerability scan was run (`pnpm audit` suggested as a cheap follow-up).
 
 ## 7. Next steps (ordered)
 
-1. MFA/TOTP + critical-action reauthentication — fold in **F-01** (auth-side contact-change enforcement) and **F-03** (quotas for critical operations).
-2. **F-02** middleware session gating + **F-10** security headers (small, independent).
-3. **F-04/F-05/F-08/F-09** hardening pass on routes + one validation migration.
-4. **F-06** decision (enforce or drop the single-superadmin invariant).
-5. Route-level test suite (**F-12**).
+1. ~~**F-04/F-05/F-06/F-08/F-09/F-12** hardening pass~~ — **completed**, see section 8.
+2. MFA/TOTP + critical-action reauthentication — fold in **F-01** (auth-side contact-change enforcement) and **F-03** (quotas for critical operations).
+3. **F-02** middleware session gating + **F-10** security headers (small, independent).
+4. **F-07** audit IP capture; **F-13** production auth settings verification.
+5. Remaining open: **F-03** (rate limiting), **F-11** (migration hygiene discipline).
+
+## 8. Post-audit hardening pass (2026-10-06)
+
+Follow-up to the review of commit `41cdae5`. Every item below is implemented, tested, and committed to the working tree.
+
+| # | Finding | Fix | Verification |
+|---|---|---|---|
+| H-1 | Invite quota consumed before rank validation | `invite/route.ts` reordered to: authenticate → permission → input validation → rank check → second-Superadmin slot check → expired-invite cleanup → **claim quota** → create invite → send email | Route test asserts no `claim_employee_invitation_attempt` call happens on rank-denied or slot-denied requests; 429 path asserts rank lookups run before the claim |
+| H-2 | F-04 raw internal errors returned (invite, operations, status) | All three routes sanitized: only deliberate `P0001` raises (authored messages) pass through; every other database/Auth error returns a fixed generic message. Full detail always written to `audit_logs` | Route tests assert internal text (e.g. `auth.users`, `character varying`, `profiles`) never reaches the browser and is present in the audit row |
+| H-3 | F-05 inconsistent input validation | Migration `20261006170000` adds uniform caps: reason ≤ 1000 on `update_employee_basic`, `change_employee_role`, `request_employee_deletion`, `reject_employee_invite_request`, `resolve_employee_deletion`, `set_employee_status`; display_name 1–120 on `update_employee_basic` | pgTAP assertions for each new cap |
+| H-4 | F-06 single Second Superadmin | **Decision: Option A — exactly one Superadmin.** Enforced at three layers: invite route returns 409 pre-check (profiles + pending invites), `change_employee_role`/`request_employee_invite` raise, and two partial unique indexes (`idx_profiles_single_superadmin`, `idx_employee_invites_single_superadmin`) as backstop | pgTAP: promotion blocked while occupied, allowed when free, second profile blocked; invite route test asserts 409 before quota claim |
+| H-5 | F-08 auth ordering + F-09 malformed ids losing audit rows | `status` route now authenticates before validating input (unauthenticated callers always get 401); both `[id]` routes validate the id as UUID after auth and before any audit write | Route tests: 401 with invalid body and no token; 400 on non-uuid with zero audit rows |
+| H-6 | F-12 no HTTP-layer tests | New suite `apps/admin/tests/api-routes.test.ts` (22 tests) using `node:test` with a module-resolution hook and an in-memory Supabase double — **no new dependencies**. Run via `pnpm test` (root or `--dir apps/admin`) | 22/22 passing; `pnpm typecheck` and `pnpm lint` clean |
+| H-7 | Environment drift discovered during verification | Migration `20261006160000_atomic_invitation_limits` had **never been applied** to the local database (`claim_employee_invitation_attempt` missing). Applied it and migration `…170000`, both recorded in `supabase_migrations.schema_migrations` (7 versions now) | pgTAP rerun: **59/59 assertions pass** (was 44; +15 for the new invariants and validation caps) |
+
+**Still open after this pass:** F-01 (contact-change enforcement — belongs to the MFA/reauth phase), F-02 (middleware), F-03 (rate limiting beyond invitations), F-07 (audit IP capture), F-10 (security headers), F-11 (migration hygiene discipline), F-13 (production auth settings).
+
+**Commands used:**
+
+```powershell
+# Apply migrations to local Supabase (no CLI on PATH; container psql)
+Get-Content supabase\migrations\<file>.sql -Raw | docker exec -i supabase_db_kjin-local psql -U postgres -d postgres -v ON_ERROR_STOP=1
+
+# Database security suite
+Get-Content supabase\tests\employee_security.test.sql -Raw | docker exec -i supabase_db_kjin-local psql -U postgres -d postgres
+
+# Route tests / typecheck / lint
+pnpm test
+pnpm typecheck
+pnpm --dir apps/admin lint
+```
+
 
 
 
