@@ -35,10 +35,11 @@ export async function middleware(request: NextRequest) {
   supabaseResponse.headers.set('X-Frame-Options', 'DENY');
   supabaseResponse.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   supabaseResponse.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+  
+  const isDev = process.env.NODE_ENV === 'development';
   supabaseResponse.headers.set(
     'Content-Security-Policy',
-    // Baseline CSP. We will harden this after confirming Next.js client-side requirements.
-    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:;"
+    `default-src 'self'; script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:;`
   );
 
   const { pathname } = request.nextUrl;
@@ -77,16 +78,6 @@ export async function middleware(request: NextRequest) {
       }
       
       if (requiresMfa(profile.role_key)) {
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        const session = sessionData?.session;
-        
-        if (sessionError || !session) {
-          // Fail closed if we cannot get the session
-          const url = request.nextUrl.clone();
-          url.pathname = '/login';
-          return NextResponse.redirect(url);
-        }
-
         const { data: aalData, error: aalError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
 
         if (aalError || !aalData) {

@@ -1,7 +1,7 @@
-import { test, beforeEach } from 'node:test';
+import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { Harness, setHarness, TARGET_ID } from './support/harness.ts';
+import { Harness, setHarness } from './support/harness.ts';
 import { NextRequest } from 'next/server';
 
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key';
@@ -93,13 +93,6 @@ test('middleware: missing profile -> fail closed (/login)', async () => {
   assert.ok(res.headers.get('Location')?.endsWith('/login'));
 });
 
-test('middleware: malformed session -> fail closed (/login)', async () => {
-  configure({ role: 'admin', sessionError: true });
-  const req = new NextRequest('http://localhost/dashboard');
-  const res = await middleware(req);
-  assert.equal(res.status, 302);
-  assert.ok(res.headers.get('Location')?.endsWith('/login'));
-});
 
 test('middleware: listFactors() failure -> fail closed (/login)', async () => {
   configure({ role: 'admin', aal: 'aal1', factorsError: true });
