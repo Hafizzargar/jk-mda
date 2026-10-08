@@ -166,7 +166,7 @@ export async function requireRecentAuthentication(
   if (auth.amr && auth.amr.length > 0) {
     const validMethods = auth.amr.filter(a => {
       if (mfaRequired) return a.method === 'totp' || a.method === 'mfa';
-      return true; // If MFA not required, any authentication method counts
+      return ['password', 'oauth', 'otp', 'totp', 'magiclink', 'sso/saml'].includes(a.method);
     });
     
     if (validMethods.length > 0) {

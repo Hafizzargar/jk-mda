@@ -227,6 +227,36 @@ test('operations: recent password but old TOTP is allowed for non-MFA roles', as
   assert.equal(res.status, 200);
 });
 
+test('operations: editor password old + token refresh recent is rejected for non-MFA roles', async () => {
+  configure({ role: 'editor', grants: ['employee.role.change'] });
+  const tokenRefreshOnlyToken = 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoidG9rZW5fcmVmcmVzaCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX0seyJtZXRob2QiOiJwYXNzd29yZCIsInRpbWVzdGFtcCI6MTAwMDAwMDAwMH1dfQ.dummy';
+  
+  const res = await operationsRoute.POST(
+    jsonRequest('http://localhost/api/employees/operations', {
+      token: tokenRefreshOnlyToken,
+      body: { operation: 'change-role', target_id: VALID_UUID, role_key: 'author', reason: 'Testing' },
+    })
+  );
+  
+  assert.equal(res.status, 403);
+  const body = (await res.json()) as { error?: string };
+  assert.equal(body.error, 'Recent authentication required.');
+});
+
+test('operations: editor legitimate recent password is allowed for non-MFA roles', async () => {
+  configure({ role: 'editor', grants: ['employee.role.change'] });
+  const recentPasswordToken = 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoidG9rZW5fcmVmcmVzaCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX0seyJtZXRob2QiOiJwYXNzd29yZCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy';
+  
+  const res = await operationsRoute.POST(
+    jsonRequest('http://localhost/api/employees/operations', {
+      token: recentPasswordToken,
+      body: { operation: 'change-role', target_id: VALID_UUID, role_key: 'author', reason: 'Testing' },
+    })
+  );
+  
+  assert.equal(res.status, 200);
+});
+
 test('operations: deliberate database raises pass through to the client', async () => {
   configure({ role: 'admin', grants: ['employee.role.change'] });
   harness.rpcErrors.change_employee_role = { message: 'A reason is required', code: 'P0001' };
@@ -596,6 +626,22 @@ test('mfa: verify proxy logs failure and returns 400 on invalid code', async () 
   const body = await res.json();
   assert.equal(body.error, 'Invalid code. Please check your authenticator app and try again.');
   assert.ok(harness.audits.some((row) => row.action === 'employee.mfa_challenge_failed'));
+});
+
+test('mfa: verify proxy rejects disabled employee with 403', async () => {
+  const { POST } = await import('../app/api/employees/mfa/verify/route.ts');
+  configure({ role: 'admin' });
+  harness.actor.status = 'disabled';
+  harness.syncActor();
+  
+  const res = await POST(
+    jsonRequest('http://localhost/api/employees/mfa/verify', {
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
+      body: { factorId: 'fact-123', challengeId: 'chal-123', code: '000000' },
+    })
+  );
+  
+  assert.equal(res.status, 403);
 });
 
 

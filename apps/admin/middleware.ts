@@ -37,9 +37,10 @@ export async function middleware(request: NextRequest) {
   supabaseResponse.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
   
   const isDev = process.env.NODE_ENV === 'development';
+  const supabaseHost = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).host;
   supabaseResponse.headers.set(
     'Content-Security-Policy',
-    `default-src 'self'; script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:;`
+    `default-src 'self'; script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://${supabaseHost};`
   );
 
   const { pathname } = request.nextUrl;
@@ -67,11 +68,11 @@ export async function middleware(request: NextRequest) {
     const isMfaRoute = pathname.startsWith('/mfa/');
     
     if (!isMfaRoute) {
-      // Check MFA requirement
-      const { data: profile, error: profileError } = await supabase.from('profiles').select('role_key').eq('id', user.id).single();
+      // Check MFA requirement and active status
+      const { data: profile, error: profileError } = await supabase.from('profiles').select('role_key, status').eq('id', user.id).single();
       
-      if (profileError || !profile) {
-        // Fail closed if we cannot determine the user's role
+      if (profileError || !profile || profile.status !== 'active') {
+        // Fail closed if we cannot determine the user's role or they are disabled
         const url = request.nextUrl.clone();
         url.pathname = '/login';
         return NextResponse.redirect(url);

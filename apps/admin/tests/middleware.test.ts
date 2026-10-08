@@ -102,6 +102,35 @@ test('middleware: listFactors() failure -> fail closed (/login)', async () => {
   assert.ok(res.headers.get('Location')?.endsWith('/login'));
 });
 
+test('middleware: disabled admin + AAL2 -> fail closed (/login)', async () => {
+  configure({ role: 'admin', aal: 'aal2' });
+  harness.actor.status = 'disabled';
+  harness.syncActor();
+  const req = new NextRequest('http://localhost/dashboard');
+  const res = await middleware(req);
+  assert.equal(res.status, 302);
+  assert.ok(res.headers.get('Location')?.endsWith('/login'));
+});
+
+test('middleware: disabled editor -> fail closed (/login)', async () => {
+  configure({ role: 'editor' });
+  harness.actor.status = 'disabled';
+  harness.syncActor();
+  const req = new NextRequest('http://localhost/dashboard');
+  const res = await middleware(req);
+  assert.equal(res.status, 302);
+  assert.ok(res.headers.get('Location')?.endsWith('/login'));
+});
+
+test('middleware: malformed session / getUser error -> fail closed (/login)', async () => {
+  configure({ loggedIn: false });
+  // loggedIn: false causes getUser to return an error, simulating invalid/missing auth
+  const req = new NextRequest('http://localhost/dashboard');
+  const res = await middleware(req);
+  assert.equal(res.status, 302);
+  assert.ok(res.headers.get('Location')?.endsWith('/login?next=%2Fdashboard'));
+});
+
 test('middleware: aal lookup failure -> fail closed (/login)', async () => {
   configure({ role: 'admin', aalError: true });
   const req = new NextRequest('http://localhost/dashboard');
