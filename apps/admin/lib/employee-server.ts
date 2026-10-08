@@ -161,8 +161,17 @@ export async function requireRecentAuthentication(
   const now = Math.floor(Date.now() / 1000);
   let mostRecent = 0;
   
+  const mfaRequired = requiresMfa(auth.profile.role_key);
+  
   if (auth.amr && auth.amr.length > 0) {
-    mostRecent = Math.max(...auth.amr.map(a => a.timestamp));
+    const validMethods = auth.amr.filter(a => {
+      if (mfaRequired) return a.method === 'totp' || a.method === 'mfa';
+      return true; // If MFA not required, any authentication method counts
+    });
+    
+    if (validMethods.length > 0) {
+      mostRecent = Math.max(...validMethods.map(a => a.timestamp));
+    }
   }
   
   if (now - mostRecent > windowSeconds) {

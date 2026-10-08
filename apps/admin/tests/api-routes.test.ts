@@ -1,4 +1,4 @@
-import { test, beforeEach } from 'node:test';
+﻿import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { Harness, setHarness, TARGET_ID, EXISTING_SUPERADMIN_ID, ACTOR_ID } from './support/harness.ts';
@@ -66,7 +66,7 @@ test('invite: rank-denied request returns 403 without consuming the daily quota'
   configure({ role: 'admin', grants: ['employee.invite'] });
   const res = await inviteRoute.POST(
     jsonRequest('http://localhost/api/employees/invite', {
-      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9XX0.dummy',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
       body: { email: 'wannabe@example.com', display_name: 'Wannabe', role_key: 'superadmin', reason: 'Rank test' },
     })
   );
@@ -80,7 +80,7 @@ test('invite: second superadmin is rejected with 409 before any quota claim', as
   harness.addProfile({ id: EXISTING_SUPERADMIN_ID, role_key: 'superadmin', status: 'active' });
   const res = await inviteRoute.POST(
     jsonRequest('http://localhost/api/employees/invite', {
-      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9XX0.dummy',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
       body: { email: 'second-super@example.com', display_name: 'Second Super', role_key: 'superadmin', reason: 'Slot test' },
     })
   );
@@ -101,7 +101,7 @@ test('invite: rate limit returns 429 after rank checks and audits the denial', a
   };
   const res = await inviteRoute.POST(
     jsonRequest('http://localhost/api/employees/invite', {
-      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9XX0.dummy',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
       body: { email: 'newhire@example.com', display_name: 'New Hire', role_key: 'author', reason: 'Initial provisioning' },
     })
   );
@@ -119,7 +119,7 @@ test('invite: auth send failure does not leak internal error details', async () 
   };
   const res = await inviteRoute.POST(
     jsonRequest('http://localhost/api/employees/invite', {
-      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9XX0.dummy',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
       body: { email: 'newhire@example.com', display_name: 'New Hire', role_key: 'author', reason: 'Initial provisioning' },
     })
   );
@@ -140,7 +140,7 @@ test('invite: pending-invite conflict maps to a friendly 409', async () => {
   };
   const res = await inviteRoute.POST(
     jsonRequest('http://localhost/api/employees/invite', {
-      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9XX0.dummy',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
       body: { email: 'newhire@example.com', display_name: 'New Hire', role_key: 'author', reason: 'Initial provisioning' },
     })
   );
@@ -156,14 +156,14 @@ test('invite: pending-invite conflict maps to a friendly 409', async () => {
 
 test('operations: invalid JSON body returns 400', async () => {
   const res = await operationsRoute.POST(
-    jsonRequest('http://localhost/api/employees/operations', { body: 'not-json', token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9XX0.dummy' })
+    jsonRequest('http://localhost/api/employees/operations', { body: 'not-json', token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy' })
   );
   assert.equal(res.status, 400);
 });
 
 test('operations: unsupported operation returns 400', async () => {
   const res = await operationsRoute.POST(
-    jsonRequest('http://localhost/api/employees/operations', { body: { operation: 'self-destruct' }, token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9XX0.dummy' })
+    jsonRequest('http://localhost/api/employees/operations', { body: { operation: 'self-destruct' }, token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy' })
   );
   assert.equal(res.status, 400);
   const body = (await res.json()) as { error?: string };
@@ -202,7 +202,7 @@ test('operations: deliberate database raises pass through to the client', async 
   harness.rpcErrors.change_employee_role = { message: 'A reason is required', code: 'P0001' };
   const res = await operationsRoute.POST(
     jsonRequest('http://localhost/api/employees/operations', {
-      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9XX0.dummy',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
       body: { operation: 'change-role', target_id: VALID_UUID, role_key: 'editor', reason: 'Testing' },
     })
   );
@@ -220,7 +220,7 @@ test('operations: internal database errors are hidden from the client but audite
   };
   const res = await operationsRoute.POST(
     jsonRequest('http://localhost/api/employees/operations', {
-      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9XX0.dummy',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
       body: { operation: 'change-role', target_id: VALID_UUID, role_key: 'editor', reason: 'Testing' },
     })
   );
@@ -250,7 +250,7 @@ test('status: authenticated request with an invalid status returns 400', async (
   const res = await statusRoute.PATCH(
     jsonRequest('http://localhost/api/employees/status', {
       method: 'PATCH',
-      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9XX0.dummy',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
       body: { status: 'bogus', reason: 'Testing' },
     }),
     params(VALID_UUID)
@@ -265,7 +265,7 @@ test('status: non-uuid id returns 400 before any profile lookup', async () => {
   const res = await statusRoute.PATCH(
     jsonRequest('http://localhost/api/employees/status', {
       method: 'PATCH',
-      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9XX0.dummy',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
       body: { status: 'disabled', reason: 'Testing' },
     }),
     params('not-a-uuid')
@@ -282,7 +282,7 @@ test('status: target at or above actor rank returns 403', async () => {
   const res = await statusRoute.PATCH(
     jsonRequest('http://localhost/api/employees/status', {
       method: 'PATCH',
-      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9XX0.dummy',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
       body: { status: 'disabled', reason: 'Testing' },
     }),
     params(VALID_UUID)
@@ -299,7 +299,7 @@ test('status: deliberate database raises pass through to the client', async () =
   const res = await statusRoute.PATCH(
     jsonRequest('http://localhost/api/employees/status', {
       method: 'PATCH',
-      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9XX0.dummy',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
       body: { status: 'disabled', reason: 'x'.repeat(1001) },
     }),
     params(VALID_UUID)
@@ -320,7 +320,7 @@ test('status: internal database errors are hidden from the client but audited', 
   const res = await statusRoute.PATCH(
     jsonRequest('http://localhost/api/employees/status', {
       method: 'PATCH',
-      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9XX0.dummy',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
       body: { status: 'disabled', reason: 'Testing' },
     }),
     params(VALID_UUID)
@@ -340,7 +340,7 @@ test('status: Auth ban failure returns 502 without leaking internal details', as
   const res = await statusRoute.PATCH(
     jsonRequest('http://localhost/api/employees/status', {
       method: 'PATCH',
-      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9XX0.dummy',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
       body: { status: 'disabled', reason: 'Testing' },
     }),
     params(VALID_UUID)
@@ -359,7 +359,7 @@ test('status: happy path disables the employee and bans the auth user', async ()
   const res = await statusRoute.PATCH(
     jsonRequest('http://localhost/api/employees/status', {
       method: 'PATCH',
-      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9XX0.dummy',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
       body: { status: 'disabled', reason: 'Policy violation' },
     }),
     params(VALID_UUID)
@@ -389,7 +389,7 @@ test('contact: non-uuid id returns 400 with no audit row', async () => {
   const res = await contactRoute.PATCH(
     jsonRequest('http://localhost/api/employees/contact', {
       method: 'PATCH',
-      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9XX0.dummy',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
       body: { reason: 'Testing' },
     }),
     params('not-a-uuid')
@@ -403,7 +403,7 @@ test('contact: valid request stays deferred with 501 and audited intent', async 
   const res = await contactRoute.PATCH(
     jsonRequest('http://localhost/api/employees/contact', {
       method: 'PATCH',
-      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9XX0.dummy',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
       body: { reason: 'Phone number changed' },
     }),
     params(VALID_UUID)
@@ -425,7 +425,7 @@ test('mfa: owner, superadmin, and admin requests without AAL2 are rejected with 
     configure({ role, grants: ['employee.invite'] });
     const res = await inviteRoute.POST(
       jsonRequest('http://localhost/api/employees/invite', {
-        token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9XX0.dummy',
+        token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
         body: { email: 'new@example.com', display_name: 'New', role_key: 'author', reason: 'Test' },
       })
     );
@@ -443,7 +443,7 @@ test('mfa: editor and author requests without AAL2 are allowed', async () => {
     harness.rpcErrors.update_employee_basic = { message: 'Passed MFA check', code: 'P0001' };
     const res = await operationsRoute.POST(
       jsonRequest('http://localhost/api/employees/operations', {
-        token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9XX0.dummy',
+        token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
         body: { operation: 'update-basic', target_id: VALID_UUID, display_name: 'Test', reason: 'Test' },
       })
     );
@@ -463,7 +463,7 @@ test('mfa: verify proxy enforces rate limiting', async () => {
 
   const res = await POST(
     jsonRequest('http://localhost/api/employees/mfa/verify', {
-      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9XX0.dummy',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
       body: { factorId: 'fact-123', challengeId: 'chal-123', code: '000000' },
     })
   );
@@ -491,7 +491,7 @@ test('mfa: verify proxy logs challenge success for verified factor', async () =>
   
   const res = await POST(
     jsonRequest('http://localhost/api/employees/mfa/verify', {
-      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9XX0.dummy',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
       body: { factorId: 'fact-123', challengeId: 'chal-123', code: '000000' },
     })
   );
@@ -509,7 +509,7 @@ test('mfa: verify proxy logs enrolled for unverified factor', async () => {
   
   const res = await POST(
     jsonRequest('http://localhost/api/employees/mfa/verify', {
-      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9XX0.dummy',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
       body: { factorId: 'fact-123', challengeId: 'chal-123', code: '000000' },
     })
   );
@@ -525,7 +525,7 @@ test('mfa: verify proxy returns 500 when listFactors fails', async () => {
   
   const res = await POST(
     jsonRequest('http://localhost/api/employees/mfa/verify', {
-      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9XX0.dummy',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
       body: { factorId: 'fact-123', challengeId: 'chal-123', code: '000000' },
     })
   );
@@ -540,7 +540,7 @@ test('mfa: verify proxy rejects unknown factorId with 400', async () => {
   
   const res = await POST(
     jsonRequest('http://localhost/api/employees/mfa/verify', {
-      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9XX0.dummy',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
       body: { factorId: 'fact-UNKNOWN', challengeId: 'chal-123', code: '000000' },
     })
   );
@@ -557,7 +557,7 @@ test('mfa: verify proxy logs failure and returns 400 on invalid code', async () 
   
   const res = await POST(
     jsonRequest('http://localhost/api/employees/mfa/verify', {
-      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9XX0.dummy',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
       body: { factorId: 'fact-123', challengeId: 'chal-123', code: '999999' },
     })
   );
