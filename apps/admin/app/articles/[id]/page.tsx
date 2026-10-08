@@ -5,23 +5,52 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 
+type Article = {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  content: string;
+  status: string;
+  category: string;
+  district: string | null;
+  source_name: string | null;
+  source_url: string | null;
+  featured_image_url: string | null;
+  author_display_name: string | null;
+  view_count: number;
+  created_at: string;
+  updated_at: string;
+};
+
+type ArticleVersion = {
+  version_number: number;
+  created_at: string;
+  title: string;
+  edited_by: string;
+  profiles?: { display_name: string } | null;
+};
+
 export default function ArticleViewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   
   const [isLoading, setIsLoading] = useState(true);
-  const [article, setArticle] = useState<any>(null);
+  const [article, setArticle] = useState<Article | null>(null);
+  const [versions, setVersions] = useState<ArticleVersion[]>([]);
   const [permissions, setPermissions] = useState<string[]>([]);
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
 
   useEffect(() => {
     async function loadData() {
       setIsLoading(true);
       
-      const [articleRes, permRes] = await Promise.all([
+      const [articleRes, permRes, versionsRes] = await Promise.all([
         supabase.from('articles').select('*').eq('id', id).single(),
-        supabase.rpc('current_user_permissions')
+        supabase.rpc('current_user_permissions'),
+        supabase.from('article_versions').select('version_number, created_at, edited_by, title, profiles!edited_by(display_name)').eq('article_id', id).order('version_number', { ascending: false })
       ]);
       
       if (articleRes.error || !articleRes.data) {
@@ -33,6 +62,10 @@ export default function ArticleViewPage({ params }: { params: Promise<{ id: stri
       if (!permRes.error && permRes.data) {
         setPermissions(permRes.data as string[]);
       }
+
+      if (!versionsRes.error && versionsRes.data) {
+        setVersions(versionsRes.data as unknown as ArticleVersion[]);
+      }
       
       setIsLoading(false);
     }
@@ -43,16 +76,25 @@ export default function ArticleViewPage({ params }: { params: Promise<{ id: stri
   const can = (perm: string) => permissions.includes(perm);
 
   const handleAction = async (action: 'submit' | 'return' | 'publish' | 'archive') => {
+    if (action === 'archive') {
+      setShowArchiveModal(true);
+      return;
+    }
+
     let confirmMsg = '';
     if (action === 'submit') confirmMsg = 'Submit this article for editorial review?';
     if (action === 'return') confirmMsg = 'Return this article to draft status?';
     if (action === 'publish') confirmMsg = 'Publish this article? It will be live on the public site immediately.';
-    if (action === 'archive') confirmMsg = 'Archive this article? It will be hidden from the public site.';
     
     if (!confirm(confirmMsg)) return;
 
+    await executeAction(action);
+  };
+
+  const executeAction = async (action: 'submit' | 'return' | 'publish' | 'archive') => {
     setIsActionLoading(true);
     setError(null);
+    setShowArchiveModal(false);
 
     try {
       const { data: session } = await supabase.auth.getSession();
@@ -79,8 +121,8 @@ export default function ArticleViewPage({ params }: { params: Promise<{ id: stri
       const { data } = await supabase.from('articles').select('*').eq('id', id).single();
       if (data) setArticle(data);
       
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setIsActionLoading(false);
     }
@@ -255,6 +297,70 @@ export default function ArticleViewPage({ params }: { params: Promise<{ id: stri
           <p className="mt-1 truncate font-medium text-white" title={article.slug}>{article.slug}</p>
         </div>
       </div>
+
+      {versions.length > 0 && (
+        <section className="mt-12 rounded-xl border border-slate-800 bg-slate-900/50 p-6 md:p-8">
+          <h2 className="mb-6 text-xl font-bold text-white">Version History</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[600px] border-collapse text-left text-sm">
+              <thead>
+                <tr className="border-b border-slate-800 text-xs uppercase tracking-wider text-slate-500">
+                  <th className="px-4 py-3 font-semibold">Version</th>
+                  <th className="px-4 py-3 font-semibold">Date</th>
+                  <th className="px-4 py-3 font-semibold">Title at Time</th>
+                  <th className="px-4 py-3 font-semibold">Edited By</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800">
+                {versions.map((v) => (
+                  <tr key={v.version_number} className="hover:bg-slate-800/20 transition-colors">
+                    <td className="px-4 py-4 font-mono text-cyan-400">v{v.version_number}</td>
+                    <td className="px-4 py-4 text-slate-300">
+                      {new Date(v.created_at).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-4 text-slate-200 font-medium">
+                      {v.title}
+                    </td>
+                    <td className="px-4 py-4 text-slate-400">
+                      {v.profiles?.display_name || 'Unknown'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {/* Archive Modal */}
+      {showArchiveModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl overflow-hidden">
+            <div className="p-6">
+              <h3 className="text-xl font-bold text-white">Archive this article?</h3>
+              <p className="mt-3 text-slate-300">
+                This article will no longer be available as published content. Archived articles cannot be restored through the normal workflow.
+              </p>
+            </div>
+            <div className="flex items-center justify-end gap-3 border-t border-slate-800 bg-slate-950 p-4">
+              <button 
+                onClick={() => setShowArchiveModal(false)}
+                disabled={isActionLoading}
+                className="rounded-lg px-4 py-2 text-sm font-semibold text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => executeAction('archive')}
+                disabled={isActionLoading}
+                className="rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-400 disabled:opacity-50"
+              >
+                {isActionLoading ? 'Archiving...' : 'Archive Article'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

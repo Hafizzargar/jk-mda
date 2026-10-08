@@ -90,7 +90,7 @@ export async function PATCH(
     }
 
     return new Response(JSON.stringify(data), { status: 200, headers: { 'Content-Type': 'application/json' } });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error updating article:', err);
     return new Response(JSON.stringify({ error: 'Internal Server Error' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }

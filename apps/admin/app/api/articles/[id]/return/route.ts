@@ -23,7 +23,7 @@ export async function POST(
     }
 
     return new Response(JSON.stringify(data), { status: 200, headers: { 'Content-Type': 'application/json' } });
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('Error returning article to draft:', err);
     return new Response(JSON.stringify({ error: 'Internal Server Error' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }

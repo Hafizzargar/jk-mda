@@ -14,6 +14,7 @@ begin
     jsonb_build_object(
       'sub', p_user_id::text,
       'role', 'authenticated',
+      'aal', 'aal2',
       'session_id', gen_random_uuid()::text
     )::text,
     true
@@ -53,17 +54,17 @@ select extensions.throws_ok(
 );
 
 create temporary table security_test_articles (article_owner text primary key, id uuid not null);
-select pg_temp.assume_employee('10000000-0000-0000-0000-000000000005');
+select pg_temp.assume_employee('10000000-0000-0000-0000-000000000003');
 insert into security_test_articles (article_owner, id)
 select 'owner', (public.create_article('Permission matrix test article', 'Test summary', 'Test body for publication authorization.', 'test-slug-' || floor(random() * 1000000)::text, null, 'Testing', null, null, null)).id;
 select pg_temp.assume_employee('10000000-0000-0000-0000-000000000006');
 insert into security_test_articles (article_owner, id)
 select 'superadmin', (public.create_article('Superadmin publication test article', 'Second test summary', 'Second test body for publication authorization.', 'test-slug-' || floor(random() * 1000000)::text, null, 'Testing', null, null, null)).id;
 
-select pg_temp.assume_employee('10000000-0000-0000-0000-000000000005');
+select pg_temp.assume_employee('10000000-0000-0000-0000-000000000003');
 select extensions.throws_ok(
-  format('select public.transition_article_status(%L, %L)', (select id from security_test_articles order by id limit 1), 'published'),
-  'P0001', 'Article publish access is required', 'Author cannot publish through the database RPC'
+  format('select public.publish_article(%L)', (select id from security_test_articles order by id limit 1)),
+  'P0001', 'Article publish permission required', 'Author cannot publish through the database RPC'
 );
 
 select extensions.is(
@@ -191,8 +192,8 @@ select extensions.throws_ok(
   'P0001', 'Role-change access is required', 'Editor cannot change employee roles'
 );
 select extensions.throws_ok(
-  $$ select public.transition_article_status((select id from security_test_articles where article_owner = 'owner'), 'published') $$,
-  'P0001', 'Article publish access is required', 'Editor cannot publish articles'
+  $$ select public.publish_article((select id from security_test_articles where article_owner = 'owner')) $$,
+  'P0001', 'Article publish permission required', 'Editor cannot publish articles'
 );
 
 select pg_temp.assume_employee('10000000-0000-0000-0000-000000000003');
@@ -201,8 +202,8 @@ select extensions.lives_ok(
   'Admin can manage an Editor employee'
 );
 select extensions.throws_ok(
-  $$ select public.transition_article_status((select id from security_test_articles where article_owner = 'owner'), 'published') $$,
-  'P0001', 'Article publish access is required', 'Admin cannot publish articles'
+  $$ select public.publish_article((select id from security_test_articles where article_owner = 'owner')) $$,
+  'P0001', 'Article publish permission required', 'Admin cannot publish articles'
 );
 
 select pg_temp.assume_employee('10000000-0000-0000-0000-000000000003');
@@ -249,25 +250,28 @@ select pg_temp.assume_employee('10000000-0000-0000-0000-000000000001');
 select extensions.throws_ok(
   format('update public.articles set status = %L where id = %L', 'published', (select id from security_test_articles where article_owner = 'owner')),
   'P0001',
-  'Invalid or unauthorized article status transition: draft to published',
+  'Drafts can only transition to review.',
   'Direct article status writes remain blocked even for Owner'
 );
+select pg_temp.assume_employee('10000000-0000-0000-0000-000000000003');
 select extensions.lives_ok(
-  format('select public.transition_article_status(%L, %L)', (select id from security_test_articles where article_owner = 'owner'), 'review'),
-  'Owner can move an article into review through the database operation'
+  format('select public.submit_article_for_review(%L)', (select id from security_test_articles where article_owner = 'owner')),
+  'Author can submit their draft for review'
 );
+select pg_temp.assume_employee('10000000-0000-0000-0000-000000000001');
 select extensions.lives_ok(
-  format('select public.transition_article_status(%L, %L)', (select id from security_test_articles where article_owner = 'owner'), 'published'),
+  format('select public.publish_article(%L)', (select id from security_test_articles where article_owner = 'owner')),
   'Owner can publish through the authorized database operation'
 );
 
+select pg_temp.assume_employee('10000000-0000-0000-0000-000000000006');
+select extensions.lives_ok(
+  format('select public.submit_article_for_review(%L)', (select id from security_test_articles where article_owner = 'superadmin')),
+  'Author can submit their draft for review'
+);
 select pg_temp.assume_employee('10000000-0000-0000-0000-000000000002');
 select extensions.lives_ok(
-  format('select public.transition_article_status(%L, %L)', (select id from security_test_articles where article_owner = 'superadmin'), 'review'),
-  'Superadmin can review an article'
-);
-select extensions.lives_ok(
-  format('select public.transition_article_status(%L, %L)', (select id from security_test_articles where article_owner = 'superadmin'), 'published'),
+  format('select public.publish_article(%L)', (select id from security_test_articles where article_owner = 'superadmin')),
   'Superadmin can publish through the authorized database operation'
 );
 

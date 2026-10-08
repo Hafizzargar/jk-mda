@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { canAccessRole } from '@kjin/auth';
 import { summarizeArticleQueue } from '@kjin/db';
 import { supabase } from '@/lib/supabase';
@@ -191,18 +192,18 @@ export default function DashboardPage() {
 
         <div className="mb-8 flex justify-end">
           <div className="flex gap-3">
-            <a
+            <Link
               href="/employees"
               className="rounded-full border border-slate-700 px-5 py-2.5 font-semibold text-white hover:border-cyan-500"
             >
               Employees
-            </a>
-            <a
+            </Link>
+            <Link
               href="/articles/new"
               className="rounded-full bg-cyan-500 px-5 py-2.5 font-semibold text-slate-950 hover:bg-cyan-400"
             >
               New article
-            </a>
+            </Link>
           </div>
         </div>
 
@@ -231,9 +232,9 @@ export default function DashboardPage() {
                   <li key={`${item.id ?? item.title}-${item.status}`} className="rounded-xl border border-slate-800 bg-slate-950 p-4">
                     <div className="flex items-center justify-between gap-4">
                       <div>
-                        <a href={item.id ? `/articles/${item.id}/review` : '#'} className="font-medium text-white hover:text-cyan-300">
+                        <Link href={item.id ? `/articles/${item.id}/review` : '#'} className="font-medium text-white hover:text-cyan-300">
                           {item.title}
-                        </a>
+                        </Link>
                         <p className="mt-1 text-sm text-slate-400">{item.summary}</p>
                       </div>
                       <span className={`rounded-full px-2 py-1 text-xs font-medium ${tagClass}`}>
