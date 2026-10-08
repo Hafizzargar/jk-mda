@@ -20,16 +20,14 @@ where permission_key = 'article.publish'
 delete from public.articles;
 
 -- Step 2: Alter articles table
-alter table public.articles
-  add column slug text,
-  rename column summary to excerpt;
+alter table public.articles add column slug text;
+alter table public.articles rename column summary to excerpt;
 
 alter table public.articles
   rename column body to content;
 
 alter table public.articles
   add column district text,
-  add column category text,
   add column author_display_name text,
   add column source_name text,
   add column source_url text,
@@ -83,6 +81,8 @@ using (
 
 -- articles: Remove ALL direct mutation policies to lock down the CMS workflow.
 -- All INSERT, UPDATE, and DELETE operations must now flow through the SECURITY DEFINER RPCs.
+alter table public.articles enable row level security;
+
 drop policy if exists "Active employees create draft articles" on public.articles;
 drop policy if exists "Active users create draft articles" on public.articles;
 drop policy if exists "Authors can create draft articles" on public.articles;

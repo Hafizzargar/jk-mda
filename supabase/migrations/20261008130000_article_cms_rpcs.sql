@@ -18,7 +18,7 @@ create or replace function public.create_article(
   p_content text,
   p_slug text,
   p_district text default null,
-  p_category text default null,
+  p_category text default 'General',
   p_source_name text default null,
   p_source_url text default null,
   p_featured_image_url text default null
@@ -70,7 +70,7 @@ create or replace function public.update_article(
   p_content text,
   p_slug text,
   p_district text default null,
-  p_category text default null,
+  p_category text default 'General',
   p_source_name text default null,
   p_source_url text default null,
   p_featured_image_url text default null
