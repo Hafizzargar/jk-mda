@@ -80,14 +80,18 @@ export default function MFAEnrollmentPage() {
         throw new Error(challengeResponse.error.message);
       }
       
+      const { data: { session } } = await supabase.auth.getSession();
+      
       const verifyResponse = await fetch('/api/employees/mfa/verify', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': session ? `Bearer ${session.access_token}` : ''
+        },
         body: JSON.stringify({
           factorId,
           challengeId: challengeResponse.data.id,
           code: verificationCode,
-          intent: 'enroll'
         }),
       });
       

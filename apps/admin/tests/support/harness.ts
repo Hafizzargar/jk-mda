@@ -194,6 +194,9 @@ export class Harness {
             recordAuth('mfa.verify', params.code);
             if (params.code === '000000') return ok({ session: { access_token: 'new-token' } });
             return fail('Invalid code');
+          },
+          listFactors: async () => {
+            return ok({ all: [], totp: [{ id: 'fact-123', status: 'verified' }] });
           }
         },
       },

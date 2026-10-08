@@ -4,9 +4,9 @@ export async function POST(request: Request) {
   const auth = await authenticateEmployeeRequest(request);
   if (auth instanceof Response) return auth;
 
-  let body: { factorId: string; challengeId: string; code: string; intent?: 'enroll' | 'challenge' };
+  let body: { factorId: string; challengeId: string; code: string };
   try {
-    body = (await request.json()) as { factorId: string; challengeId: string; code: string; intent?: 'enroll' | 'challenge' };
+    body = (await request.json()) as { factorId: string; challengeId: string; code: string };
     if (!body.factorId || !body.challengeId || !body.code) throw new Error();
   } catch {
     return Response.json({ error: 'Missing required fields.' }, { status: 400 });
@@ -20,6 +20,11 @@ export async function POST(request: Request) {
     }
     return Response.json({ error: 'Internal server error during rate limit check.' }, { status: 500 });
   }
+
+  // Determine if this is a new enrollment by checking the current factor status
+  const { data: factors } = await auth.userClient.auth.mfa.listFactors();
+  const targetFactor = factors?.totp.find(f => f.id === body.factorId);
+  const isEnrollment = targetFactor && (targetFactor.status as string) === 'unverified';
 
   // Use the user's client (which has their current token) to call verify
   const { data: verifyData, error: verifyError } = await auth.userClient.auth.mfa.verify({
@@ -44,14 +49,14 @@ export async function POST(request: Request) {
   }
 
   // Log success securely server-side
-  const successAction = body.intent === 'enroll' ? 'employee.mfa_enrolled' : 'employee.mfa_challenge_success';
+  const successAction = isEnrollment ? 'employee.mfa_enrolled' : 'employee.mfa_challenge_success';
   await auth.service.from('audit_logs').insert({
     actor_profile_id: auth.user.id,
     action: successAction,
     target_type: 'profile',
     target_id: auth.user.id,
     result: 'success',
-    reason: body.intent === 'enroll' ? 'TOTP enrolled' : 'TOTP verified',
+    reason: isEnrollment ? 'TOTP enrolled' : 'TOTP verified',
     details: { method: request.method, path: new URL(request.url).pathname },
     ...auth.auditContext,
   });
