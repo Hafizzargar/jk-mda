@@ -81,19 +81,22 @@ using (
   (exists (select 1 from public.articles a where a.id = article_id and a.author_id = (select auth.uid())))
 );
 
--- articles: Update existing policies to restrict direct editing.
+-- articles: Remove ALL direct mutation policies to lock down the CMS workflow.
+-- All INSERT, UPDATE, and DELETE operations must now flow through the SECURITY DEFINER RPCs.
+drop policy if exists "Active employees create draft articles" on public.articles;
+drop policy if exists "Active users create draft articles" on public.articles;
+drop policy if exists "Authors can create draft articles" on public.articles;
+drop policy if exists "Authenticated users can create articles" on public.articles;
+
 drop policy if exists "Authors edit own drafts and reviewers edit all" on public.articles;
 drop policy if exists "Authors edit own drafts and editors edit all articles" on public.articles;
-create policy "Authors edit own drafts and reviewers edit all"
-on public.articles for update to authenticated
-using (
-  (public.has_permission('article.review') and status in ('draft', 'review')) or
-  (author_id = (select auth.uid()) and status = 'draft' and public.has_permission('article.create'))
-)
-with check (
-  (public.has_permission('article.review') and status in ('draft', 'review')) or
-  (author_id = (select auth.uid()) and status = 'draft' and public.has_permission('article.create'))
-);
+drop policy if exists "Editors can update article state" on public.articles;
+drop policy if exists "Authenticated users can update articles" on public.articles;
+
+drop policy if exists "Authorized employees delete articles" on public.articles;
+drop policy if exists "Editors delete articles" on public.articles;
+drop policy if exists "Editors can delete articles" on public.articles;
+drop policy if exists "Authenticated users can delete articles" on public.articles;
 
 -- Step 6: Comprehensive State & Integrity Trigger
 create or replace function public.articles_enforce_integrity()

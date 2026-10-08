@@ -260,7 +260,7 @@ declare
 begin
   if actor_uid is null then raise exception 'Authenticated employee required'; end if;
   
-  if not (public.has_permission('article.review') or public.has_permission('article.delete')) then 
+  if not public.has_permission('article.delete') then 
     raise exception 'Article archive permission required'; 
   end if;
 
