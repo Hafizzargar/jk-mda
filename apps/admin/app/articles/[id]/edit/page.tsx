@@ -1,302 +1,322 @@
 'use client';
 
-import { useEffect, useState, use } from 'react';
-import { useRouter } from 'next/navigation';
+import { FormEvent, useEffect, useState, use } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { requiresMfa } from '@/lib/mfa';
+
+type Article = {
+  id: string;
+  title: string;
+  slug: string;
+  status: 'draft' | 'review' | 'published' | 'archived';
+  district: string | null;
+  category: string;
+  excerpt: string | null;
+  content: string;
+  source_name: string | null;
+  source_url: string | null;
+  featured_image_url: string | null;
+  author_id: string;
+};
 
 export default function EditArticlePage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
   const router = useRouter();
-  
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+  const { id } = use(params);
+
+  const [authStatus, setAuthStatus] = useState('Checking authorization...');
+  const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [article, setArticle] = useState<any>(null);
+  const [article, setArticle] = useState<Article | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    async function fetchArticle() {
-      const { data, error } = await supabase
+    async function init() {
+      setIsLoading(true);
+      
+      const { data, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !data.session) {
+        setAuthStatus('Sign in required.');
+        setIsAuthorized(false);
+        return;
+      }
+      const userId = data.session.user.id;
+
+      const [roleResult, permResult] = await Promise.all([
+        supabase.rpc('current_user_role'),
+        supabase.rpc('current_user_permissions'),
+      ]);
+
+      if (roleResult.error || permResult.error) {
+        setAuthStatus('Failed to load permissions.');
+        setIsAuthorized(false);
+        return;
+      }
+
+      const userRole = roleResult.data as string | null;
+      if (!userRole) {
+        setAuthStatus('No role found.');
+        setIsAuthorized(false);
+        return;
+      }
+
+      if (requiresMfa(userRole)) {
+        const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (aalData?.currentLevel !== 'aal2') {
+          router.push(aalData?.nextLevel === 'aal2' ? '/mfa/challenge' : '/mfa/enroll');
+          return;
+        }
+      }
+
+      const permissions = (permResult.data as string[] | null) ?? [];
+      const hasReviewPermission = permissions.includes('article.review');
+      const hasCreatePermission = permissions.includes('article.create');
+
+      // Fetch article
+      const { data: articleData, error: articleError } = await supabase
         .from('articles')
         .select('*')
         .eq('id', id)
         .single();
-        
-      if (error || !data) {
-        setError('Could not load article');
-      } else {
-        setArticle(data);
+
+      if (articleError || !articleData) {
+        setAuthStatus('Article not found or access denied.');
+        setIsAuthorized(false);
+        return;
       }
+
+      const a = articleData as Article;
+      
+      // Verify edit authorization
+      const canEdit = 
+        (hasReviewPermission && ['draft', 'review'].includes(a.status)) ||
+        (a.author_id === userId && a.status === 'draft' && hasCreatePermission);
+
+      if (!canEdit) {
+        setAuthStatus('You do not have permission to edit this article in its current state.');
+        setIsAuthorized(false);
+        return;
+      }
+
+      setArticle(a);
+      setIsAuthorized(true);
       setIsLoading(false);
     }
-    fetchArticle();
-  }, [id]);
+    
+    init();
+  }, [router, id]);
 
-  async function handleSave(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setIsSaving(true);
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSubmitting(true);
     setError(null);
 
-    const formData = new FormData(e.currentTarget);
-    const data = {
-      title: formData.get('title'),
-      slug: formData.get('slug'),
-      excerpt: formData.get('excerpt'),
-      content: formData.get('content'),
-      category: formData.get('category') || 'General',
-      district: formData.get('district') || null,
-      source_name: formData.get('source_name') || null,
-      source_url: formData.get('source_url') || null,
-      featured_image_url: formData.get('featured_image_url') || null,
+    const form = new FormData(event.currentTarget);
+    
+    let slug = String(form.get('slug') ?? '').trim();
+    const title = String(form.get('title') ?? '').trim();
+    
+    if (!slug && title) {
+      slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+    }
+
+    const payload = {
+      title,
+      slug,
+      content: String(form.get('content') ?? ''),
+      excerpt: form.get('excerpt') ? String(form.get('excerpt')) : null,
+      category: form.get('category') ? String(form.get('category')) : 'General',
+      district: form.get('district') ? String(form.get('district')) : null,
+      source_name: form.get('source_name') ? String(form.get('source_name')) : null,
+      source_url: form.get('source_url') ? String(form.get('source_url')) : null,
+      featured_image_url: form.get('featured_image_url') ? String(form.get('featured_image_url')) : null,
     };
 
-    try {
-      const { data: session } = await supabase.auth.getSession();
-      
-      const response = await fetch(`/api/articles/${id}`, {
-        method: 'PATCH',
-        headers: { 
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session?.session?.access_token}`,
-        },
-        body: JSON.stringify(data),
-      });
+    const { data: sessionData } = await supabase.auth.getSession();
+    const response = await fetch(`/api/articles/${id}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${sessionData.session?.access_token}`,
+      },
+      body: JSON.stringify(payload),
+    });
 
-      if (!response.ok) {
-        const { error: errorMsg } = await response.json();
-        throw new Error(errorMsg || 'Failed to update article');
-      }
+    const result = await response.json();
 
+    if (!response.ok) {
+      setError(result.error ?? 'Failed to update article');
+      setIsSubmitting(false);
+    } else {
       router.push(`/articles/${id}`);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setIsSaving(false);
     }
-  }
+  };
 
-  async function handleSubmitReview() {
-    if (!confirm('Are you sure you want to submit this draft for review? You will no longer be able to edit it unless it is returned.')) {
-      return;
-    }
-    
-    setIsSubmittingReview(true);
-    setError(null);
-
-    try {
-      const { data: session } = await supabase.auth.getSession();
-      
-      const response = await fetch(`/api/articles/${id}/submit`, {
-        method: 'POST',
-        headers: { 
-          Authorization: `Bearer ${session?.session?.access_token}`,
-        },
-      });
-
-      if (!response.ok) {
-        const { error: errorMsg } = await response.json();
-        throw new Error(errorMsg || 'Failed to submit article');
-      }
-
-      router.push(`/articles/${id}`);
-    } catch (err: any) {
-      setError(err.message);
-      setIsSubmittingReview(false);
-    }
-  }
-
-  if (isLoading) {
+  if (isAuthorized === false) {
     return (
-      <div className="flex min-h-[400px] items-center justify-center">
-        <p className="text-slate-400">Loading article...</p>
-      </div>
+      <main className="flex min-h-screen items-center justify-center bg-slate-950 p-8 text-white">
+        <div className="w-full max-w-lg rounded-2xl border border-slate-800 bg-slate-900 p-8 text-center text-slate-200">
+          <p className="text-sm uppercase tracking-[0.2em] text-cyan-300">Access required</p>
+          <h1 className="mt-4 text-2xl font-bold">{authStatus}</h1>
+          <Link href="/articles" className="mt-6 inline-block rounded-full bg-cyan-500 px-5 py-2.5 font-semibold text-slate-950 hover:bg-cyan-400">
+            Back to Articles
+          </Link>
+        </div>
+      </main>
     );
   }
 
-  if (!article) {
+  if (isAuthorized === null || isLoading || !article) {
     return (
-      <div className="mx-auto max-w-4xl p-8 text-center text-red-400">
-        Article not found or access denied.
-      </div>
+      <main className="flex min-h-screen items-center justify-center bg-slate-950 p-8 text-white">
+        <div className="text-slate-400">Loading article...</div>
+      </main>
     );
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8">
-      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4">
-          <Link 
-            href="/articles"
-            className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-300 transition-colors hover:bg-slate-700 hover:text-white"
-          >
-            ← Back
+    <main className="min-h-screen bg-slate-950 px-5 py-8 text-white md:px-8">
+      <div className="mx-auto max-w-3xl">
+        <header className="mb-8 border-b border-slate-800 pb-6">
+          <Link href={`/articles/${id}`} className="text-sm font-medium text-cyan-300 hover:text-cyan-200">
+            &larr; Back to article
           </Link>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-white">Edit Draft</h1>
-            <p className="text-sm text-slate-400">Make changes to your article</p>
+          <h1 className="mt-4 text-3xl font-bold">Edit article</h1>
+          <p className="mt-2 text-sm text-slate-400">Update the article content and metadata.</p>
+        </header>
+
+        {error && (
+          <div className="mb-6 rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-red-200">
+            {error}
           </div>
-        </div>
-        
-        {article.status === 'draft' && (
-          <button 
-            type="button"
-            onClick={handleSubmitReview}
-            disabled={isSubmittingReview || isSaving}
-            className="rounded-lg bg-emerald-500/10 px-4 py-2 font-semibold text-emerald-400 transition-colors hover:bg-emerald-500/20 disabled:opacity-50"
-          >
-            {isSubmittingReview ? 'Submitting...' : 'Submit for Review'}
-          </button>
         )}
-      </div>
 
-      {error && (
-        <div className="mb-6 rounded-lg border border-red-500/50 bg-red-500/10 p-4 text-sm text-red-400">
-          {error}
-        </div>
-      )}
-      
-      {article.status !== 'draft' && article.status !== 'review' && (
-        <div className="mb-6 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 text-sm text-amber-400">
-          This article is {article.status}. Editing may be restricted.
-        </div>
-      )}
-
-      <form onSubmit={handleSave} className="space-y-8 rounded-xl border border-slate-800 bg-slate-900/50 p-6 shadow-xl lg:p-8">
-        <div className="space-y-6">
-          <div>
-            <label htmlFor="title" className="block text-sm font-medium text-slate-300">Title</label>
-            <input 
-              id="title" 
-              name="title" 
-              type="text" 
-              defaultValue={article.title}
-              required 
-              maxLength={255}
-              className="mt-2 block w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-white placeholder-slate-600 outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400" 
-            />
-          </div>
-
-          <div>
-            <label htmlFor="slug" className="block text-sm font-medium text-slate-300">URL Slug</label>
-            <input 
-              id="slug" 
-              name="slug" 
-              type="text" 
-              defaultValue={article.slug}
-              required 
-              maxLength={255}
-              pattern="^[a-z0-9]+(?:-[a-z0-9]+)*$"
-              className="mt-2 block w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-white placeholder-slate-600 outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400" 
-            />
-          </div>
-
-          <div>
-            <label htmlFor="excerpt" className="block text-sm font-medium text-slate-300">Excerpt</label>
-            <textarea 
-              id="excerpt" 
-              name="excerpt" 
-              defaultValue={article.excerpt || ''}
-              rows={2}
-              maxLength={1000}
-              className="mt-2 block w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-white placeholder-slate-600 outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400" 
-            />
-          </div>
-
-          <div>
-            <label htmlFor="content" className="block text-sm font-medium text-slate-300">Content</label>
-            <textarea 
-              id="content" 
-              name="content" 
-              defaultValue={article.content}
-              required
-              rows={12}
-              className="mt-2 block w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-white placeholder-slate-600 outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400" 
-            />
-          </div>
-          
-          <div className="grid gap-6 md:grid-cols-2">
-            <div>
-              <label htmlFor="category" className="block text-sm font-medium text-slate-300">Category</label>
-              <select 
-                id="category" 
-                name="category"
-                defaultValue={article.category || 'General'}
-                className="mt-2 block w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400" 
-              >
-                <option value="General">General</option>
-                <option value="Politics">Politics</option>
-                <option value="Business">Business</option>
-                <option value="Tech">Tech</option>
-                <option value="Sports">Sports</option>
-                <option value="Local reporting">Local reporting</option>
-              </select>
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="rounded-xl border border-slate-800 bg-slate-900 p-6">
+            <h2 className="text-lg font-semibold mb-4">Core Content</h2>
             
-            <div>
-              <label htmlFor="district" className="block text-sm font-medium text-slate-300">District</label>
-              <input 
-                id="district" 
-                name="district" 
-                type="text" 
-                defaultValue={article.district || ''}
-                className="mt-2 block w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-white placeholder-slate-600 outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400" 
-              />
-            </div>
-          </div>
-          
-          <hr className="border-slate-800" />
-          
-          <div className="space-y-6">
-            <h3 className="text-sm font-medium text-slate-300">Media & Attribution</h3>
-            <div className="grid gap-6 md:grid-cols-2">
-              <div className="md:col-span-2">
-                <label htmlFor="featured_image_url" className="block text-sm font-medium text-slate-300">Featured Image URL</label>
+            <div className="space-y-5">
+              <label className="block">
+                <span className="text-sm font-medium text-slate-300">Title <span className="text-red-400">*</span></span>
                 <input 
-                  id="featured_image_url" 
-                  name="featured_image_url" 
-                  type="url" 
-                  defaultValue={article.featured_image_url || ''}
-                  className="mt-2 block w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-white placeholder-slate-600 outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400" 
+                  name="title" 
+                  defaultValue={article.title}
+                  required 
+                  maxLength={255} 
+                  className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-white focus:border-cyan-500 focus:outline-none" 
                 />
-              </div>
-              
-              <div>
-                <label htmlFor="source_name" className="block text-sm font-medium text-slate-300">Source Name</label>
-                <input 
-                  id="source_name" 
-                  name="source_name" 
-                  type="text" 
-                  defaultValue={article.source_name || ''}
-                  className="mt-2 block w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-white placeholder-slate-600 outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400" 
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="source_url" className="block text-sm font-medium text-slate-300">Source URL</label>
-                <input 
-                  id="source_url" 
-                  name="source_url" 
-                  type="url" 
-                  defaultValue={article.source_url || ''}
-                  className="mt-2 block w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-white placeholder-slate-600 outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400" 
-                />
-              </div>
-            </div>
-          </div>
-        </div>
+              </label>
 
-        <div className="flex items-center justify-end gap-4 border-t border-slate-800 pt-6">
-          <Link href={`/articles/${id}`} className="text-sm text-slate-400 hover:text-white">Cancel</Link>
-          <button 
-            type="submit" 
-            disabled={isSaving || isSubmittingReview}
-            className="rounded-lg bg-cyan-400 px-6 py-2.5 font-semibold text-slate-950 transition-colors hover:bg-cyan-300 disabled:opacity-50"
-          >
-            {isSaving ? 'Saving...' : 'Save Changes'}
-          </button>
-        </div>
-      </form>
-    </div>
+              <label className="block">
+                <span className="text-sm font-medium text-slate-300">Slug</span>
+                <p className="text-xs text-slate-500 mb-2">Only alphanumeric and hyphens allowed.</p>
+                <input 
+                  name="slug" 
+                  defaultValue={article.slug}
+                  maxLength={255}
+                  pattern="^[a-z0-9-]+$"
+                  title="Only lowercase letters, numbers, and hyphens are allowed"
+                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-white font-mono text-sm focus:border-cyan-500 focus:outline-none disabled:opacity-50" 
+                  disabled={article.status === 'published' || article.status === 'archived'}
+                />
+                {(article.status === 'published' || article.status === 'archived') && (
+                  <p className="text-xs text-amber-400 mt-1">Slug cannot be changed after publication.</p>
+                )}
+              </label>
+
+              <label className="block">
+                <span className="text-sm font-medium text-slate-300">Excerpt</span>
+                <textarea 
+                  name="excerpt" 
+                  defaultValue={article.excerpt ?? ''}
+                  maxLength={1000} 
+                  rows={3}
+                  className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-white focus:border-cyan-500 focus:outline-none" 
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-sm font-medium text-slate-300">Body Content <span className="text-red-400">*</span></span>
+                <textarea 
+                  name="content" 
+                  defaultValue={article.content}
+                  required 
+                  rows={15}
+                  className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-white font-mono text-sm leading-relaxed focus:border-cyan-500 focus:outline-none" 
+                />
+              </label>
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-slate-800 bg-slate-900 p-6">
+            <h2 className="text-lg font-semibold mb-4">Metadata</h2>
+            
+            <div className="grid gap-5 md:grid-cols-2">
+              <label className="block">
+                <span className="text-sm font-medium text-slate-300">Category</span>
+                <input 
+                  name="category" 
+                  defaultValue={article.category}
+                  className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-white focus:border-cyan-500 focus:outline-none" 
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-sm font-medium text-slate-300">District</span>
+                <input 
+                  name="district" 
+                  defaultValue={article.district ?? ''}
+                  className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-white focus:border-cyan-500 focus:outline-none" 
+                />
+              </label>
+
+              <label className="block md:col-span-2">
+                <span className="text-sm font-medium text-slate-300">Featured Image URL</span>
+                <input 
+                  name="featured_image_url" 
+                  defaultValue={article.featured_image_url ?? ''}
+                  type="url"
+                  className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-white focus:border-cyan-500 focus:outline-none" 
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-sm font-medium text-slate-300">Original Source Name</span>
+                <input 
+                  name="source_name" 
+                  defaultValue={article.source_name ?? ''}
+                  className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-white focus:border-cyan-500 focus:outline-none" 
+                />
+              </label>
+
+              <label className="block">
+                <span className="text-sm font-medium text-slate-300">Original Source URL</span>
+                <input 
+                  name="source_url" 
+                  defaultValue={article.source_url ?? ''}
+                  type="url"
+                  className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-white focus:border-cyan-500 focus:outline-none" 
+                />
+              </label>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-4 pt-4">
+            <Link href={`/articles/${id}`} className="text-sm font-medium text-slate-400 hover:text-white">
+              Cancel
+            </Link>
+            <button 
+              type="submit" 
+              disabled={isSubmitting} 
+              className="rounded-lg bg-cyan-400 px-6 py-2.5 font-semibold text-slate-950 hover:bg-cyan-300 disabled:opacity-50"
+            >
+              {isSubmitting ? 'Saving...' : 'Save changes'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </main>
   );
 }
