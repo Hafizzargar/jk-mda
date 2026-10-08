@@ -99,6 +99,8 @@ with check (
 create or replace function public.articles_enforce_integrity()
 returns trigger
 language plpgsql
+security definer
+set search_path = ''
 as $$
 declare
   actor_uid uuid := (select auth.uid());
@@ -110,9 +112,18 @@ begin
       raise exception 'New articles must be created as drafts.';
     end if;
     
+    if actor_uid is null then
+      raise exception 'Authenticated employee is required';
+    end if;
+    
     new.author_id := actor_uid;
     select display_name into actor_display_name from public.profiles where id = actor_uid;
-    new.author_display_name := coalesce(actor_display_name, 'Unknown');
+    
+    if actor_display_name is null then
+      raise exception 'Active profile is required for article creation';
+    end if;
+    
+    new.author_display_name := actor_display_name;
   end if;
 
   -- UPDATE Rules
