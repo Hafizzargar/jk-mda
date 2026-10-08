@@ -20,6 +20,9 @@ importers:
       '@kjin/auth':
         specifier: workspace:*
         version: link:../../packages/auth
+      '@kjin/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@kjin/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -72,6 +75,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@kjin/config':
+        specifier: workspace:*
+        version: link:../../packages/config
       '@kjin/db':
         specifier: workspace:*
         version: link:../../packages/db
@@ -117,6 +123,12 @@ importers:
         version: 5.9.3
 
   packages/auth: {}
+
+  packages/config:
+    devDependencies:
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
 
   packages/db:
     dependencies:

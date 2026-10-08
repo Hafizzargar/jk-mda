@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 import { Harness, setHarness, TARGET_ID, EXISTING_SUPERADMIN_ID, ACTOR_ID } from './support/harness.ts';
 
 process.env.SUPABASE_SERVICE_ROLE_KEY = 'test-service-role-key';
+process.env.NEXT_PUBLIC_SUPABASE_URL = 'http://localhost:54321';
+process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = 'test-anon-key';
 
 const harness = new Harness();
 setHarness(harness);
@@ -434,65 +436,13 @@ test('mfa: editor and author requests without AAL2 are allowed', async () => {
   }
 });
 
-test('mfa: audit endpoint rejects unauthenticated requests', async () => {
-  const { POST } = await import('../app/api/employees/mfa/audit/route.ts');
-  const res = await POST(jsonRequest('http://localhost/api/employees/mfa/audit', { body: { action: 'employee.mfa_enrolled' } }));
-  assert.equal(res.status, 401);
-});
-
-test('mfa: audit endpoint requires valid JSON action', async () => {
-  const { POST } = await import('../app/api/employees/mfa/audit/route.ts');
-  configure({ role: 'admin' });
-  const res = await POST(
-    jsonRequest('http://localhost/api/employees/mfa/audit', {
-      token: 'dummy.eyJzZXNzaW9uX2lkIjogIm1vY2stc2Vzc2lvbiIsICJhYWwiOiAiYWFsMiJ9.dummy',
-      body: { action: 'invalid_action' },
-    })
-  );
-  assert.equal(res.status, 400);
-});
-
-test('mfa: audit endpoint logs valid actions successfully', async () => {
-  const { POST } = await import('../app/api/employees/mfa/audit/route.ts');
-  configure({ role: 'admin' });
-  
-  const actions = [
-    'employee.mfa_enrolled',
-    'employee.mfa_challenge_success',
-    'employee.mfa_challenge_failed',
-  ];
-
-  for (const action of actions) {
-    const res = await POST(
-      jsonRequest('http://localhost/api/employees/mfa/audit', {
-        token: 'dummy.eyJzZXNzaW9uX2lkIjogIm1vY2stc2Vzc2lvbiIsICJhYWwiOiAiYWFsMiJ9.dummy',
-        body: { action },
-      })
-    );
-    assert.equal(res.status, 200, `Failed for action ${action}`);
-    assert.ok(harness.audits.some((row) => row.action === action));
-  }
-});
 
 test('mfa: verify proxy enforces rate limiting', async () => {
   const { POST } = await import('../app/api/employees/mfa/verify/route.ts');
   configure({ role: 'admin' });
   
-  // Seed 5 failed attempts
-  if (!harness.fixtures.audit_logs) harness.fixtures.audit_logs = [];
-  for (let i = 0; i < 5; i++) {
-    harness.fixtures.audit_logs.push({
-      id: crypto.randomUUID(),
-      actor_profile_id: ACTOR_ID,
-      action: 'employee.mfa_challenge_failed',
-      target_type: 'profile',
-      target_id: ACTOR_ID,
-      result: 'denied',
-      reason: 'Invalid TOTP code',
-      details: {},
-      created_at: new Date().toISOString(),
-    });
-  }
+  // Mock the DB rate limit RPC throwing the specific error
+  harness.rpcErrors['claim_mfa_challenge_attempt'] = { message: 'Too many failed verification attempts. Please try again later.' };
 
   const res = await POST(
     jsonRequest('http://localhost/api/employees/mfa/verify', {

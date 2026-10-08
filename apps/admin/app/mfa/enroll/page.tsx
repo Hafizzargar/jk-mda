@@ -79,28 +79,24 @@ export default function MFAEnrollmentPage() {
         throw new Error(challengeResponse.error.message);
       }
       
-      const verifyResponse = await supabase.auth.mfa.verify({
-        factorId,
-        challengeId: challengeResponse.data.id,
-        code: verificationCode,
+      const verifyResponse = await fetch('/api/employees/mfa/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          factorId,
+          challengeId: challengeResponse.data.id,
+          code: verificationCode,
+          intent: 'enroll'
+        }),
       });
       
-      if (verifyResponse.error) {
-        throw new Error(verifyResponse.error.message);
+      if (!verifyResponse.ok) {
+        const errData = await verifyResponse.json();
+        throw new Error(errData.error || 'Verification failed.');
       }
       
-      // Successfully verified and session is upgraded to AAL2!
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      // Audit the enrollment
-      await fetch('/api/employees/mfa/audit', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`
-        },
-        body: JSON.stringify({ action: 'employee.mfa_enrolled' }),
-      });
+      const { data } = await verifyResponse.json();
+      await supabase.auth.setSession(data.session);
       
       setStatus('MFA successfully enrolled! Redirecting...');
       setTimeout(() => router.push('/'), 1500);

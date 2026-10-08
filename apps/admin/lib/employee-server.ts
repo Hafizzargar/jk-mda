@@ -1,9 +1,7 @@
 import 'server-only';
 
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'http://127.0.0.1:54321';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? 'demo-anon-key';
+import { env } from '@kjin/config';
 
 type EmployeeProfile = {
   id: string;
@@ -29,17 +27,20 @@ export async function authenticateEmployeeRequest(
 ): Promise<EmployeeAuthorization | Response> {
   const authorization = request.headers.get('authorization');
   const token = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!token) {
     return Response.json({ error: 'Sign-in required.' }, { status: 401 });
   }
 
-  if (!serviceKey) {
+  const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !anonKey || !serviceKey) {
     return Response.json({ error: 'Employee management is not configured on this server.' }, { status: 503 });
   }
 
-  const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+  const userClient = createClient(supabaseUrl, anonKey, {
     auth: { persistSession: false, autoRefreshToken: false },
     global: { headers: { Authorization: `Bearer ${token}` } },
   });
@@ -109,14 +110,11 @@ export async function checkEmployeePermission(
     return Response.json({ error: 'Multi-factor authentication is required.' }, { status: 403 });
   }
 
-  const { data: grant, error: grantError } = await auth.service
-    .from('role_permissions')
-    .select('permission_key')
-    .eq('role_key', auth.profile.role_key)
-    .eq('permission_key', permission)
-    .maybeSingle();
+  const { data: hasPermission, error: rpcError } = await auth.userClient.rpc('has_permission', {
+    p_permission_key: permission
+  });
 
-  if (grantError || !grant) {
+  if (rpcError || !hasPermission) {
     await auth.service.from('audit_logs').insert({
       actor_profile_id: auth.user.id,
       action: 'employee.permission_denied',

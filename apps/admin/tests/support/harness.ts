@@ -89,6 +89,10 @@ export class Harness {
       this.calls.push({ kind: 'rpc', rpc: name, args });
       const scripted = this.rpcErrors[name];
       if (scripted) return fail(scripted.message, scripted.code);
+      if (name === 'has_permission') {
+        const key = (args as { p_permission_key: string }).p_permission_key;
+        return ok(this.grants.includes(key));
+      }
       return ok(null);
     };
     const from = (table: string) => {

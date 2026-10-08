@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@kjin/auth": "workspace:*",
+    "@kjin/config": "workspace:*",
     "@kjin/db": "workspace:*",
     "@kjin/types": "workspace:*",
     "@supabase/supabase-js": "^2.56.1",
