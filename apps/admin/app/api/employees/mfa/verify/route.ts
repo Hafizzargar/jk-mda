@@ -22,7 +22,10 @@ export async function POST(request: Request) {
   }
 
   // Determine if this is a new enrollment by checking the current factor status
-  const { data: factors } = await auth.userClient.auth.mfa.listFactors();
+  const { data: factors, error: factorsError } = await auth.userClient.auth.mfa.listFactors();
+  if (factorsError) {
+    return Response.json({ error: 'Unable to verify MFA factor status.' }, { status: 500 });
+  }
   const targetFactor = factors?.totp.find(f => f.id === body.factorId);
   const isEnrollment = targetFactor && (targetFactor.status as string) === 'unverified';
 

@@ -47,6 +47,7 @@ export class Harness {
   inviteInsert: SupabaseResult = ok({ id: 'invite-fixture-1' });
   inviteUserResult: SupabaseResult = ok({ user: { id: INVITED_USER_ID } });
   banResult: SupabaseResult = ok({});
+  mfaFactorStatus: 'verified' | 'unverified' | 'error' = 'verified';
 
   reset() {
     this.calls = [];
@@ -196,7 +197,10 @@ export class Harness {
             return fail('Invalid code');
           },
           listFactors: async () => {
-            return ok({ all: [], totp: [{ id: 'fact-123', status: 'verified' }] });
+            if (this.mfaFactorStatus === 'error') {
+              return fail('Unable to list factors');
+            }
+            return ok({ all: [], totp: [{ id: 'fact-123', status: this.mfaFactorStatus }] });
           }
         },
       },

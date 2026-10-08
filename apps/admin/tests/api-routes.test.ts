@@ -467,9 +467,10 @@ test('mfa: verify proxy rejects unauthenticated requests', async () => {
   assert.equal(res.status, 401);
 });
 
-test('mfa: verify proxy logs success and returns upgraded session on valid code', async () => {
+test('mfa: verify proxy logs challenge success for verified factor', async () => {
   const { POST } = await import('../app/api/employees/mfa/verify/route.ts');
   configure({ role: 'admin' });
+  harness.mfaFactorStatus = 'verified';
   
   const res = await POST(
     jsonRequest('http://localhost/api/employees/mfa/verify', {
@@ -484,9 +485,41 @@ test('mfa: verify proxy logs success and returns upgraded session on valid code'
   assert.ok(harness.audits.some((row) => row.action === 'employee.mfa_challenge_success'));
 });
 
+test('mfa: verify proxy logs enrolled for unverified factor', async () => {
+  const { POST } = await import('../app/api/employees/mfa/verify/route.ts');
+  configure({ role: 'admin' });
+  harness.mfaFactorStatus = 'unverified';
+  
+  const res = await POST(
+    jsonRequest('http://localhost/api/employees/mfa/verify', {
+      token: 'dummy.eyJzZXNzaW9uX2lkIjogIm1vY2stc2Vzc2lvbiIsICJhYWwiOiAiYWFsMSJ9.dummy',
+      body: { factorId: 'fact-123', challengeId: 'chal-123', code: '000000' },
+    })
+  );
+  
+  assert.equal(res.status, 200);
+  assert.ok(harness.audits.some((row) => row.action === 'employee.mfa_enrolled'));
+});
+
+test('mfa: verify proxy returns 500 when listFactors fails', async () => {
+  const { POST } = await import('../app/api/employees/mfa/verify/route.ts');
+  configure({ role: 'admin' });
+  harness.mfaFactorStatus = 'error';
+  
+  const res = await POST(
+    jsonRequest('http://localhost/api/employees/mfa/verify', {
+      token: 'dummy.eyJzZXNzaW9uX2lkIjogIm1vY2stc2Vzc2lvbiIsICJhYWwiOiAiYWFsMSJ9.dummy',
+      body: { factorId: 'fact-123', challengeId: 'chal-123', code: '000000' },
+    })
+  );
+  
+  assert.equal(res.status, 500);
+});
+
 test('mfa: verify proxy logs failure and returns 400 on invalid code', async () => {
   const { POST } = await import('../app/api/employees/mfa/verify/route.ts');
   configure({ role: 'admin' });
+  harness.mfaFactorStatus = 'verified';
   
   const res = await POST(
     jsonRequest('http://localhost/api/employees/mfa/verify', {
