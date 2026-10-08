@@ -1,14 +1,25 @@
--- Step 1: Alter existing articles table to match new schema
--- We preserve the table so that dependent policies and RLS remain attached, 
--- but we drop functions that use the old schema since they need rewriting.
+-- Step 1: Cleanup old triggers and permissions
+drop trigger if exists articles_set_author on public.articles;
+drop function if exists public.set_article_author cascade;
+
+drop trigger if exists articles_enforce_status_transition on public.articles;
+drop trigger if exists enforce_article_status_transition on public.articles;
+drop function if exists public.enforce_article_status_transition cascade;
+drop function if exists public.check_article_status_transition cascade;
 
 drop function if exists public.create_article cascade;
 drop function if exists public.transition_article_status cascade;
 drop function if exists public.submit_article_for_review cascade;
 
--- Clear any dummy data to allow structural changes
-truncate table public.articles cascade;
+-- Remove article.publish permission from admin and editor
+delete from public.role_permissions
+where permission_key = 'article.publish'
+  and role_key in ('admin', 'editor');
 
+-- Clean up data safely instead of TRUNCATE CASCADE
+delete from public.articles;
+
+-- Step 2: Alter articles table
 alter table public.articles
   add column slug text,
   rename column summary to excerpt;
@@ -26,21 +37,20 @@ alter table public.articles
   add column published_at timestamptz,
   add column published_by uuid references public.profiles(id),
   add column archived_at timestamptz,
-  add column view_count bigint not null default 0;
+  add column view_count bigint not null default 0 check (view_count >= 0);
 
--- We don't need language as a column if we are moving to translations later, 
--- or we can leave it for now. We will drop language and author to match the spec.
 alter table public.articles
-  drop column language,
-  drop column author;
+  drop column if exists language,
+  drop column if exists author;
 
--- Make slug and author_display_name required
+-- Note: We will populate author_display_name in the insert trigger dynamically, 
+-- but we set it NOT NULL for schema integrity.
 alter table public.articles
   alter column slug set not null,
   add constraint articles_slug_key unique (slug),
   alter column author_display_name set not null;
 
--- Step 2: Create article_versions
+-- Step 3: Create article_versions
 create table if not exists public.article_versions (
     id uuid primary key default gen_random_uuid(),
     article_id uuid not null references public.articles(id) on delete cascade,
@@ -55,13 +65,15 @@ create table if not exists public.article_versions (
 
 alter table public.article_versions enable row level security;
 
--- Step 3: Indexes & Constraints
+-- Step 4: Indexes
 create index if not exists idx_article_versions_article_id on public.article_versions(article_id);
-create index if not exists idx_articles_slug on public.articles(slug);
 create index if not exists idx_articles_author_id on public.articles(author_id);
--- status index already exists from previous migration
+-- No redundant slug index needed, UNIQUE constraint covers it.
 
--- Step 4: RLS Policies for article_versions
+-- Step 5: RLS Policies
+-- article_versions: Only SELECT is allowed. INSERT/UPDATE/DELETE are blocked for clients 
+-- to prevent forging history. Versions must be created via RPC.
+drop policy if exists "Editors can view all versions, authors can view their own" on public.article_versions;
 create policy "Editors can view all versions, authors can view their own"
 on public.article_versions for select to authenticated
 using (
@@ -69,63 +81,95 @@ using (
   (exists (select 1 from public.articles a where a.id = article_id and a.author_id = (select auth.uid())))
 );
 
-create policy "Editors and authors can create versions"
-on public.article_versions for insert to authenticated
+-- articles: Update existing policies to restrict direct editing.
+drop policy if exists "Authors edit own drafts and reviewers edit all" on public.articles;
+drop policy if exists "Authors edit own drafts and editors edit all articles" on public.articles;
+create policy "Authors edit own drafts and reviewers edit all"
+on public.articles for update to authenticated
+using (
+  (public.has_permission('article.review') and status in ('draft', 'review')) or
+  (author_id = (select auth.uid()) and status = 'draft' and public.has_permission('article.create'))
+)
 with check (
-  public.has_permission('article.review') or
-  (exists (select 1 from public.articles a where a.id = article_id and a.author_id = (select auth.uid())))
+  (public.has_permission('article.review') and status in ('draft', 'review')) or
+  (author_id = (select auth.uid()) and status = 'draft' and public.has_permission('article.create'))
 );
 
--- Note: No update or delete policies on article_versions. Versions are immutable.
-
--- Step 5: State-transition trigger
-create or replace function public.check_article_status_transition()
+-- Step 6: Comprehensive State & Integrity Trigger
+create or replace function public.articles_enforce_integrity()
 returns trigger
 language plpgsql
 as $$
+declare
+  actor_uid uuid := (select auth.uid());
+  actor_display_name text;
 begin
-  -- If it's a new article, it must be a draft
+  -- INSERT Rules
   if TG_OP = 'INSERT' then
     if new.status <> 'draft' then
       raise exception 'New articles must be created as drafts.';
     end if;
-    return new;
+    
+    new.author_id := actor_uid;
+    select display_name into actor_display_name from public.profiles where id = actor_uid;
+    new.author_display_name := coalesce(actor_display_name, 'Unknown');
   end if;
 
-  -- Allow updates that don't change the status
-  if old.status = new.status then
-    return new;
+  -- UPDATE Rules
+  if TG_OP = 'UPDATE' then
+    -- Author attribution immutability
+    if new.author_id <> old.author_id then
+      raise exception 'Cannot change article author_id.';
+    end if;
+    if new.author_display_name <> old.author_display_name then
+      raise exception 'Cannot change article author_display_name directly.';
+    end if;
+
+    -- Slug immutability after publication
+    if old.status in ('published', 'archived') and new.slug <> old.slug then
+      raise exception 'Cannot change slug of published or archived articles.';
+    end if;
+
+    -- View count protection (only allowed if bypass setting is present)
+    if new.view_count <> old.view_count and current_setting('kjin.allow_view_count_update', true) is distinct from 'on' then
+      raise exception 'Cannot update view_count directly. Use the RPC incrementer.';
+    end if;
+
+    -- Status Transition State Machine
+    if old.status <> new.status then
+      if old.status = 'archived' then
+        raise exception 'Archived articles cannot change status.';
+      elsif old.status = 'draft' and new.status <> 'review' then
+        raise exception 'Drafts can only transition to review.';
+      elsif old.status = 'review' and new.status not in ('draft', 'published', 'archived') then
+        raise exception 'Articles in review can only transition to draft, published, or archived.';
+      elsif old.status = 'published' and new.status <> 'archived' then
+        raise exception 'Published articles can only transition to archived.';
+      end if;
+    end if;
   end if;
 
-  -- Terminal state check
-  if old.status = 'archived' then
-    raise exception 'Archived articles cannot change status.';
-  end if;
-
-  -- Draft transitions
-  if old.status = 'draft' then
-    if new.status = 'review' then return new; end if;
-    raise exception 'Drafts can only transition to review.';
-  end if;
-
-  -- Review transitions
-  if old.status = 'review' then
-    if new.status in ('draft', 'published', 'archived') then return new; end if;
-    raise exception 'Articles in review can only transition to draft, published, or archived.';
-  end if;
-
-  -- Published transitions
-  if old.status = 'published' then
-    if new.status = 'archived' then return new; end if;
-    raise exception 'Published articles can only transition to archived.';
+  -- Metadata Consistency Invariants (runs on both INSERT and UPDATE)
+  if new.status in ('draft', 'review') then
+    new.published_at := null;
+    new.published_by := null;
+    new.archived_at := null;
+  elsif new.status = 'published' then
+    if new.published_at is null or new.published_by is null then
+      raise exception 'Published articles must have published_at and published_by set.';
+    end if;
+    new.archived_at := null;
+  elsif new.status = 'archived' then
+    if new.archived_at is null then
+      raise exception 'Archived articles must have archived_at set.';
+    end if;
   end if;
 
   return new;
 end;
 $$;
 
-drop trigger if exists enforce_article_status_transition on public.articles;
-create trigger enforce_article_status_transition
+create trigger articles_enforce_integrity
 before insert or update on public.articles
 for each row
-execute function public.check_article_status_transition();
+execute function public.articles_enforce_integrity();
