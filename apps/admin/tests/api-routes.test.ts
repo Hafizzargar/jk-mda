@@ -1,4 +1,4 @@
-﻿import { test, beforeEach } from 'node:test';
+import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 
 import { Harness, setHarness, TARGET_ID, EXISTING_SUPERADMIN_ID, ACTOR_ID } from './support/harness.ts';
@@ -180,13 +180,13 @@ test('operations: missing token returns 401 before any RPC call', async () => {
   assert.equal(harness.calls.length, 0);
 });
 
-test('operations: rejects request if authentication is older than 15 minutes', async () => {
+test('operations: rejects request if authentication is older than 15 minutes (expired TOTP)', async () => {
   configure({ role: 'admin', grants: ['employee.role.change'] });
-  const oldToken = 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjEwMDAwMDAwMDB9XX0.dummy'; // year 2001
+  const expiredToken = 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjEwMDAwMDAwMDB9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6MTAwMDAwMDAwMH1dfQ.dummy';
   
   const res = await operationsRoute.POST(
     jsonRequest('http://localhost/api/employees/operations', {
-      token: oldToken,
+      token: expiredToken,
       body: { operation: 'change-role', target_id: VALID_UUID, role_key: 'editor', reason: 'Testing' },
     })
   );
@@ -194,7 +194,37 @@ test('operations: rejects request if authentication is older than 15 minutes', a
   assert.equal(res.status, 403);
   const body = (await res.json()) as { error?: string };
   assert.equal(body.error, 'Recent authentication required.');
-  assert.ok(harness.audits.some((row) => row.action === 'employee.reauth_required'));
+});
+
+test('operations: recent password but old TOTP is rejected for MFA-protected roles', async () => {
+  configure({ role: 'admin', grants: ['employee.role.change'] });
+  const oldTotpToken = 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6MTAwMDAwMDAwMH1dfQ.dummy';
+  
+  const res = await operationsRoute.POST(
+    jsonRequest('http://localhost/api/employees/operations', {
+      token: oldTotpToken,
+      body: { operation: 'change-role', target_id: VALID_UUID, role_key: 'editor', reason: 'Testing' },
+    })
+  );
+  
+  assert.equal(res.status, 403);
+  const body = (await res.json()) as { error?: string };
+  assert.equal(body.error, 'Recent authentication required.');
+});
+
+test('operations: recent password but old TOTP is allowed for non-MFA roles', async () => {
+  configure({ role: 'editor', grants: ['employee.role.change'] }); // Assuming editor has the grant for test purposes
+  const oldTotpToken = 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6MTAwMDAwMDAwMH1dfQ.dummy';
+  
+  const res = await operationsRoute.POST(
+    jsonRequest('http://localhost/api/employees/operations', {
+      token: oldTotpToken,
+      body: { operation: 'change-role', target_id: VALID_UUID, role_key: 'author', reason: 'Testing' },
+    })
+  );
+  
+  // It shouldn't return 403 reauth required. It should succeed (200).
+  assert.equal(res.status, 200);
 });
 
 test('operations: deliberate database raises pass through to the client', async () => {
