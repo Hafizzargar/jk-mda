@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { summarizePublishedArticles } from '@kjin/db';
 import { supabase } from '@/lib/supabase';
 
 const fallbackStories = [
@@ -24,9 +23,19 @@ const fallbackStories = [
   },
 ];
 
+interface Story {
+  id?: string;
+  slug?: string;
+  title: string;
+  summary: string;
+  category: string;
+  author: string;
+  language: string;
+}
+
 export default function HomePage() {
   const [status, setStatus] = useState('Checking Supabase connection...');
-  const [stories, setStories] = useState<Array<{ id?: string; title: string; summary: string; category: string; author: string; language: string }>>(fallbackStories);
+  const [stories, setStories] = useState<Story[]>(fallbackStories);
 
   useEffect(() => {
     async function checkSupabase() {
@@ -57,8 +66,15 @@ export default function HomePage() {
           return;
         }
 
-        const publicStories = summarizePublishedArticles(data);
-        setStories(publicStories);
+        setStories(data.map(article => ({
+          id: article.id,
+          slug: article.slug,
+          title: article.title,
+          summary: article.excerpt || 'Read the latest report from KJIN.',
+          category: article.category || 'General',
+          author: article.author_display_name || 'KJIN desk',
+          language: article.language || 'en',
+        })));
       } catch {
         // keep the fallback copy when public rows are not yet available
       }
@@ -105,7 +121,7 @@ export default function HomePage() {
           {stories.map((story) => (
             <Link
               key={story.id}
-              href={story.id ? `/articles/${story.id}` : '#'}
+              href={story.slug ? `/${story.category.toLowerCase()}/${story.slug}` : '#'}
               className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5 shadow-lg shadow-cyan-950/20 transition hover:border-cyan-500/60 hover:bg-slate-900"
             >
               <div className="mb-3 h-2 w-12 rounded-full bg-cyan-400" />

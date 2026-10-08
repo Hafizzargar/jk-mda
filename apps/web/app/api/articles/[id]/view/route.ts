@@ -11,10 +11,11 @@ const MAX_CACHE_SIZE = 10000;
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const resolvedParams = await params;
   try {
-    const articleId = params.id;
+    const articleId = resolvedParams.id;
     if (!articleId) {
       return NextResponse.json({ error: 'Missing article ID' }, { status: 400 });
     }
