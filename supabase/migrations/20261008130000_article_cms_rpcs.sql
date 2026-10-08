@@ -147,6 +147,10 @@ declare
   actor_uid uuid := (select auth.uid());
 begin
   if actor_uid is null then raise exception 'Authenticated employee required'; end if;
+  
+  if not public.has_permission('article.submit_review') then
+    raise exception 'Article submit permission required';
+  end if;
 
   select * into article_row from public.articles where id = p_article_id for update;
   if not found then raise exception 'Article not found'; end if;
@@ -278,3 +282,20 @@ begin
   return article_row;
 end;
 $$;
+
+-- 8. Execution Privileges (Security Definer Hardening)
+-- Revoke execution from PUBLIC to prevent unauthenticated execution attempts
+revoke all on function public.create_article(text, text, text, text, text, text, text, text, text) from public;
+revoke all on function public.update_article(uuid, text, text, text, text, text, text, text, text, text) from public;
+revoke all on function public.submit_article_for_review(uuid) from public;
+revoke all on function public.return_article_to_draft(uuid) from public;
+revoke all on function public.publish_article(uuid) from public;
+revoke all on function public.archive_article(uuid) from public;
+
+-- Grant execution explicitly to authenticated users only
+grant execute on function public.create_article(text, text, text, text, text, text, text, text, text) to authenticated;
+grant execute on function public.update_article(uuid, text, text, text, text, text, text, text, text, text) to authenticated;
+grant execute on function public.submit_article_for_review(uuid) to authenticated;
+grant execute on function public.return_article_to_draft(uuid) to authenticated;
+grant execute on function public.publish_article(uuid) to authenticated;
+grant execute on function public.archive_article(uuid) to authenticated;
