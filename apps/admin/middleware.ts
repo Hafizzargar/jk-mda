@@ -65,19 +65,19 @@ export async function middleware(request: NextRequest) {
   }
 
   if (user) {
+    // Check MFA requirement and active status
+    const { data: profile, error: profileError } = await supabase.from('profiles').select('role_key, status').eq('id', user.id).single();
+    
+    if (profileError || !profile || profile.status !== 'active') {
+      // Fail closed if we cannot determine the user's role or they are disabled
+      const url = request.nextUrl.clone();
+      url.pathname = '/login';
+      return NextResponse.redirect(url);
+    }
+
     const isMfaRoute = pathname.startsWith('/mfa/');
     
     if (!isMfaRoute) {
-      // Check MFA requirement and active status
-      const { data: profile, error: profileError } = await supabase.from('profiles').select('role_key, status').eq('id', user.id).single();
-      
-      if (profileError || !profile || profile.status !== 'active') {
-        // Fail closed if we cannot determine the user's role or they are disabled
-        const url = request.nextUrl.clone();
-        url.pathname = '/login';
-        return NextResponse.redirect(url);
-      }
-      
       if (requiresMfa(profile.role_key)) {
         const { data: aalData, error: aalError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
 

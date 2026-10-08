@@ -112,6 +112,26 @@ test('middleware: disabled admin + AAL2 -> fail closed (/login)', async () => {
   assert.ok(res.headers.get('Location')?.endsWith('/login'));
 });
 
+test('middleware: disabled admin -> /mfa/enroll fails closed (/login)', async () => {
+  configure({ role: 'admin', aal: 'aal1' });
+  harness.actor.status = 'disabled';
+  harness.syncActor();
+  const req = new NextRequest('http://localhost/mfa/enroll');
+  const res = await middleware(req);
+  assert.equal(res.status, 302);
+  assert.ok(res.headers.get('Location')?.endsWith('/login'));
+});
+
+test('middleware: disabled admin -> /mfa/challenge fails closed (/login)', async () => {
+  configure({ role: 'admin', aal: 'aal1' });
+  harness.actor.status = 'disabled';
+  harness.syncActor();
+  const req = new NextRequest('http://localhost/mfa/challenge');
+  const res = await middleware(req);
+  assert.equal(res.status, 302);
+  assert.ok(res.headers.get('Location')?.endsWith('/login'));
+});
+
 test('middleware: disabled editor -> fail closed (/login)', async () => {
   configure({ role: 'editor' });
   harness.actor.status = 'disabled';
