@@ -13,8 +13,11 @@ export async function resolve(specifier, context, nextResolve) {
   if (specifier === 'server-only') {
     return { url: pathToFileURL(path.join(SUPPORT_DIR, 'server-only-stub.mjs')).href, shortCircuit: true };
   }
-  if (specifier === '@supabase/supabase-js') {
+  if (specifier === '@supabase/supabase-js' || specifier === '@supabase/ssr') {
     return { url: pathToFileURL(path.join(SUPPORT_DIR, 'fake-supabase.ts')).href, shortCircuit: true };
+  }
+  if (specifier === 'next/server') {
+    return { url: pathToFileURL(path.join(SUPPORT_DIR, 'fake-next-server.ts')).href, shortCircuit: true };
   }
   if (specifier.startsWith('@/')) {
     const base = path.join(ADMIN_ROOT, specifier.slice(2));

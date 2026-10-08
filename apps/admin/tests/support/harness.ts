@@ -49,6 +49,14 @@ export class Harness {
   banResult: SupabaseResult = ok({});
   mfaFactorStatus: 'verified' | 'unverified' | 'error' = 'verified';
 
+  customAal: string = 'aal2';
+  customFactors: any = null;
+  sessionError: boolean = false;
+  profileError: boolean = false;
+  aalError: boolean = false;
+  factorsError: boolean = false;
+  isLoggedOut: boolean = false;
+
   reset() {
     this.calls = [];
     this.audits = [];
@@ -68,6 +76,16 @@ export class Harness {
     this.inviteInsert = ok({ id: 'invite-fixture-1' });
     this.inviteUserResult = ok({ user: { id: INVITED_USER_ID } });
     this.banResult = ok({});
+    this.mfaFactorStatus = 'verified';
+
+    this.customAal = 'aal2';
+    this.customFactors = null;
+    this.sessionError = false;
+    this.profileError = false;
+    this.aalError = false;
+    this.factorsError = false;
+    this.isLoggedOut = false;
+
     this.syncActor();
   }
 
@@ -112,6 +130,7 @@ export class Harness {
           this.updates.push({ table, payload: state.payload ?? {}, filters: [...state.filters] });
           return ok(null);
         }
+        if (table === 'profiles' && this.profileError) return fail('Profile lookup failed');
         let rows = (this.fixtures[table] ?? []).filter((row) => state.filters.every((filter) => matches(row, filter)));
         const totalCount = rows.length;
         if (state.limit != null) rows = rows.slice(0, state.limit);
@@ -172,9 +191,15 @@ export class Harness {
     };
     return {
       auth: {
-        getUser: async (token: string) => {
-          recordAuth('getUser', token);
+        getUser: async (token?: string) => {
+          if (this.isLoggedOut) return fail('Logged out');
+          recordAuth('getUser', token ?? '');
           return this.getUserResult;
+        },
+        getSession: async () => {
+          if (this.sessionError) return fail('Session error');
+          if (this.isLoggedOut) return ok({ session: null });
+          return ok({ session: { access_token: 'dummy.dummy.dummy', user: { id: this.actor.id } } });
         },
         admin: {
           inviteUserByEmail: async (email: string) => {
@@ -191,15 +216,20 @@ export class Harness {
           },
         },
         mfa: {
+          getAuthenticatorAssuranceLevel: async () => {
+            if (this.aalError) return fail('AAL error');
+            return ok({ currentLevel: this.customAal, nextLevel: 'aal2', currentAuthenticationMethods: [] });
+          },
           verify: async (params: { factorId: string; challengeId: string; code: string }) => {
             recordAuth('mfa.verify', params.code);
             if (params.code === '000000') return ok({ session: { access_token: 'new-token' } });
             return fail('Invalid code');
           },
           listFactors: async () => {
-            if (this.mfaFactorStatus === 'error') {
+            if (this.mfaFactorStatus === 'error' || this.factorsError) {
               return fail('Unable to list factors');
             }
+            if (this.customFactors) return ok(this.customFactors);
             return ok({ all: [], totp: [{ id: 'fact-123', status: this.mfaFactorStatus }] });
           }
         },

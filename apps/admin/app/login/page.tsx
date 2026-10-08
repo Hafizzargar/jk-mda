@@ -1,11 +1,12 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { FormEvent, useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState('Enter your editor credentials to continue.');
@@ -29,7 +30,12 @@ export default function LoginPage() {
       }
 
       setStatus('Signed in successfully. Checking your KJIN profile...');
-      router.push('/');
+      const nextUrl = searchParams.get('next');
+      if (nextUrl && nextUrl.startsWith('/') && !nextUrl.startsWith('//')) {
+        router.push(nextUrl);
+      } else {
+        router.push('/');
+      }
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Unable to sign in right now.');
       setIsSubmitting(false);
@@ -89,5 +95,19 @@ export default function LoginPage() {
         <p className="mt-6 rounded-xl border border-slate-800 bg-slate-950 p-3 text-sm text-slate-300">{status}</p>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4 py-12 text-white">
+        <div className="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900 p-8 shadow-2xl shadow-cyan-950/20">
+          <p className="text-center text-slate-400">Loading...</p>
+        </div>
+      </main>
+    }>
+      <LoginForm />
+    </Suspense>
   );
 }

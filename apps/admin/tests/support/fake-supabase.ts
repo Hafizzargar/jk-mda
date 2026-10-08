@@ -5,5 +5,9 @@ export function createClient(_url: string, key: string, options?: unknown) {
   return getHarness().createClient(key, options);
 }
 
+export function createServerClient(_url: string, key: string, options?: unknown) {
+  return getHarness().createClient(key, options);
+}
+
 export type SupabaseClient = unknown;
 export type User = { id: string };

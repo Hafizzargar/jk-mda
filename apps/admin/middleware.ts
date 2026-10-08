@@ -37,6 +37,7 @@ export async function middleware(request: NextRequest) {
   supabaseResponse.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
   supabaseResponse.headers.set(
     'Content-Security-Policy',
+    // Baseline CSP. We will harden this after confirming Next.js client-side requirements.
     "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https:;"
   );
 
@@ -49,9 +50,8 @@ export async function middleware(request: NextRequest) {
 
   // getUser verifies the token against the Supabase Auth server.
   // This ensures disabled/banned users immediately lose access without waiting for JWT expiry.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: userData } = await supabase.auth.getUser();
+  const user = userData?.user;
 
   const isAuthRoute = pathname === '/login';
 
@@ -67,33 +67,50 @@ export async function middleware(request: NextRequest) {
     
     if (!isMfaRoute) {
       // Check MFA requirement
-      const { data: profile } = await supabase.from('profiles').select('role_key').eq('id', user.id).single();
+      const { data: profile, error: profileError } = await supabase.from('profiles').select('role_key').eq('id', user.id).single();
       
-      if (profile && requiresMfa(profile.role_key)) {
-        const { data: { session } } = await supabase.auth.getSession();
+      if (profileError || !profile) {
+        // Fail closed if we cannot determine the user's role
+        const url = request.nextUrl.clone();
+        url.pathname = '/login';
+        return NextResponse.redirect(url);
+      }
+      
+      if (requiresMfa(profile.role_key)) {
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        const session = sessionData?.session;
         
-        if (session) {
-          // Decode AAL from JWT
-          try {
-            const tokenPayload = JSON.parse(Buffer.from(session.access_token.split('.')[1], 'base64url').toString('utf8'));
-            const currentAal = tokenPayload.aal;
-            
-            if (currentAal !== 'aal2') {
-              const url = request.nextUrl.clone();
-              
-              const { data: factors } = await supabase.auth.mfa.listFactors();
-              const hasVerifiedFactor = factors?.totp?.some(f => f.status === 'verified');
-              
-              url.pathname = hasVerifiedFactor ? '/mfa/challenge' : '/mfa/enroll';
-              url.searchParams.set('next', pathname);
-              return NextResponse.redirect(url);
-            }
-          } catch (e) {
-            // If we can't parse the token, force re-login
-            const url = request.nextUrl.clone();
+        if (sessionError || !session) {
+          // Fail closed if we cannot get the session
+          const url = request.nextUrl.clone();
+          url.pathname = '/login';
+          return NextResponse.redirect(url);
+        }
+
+        const { data: aalData, error: aalError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+        if (aalError || !aalData) {
+          // Fail closed
+          const url = request.nextUrl.clone();
+          url.pathname = '/login';
+          return NextResponse.redirect(url);
+        }
+        
+        if (aalData.currentLevel !== 'aal2') {
+          const url = request.nextUrl.clone();
+          
+          const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors();
+          if (factorsError) {
+            // Fail closed if we can't determine MFA enrollment status
             url.pathname = '/login';
             return NextResponse.redirect(url);
           }
+          
+          const hasVerifiedFactor = factors?.totp?.some(f => f.status === 'verified');
+          
+          url.pathname = hasVerifiedFactor ? '/mfa/challenge' : '/mfa/enroll';
+          url.searchParams.set('next', pathname);
+          return NextResponse.redirect(url);
         }
       }
     }
