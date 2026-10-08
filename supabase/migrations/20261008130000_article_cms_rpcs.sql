@@ -271,6 +271,10 @@ begin
     raise exception 'Only published or in-review articles can be archived';
   end if;
 
+  if coalesce((select auth.jwt() ->> 'aal'), '') <> 'aal2' then
+    raise exception 'MFA (AAL2) is strictly required to archive articles';
+  end if;
+
   update public.articles set 
     status = 'archived',
     archived_at = now()

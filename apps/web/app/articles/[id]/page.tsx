@@ -44,6 +44,15 @@ export default function ArticleDetailPage() {
     }
   }, [params.id]);
 
+  // Record a view once the article is successfully loaded
+  useEffect(() => {
+    if (article) {
+      fetch(`/api/articles/${article.id}/view`, { method: 'POST' }).catch((err) => {
+        console.error('Failed to record view:', err);
+      });
+    }
+  }, [article]);
+
   if (!article) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-950 p-8 text-white">

@@ -55,24 +55,10 @@ select extensions.throws_ok(
 create temporary table security_test_articles (article_owner text primary key, id uuid not null);
 select pg_temp.assume_employee('10000000-0000-0000-0000-000000000005');
 insert into security_test_articles (article_owner, id)
-select 'owner', (public.create_article(
-  'Permission matrix test article',
-  'Test summary',
-  'Test body for publication authorization.',
-  'Testing',
-  'en',
-  false
-)).id;
+select 'owner', (public.create_article('Permission matrix test article', 'Test summary', 'Test body for publication authorization.', 'test-slug-' || floor(random() * 1000000)::text, null, 'Testing', null, null, null)).id;
 select pg_temp.assume_employee('10000000-0000-0000-0000-000000000006');
 insert into security_test_articles (article_owner, id)
-select 'superadmin', (public.create_article(
-  'Superadmin publication test article',
-  'Second test summary',
-  'Second test body for publication authorization.',
-  'Testing',
-  'en',
-  false
-)).id;
+select 'superadmin', (public.create_article('Superadmin publication test article', 'Second test summary', 'Second test body for publication authorization.', 'test-slug-' || floor(random() * 1000000)::text, null, 'Testing', null, null, null)).id;
 
 select pg_temp.assume_employee('10000000-0000-0000-0000-000000000005');
 select extensions.throws_ok(

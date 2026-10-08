@@ -1,18 +1,41 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 
-export default function NewArticlePage() {
+export default function EditArticlePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [article, setArticle] = useState<any>(null);
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  useEffect(() => {
+    async function fetchArticle() {
+      const { data, error } = await supabase
+        .from('articles')
+        .select('*')
+        .eq('id', id)
+        .single();
+        
+      if (error || !data) {
+        setError('Could not load article');
+      } else {
+        setArticle(data);
+      }
+      setIsLoading(false);
+    }
+    fetchArticle();
+  }, [id]);
+
+  async function handleSave(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setIsSubmitting(true);
+    setIsSaving(true);
     setError(null);
 
     const formData = new FormData(e.currentTarget);
@@ -31,8 +54,8 @@ export default function NewArticlePage() {
     try {
       const { data: session } = await supabase.auth.getSession();
       
-      const response = await fetch('/api/articles', {
-        method: 'POST',
+      const response = await fetch(`/api/articles/${id}`, {
+        method: 'PATCH',
         headers: { 
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session?.session?.access_token}`,
@@ -42,30 +65,89 @@ export default function NewArticlePage() {
 
       if (!response.ok) {
         const { error: errorMsg } = await response.json();
-        throw new Error(errorMsg || 'Failed to create article');
+        throw new Error(errorMsg || 'Failed to update article');
       }
 
-      const article = await response.json();
-      router.push(`/articles/${article.id}/edit`);
+      router.push(`/articles/${id}`);
     } catch (err: any) {
       setError(err.message);
-      setIsSubmitting(false);
+    } finally {
+      setIsSaving(false);
     }
+  }
+
+  async function handleSubmitReview() {
+    if (!confirm('Are you sure you want to submit this draft for review? You will no longer be able to edit it unless it is returned.')) {
+      return;
+    }
+    
+    setIsSubmittingReview(true);
+    setError(null);
+
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      
+      const response = await fetch(`/api/articles/${id}/submit`, {
+        method: 'POST',
+        headers: { 
+          Authorization: `Bearer ${session?.session?.access_token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const { error: errorMsg } = await response.json();
+        throw new Error(errorMsg || 'Failed to submit article');
+      }
+
+      router.push(`/articles/${id}`);
+    } catch (err: any) {
+      setError(err.message);
+      setIsSubmittingReview(false);
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[400px] items-center justify-center">
+        <p className="text-slate-400">Loading article...</p>
+      </div>
+    );
+  }
+
+  if (!article) {
+    return (
+      <div className="mx-auto max-w-4xl p-8 text-center text-red-400">
+        Article not found or access denied.
+      </div>
+    );
   }
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
-      <div className="mb-8 flex items-center gap-4">
-        <Link 
-          href="/articles"
-          className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-300 transition-colors hover:bg-slate-700 hover:text-white"
-        >
-          ← Back to Articles
-        </Link>
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">Create Draft</h1>
-          <p className="text-sm text-slate-400">Start writing a new article</p>
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-4">
+          <Link 
+            href="/articles"
+            className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-300 transition-colors hover:bg-slate-700 hover:text-white"
+          >
+            ← Back
+          </Link>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-white">Edit Draft</h1>
+            <p className="text-sm text-slate-400">Make changes to your article</p>
+          </div>
         </div>
+        
+        {article.status === 'draft' && (
+          <button 
+            type="button"
+            onClick={handleSubmitReview}
+            disabled={isSubmittingReview || isSaving}
+            className="rounded-lg bg-emerald-500/10 px-4 py-2 font-semibold text-emerald-400 transition-colors hover:bg-emerald-500/20 disabled:opacity-50"
+          >
+            {isSubmittingReview ? 'Submitting...' : 'Submit for Review'}
+          </button>
+        )}
       </div>
 
       {error && (
@@ -73,9 +155,14 @@ export default function NewArticlePage() {
           {error}
         </div>
       )}
+      
+      {article.status !== 'draft' && article.status !== 'review' && (
+        <div className="mb-6 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 text-sm text-amber-400">
+          This article is {article.status}. Editing may be restricted.
+        </div>
+      )}
 
-      <form onSubmit={handleSubmit} className="space-y-8 rounded-xl border border-slate-800 bg-slate-900/50 p-6 shadow-xl lg:p-8">
-        
+      <form onSubmit={handleSave} className="space-y-8 rounded-xl border border-slate-800 bg-slate-900/50 p-6 shadow-xl lg:p-8">
         <div className="space-y-6">
           <div>
             <label htmlFor="title" className="block text-sm font-medium text-slate-300">Title</label>
@@ -83,9 +170,9 @@ export default function NewArticlePage() {
               id="title" 
               name="title" 
               type="text" 
+              defaultValue={article.title}
               required 
               maxLength={255}
-              placeholder="e.g., Local elections announced"
               className="mt-2 block w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-white placeholder-slate-600 outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400" 
             />
           </div>
@@ -96,23 +183,22 @@ export default function NewArticlePage() {
               id="slug" 
               name="slug" 
               type="text" 
+              defaultValue={article.slug}
               required 
               maxLength={255}
               pattern="^[a-z0-9]+(?:-[a-z0-9]+)*$"
-              placeholder="e.g., local-elections-announced-2026"
               className="mt-2 block w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-white placeholder-slate-600 outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400" 
             />
-            <p className="mt-1 text-xs text-slate-500">Must be lowercase letters, numbers, and hyphens only.</p>
           </div>
 
           <div>
-            <label htmlFor="excerpt" className="block text-sm font-medium text-slate-300">Excerpt (Optional)</label>
+            <label htmlFor="excerpt" className="block text-sm font-medium text-slate-300">Excerpt</label>
             <textarea 
               id="excerpt" 
               name="excerpt" 
+              defaultValue={article.excerpt || ''}
               rows={2}
               maxLength={1000}
-              placeholder="Brief summary for the homepage..."
               className="mt-2 block w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-white placeholder-slate-600 outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400" 
             />
           </div>
@@ -122,9 +208,9 @@ export default function NewArticlePage() {
             <textarea 
               id="content" 
               name="content" 
+              defaultValue={article.content}
               required
               rows={12}
-              placeholder="Write the full article content here..."
               className="mt-2 block w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-white placeholder-slate-600 outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400" 
             />
           </div>
@@ -135,7 +221,7 @@ export default function NewArticlePage() {
               <select 
                 id="category" 
                 name="category"
-                defaultValue="General"
+                defaultValue={article.category || 'General'}
                 className="mt-2 block w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-white outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400" 
               >
                 <option value="General">General</option>
@@ -148,12 +234,12 @@ export default function NewArticlePage() {
             </div>
             
             <div>
-              <label htmlFor="district" className="block text-sm font-medium text-slate-300">District (Optional)</label>
+              <label htmlFor="district" className="block text-sm font-medium text-slate-300">District</label>
               <input 
                 id="district" 
                 name="district" 
                 type="text" 
-                placeholder="e.g., Srinagar"
+                defaultValue={article.district || ''}
                 className="mt-2 block w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-white placeholder-slate-600 outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400" 
               />
             </div>
@@ -170,7 +256,7 @@ export default function NewArticlePage() {
                   id="featured_image_url" 
                   name="featured_image_url" 
                   type="url" 
-                  placeholder="https://..."
+                  defaultValue={article.featured_image_url || ''}
                   className="mt-2 block w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-white placeholder-slate-600 outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400" 
                 />
               </div>
@@ -181,7 +267,7 @@ export default function NewArticlePage() {
                   id="source_name" 
                   name="source_name" 
                   type="text" 
-                  placeholder="e.g., Reuters"
+                  defaultValue={article.source_name || ''}
                   className="mt-2 block w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-white placeholder-slate-600 outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400" 
                 />
               </div>
@@ -192,7 +278,7 @@ export default function NewArticlePage() {
                   id="source_url" 
                   name="source_url" 
                   type="url" 
-                  placeholder="https://..."
+                  defaultValue={article.source_url || ''}
                   className="mt-2 block w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-white placeholder-slate-600 outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400" 
                 />
               </div>
@@ -201,13 +287,13 @@ export default function NewArticlePage() {
         </div>
 
         <div className="flex items-center justify-end gap-4 border-t border-slate-800 pt-6">
-          <Link href="/articles" className="text-sm text-slate-400 hover:text-white">Cancel</Link>
+          <Link href={`/articles/${id}`} className="text-sm text-slate-400 hover:text-white">Cancel</Link>
           <button 
             type="submit" 
-            disabled={isSubmitting}
+            disabled={isSaving || isSubmittingReview}
             className="rounded-lg bg-cyan-400 px-6 py-2.5 font-semibold text-slate-950 transition-colors hover:bg-cyan-300 disabled:opacity-50"
           >
-            {isSubmitting ? 'Creating...' : 'Create Draft'}
+            {isSaving ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
       </form>
