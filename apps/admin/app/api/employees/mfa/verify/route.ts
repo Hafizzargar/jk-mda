@@ -27,7 +27,10 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Unable to verify MFA factor status.' }, { status: 500 });
   }
   const targetFactor = factors?.totp.find(f => f.id === body.factorId);
-  const isEnrollment = targetFactor && (targetFactor.status as string) === 'unverified';
+  if (!targetFactor) {
+    return Response.json({ error: 'Invalid MFA factor.' }, { status: 400 });
+  }
+  const isEnrollment = (targetFactor.status as string) === 'unverified';
 
   // Use the user's client (which has their current token) to call verify
   const { data: verifyData, error: verifyError } = await auth.userClient.auth.mfa.verify({

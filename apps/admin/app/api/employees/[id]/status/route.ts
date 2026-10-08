@@ -1,4 +1,4 @@
-import { authorizeEmployeeRequest, isEmployeeAuthorization } from '@/lib/employee-server';
+import { authorizeEmployeeRequest, isEmployeeAuthorization, requireRecentAuthentication } from '@/lib/employee-server';
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -14,6 +14,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const permission = body.status === 'disabled' ? 'employee.disable' : 'employee.enable';
   const authorization = await authorizeEmployeeRequest(request, permission);
   if (!isEmployeeAuthorization(authorization)) return authorization;
+
+  const reauthError = await requireRecentAuthentication(authorization, request);
+  if (reauthError) return reauthError;
 
   if (body.status !== 'active' && body.status !== 'disabled') {
     return Response.json({ error: 'Status must be active or disabled.' }, { status: 400 });

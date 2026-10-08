@@ -1,4 +1,4 @@
-import { authenticateEmployeeRequest, checkEmployeePermission, isEmployeeAuthorization } from '@/lib/employee-server';
+import { authenticateEmployeeRequest, checkEmployeePermission, isEmployeeAuthorization, requireRecentAuthentication } from '@/lib/employee-server';
 
 type EmployeeOperation =
   | 'request-invite'
@@ -67,6 +67,9 @@ export async function POST(request: Request) {
   const typedOperation = operation as EmployeeOperation;
   const permissionError = await checkEmployeePermission(authorization, request, operationPermissions[typedOperation]);
   if (permissionError) return permissionError;
+
+  const reauthError = await requireRecentAuthentication(authorization, request);
+  if (reauthError) return reauthError;
 
   const { data, error } = await authorization.userClient.rpc(
     operationRpc[typedOperation],

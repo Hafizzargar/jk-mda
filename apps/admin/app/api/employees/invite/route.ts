@@ -1,4 +1,4 @@
-import { authorizeEmployeeRequest, isEmployeeAuthorization } from '@/lib/employee-server';
+import { authorizeEmployeeRequest, isEmployeeAuthorization, requireRecentAuthentication } from '@/lib/employee-server';
 
 const roleRanks: Record<string, number> = {
   owner: 500,
@@ -19,6 +19,9 @@ type InviteRequest = {
 export async function POST(request: Request) {
   const authorization = await authorizeEmployeeRequest(request, 'employee.invite');
   if (!isEmployeeAuthorization(authorization)) return authorization;
+
+  const reauthError = await requireRecentAuthentication(authorization, request);
+  if (reauthError) return reauthError;
 
   let body: InviteRequest;
   try {

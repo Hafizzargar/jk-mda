@@ -21,6 +21,7 @@ type EmployeeAuthorization = {
     user_agent: string | null;
   };
   aal: string | null;
+  amr: Array<{ method: string; timestamp: number }> | null;
 };
 
 export async function authenticateEmployeeRequest(
@@ -56,14 +57,17 @@ export async function authenticateEmployeeRequest(
   });
   let sessionId: string | null = null;
   let aal: string | null = null;
+  let amr: Array<{ method: string; timestamp: number }> | null = null;
   try {
     const tokenPayload = token.split('.')[1];
-    const claims = JSON.parse(Buffer.from(tokenPayload, 'base64url').toString('utf8')) as { session_id?: string, aal?: string };
+    const claims = JSON.parse(Buffer.from(tokenPayload, 'base64url').toString('utf8')) as { session_id?: string, aal?: string, amr?: Array<{ method: string; timestamp: number }> };
     sessionId = claims.session_id ?? null;
     aal = claims.aal ?? null;
+    amr = claims.amr ?? null;
   } catch {
     sessionId = null;
     aal = null;
+    amr = null;
   }
   const auditContext = {
     session_id: sessionId,
@@ -89,7 +93,7 @@ export async function authenticateEmployeeRequest(
     return Response.json({ error: 'An active KJIN employee profile is required.' }, { status: 403 });
   }
 
-  return { user: userData.user, profile, service, userClient, auditContext, aal };
+  return { user: userData.user, profile, service, userClient, auditContext, aal, amr };
 }
 
 export async function checkEmployeePermission(
@@ -147,4 +151,32 @@ export function isEmployeeAuthorization(
   result: EmployeeAuthorization | Response
 ): result is EmployeeAuthorization {
   return !(result instanceof Response);
+}
+
+export async function requireRecentAuthentication(
+  auth: EmployeeAuthorization,
+  request: Request,
+  windowSeconds = 900 // 15 minutes by default
+): Promise<Response | null> {
+  const now = Math.floor(Date.now() / 1000);
+  let mostRecent = 0;
+  
+  if (auth.amr && auth.amr.length > 0) {
+    mostRecent = Math.max(...auth.amr.map(a => a.timestamp));
+  }
+  
+  if (now - mostRecent > windowSeconds) {
+    await auth.service.from('audit_logs').insert({
+      actor_profile_id: auth.user.id,
+      action: 'employee.reauth_required',
+      target_type: 'api_operation',
+      result: 'denied',
+      reason: 'Recent authentication is required for this operation.',
+      details: { method: request.method, path: new URL(request.url).pathname },
+      ...auth.auditContext,
+    });
+    return Response.json({ error: 'Recent authentication required.', code: 'reauth_required' }, { status: 403 });
+  }
+  
+  return null;
 }
