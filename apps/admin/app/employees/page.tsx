@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { authRoles, type AuthRole } from '@kjin/auth';
 import { supabase } from '@/lib/supabase';
+import { requiresMfa } from '@/lib/mfa';
 
 type Employee = {
   id: string;
@@ -135,7 +136,7 @@ export default function EmployeesPage() {
       return;
     }
 
-    const mfaRequired = ['owner', 'superadmin', 'admin'].includes(sessionUserRole);
+    const mfaRequired = requiresMfa(sessionUserRole);
     if (mfaRequired) {
       const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
       if (aalData?.currentLevel !== 'aal2') {

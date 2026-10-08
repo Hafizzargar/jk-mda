@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { canAccessRole } from '@kjin/auth';
 import { summarizeArticleQueue } from '@kjin/db';
 import { supabase } from '@/lib/supabase';
+import { requiresMfa } from '@/lib/mfa';
 
 const fallbackQueue = [
   { id: 'fallback-review-1', title: 'District update: Srinagar power outage', status: 'review', summary: 'Awaiting editorial sign-off.' },
@@ -64,7 +65,7 @@ export default function DashboardPage() {
           return;
         }
 
-        const mfaRequired = ['owner', 'superadmin', 'admin'].includes(sessionUserRole);
+        const mfaRequired = requiresMfa(sessionUserRole);
         
         if (mfaRequired) {
           const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();

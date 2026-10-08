@@ -2,6 +2,7 @@ import 'server-only';
 
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js';
 import { env } from '@kjin/config';
+import { requiresMfa } from './mfa.ts';
 
 type EmployeeProfile = {
   id: string;
@@ -96,7 +97,7 @@ export async function checkEmployeePermission(
   request: Request,
   permission: string
 ): Promise<Response | null> {
-  const mfaRequired = ['owner', 'superadmin', 'admin'].includes(auth.profile.role_key);
+  const mfaRequired = requiresMfa(auth.profile.role_key);
   if (mfaRequired && auth.aal !== 'aal2') {
     await auth.service.from('audit_logs').insert({
       actor_profile_id: auth.user.id,

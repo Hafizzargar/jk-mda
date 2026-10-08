@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from '@/lib/supabase';
 
 export default function MFAEnrollmentPage() {
@@ -10,7 +11,7 @@ export default function MFAEnrollmentPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   
   const [factorId, setFactorId] = useState<string | null>(null);
-  const [qrCodeSvg, setQrCodeSvg] = useState<string | null>(null);
+  const [totpUri, setTotpUri] = useState<string | null>(null);
   const [secretString, setSecretString] = useState<string | null>(null);
   
   const [verificationCode, setVerificationCode] = useState('');
@@ -53,7 +54,7 @@ export default function MFAEnrollmentPage() {
         }
 
         setFactorId(enrollData.id);
-        setQrCodeSvg(enrollData.totp.qr_code);
+        setTotpUri(enrollData.totp.uri);
         setSecretString(enrollData.totp.secret);
         setStatus('');
       } catch (err) {
@@ -142,12 +143,11 @@ export default function MFAEnrollmentPage() {
           </div>
         )}
 
-        {qrCodeSvg && !status.includes('Redirecting') && (
+        {totpUri && !status.includes('Redirecting') && (
           <div className="mt-8 flex flex-col items-center">
-            <div 
-              className="rounded-xl bg-white p-4"
-              dangerouslySetInnerHTML={{ __html: qrCodeSvg }} 
-            />
+            <div className="rounded-xl bg-white p-4">
+              <QRCodeSVG value={totpUri} size={200} />
+            </div>
             
             <div className="mt-6 w-full rounded-xl border border-slate-800 bg-slate-950 p-4 text-center">
               <p className="text-xs text-slate-400">Manual setup secret:</p>
