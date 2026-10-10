@@ -35,6 +35,7 @@ export default async function HomePage() {
   const { data: latestArticles } = await supabase
     .from('articles')
     .select('id, slug, title, excerpt, category, district, author_display_name, published_at, featured_image_url')
+    .eq('status', 'published')
     .order('published_at', { ascending: false, nullsFirst: false })
     .limit(7);
 
@@ -43,6 +44,7 @@ export default async function HomePage() {
   let { data: trendingArticles } = await supabase
     .from('articles')
     .select('id, slug, title, category, published_at, view_count')
+    .eq('status', 'published')
     .gte('published_at', thirtyDaysAgo)
     .order('view_count', { ascending: false })
     .limit(5);
@@ -52,6 +54,7 @@ export default async function HomePage() {
     const { data: fallbackTrending } = await supabase
       .from('articles')
       .select('id, slug, title, category, published_at, view_count')
+      .eq('status', 'published')
       .order('view_count', { ascending: false })
       .limit(5);
     trendingArticles = fallbackTrending || [];

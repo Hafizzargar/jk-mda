@@ -75,6 +75,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
   const { data: articles, count } = await supabase
     .from('articles')
     .select('id, slug, title, excerpt, category, author_display_name, published_at, featured_image_url', { count: 'exact' })
+    .eq('status', 'published')
     .ilike('category', categorySlug)
     .order('published_at', { ascending: false, nullsFirst: false })
     .range(from, to);

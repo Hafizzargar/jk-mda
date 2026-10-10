@@ -101,6 +101,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   const { data: relatedArticles } = await supabase
     .from('articles')
     .select('id, slug, title, category, published_at, featured_image_url')
+    .eq('status', 'published')
     .eq('category', article.category)
     .neq('id', article.id)
     .order('published_at', { ascending: false, nullsFirst: false })

@@ -25,6 +25,9 @@ declare
   v_recent_ip_views int;
   v_recent_global_views int;
 begin
+  -- Acquire advisory lock for this IP to prevent concurrent rate limit bypass
+  perform pg_advisory_xact_lock(hashtext(p_ip_address));
+
   -- 1. Check IP-based rate limit (max 5 views per 15 minutes per IP across all articles)
   -- This stops a single IP from hammering the system
   select count(*) into v_recent_ip_views
@@ -73,6 +76,7 @@ $$;
 -- Revoke the old signature if it existed
 drop function if exists public.increment_article_view_count(uuid);
 
--- Grant execute to anon and authenticated
+-- Grant execute to service_role only
 revoke all on function public.increment_article_view_count(uuid, text) from public;
-grant execute on function public.increment_article_view_count(uuid, text) to anon, authenticated;
+revoke all on function public.increment_article_view_count(uuid, text) from anon, authenticated;
+grant execute on function public.increment_article_view_count(uuid, text) to service_role;
