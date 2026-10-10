@@ -47,9 +47,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
-    const rawText = await request.text().catch(() => '');
-    if (rawText.length > 2000) {
-      return NextResponse.json({ error: 'Payload too large.' }, { status: 413 });
+    let rawText = '';
+    if (request.body) {
+      const reader = request.body.getReader();
+      const decoder = new TextDecoder();
+      let byteCount = 0;
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        if (value) {
+          byteCount += value.length;
+          if (byteCount > 2000) {
+            await reader.cancel();
+            return NextResponse.json({ error: 'Payload too large.' }, { status: 413 });
+          }
+          rawText += decoder.decode(value, { stream: true });
+        }
+      }
+      rawText += decoder.decode();
     }
 
     let body;

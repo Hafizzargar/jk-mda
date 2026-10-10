@@ -33,6 +33,21 @@ describe('P1: Newsletter Subscription Integration', { skip: !SERVICE_KEY }, () =
     assert.ifError(emailError);
   });
 
+  it('rejects oversized payloads to prevent buffering attacks', async () => {
+    // Generate a payload larger than 2000 bytes
+    const oversizedBody = JSON.stringify({ email: 'a'.repeat(2500) + '@example.com' });
+    const req = new Request('http://localhost/api/newsletter/subscribe', {
+      method: 'POST',
+      headers: { 'x-vercel-forwarded-for': '203.0.113.100' },
+      body: oversizedBody
+    });
+    
+    const res = await POST(req);
+    assert.strictEqual(res.status, 413);
+    const data = await res.json();
+    assert.strictEqual(data.error, 'Payload too large.');
+  });
+
   it('rejects missing or invalid email', async () => {
     const req = new Request('http://localhost/api/newsletter/subscribe', {
       method: 'POST',
