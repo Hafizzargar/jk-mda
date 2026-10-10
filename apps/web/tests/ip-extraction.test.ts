@@ -12,7 +12,7 @@ describe('P2: Client IP Extraction Trust', () => {
       if (originalHasEnv) {
         (process.env as any).NODE_ENV = orig;
       } else {
-        delete process.env.NODE_ENV;
+        delete (process.env as any).NODE_ENV;
       }
     };
   };

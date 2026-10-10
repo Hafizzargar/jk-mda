@@ -5,41 +5,11 @@ import { extractClientIp } from '@/lib/ip';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Basic in-memory rate limiting map.
-// Note: In a true multi-region serverless deployment, hosting-level WAF rate limiting (like Vercel Edge) should be used.
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-
-function sweepRateLimitMap() {
-  const now = Date.now();
-  // Simple cleanup to prevent memory leaks in long-running processes
-  if (rateLimitMap.size > 1000) {
-    for (const [key, value] of rateLimitMap.entries()) {
-      if (now > value.resetAt) {
-        rateLimitMap.delete(key);
-      }
-    }
-  }
-}
-
 export async function POST(request: Request) {
   try {
     const ip = extractClientIp(request);
     
-    // 1. IP and Rate Limiting
-    if (ip) {
-      sweepRateLimitMap();
-      const now = Date.now();
-      const record = rateLimitMap.get(ip);
-      
-      if (record && now < record.resetAt) {
-        if (record.count >= 3) {
-          return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
-        }
-        record.count += 1;
-      } else {
-        rateLimitMap.set(ip, { count: 1, resetAt: now + 60 * 60 * 1000 }); // 1 hour window
-      }
-    } else {
+    if (!ip) {
       return NextResponse.json({ error: 'Untrusted client IP' }, { status: 400 });
     }
 
@@ -70,6 +40,23 @@ export async function POST(request: Request) {
         },
       }
     );
+
+    // 1. IP and Rate Limiting
+    const { data: allowed, error: rateLimitError } = await supabase.rpc('check_newsletter_rate_limit', {
+      p_ip_address: ip
+    });
+
+    if (rateLimitError) {
+      console.error('Newsletter rate limiting check failed:', rateLimitError);
+      return NextResponse.json(
+        { error: 'A server error occurred. Please try again later.' },
+        { status: 500 }
+      );
+    }
+
+    if (!allowed) {
+      return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+    }
 
     const { error } = await supabase
       .from('newsletter_subscribers')
