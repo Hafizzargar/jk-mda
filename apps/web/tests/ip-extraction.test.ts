@@ -5,12 +5,33 @@ import { extractClientIp } from '../lib/ip.ts';
 
 describe('P2: Client IP Extraction Trust', () => {
   const mockEnv = (nodeEnv: string) => {
+    const originalHasEnv = 'NODE_ENV' in process.env;
     const orig = process.env.NODE_ENV;
     (process.env as any).NODE_ENV = nodeEnv;
     return () => { 
-      (process.env as any).NODE_ENV = orig;
+      if (originalHasEnv) {
+        (process.env as any).NODE_ENV = orig;
+      } else {
+        delete process.env.NODE_ENV;
+      }
     };
   };
+
+  it('does not fall through to dev fallback if trusted header is present but malformed in test environment', () => {
+    const restore = mockEnv('test');
+    try {
+      // The trusted header is invalid, so it should return null instead of falling through to x-forwarded-for or default loopback
+      const req = new Request('http://localhost', {
+        headers: { 
+          'x-vercel-forwarded-for': 'not-an-ip',
+          'x-forwarded-for': '127.0.0.1' 
+        }
+      });
+      assert.strictEqual(extractClientIp(req), null, 'Must reject immediately if trusted header is invalid');
+    } finally {
+      restore();
+    }
+  });
 
   it('trusts x-vercel-forwarded-for as the primary secure header', () => {
     const req = new Request('http://localhost', {
