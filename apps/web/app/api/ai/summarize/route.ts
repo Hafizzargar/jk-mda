@@ -7,6 +7,7 @@ import { readBoundedStream } from '../../../../lib/request-utils';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 const SummarizeRequestSchema = z.object({
   content: z.string().min(10, 'Content must be at least 10 characters').max(20000, 'Content too long'),
@@ -28,8 +29,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Shared Database AI Rate Limiter (max 50 requests per 15 minutes)
-    const { data: isAllowed, error: rateLimitError } = await supabase.rpc('check_ai_rate_limit', {
+    // Shared Database AI Rate Limiter (max 50 requests per 15 minutes) - Called via Service Role
+    const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
+    
+    const { data: isAllowed, error: rateLimitError } = await serviceClient.rpc('check_ai_rate_limit', {
       p_user_id: user.id,
       p_endpoint: 'summarize',
       p_max_requests: 50,

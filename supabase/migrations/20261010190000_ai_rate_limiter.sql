@@ -57,7 +57,6 @@ end;
 $$ language plpgsql security definer set search_path = '';
 
 -- Revoke default execute permissions
-revoke execute on function public.check_ai_rate_limit(uuid, text, int, interval) from public;
-revoke execute on function public.check_ai_rate_limit(uuid, text, int, interval) from anon;
--- Grant explicitly only to authenticated users (and service_role has access by default)
-grant execute on function public.check_ai_rate_limit(uuid, text, int, interval) to authenticated;
+revoke all on function public.check_ai_rate_limit(uuid, text, int, interval) from public, anon, authenticated;
+-- Grant explicitly only to service_role
+grant execute on function public.check_ai_rate_limit(uuid, text, int, interval) to service_role;

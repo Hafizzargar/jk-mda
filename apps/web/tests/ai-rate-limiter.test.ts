@@ -11,6 +11,9 @@ describe('P0: AI Rate Limiter Security & Concurrency', { skip: !SERVICE_KEY || !
   const anonClient = createClient(SUPABASE_URL, ANON_KEY, {
     auth: { persistSession: false, autoRefreshToken: false }
   });
+  const authClient = createClient(SUPABASE_URL, ANON_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
 
   let authorId1: string;
 
@@ -32,6 +35,13 @@ describe('P0: AI Rate Limiter Security & Concurrency', { skip: !SERVICE_KEY || !
     });
     if (err1) throw err1;
     authorId1 = authorData1.user!.id;
+
+    // 3. Authenticate User 1
+    const { error: signInErr } = await authClient.auth.signInWithPassword({
+      email: authorEmail1,
+      password: 'password123'
+    });
+    if (signInErr) throw signInErr;
   });
 
   after(async () => {
@@ -47,6 +57,17 @@ describe('P0: AI Rate Limiter Security & Concurrency', { skip: !SERVICE_KEY || !
     });
     assert.ok(error, 'Anonymous users must be blocked');
     assert.ok(error.message.includes('Could not find the function') || error.code === '42883' || error.message.includes('permission denied'), 'Should fail completely');
+  });
+
+  it('prevents authenticated users from directly calling check_ai_rate_limit', async () => {
+    const { error } = await authClient.rpc('check_ai_rate_limit', {
+      p_user_id: authorId1,
+      p_endpoint: 'test',
+      p_max_requests: 50,
+      p_window_interval: '1 millisecond'
+    });
+    assert.ok(error, 'Authenticated users must be blocked from calling directly');
+    assert.ok(error.message.includes('Could not find the function') || error.code === '42883' || error.message.includes('permission denied'), 'Should fail completely due to revoke');
   });
 
   it('handles concurrent rate limit checks securely via service role', async () => {
