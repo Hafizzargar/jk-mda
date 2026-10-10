@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { requireEnv } from '@kjin/config';
 import { extractClientIp } from '@/lib/ip';
+import { readBoundedStream } from '@/lib/request-utils';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -16,6 +17,34 @@ export async function POST(request: Request) {
     const contentLength = request.headers.get('content-length');
     if (contentLength && parseInt(contentLength, 10) > 2000) {
       return NextResponse.json({ error: 'Payload too large.' }, { status: 413 });
+    }
+
+    // Strictly enforce 2000-byte limit via streaming read BEFORE any database interaction
+    const { text: rawText, error: streamError } = await readBoundedStream(request, 2000);
+    if (streamError) {
+      return NextResponse.json({ error: streamError }, { status: 413 });
+    }
+
+    let body;
+    try {
+      body = JSON.parse(rawText || '{}');
+    } catch {
+      body = null;
+    }
+
+    if (!body || typeof body.email !== 'string') {
+      return NextResponse.json(
+        { error: 'Valid email address is required.' },
+        { status: 400 }
+      );
+    }
+
+    const email = body.email.trim().toLowerCase();
+    if (email.length > 254 || !EMAIL_REGEX.test(email)) {
+      return NextResponse.json(
+        { error: 'Invalid email format.' },
+        { status: 400 }
+      );
     }
 
     // Server-only privileged client. Never expose this key to the browser.
@@ -45,49 +74,6 @@ export async function POST(request: Request) {
 
     if (!allowed) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
-    }
-
-    let rawText = '';
-    if (request.body) {
-      const reader = request.body.getReader();
-      const decoder = new TextDecoder();
-      let byteCount = 0;
-      
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        if (value) {
-          byteCount += value.length;
-          if (byteCount > 2000) {
-            await reader.cancel();
-            return NextResponse.json({ error: 'Payload too large.' }, { status: 413 });
-          }
-          rawText += decoder.decode(value, { stream: true });
-        }
-      }
-      rawText += decoder.decode();
-    }
-
-    let body;
-    try {
-      body = JSON.parse(rawText);
-    } catch {
-      body = null;
-    }
-
-    if (!body || typeof body.email !== 'string') {
-      return NextResponse.json(
-        { error: 'Valid email address is required.' },
-        { status: 400 }
-      );
-    }
-
-    const email = body.email.trim().toLowerCase();
-    if (email.length > 254 || !EMAIL_REGEX.test(email)) {
-      return NextResponse.json(
-        { error: 'Invalid email format.' },
-        { status: 400 }
-      );
     }
 
     // Upsert the email and clear unsubscribed_at if resubscribing
