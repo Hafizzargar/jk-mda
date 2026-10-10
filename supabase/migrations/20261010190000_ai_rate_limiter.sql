@@ -23,12 +23,21 @@ create or replace function public.check_ai_rate_limit(
 declare
     v_recent_count int;
 begin
-    -- Delete old logs to prevent unbounded growth (cleanup old logs for this user)
+    -- 1. Authorization: Only allow the actual user (or service_role) to rate-limit themselves
+    if auth.role() != 'service_role' and auth.uid() is distinct from p_user_id then
+        raise exception 'Unauthorized: You can only record rate limits for your own user ID.';
+    end if;
+
+    -- 2. Concurrency Control: Acquire an exclusive transaction-level lock for this user
+    -- hashtext converts the UUID string to a 32-bit integer for the lock ID
+    perform pg_advisory_xact_lock(hashtext(p_user_id::text));
+
+    -- 3. Cleanup: Delete old logs to prevent unbounded growth
     delete from public.ai_usage_logs
     where user_id = p_user_id
       and created_at < now() - p_window_interval;
 
-    -- Count recent requests
+    -- 4. Count: Count recent requests
     select count(*)
     into v_recent_count
     from public.ai_usage_logs
@@ -39,10 +48,16 @@ begin
         return false; -- Rate limit exceeded
     end if;
 
-    -- Record the new request
+    -- 5. Record: Insert the new request
     insert into public.ai_usage_logs (user_id, endpoint)
     values (p_user_id, p_endpoint);
 
     return true; -- Allowed
 end;
 $$ language plpgsql security definer set search_path = '';
+
+-- Revoke default execute permissions
+revoke execute on function public.check_ai_rate_limit(uuid, text, int, interval) from public;
+revoke execute on function public.check_ai_rate_limit(uuid, text, int, interval) from anon;
+-- Grant explicitly only to authenticated users (and service_role has access by default)
+grant execute on function public.check_ai_rate_limit(uuid, text, int, interval) to authenticated;
