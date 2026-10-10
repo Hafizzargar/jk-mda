@@ -60,8 +60,8 @@ Your task is to take raw notes, facts, or press releases and draft a professiona
     // The human will then use the standard `create_article` workflow to save it as a draft.
     return NextResponse.json(result.object);
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('AI Draft Error:', error);
-    return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal Server Error' }, { status: 500 });
   }
 }
