@@ -47,7 +47,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
-    const body = await request.json().catch(() => null);
+    const rawText = await request.text().catch(() => '');
+    if (rawText.length > 2000) {
+      return NextResponse.json({ error: 'Payload too large.' }, { status: 413 });
+    }
+
+    let body;
+    try {
+      body = JSON.parse(rawText);
+    } catch {
+      body = null;
+    }
+
     if (!body || typeof body.email !== 'string') {
       return NextResponse.json(
         { error: 'Valid email address is required.' },
