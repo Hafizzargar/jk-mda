@@ -27,7 +27,7 @@ describe('P1: Newsletter Subscription Integration', { skip: !SERVICE_KEY }, () =
   it('rejects missing or invalid email', async () => {
     const req = new Request('http://localhost/api/newsletter/subscribe', {
       method: 'POST',
-      headers: { 'x-vercel-forwarded-for': testIp },
+      headers: { 'x-vercel-forwarded-for': '203.0.113.100' },
       body: JSON.stringify({ email: 'not-an-email' })
     });
     
@@ -40,7 +40,7 @@ describe('P1: Newsletter Subscription Integration', { skip: !SERVICE_KEY }, () =
   it('accepts valid signup', async () => {
     const req = new Request('http://localhost/api/newsletter/subscribe', {
       method: 'POST',
-      headers: { 'x-vercel-forwarded-for': testIp },
+      headers: { 'x-vercel-forwarded-for': '203.0.113.101' },
       body: JSON.stringify({ email: testEmail })
     });
     
@@ -63,7 +63,7 @@ describe('P1: Newsletter Subscription Integration', { skip: !SERVICE_KEY }, () =
   it('allows second request under limit', async () => {
     const req = new Request('http://localhost/api/newsletter/subscribe', {
       method: 'POST',
-      headers: { 'x-vercel-forwarded-for': testIp },
+      headers: { 'x-vercel-forwarded-for': '203.0.113.101' },
       body: JSON.stringify({ email: `second-${testEmail}` })
     });
     
@@ -74,7 +74,7 @@ describe('P1: Newsletter Subscription Integration', { skip: !SERVICE_KEY }, () =
   it('allows third request under limit', async () => {
     const req = new Request('http://localhost/api/newsletter/subscribe', {
       method: 'POST',
-      headers: { 'x-vercel-forwarded-for': testIp },
+      headers: { 'x-vercel-forwarded-for': '203.0.113.101' },
       body: JSON.stringify({ email: `third-${testEmail}` })
     });
     
@@ -85,7 +85,7 @@ describe('P1: Newsletter Subscription Integration', { skip: !SERVICE_KEY }, () =
   it('blocks fourth request due to rate limit', async () => {
     const req = new Request('http://localhost/api/newsletter/subscribe', {
       method: 'POST',
-      headers: { 'x-vercel-forwarded-for': testIp },
+      headers: { 'x-vercel-forwarded-for': '203.0.113.101' },
       body: JSON.stringify({ email: `fourth-${testEmail}` })
     });
     

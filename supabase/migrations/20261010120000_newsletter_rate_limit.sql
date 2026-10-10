@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS public.newsletter_ip_rate_limit (
     ip_address text PRIMARY KEY,
     request_count integer NOT NULL DEFAULT 1,
-    window_start_at timestamp with time zone DEFAULT now() NOT NULL
+    last_request_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 -- Secure the table
@@ -26,14 +26,15 @@ BEGIN
 
     -- Clean up expired rate limits (older than 1 hour)
     DELETE FROM public.newsletter_ip_rate_limit 
-    WHERE window_start_at < now() - interval '1 hour';
+    WHERE last_request_at < now() - interval '1 hour';
 
     -- Upsert the IP address
-    INSERT INTO public.newsletter_ip_rate_limit (ip_address, request_count, window_start_at)
+    INSERT INTO public.newsletter_ip_rate_limit (ip_address, request_count, last_request_at)
     VALUES (p_ip_address, 1, now())
     ON CONFLICT (ip_address) 
     DO UPDATE SET 
-        request_count = public.newsletter_ip_rate_limit.request_count + 1
+        request_count = public.newsletter_ip_rate_limit.request_count + 1,
+        last_request_at = now()
     RETURNING request_count INTO v_count;
 
     -- Return true if under or at the limit of 3 requests per hour
