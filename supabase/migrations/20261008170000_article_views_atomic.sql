@@ -1,20 +1,6 @@
--- 1. Create a tracking table for views to prevent abuse
-create table public.article_views_log (
-  id uuid primary key default gen_random_uuid(),
-  article_id uuid references public.articles(id) on delete cascade not null,
-  ip_address text not null,
-  viewed_at timestamptz default now() not null
-);
+-- Migration: Fully Atomic View Counter & Correct Permissions
+-- Introduces fully atomic rate limits and strict service_role execution.
 
--- Index for IP-based and global rate-limiting
-create index idx_article_views_log_recent on public.article_views_log (article_id, viewed_at);
-create index idx_article_views_log_ip on public.article_views_log (ip_address, viewed_at);
-
--- 2. Enable RLS on the tracking table
-alter table public.article_views_log enable row level security;
--- No policies granted to public, so it's fully private
-
--- 3. Update the RPC to use DB-level abuse protection
 create or replace function public.increment_article_view_count(p_article_id uuid, p_ip_address text)
 returns void
 language plpgsql
@@ -25,8 +11,13 @@ declare
   v_recent_ip_views int;
   v_recent_global_views int;
 begin
+  -- Consistently acquire advisory locks to prevent deadlocks and enforce atomicity
+  -- 1. Lock the article to serialize global per-article view checks
+  perform pg_advisory_xact_lock(hashtext('view_counter_article_' || p_article_id::text));
+  -- 2. Lock the IP to serialize per-IP checks and deduplication
+  perform pg_advisory_xact_lock(hashtext('view_counter_ip_' || p_ip_address));
+
   -- 1. Check IP-based rate limit (max 5 views per 15 minutes per IP across all articles)
-  -- This stops a single IP from hammering the system
   select count(*) into v_recent_ip_views
   from public.article_views_log
   where ip_address = p_ip_address
@@ -37,7 +28,6 @@ begin
   end if;
 
   -- 2. Check Global rate limit per article (max 60 views per minute globally)
-  -- This mitigates distributed botnets rotating IPs
   select count(*) into v_recent_global_views
   from public.article_views_log
   where article_id = p_article_id
@@ -70,9 +60,7 @@ begin
 end;
 $$;
 
--- Revoke the old signature if it existed
-drop function if exists public.increment_article_view_count(uuid);
-
--- Grant execute to anon and authenticated
+-- Secure the RPC by removing public execution and restricting solely to service_role
 revoke all on function public.increment_article_view_count(uuid, text) from public;
-grant execute on function public.increment_article_view_count(uuid, text) to anon, authenticated;
+revoke all on function public.increment_article_view_count(uuid, text) from anon, authenticated;
+grant execute on function public.increment_article_view_count(uuid, text) to service_role;

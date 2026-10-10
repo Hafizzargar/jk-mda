@@ -12,34 +12,86 @@ describe('P0: View Counter Security & Rate Limiting Integration', { skip: !SERVI
 
   let testPublishedId: string;
   let testDraftId: string;
+  let testUserId: string;
 
   before(async () => {
-    // Setup test articles
-    const { data: a1 } = await serviceClient.from('articles').insert({
-      title: 'Test Published',
-      slug: 'test-published-' + Date.now(),
-      status: 'published',
-      category: 'local',
-      content: 'Test content',
-      view_count: 0
-    }).select('id').single();
-    testPublishedId = a1?.id;
+    // 1. Create employee invitation to satisfy trigger requirements
+    const inviteId = crypto.randomUUID();
+    const email = `test-author-${Date.now()}@kjin.local`;
+    
+    const { error: inviteError } = await serviceClient.from('employee_invites').insert({
+      id: inviteId,
+      email: email,
+      role_key: 'author',
+      status: 'sending'
+    });
+    assert.ok(!inviteError, 'Failed to insert test invite: ' + inviteError?.message);
 
-    const { data: a2 } = await serviceClient.from('articles').insert({
-      title: 'Test Draft',
-      slug: 'test-draft-' + Date.now(),
-      status: 'draft',
-      category: 'local',
-      content: 'Test content',
-      view_count: 0
-    }).select('id').single();
-    testDraftId = a2?.id;
+    // 2. Create user (trigger will consume the invite to provision the profile)
+    const { data: userData, error: userError } = await serviceClient.auth.admin.createUser({
+      email: email,
+      password: 'password123',
+      email_confirm: true,
+      user_metadata: { employee_invite_id: inviteId, display_name: 'Test Author' }
+    });
+    assert.ok(userData.user, 'Failed to create test user: ' + userError?.message);
+    testUserId = userData.user.id;
+
+    // 3. Authenticate as the newly provisioned author
+    const { data: sessionData, error: signInError } = await anonClient.auth.signInWithPassword({
+      email: email,
+      password: 'password123'
+    });
+    assert.ok(sessionData.session, 'Failed to sign in: ' + signInError?.message);
+    
+    const authorClient = createClient(SUPABASE_URL, ANON_KEY, {
+      global: { headers: { Authorization: `Bearer ${sessionData.session.access_token}` } }
+    });
+
+    // 4. Create the published test article using the CMS workflow
+    const { data: a1, error: createPubError } = await authorClient.rpc('create_article', {
+      p_title: 'Test Published',
+      p_excerpt: 'Excerpt',
+      p_content: 'Content',
+      p_slug: 'test-published-' + Date.now()
+    });
+    assert.ok(a1, 'Failed to create published article draft: ' + createPubError?.message);
+    testPublishedId = a1.id;
+
+    // Transition state machine: draft -> review
+    const { error: submitPubError } = await authorClient.rpc('submit_article_for_review', {
+      p_article_id: testPublishedId
+    });
+    assert.ok(!submitPubError, 'Failed to submit published article for review: ' + submitPubError?.message);
+
+    // Transition state machine: review -> published
+    // Note: We bypass the publish RPC using service_role because the RPC strictly requires AAL2 (MFA), 
+    // which cannot be easily automated in headless integration tests without TOTP libraries.
+    const { error: publishError } = await serviceClient.from('articles')
+      .update({ 
+        status: 'published', 
+        published_at: new Date().toISOString(), 
+        published_by: testUserId 
+      })
+      .eq('id', testPublishedId);
+    assert.ok(!publishError, 'Failed to publish article: ' + publishError?.message);
+
+    // 5. Create the draft test article
+    const { data: a2, error: createDraftError } = await authorClient.rpc('create_article', {
+      p_title: 'Test Draft',
+      p_excerpt: 'Excerpt',
+      p_content: 'Content',
+      p_slug: 'test-draft-' + Date.now()
+    });
+    assert.ok(a2, 'Failed to create draft article: ' + createDraftError?.message);
+    testDraftId = a2.id;
   });
 
   after(async () => {
     // Cleanup
     if (testPublishedId) await serviceClient.from('articles').delete().eq('id', testPublishedId);
     if (testDraftId) await serviceClient.from('articles').delete().eq('id', testDraftId);
+    if (testUserId) await serviceClient.auth.admin.deleteUser(testUserId);
   });
 
   it('proves anonymous users cannot execute the view-count RPC directly', async () => {
