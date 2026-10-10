@@ -25,13 +25,6 @@ const nextConfig = {
         source: '/(.*)',
         headers: [
           {
-            key: 'Content-Security-Policy',
-            // Trade-off: 'unsafe-inline' is retained for scripts and styles to support Next.js hydration 
-            // and cached ISR (revalidate=60) on pages like the homepage. A strict nonce-based CSP 
-            // would require dynamic rendering (disabling ISR) across the site.
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co; font-src 'self';"
-          },
-          {
             key: 'X-Content-Type-Options',
             value: 'nosniff'
           },
