@@ -12,15 +12,17 @@ describe('P1: Newsletter Subscription Integration', { skip: !SERVICE_KEY }, () =
   const testIp = '203.0.113.99';
   const testEmail = `test-newsletter-${Date.now()}@example.com`;
 
+  const testIps = ['203.0.113.99', '203.0.113.100', '203.0.113.101'];
+
   before(async () => {
     // Ensure clean state for test IP and email
-    await serviceClient.from('newsletter_ip_rate_limit').delete().eq('ip_address', testIp);
+    await serviceClient.from('newsletter_ip_rate_limit').delete().in('ip_address', testIps);
     await serviceClient.from('newsletter_subscribers').delete().eq('email', testEmail);
   });
 
   after(async () => {
     // Cleanup
-    await serviceClient.from('newsletter_ip_rate_limit').delete().eq('ip_address', testIp);
+    await serviceClient.from('newsletter_ip_rate_limit').delete().in('ip_address', testIps);
     await serviceClient.from('newsletter_subscribers').delete().eq('email', testEmail);
   });
 
