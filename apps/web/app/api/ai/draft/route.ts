@@ -29,6 +29,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    // Permission check
+    const { data: hasPerm } = await supabase.rpc('has_permission', { p_permission_key: 'article.create' });
+    if (!hasPerm) {
+      return NextResponse.json({ error: 'Permission denied: article.create required' }, { status: 403 });
+    }
+
     // Shared Database AI Rate Limiter (max 50 requests per 15 minutes) - Called via Service Role
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
     
@@ -41,12 +47,6 @@ export async function POST(request: Request) {
     
     if (rateLimitError || !isAllowed) {
       return NextResponse.json({ error: 'Too many requests, please try again later.' }, { status: 429 });
-    }
-
-    // Permission check
-    const { data: hasPerm } = await supabase.rpc('has_permission', { p_permission_key: 'article.create' });
-    if (!hasPerm) {
-      return NextResponse.json({ error: 'Permission denied: article.create required' }, { status: 403 });
     }
 
     // Input size limiting using bounded stream (max 50KB for raw facts)
