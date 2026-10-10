@@ -8,11 +8,6 @@ import { readBoundedStream } from '../../../../lib/request-utils';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-// Basic in-memory rate limiter: UserID -> { count, windowStart }
-const rateLimitCache = new Map<string, { count: number; windowStart: number }>();
-const RATE_LIMIT_MAX = 50; // max 50 requests
-const RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000; // per 15 minutes
-
 const SummarizeRequestSchema = z.object({
   content: z.string().min(10, 'Content must be at least 10 characters').max(20000, 'Content too long'),
 });
@@ -33,18 +28,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Rate Limiting
-    const now = Date.now();
-    const userLimit = rateLimitCache.get(user.id) || { count: 0, windowStart: now };
-    if (now - userLimit.windowStart > RATE_LIMIT_WINDOW_MS) {
-      userLimit.count = 0;
-      userLimit.windowStart = now;
-    }
-    if (userLimit.count >= RATE_LIMIT_MAX) {
+    // Shared Database AI Rate Limiter (max 50 requests per 15 minutes)
+    const { data: isAllowed, error: rateLimitError } = await supabase.rpc('check_ai_rate_limit', {
+      p_user_id: user.id,
+      p_endpoint: 'summarize',
+      p_max_requests: 50,
+      p_window_interval: '15 minutes'
+    });
+    
+    if (rateLimitError || !isAllowed) {
       return NextResponse.json({ error: 'Too many requests, please try again later.' }, { status: 429 });
     }
-    userLimit.count++;
-    rateLimitCache.set(user.id, userLimit);
 
     // Permission check
     const { data: hasPerm } = await supabase.rpc('has_permission', { p_permission_key: 'article.create' });

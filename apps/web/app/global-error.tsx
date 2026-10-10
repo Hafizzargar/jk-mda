@@ -24,7 +24,7 @@ export default function GlobalError({
               Something went wrong!
             </h2>
             <p className="text-gray-600 dark:text-gray-300 mb-6">
-              A critical error occurred while loading this page. Our team has been notified.
+              A critical error occurred while loading this page. Please try again or return home.
             </p>
             <div className="flex justify-center space-x-4">
               <button
