@@ -27,6 +27,9 @@ export async function POST(
   }
 
   const ip = extractClientIp(request);
+  if (ip === 'anonymous' || !ip) {
+    return NextResponse.json({ error: 'Untrusted client IP' }, { status: 400 });
+  }
 
   // 2. Initialize Supabase client with Service Role Key
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

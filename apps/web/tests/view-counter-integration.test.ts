@@ -13,6 +13,7 @@ describe('P0: View Counter Security & Rate Limiting Integration', { skip: !SERVI
   let testPublishedId: string;
   let testDraftId: string;
   let testUserId: string;
+  let authorClient: any;
 
   before(async () => {
     // 1. Create employee invitation to satisfy trigger requirements
@@ -44,7 +45,7 @@ describe('P0: View Counter Security & Rate Limiting Integration', { skip: !SERVI
     });
     assert.ok(sessionData.session, 'Failed to sign in: ' + signInError?.message);
     
-    const authorClient = createClient(SUPABASE_URL, ANON_KEY, {
+    authorClient = createClient(SUPABASE_URL, ANON_KEY, {
       global: { headers: { Authorization: `Bearer ${sessionData.session.access_token}` } }
     });
 
@@ -171,5 +172,62 @@ describe('P0: View Counter Security & Rate Limiting Integration', { skip: !SERVI
       .eq('ip_address', testIp);
 
     assert.strictEqual(views?.length, 1, 'Separate DB connections must still enforce atomic rate limits (no split-brain)');
+  });
+
+  it('proves the global IP limit allows up to 30 distinct articles in 15 minutes, but rejects the 31st', async () => {
+    const testIp = `10.1.1.${Date.now() % 255}`;
+    
+    // Create 31 published articles using the correct CMS workflow
+    const bulkArticles = [];
+    for (let i = 0; i < 31; i++) {
+      const { data: a } = await authorClient.rpc('create_article', {
+        p_title: `Bulk Test Article ${i}`,
+        p_excerpt: 'Excerpt',
+        p_content: 'Bulk test content',
+        p_slug: `bulk-test-${Date.now()}-${i}`
+      });
+      bulkArticles.push(a);
+      await authorClient.rpc('submit_article_for_review', { p_article_id: a.id });
+      await serviceClient.from('articles').update({
+        status: 'published',
+        published_at: new Date().toISOString(),
+        published_by: testUserId
+      }).eq('id', a.id);
+    }
+    
+    // Attempt to view all 31 articles from the same IP
+    for (let i = 0; i < 30; i++) {
+      await serviceClient.rpc('increment_article_view_count', {
+        p_article_id: bulkArticles[i].id,
+        p_ip_address: testIp
+      });
+    }
+    
+    // The 31st attempt should be rejected by the global IP limit
+    await serviceClient.rpc('increment_article_view_count', {
+      p_article_id: bulkArticles[30].id,
+      p_ip_address: testIp
+    });
+    
+    // Verify the log only has 30 entries for this IP
+    const { data: loggedViews } = await serviceClient
+      .from('article_views_log')
+      .select('id')
+      .eq('ip_address', testIp);
+      
+    assert.strictEqual(loggedViews?.length, 30, 'Exactly 30 distinct article views should be logged per IP in 15 minutes');
+    
+    // Verify the 31st article's view count remains 0
+    const { data: lastArticle } = await serviceClient
+      .from('articles')
+      .select('view_count')
+      .eq('id', bulkArticles[30].id)
+      .single();
+      
+    assert.strictEqual(lastArticle?.view_count, 0, 'The 31st article view count must not increment');
+    
+    // Cleanup bulk articles
+    const idsToDelete = bulkArticles.map(a => a.id);
+    await serviceClient.from('articles').delete().in('id', idsToDelete);
   });
 });
