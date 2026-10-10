@@ -11,6 +11,11 @@ declare
   v_recent_ip_views int;
   v_recent_global_views int;
 begin
+  -- First verify the article actually exists and is published
+  if not exists (select 1 from public.articles where id = p_article_id and status = 'published') then
+    return;
+  end if;
+
   -- Consistently acquire advisory locks to prevent deadlocks and enforce atomicity
   -- 1. Lock the article to serialize global per-article view checks
   perform pg_advisory_xact_lock(hashtext('view_counter_article_' || p_article_id::text));
