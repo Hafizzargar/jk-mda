@@ -22,11 +22,6 @@ AS $$
 DECLARE
     v_count integer;
 BEGIN
-    -- Only allow service_role to execute this
-    IF current_user IN ('anon', 'authenticated') THEN
-        RAISE EXCEPTION 'Access denied';
-    END IF;
-
     -- Clean up expired rate limits (older than 1 hour)
     DELETE FROM public.newsletter_ip_rate_limit 
     WHERE window_start_at < now() - interval '1 hour';
