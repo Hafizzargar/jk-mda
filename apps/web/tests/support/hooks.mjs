@@ -13,5 +13,8 @@ export async function resolve(specifier, context, nextResolve) {
       }
     }
   }
+  if (specifier === 'next/server') {
+    return { url: pathToFileURL(path.join(WEB_ROOT, 'tests', 'support', 'next-server-mock.mjs')).href, shortCircuit: true };
+  }
   return nextResolve(specifier, context);
 }

@@ -215,7 +215,7 @@ export default async function HomePage() {
               Stay informed with daily dispatches.
             </h3>
             <p className="text-slate-400 text-sm mb-6">
-              Get verified reporting and analysis from Jammu and Kashmir delivered directly to your inbox every morning.
+              Get verified reporting and analysis from Jammu and Kashmir. Sign up to stay in the loop.
             </p>
             <NewsletterForm />
           </section>

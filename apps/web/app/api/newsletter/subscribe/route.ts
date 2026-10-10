@@ -8,25 +8,14 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export async function POST(request: Request) {
   try {
     const ip = extractClientIp(request);
-    
     if (!ip) {
       return NextResponse.json({ error: 'Untrusted client IP' }, { status: 400 });
     }
 
-    const body = await request.json().catch(() => null);
-    if (!body || typeof body.email !== 'string') {
-      return NextResponse.json(
-        { error: 'Valid email address is required.' },
-        { status: 400 }
-      );
-    }
-
-    const email = body.email.trim().toLowerCase();
-    if (email.length > 254 || !EMAIL_REGEX.test(email)) {
-      return NextResponse.json(
-        { error: 'Invalid email format.' },
-        { status: 400 }
-      );
+    // Check content-length as a cheap oversized-body deterrent
+    const contentLength = request.headers.get('content-length');
+    if (contentLength && parseInt(contentLength, 10) > 2000) {
+      return NextResponse.json({ error: 'Payload too large.' }, { status: 413 });
     }
 
     // Server-only privileged client. Never expose this key to the browser.
@@ -58,11 +47,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
     }
 
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body.email !== 'string') {
+      return NextResponse.json(
+        { error: 'Valid email address is required.' },
+        { status: 400 }
+      );
+    }
+
+    const email = body.email.trim().toLowerCase();
+    if (email.length > 254 || !EMAIL_REGEX.test(email)) {
+      return NextResponse.json(
+        { error: 'Invalid email format.' },
+        { status: 400 }
+      );
+    }
+
+    // Upsert the email and clear unsubscribed_at if resubscribing
     const { error } = await supabase
       .from('newsletter_subscribers')
       .upsert(
         { email, unsubscribed_at: null },
-        { onConflict: 'email', ignoreDuplicates: true }
+        { onConflict: 'email', ignoreDuplicates: false }
       );
 
     if (error) {
