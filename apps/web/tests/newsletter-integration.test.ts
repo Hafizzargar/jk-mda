@@ -17,14 +17,20 @@ describe('P1: Newsletter Subscription Integration', { skip: !SERVICE_KEY }, () =
 
   before(async () => {
     // Ensure clean state for test IP and email
-    await serviceClient.from('newsletter_ip_rate_limit').delete().in('ip_address', testIps);
-    await serviceClient.from('newsletter_subscribers').delete().in('email', testEmails);
+    const { error: ipError } = await serviceClient.from('newsletter_ip_rate_limit').delete().in('ip_address', testIps);
+    assert.ifError(ipError);
+    
+    const { error: emailError } = await serviceClient.from('newsletter_subscribers').delete().in('email', testEmails);
+    assert.ifError(emailError);
   });
 
   after(async () => {
     // Cleanup
-    await serviceClient.from('newsletter_ip_rate_limit').delete().in('ip_address', testIps);
-    await serviceClient.from('newsletter_subscribers').delete().in('email', testEmails);
+    const { error: ipError } = await serviceClient.from('newsletter_ip_rate_limit').delete().in('ip_address', testIps);
+    assert.ifError(ipError);
+    
+    const { error: emailError } = await serviceClient.from('newsletter_subscribers').delete().in('email', testEmails);
+    assert.ifError(emailError);
   });
 
   it('rejects missing or invalid email', async () => {
