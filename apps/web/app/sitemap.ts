@@ -1,57 +1,50 @@
 import { MetadataRoute } from 'next';
 import { createServerAnonClient } from '@/lib/supabase-server';
+import { SITE_URL } from '@/lib/config';
+import { NEWS_CATEGORIES, JK_DISTRICTS } from '@/lib/taxonomy';
 
-const BASE_URL = 'https://kjin.news'; // Or env variable NEXT_PUBLIC_SITE_URL
+// Limit per sitemap file to comply with search engine standards and memory bounds
+const SITEMAP_MAX_ARTICLES = 10000;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const supabase = createServerAnonClient();
-  
-  // Fetch all published articles
+
+  // 1. Fetch published articles (capped for scaling and memory bounds)
   const { data: articles } = await supabase
     .from('articles')
-    .select('slug, category, updated_at')
-    .order('updated_at', { ascending: false });
-    
+    .select('slug, category, updated_at, published_at')
+    .eq('status', 'published')
+    .order('published_at', { ascending: false, nullsFirst: false })
+    .limit(SITEMAP_MAX_ARTICLES);
+
   const articleUrls: MetadataRoute.Sitemap = (articles || []).map((article) => ({
-    url: `${BASE_URL}/${article.category.toLowerCase()}/${article.slug}`,
-    lastModified: new Date(article.updated_at),
+    url: `${SITE_URL}/${article.category.toLowerCase()}/${article.slug}`,
+    lastModified: new Date(article.updated_at || article.published_at || Date.now()),
     changeFrequency: 'daily',
     priority: 0.8,
   }));
 
-  // Fetch unique categories and districts to index their feeds
-  const { data: categories } = await supabase
-    .from('articles')
-    .select('category')
-    .not('category', 'is', null);
-    
-  const { data: districts } = await supabase
-    .from('articles')
-    .select('district')
-    .not('district', 'is', null);
-
-  const uniqueCategories = Array.from(new Set((categories || []).map(c => c.category.toLowerCase())));
-  const uniqueDistricts = Array.from(new Set((districts || []).map(d => d.district.toLowerCase())));
-
-  const categoryUrls: MetadataRoute.Sitemap = uniqueCategories.map((cat) => ({
-    url: `${BASE_URL}/category/${cat}`,
+  // 2. Controlled Category feeds
+  const categoryUrls: MetadataRoute.Sitemap = Object.keys(NEWS_CATEGORIES).map((cat) => ({
+    url: `${SITE_URL}/category/${cat}`,
     lastModified: new Date(),
     changeFrequency: 'hourly',
     priority: 0.9,
   }));
 
-  const districtUrls: MetadataRoute.Sitemap = uniqueDistricts.map((dist) => ({
-    url: `${BASE_URL}/district/${dist}`,
+  // 3. Controlled District feeds
+  const districtUrls: MetadataRoute.Sitemap = Object.keys(JK_DISTRICTS).map((dist) => ({
+    url: `${SITE_URL}/district/${dist}`,
     lastModified: new Date(),
     changeFrequency: 'hourly',
-    priority: 0.9,
+    priority: 0.85,
   }));
 
   return [
     {
-      url: BASE_URL,
+      url: SITE_URL,
       lastModified: new Date(),
-      changeFrequency: 'hourly',
+      changeFrequency: 'always',
       priority: 1.0,
     },
     ...categoryUrls,
