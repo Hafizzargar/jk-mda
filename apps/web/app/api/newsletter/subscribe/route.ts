@@ -1,19 +1,24 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { requireEnv } from '@kjin/config';
+import { extractClientIp } from '@/lib/ip';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Basic in-memory rate limiting map for basic protection.
+// Basic in-memory rate limiting map.
 // Note: In a true multi-region serverless deployment, hosting-level WAF rate limiting (like Vercel Edge) should be used.
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 
-function extractClientIp(request: Request): string | null {
-  const vercelIp = request.headers.get('x-vercel-forwarded-for');
-  if (vercelIp) {
-    return vercelIp.split(',')[0].trim();
+function sweepRateLimitMap() {
+  const now = Date.now();
+  // Simple cleanup to prevent memory leaks in long-running processes
+  if (rateLimitMap.size > 1000) {
+    for (const [key, value] of rateLimitMap.entries()) {
+      if (now > value.resetAt) {
+        rateLimitMap.delete(key);
+      }
+    }
   }
-  return null;
 }
 
 export async function POST(request: Request) {
@@ -22,6 +27,7 @@ export async function POST(request: Request) {
     
     // 1. IP and Rate Limiting
     if (ip) {
+      sweepRateLimitMap();
       const now = Date.now();
       const record = rateLimitMap.get(ip);
       
