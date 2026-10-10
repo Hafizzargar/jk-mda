@@ -9,6 +9,7 @@ import { SITE_URL, SITE_NAME, SITE_SHORT_NAME, DEFAULT_LOCALE } from '@/lib/conf
 
 interface ArticlePageProps {
   params: Promise<{
+    lang: string;
     category: string;
     slug: string;
   }>;
@@ -19,7 +20,7 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
   const supabase = createServerAnonClient();
   const { data: article } = await supabase
     .from('articles')
-    .select('title, excerpt, featured_image_url, category, published_at, updated_at, author_display_name')
+    .select('title, excerpt, featured_image_url, category, published_at, updated_at, author_display_name, article_translations(title, excerpt, language_code)')
     .eq('slug', resolvedParams.slug)
     .single();
 
@@ -30,12 +31,23 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
     };
   }
 
-  const canonicalUrl = `${SITE_URL}/${article.category.toLowerCase()}/${resolvedParams.slug}`;
+  let title = article.title;
+  let excerpt = article.excerpt || undefined;
+
+  if (resolvedParams.lang && resolvedParams.lang !== 'en') {
+    const translation = article.article_translations?.find((t: { language_code: string, title: string, excerpt: string | null }) => t.language_code === resolvedParams.lang);
+    if (translation) {
+      title = translation.title;
+      excerpt = translation.excerpt || undefined;
+    }
+  }
+
+  const canonicalUrl = `${SITE_URL}/${resolvedParams.lang === 'en' ? '' : `${resolvedParams.lang}/`}${article.category.toLowerCase()}/${resolvedParams.slug}`;
 
   return {
     metadataBase: new URL(SITE_URL),
-    title: `${article.title} | ${SITE_SHORT_NAME}`,
-    description: article.excerpt || undefined,
+    title: `${title} | ${SITE_SHORT_NAME}`,
+    description: excerpt,
     alternates: {
       canonical: canonicalUrl,
     },
@@ -47,8 +59,8 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
       'max-video-preview': -1,
     },
     openGraph: {
-      title: article.title,
-      description: article.excerpt || undefined,
+      title: title,
+      description: excerpt,
       url: canonicalUrl,
       siteName: SITE_NAME,
       locale: DEFAULT_LOCALE,
@@ -70,8 +82,8 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
     },
     twitter: {
       card: 'summary_large_image',
-      title: article.title,
-      description: article.excerpt || undefined,
+      title: title,
+      description: excerpt,
       images: article.featured_image_url ? [article.featured_image_url] : [],
     },
   };
@@ -84,7 +96,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   // Note: RLS ensures we only get rows where status = 'published'
   const { data: article, error } = await supabase
     .from('articles')
-    .select('*')
+    .select('*, article_translations(title, excerpt, content, language_code)')
     .eq('slug', resolvedParams.slug)
     .single();
 
@@ -94,7 +106,17 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
   // Canonical URL redirect if category in path does not match database
   if (article.category.toLowerCase() !== resolvedParams.category.toLowerCase()) {
-    redirect(`/${article.category.toLowerCase()}/${article.slug}`);
+    redirect(`/${resolvedParams.lang === 'en' ? '' : `${resolvedParams.lang}/`}${article.category.toLowerCase()}/${article.slug}`);
+  }
+
+  const displayArticle = { ...article };
+  if (resolvedParams.lang && resolvedParams.lang !== 'en') {
+    const translation = article.article_translations?.find((t: { language_code: string, title: string, excerpt: string | null, content: string }) => t.language_code === resolvedParams.lang);
+    if (translation) {
+      displayArticle.title = translation.title;
+      displayArticle.excerpt = translation.excerpt;
+      displayArticle.content = translation.content;
+    }
   }
 
   // Fetch Related Stories (prioritize same category, excluding current article)
@@ -108,7 +130,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     .limit(3);
 
   // Generate robust, structured JSON-LD for news article schema
-  const articleCanonicalUrl = `${SITE_URL}/${article.category.toLowerCase()}/${article.slug}`;
+  const articleCanonicalUrl = `${SITE_URL}/${resolvedParams.lang === 'en' ? '' : `${resolvedParams.lang}/`}${displayArticle.category.toLowerCase()}/${displayArticle.slug}`;
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'NewsArticle',
@@ -116,13 +138,13 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
       '@type': 'WebPage',
       '@id': articleCanonicalUrl,
     },
-    headline: article.title,
-    description: article.excerpt || undefined,
-    image: article.featured_image_url ? [article.featured_image_url] : [],
-    datePublished: new Date(article.published_at || article.updated_at).toISOString(),
-    dateModified: new Date(article.updated_at).toISOString(),
-    articleSection: article.category,
-    inLanguage: 'en',
+    headline: displayArticle.title,
+    description: displayArticle.excerpt || undefined,
+    image: displayArticle.featured_image_url ? [displayArticle.featured_image_url] : [],
+    datePublished: new Date(displayArticle.published_at || displayArticle.updated_at).toISOString(),
+    dateModified: new Date(displayArticle.updated_at).toISOString(),
+    articleSection: displayArticle.category,
+    inLanguage: resolvedParams.lang,
     author: [
       {
         '@type': 'Person',
@@ -141,7 +163,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   };
 
   // Sanitize article HTML using strict allowlist before rendering to prevent stored XSS
-  const sanitizedContent = sanitizeArticleHtml(article.content || '');
+  const sanitizedContent = sanitizeArticleHtml(displayArticle.content || '');
 
   return (
     <>
@@ -156,25 +178,25 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         <header className="mb-8">
           <div className="flex items-center text-sm text-slate-500 mb-4 gap-4 flex-wrap">
             <Link
-              href={`/category/${article.category.toLowerCase()}`}
+              href={`/${resolvedParams.lang === 'en' ? '' : `${resolvedParams.lang}/`}category/${displayArticle.category.toLowerCase()}`}
               className="uppercase tracking-wider font-semibold text-blue-600 hover:text-blue-800 transition"
             >
-              {article.category}
+              {displayArticle.category}
             </Link>
-            {article.district && (
+            {displayArticle.district && (
               <>
                 <span>&bull;</span>
                 <Link
-                  href={`/district/${article.district.toLowerCase()}`}
+                  href={`/${resolvedParams.lang === 'en' ? '' : `${resolvedParams.lang}/`}district/${displayArticle.district.toLowerCase()}`}
                   className="font-medium hover:text-slate-800 transition"
                 >
-                  {article.district}
+                  {displayArticle.district}
                 </Link>
               </>
             )}
             <span>&bull;</span>
-            <time dateTime={article.published_at || article.updated_at}>
-              {new Date(article.published_at || article.updated_at).toLocaleDateString(undefined, {
+            <time dateTime={displayArticle.published_at || displayArticle.updated_at}>
+              {new Date(displayArticle.published_at || displayArticle.updated_at).toLocaleDateString(undefined, {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
@@ -183,38 +205,38 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           </div>
 
           <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 leading-tight mb-6">
-            {article.title}
+            {displayArticle.title}
           </h1>
 
-          {article.excerpt && (
+          {displayArticle.excerpt && (
             <p className="text-xl text-slate-600 mb-6 leading-relaxed font-light">
-              {article.excerpt}
+              {displayArticle.excerpt}
             </p>
           )}
 
           <div className="flex items-center justify-between border-b border-slate-200 pb-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center text-slate-600 font-bold text-sm">
-                {article.author_display_name ? article.author_display_name[0]?.toUpperCase() : 'K'}
+                {displayArticle.author_display_name ? displayArticle.author_display_name[0]?.toUpperCase() : 'K'}
               </div>
               <div>
                 <div className="font-medium text-slate-900">
-                  {article.author_display_name || 'KJIN Desk'}
+                  {displayArticle.author_display_name || 'KJIN Desk'}
                 </div>
-                {article.source_name && (
+                {displayArticle.source_name && (
                   <div className="text-sm text-slate-500">
                     Source:{' '}
-                    {article.source_url ? (
+                    {displayArticle.source_url ? (
                       <a
-                        href={article.source_url}
+                        href={displayArticle.source_url}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="underline hover:text-blue-600"
                       >
-                        {article.source_name}
+                        {displayArticle.source_name}
                       </a>
                     ) : (
-                      article.source_name
+                      displayArticle.source_name
                     )}
                   </div>
                 )}
@@ -223,7 +245,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
             <div className="flex items-center gap-3">
               <a
-                href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(articleCanonicalUrl)}&text=${encodeURIComponent(article.title)}`}
+                href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(articleCanonicalUrl)}&text=${encodeURIComponent(displayArticle.title)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-slate-400 hover:text-blue-500 transition"
@@ -245,7 +267,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                 </svg>
               </a>
               <a
-                href={`https://api.whatsapp.com/send?text=${encodeURIComponent(article.title + ' ' + articleCanonicalUrl)}`}
+                href={`https://api.whatsapp.com/send?text=${encodeURIComponent(displayArticle.title + ' ' + articleCanonicalUrl)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-slate-400 hover:text-green-500 transition"
@@ -259,11 +281,11 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           </div>
         </header>
 
-        {article.featured_image_url && (
+        {displayArticle.featured_image_url && (
           <figure className="mb-10 relative w-full h-[320px] md:h-[500px] overflow-hidden rounded-xl shadow-sm bg-slate-100">
             <Image
-              src={article.featured_image_url}
-              alt={article.title}
+              src={displayArticle.featured_image_url}
+              alt={displayArticle.title}
               fill
               priority
               sizes="(max-width: 896px) 100vw, 896px"
@@ -286,7 +308,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
               {relatedArticles.map((related) => (
                 <Link
                   key={related.id}
-                  href={`/${related.category.toLowerCase()}/${related.slug}`}
+                  href={`/${resolvedParams.lang === 'en' ? '' : `${resolvedParams.lang}/`}${related.category.toLowerCase()}/${related.slug}`}
                   className="group block"
                 >
                   {related.featured_image_url ? (

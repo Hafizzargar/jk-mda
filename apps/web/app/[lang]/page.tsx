@@ -4,6 +4,7 @@ import { Metadata } from 'next';
 import { createServerAnonClient } from '@/lib/supabase-server';
 import { NewsletterForm } from '@/components/NewsletterForm';
 import { SITE_URL, SITE_NAME, SITE_SHORT_NAME, DEFAULT_LOCALE } from '@/lib/config';
+import { applyTranslations } from '@/lib/i18n';
 
 export const revalidate = 60; // Revalidate every 60 seconds
 
@@ -28,37 +29,42 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function HomePage() {
+export default async function HomePage({ params }: { params: Promise<{ lang: string }> }) {
+  const { lang } = await params;
   const supabase = createServerAnonClient();
+  const langPrefix = lang === 'en' ? '' : `/${lang}`;
 
   // 1. Fetch Latest Articles
-  const { data: latestArticles } = await supabase
+  const { data: latestArticlesRaw } = await supabase
     .from('articles')
-    .select('id, slug, title, excerpt, category, district, author_display_name, published_at, featured_image_url')
+    .select('id, slug, title, excerpt, category, district, author_display_name, published_at, featured_image_url, article_translations(title, excerpt, language_code)')
     .eq('status', 'published')
     .order('published_at', { ascending: false, nullsFirst: false })
     .limit(7);
 
   // 2. Fetch Trending Articles (bounded to recent 30-day window to prevent lifetime view manipulation)
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-  let { data: trendingArticles } = await supabase
+  let { data: trendingArticlesRaw } = await supabase
     .from('articles')
-    .select('id, slug, title, category, published_at, view_count')
+    .select('id, slug, title, category, published_at, view_count, article_translations(title, language_code)')
     .eq('status', 'published')
     .gte('published_at', thirtyDaysAgo)
     .order('view_count', { ascending: false })
     .limit(5);
 
   // Fallback to top views overall if no recent articles in 30 days yet
-  if (!trendingArticles || trendingArticles.length === 0) {
+  if (!trendingArticlesRaw || trendingArticlesRaw.length === 0) {
     const { data: fallbackTrending } = await supabase
       .from('articles')
-      .select('id, slug, title, category, published_at, view_count')
+      .select('id, slug, title, category, published_at, view_count, article_translations(title, language_code)')
       .eq('status', 'published')
       .order('view_count', { ascending: false })
       .limit(5);
-    trendingArticles = fallbackTrending || [];
+    trendingArticlesRaw = fallbackTrending || [];
   }
+
+  const latestArticles = applyTranslations(latestArticlesRaw || [], lang);
+  const trendingArticles = applyTranslations(trendingArticlesRaw || [], lang);
 
   const heroArticle = latestArticles && latestArticles.length > 0 ? latestArticles[0] : null;
   const recentArticles = latestArticles && latestArticles.length > 1 ? latestArticles.slice(1) : [];
@@ -75,13 +81,13 @@ export default async function HomePage() {
             {SITE_SHORT_NAME}
           </Link>
           <nav className="flex flex-wrap justify-center gap-6 font-semibold text-sm tracking-wide text-slate-600">
-            <Link href="/category/politics" className="hover:text-blue-600 transition">Politics</Link>
-            <Link href="/category/local" className="hover:text-blue-600 transition">Local</Link>
-            <Link href="/category/economy" className="hover:text-blue-600 transition">Economy</Link>
-            <Link href="/category/culture" className="hover:text-blue-600 transition">Culture</Link>
-            <Link href="/category/investigation" className="hover:text-blue-600 transition">Investigation</Link>
-            <Link href="/district/srinagar" className="hover:text-emerald-600 transition">Srinagar</Link>
-            <Link href="/district/jammu" className="hover:text-emerald-600 transition">Jammu</Link>
+            <Link href={`${langPrefix}/category/politics`} className="hover:text-blue-600 transition">Politics</Link>
+            <Link href={`${langPrefix}/category/local`} className="hover:text-blue-600 transition">Local</Link>
+            <Link href={`${langPrefix}/category/economy`} className="hover:text-blue-600 transition">Economy</Link>
+            <Link href={`${langPrefix}/category/culture`} className="hover:text-blue-600 transition">Culture</Link>
+            <Link href={`${langPrefix}/category/investigation`} className="hover:text-blue-600 transition">Investigation</Link>
+            <Link href={`${langPrefix}/district/srinagar`} className="hover:text-emerald-600 transition">Srinagar</Link>
+            <Link href={`${langPrefix}/district/jammu`} className="hover:text-emerald-600 transition">Jammu</Link>
           </nav>
         </div>
       </header>
@@ -91,7 +97,7 @@ export default async function HomePage() {
         <div className="lg:col-span-8">
           {heroArticle && (
             <section className="mb-14">
-              <Link href={`/${heroArticle.category.toLowerCase()}/${heroArticle.slug}`} className="group block">
+              <Link href={`${langPrefix}/${heroArticle.category.toLowerCase()}/${heroArticle.slug}`} className="group block">
                 {heroArticle.featured_image_url ? (
                   <div className="relative w-full h-[320px] md:h-[440px] mb-6 overflow-hidden rounded-xl bg-slate-200 shadow-sm">
                     <Image
@@ -132,14 +138,19 @@ export default async function HomePage() {
           )}
 
           <section>
-            <h2 className="text-2xl font-bold border-b-2 border-slate-900 pb-2 mb-6">
-              Latest News
-            </h2>
+            <div className="flex justify-between items-end border-b-2 border-slate-900 pb-2 mb-6">
+              <h2 className="text-2xl font-bold">
+                Latest News
+              </h2>
+              <Link href={`${langPrefix}/latest`} className="text-sm font-semibold text-blue-600 hover:text-blue-800 transition">
+                View All &rarr;
+              </Link>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {recentArticles.map((article) => (
                 <Link
                   key={article.id}
-                  href={`/${article.category.toLowerCase()}/${article.slug}`}
+                  href={`${langPrefix}/${article.category.toLowerCase()}/${article.slug}`}
                   className="group flex flex-col h-full bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition"
                 >
                   {article.featured_image_url && (
@@ -196,7 +207,7 @@ export default async function HomePage() {
                     <div className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">
                       {article.category}
                     </div>
-                    <Link href={`/${article.category.toLowerCase()}/${article.slug}`}>
+                    <Link href={`${langPrefix}/${article.category.toLowerCase()}/${article.slug}`}>
                       <h4 className="font-bold leading-tight group-hover:text-blue-600 transition">
                         {article.title}
                       </h4>

@@ -5,19 +5,21 @@ import { Metadata } from 'next';
 import { createServerAnonClient } from '@/lib/supabase-server';
 import { isValidCategory, getCategoryDisplayName, NEWS_CATEGORIES } from '@/lib/taxonomy';
 import { parsePageParam, getPaginationRange } from '@/lib/pagination';
+import { applyTranslations } from '@/lib/i18n';
 import { SITE_URL, SITE_SHORT_NAME } from '@/lib/config';
 
 interface CategoryPageProps {
   params: Promise<{
+    lang: string;
     name: string;
   }>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 export async function generateMetadata({ params, searchParams }: CategoryPageProps): Promise<Metadata> {
-  const resolvedParams = await params;
+  const { lang, name } = await params;
   const resolvedSearchParams = await searchParams;
-  const categorySlug = resolvedParams.name.toLowerCase().trim();
+  const categorySlug = name.toLowerCase().trim();
 
   if (!isValidCategory(categorySlug)) {
     return {
@@ -30,7 +32,8 @@ export async function generateMetadata({ params, searchParams }: CategoryPagePro
   const categoryInfo = NEWS_CATEGORIES[categorySlug];
   const page = parsePageParam(resolvedSearchParams.page);
   const pageSuffix = page > 1 ? ` - Page ${page}` : '';
-  const canonicalUrl = `${SITE_URL}/category/${categorySlug}${page > 1 ? `?page=${page}` : ''}`;
+  const langPrefix = lang === 'en' ? '' : `/${lang}`;
+  const canonicalUrl = `${SITE_URL}${langPrefix}/category/${categorySlug}${page > 1 ? `?page=${page}` : ''}`;
 
   return {
     metadataBase: new URL(SITE_URL),
@@ -53,9 +56,10 @@ export async function generateMetadata({ params, searchParams }: CategoryPagePro
 }
 
 export default async function CategoryPage({ params, searchParams }: CategoryPageProps) {
-  const resolvedParams = await params;
+  const { lang, name } = await params;
   const resolvedSearchParams = await searchParams;
-  const categorySlug = resolvedParams.name.toLowerCase().trim();
+  const categorySlug = name.toLowerCase().trim();
+  const langPrefix = lang === 'en' ? '' : `/${lang}`;
 
   // 1. Strict category validation against controlled taxonomy
   if (!isValidCategory(categorySlug)) {
@@ -72,14 +76,15 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
   const supabase = createServerAnonClient();
 
   // 3. Query articles with exact count
-  const { data: articles, count } = await supabase
+  const { data: articlesRaw, count } = await supabase
     .from('articles')
-    .select('id, slug, title, excerpt, category, author_display_name, published_at, featured_image_url', { count: 'exact' })
+    .select('id, slug, title, excerpt, category, author_display_name, published_at, featured_image_url, article_translations(title, excerpt, language_code)', { count: 'exact' })
     .eq('status', 'published')
     .ilike('category', categorySlug)
     .order('published_at', { ascending: false, nullsFirst: false })
     .range(from, to);
 
+  const articles = applyTranslations(articlesRaw || [], lang);
   const totalArticles = count ?? 0;
   const hasNextPage = from + limit < totalArticles;
 
@@ -88,7 +93,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
       <header className="bg-white border-b border-slate-200 py-6 px-4 md:px-8 shadow-sm mb-10">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <Link
-            href="/"
+            href={`${langPrefix}/`}
             className="text-3xl font-black tracking-tighter text-blue-900 uppercase hover:text-blue-700 transition"
           >
             KJIN
@@ -117,7 +122,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
               {articles.map((article) => (
                 <Link
                   key={article.id}
-                  href={`/${article.category.toLowerCase()}/${article.slug}`}
+                  href={`${langPrefix}/${article.category.toLowerCase()}/${article.slug}`}
                   className="group flex flex-col h-full bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition"
                 >
                   {article.featured_image_url ? (
@@ -154,7 +159,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
             <div className="mt-16 flex justify-between items-center border-t border-slate-200 pt-8">
               {page > 1 ? (
                 <Link
-                  href={`/category/${categorySlug}${page - 1 > 1 ? `?page=${page - 1}` : ''}`}
+                  href={`${langPrefix}/category/${categorySlug}${page - 1 > 1 ? `?page=${page - 1}` : ''}`}
                   className="px-6 py-3 rounded-lg border border-slate-300 font-semibold hover:bg-slate-100 transition text-sm"
                 >
                   &larr; Previous Page
@@ -169,7 +174,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
 
               {hasNextPage ? (
                 <Link
-                  href={`/category/${categorySlug}?page=${page + 1}`}
+                  href={`${langPrefix}/category/${categorySlug}?page=${page + 1}`}
                   className="px-6 py-3 rounded-lg border border-slate-300 font-semibold hover:bg-slate-100 transition text-sm"
                 >
                   Next Page &rarr;

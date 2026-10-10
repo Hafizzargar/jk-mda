@@ -1,41 +1,27 @@
-import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Metadata } from 'next';
 import { createServerAnonClient } from '@/lib/supabase-server';
-import { isValidDistrict, getDistrictDisplayName, JK_DISTRICTS } from '@/lib/taxonomy';
 import { parsePageParam, getPaginationRange } from '@/lib/pagination';
 import { SITE_URL, SITE_SHORT_NAME } from '@/lib/config';
+import { applyTranslations } from '@/lib/i18n';
 
-interface DistrictPageProps {
-  params: Promise<{
-    name: string;
-  }>;
+interface LatestPageProps {
+  params: Promise<{ lang: string }>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
-export async function generateMetadata({ params, searchParams }: DistrictPageProps): Promise<Metadata> {
-  const resolvedParams = await params;
+export async function generateMetadata({ params, searchParams }: LatestPageProps): Promise<Metadata> {
+  const { lang } = await params;
   const resolvedSearchParams = await searchParams;
-  const districtSlug = resolvedParams.name.toLowerCase().trim();
-
-  if (!isValidDistrict(districtSlug)) {
-    return {
-      title: 'District Not Found | KJIN',
-      robots: { index: false, follow: false },
-    };
-  }
-
-  const districtName = getDistrictDisplayName(districtSlug);
-  const districtInfo = JK_DISTRICTS[districtSlug];
   const page = parsePageParam(resolvedSearchParams.page);
   const pageSuffix = page > 1 ? ` - Page ${page}` : '';
-  const canonicalUrl = `${SITE_URL}/district/${districtSlug}${page > 1 ? `?page=${page}` : ''}`;
+  const langPrefix = lang === 'en' ? '' : `/${lang}`;
+  const canonicalUrl = `${SITE_URL}${langPrefix}/latest${page > 1 ? `?page=${page}` : ''}`;
 
   return {
-    metadataBase: new URL(SITE_URL),
-    title: `${districtName} District News${pageSuffix} | ${SITE_SHORT_NAME}`,
-    description: `Latest ground reporting, public affairs, and verified news from ${districtName} district (${districtInfo?.region || 'J&K'}).`,
+    title: `Latest News${pageSuffix} | ${SITE_SHORT_NAME}`,
+    description: 'The latest verified news, investigations, and ground dispatches from Jammu and Kashmir.',
     alternates: {
       canonical: canonicalUrl,
     },
@@ -44,42 +30,31 @@ export async function generateMetadata({ params, searchParams }: DistrictPagePro
       follow: true,
     },
     openGraph: {
-      title: `${districtName} District News | ${SITE_SHORT_NAME}`,
-      description: `Reporting from ${districtName} district, ${districtInfo?.region || 'Jammu & Kashmir'}.`,
+      title: `Latest News | ${SITE_SHORT_NAME}`,
+      description: 'The latest verified news and ground reporting from Jammu and Kashmir.',
       url: canonicalUrl,
       type: 'website',
     },
   };
 }
 
-export default async function DistrictPage({ params, searchParams }: DistrictPageProps) {
-  const resolvedParams = await params;
+export default async function LatestPage({ params, searchParams }: LatestPageProps) {
+  const { lang } = await params;
   const resolvedSearchParams = await searchParams;
-  const districtSlug = resolvedParams.name.toLowerCase().trim();
-
-  // 1. Strict district validation against controlled J&K taxonomy
-  if (!isValidDistrict(districtSlug)) {
-    notFound();
-  }
-
-  const districtName = getDistrictDisplayName(districtSlug);
-  const districtInfo = JK_DISTRICTS[districtSlug];
-
-  // 2. Safe pagination parsing
+  const langPrefix = lang === 'en' ? '' : `/${lang}`;
   const page = parsePageParam(resolvedSearchParams.page);
   const { from, to, limit } = getPaginationRange(page, 12);
 
   const supabase = createServerAnonClient();
 
-  // 3. Query articles for this district
-  const { data: articles, count } = await supabase
+  const { data: articlesRaw, count } = await supabase
     .from('articles')
-    .select('id, slug, title, excerpt, category, district, author_display_name, published_at, featured_image_url', { count: 'exact' })
+    .select('id, slug, title, excerpt, category, district, author_display_name, published_at, featured_image_url, article_translations(title, excerpt, language_code)', { count: 'exact' })
     .eq('status', 'published')
-    .ilike('district', districtSlug)
     .order('published_at', { ascending: false, nullsFirst: false })
     .range(from, to);
 
+  const articles = applyTranslations(articlesRaw || [], lang);
   const totalArticles = count ?? 0;
   const hasNextPage = from + limit < totalArticles;
 
@@ -88,25 +63,25 @@ export default async function DistrictPage({ params, searchParams }: DistrictPag
       <header className="bg-white border-b border-slate-200 py-6 px-4 md:px-8 shadow-sm mb-10">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <Link
-            href="/"
+            href={`${langPrefix}/`}
             className="text-3xl font-black tracking-tighter text-blue-900 uppercase hover:text-blue-700 transition"
           >
             KJIN
           </Link>
           <div className="text-sm font-bold uppercase tracking-widest text-slate-500">
-            District Feed &bull; {districtInfo?.region || 'J&K'}
+            Latest News
           </div>
         </div>
       </header>
 
       <div className="max-w-7xl mx-auto px-4 md:px-8">
-        <div className="mb-4 border-b-4 border-emerald-600 inline-block pb-2">
+        <div className="mb-4 border-b-4 border-blue-600 inline-block pb-2">
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight">
-            {districtName}
+            Latest News
           </h1>
         </div>
-        <p className="text-slate-600 mb-10 text-lg">
-          Dispatches and grassroots reporting from {districtName} district, {districtInfo?.region} division.
+        <p className="text-slate-600 mb-10 text-lg max-w-2xl">
+          All recent reporting and updates from across Jammu and Kashmir.
         </p>
 
         {articles && articles.length > 0 ? (
@@ -115,7 +90,7 @@ export default async function DistrictPage({ params, searchParams }: DistrictPag
               {articles.map((article) => (
                 <Link
                   key={article.id}
-                  href={`/${article.category.toLowerCase()}/${article.slug}`}
+                  href={`${langPrefix}/${article.category.toLowerCase()}/${article.slug}`}
                   className="group flex flex-col h-full bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition"
                 >
                   {article.featured_image_url ? (
@@ -129,17 +104,17 @@ export default async function DistrictPage({ params, searchParams }: DistrictPag
                       />
                     </div>
                   ) : (
-                    <div className="w-full h-2 bg-emerald-200 group-hover:bg-emerald-400 transition mb-4 rounded-full" />
+                    <div className="w-full h-2 bg-blue-200 group-hover:bg-blue-400 transition mb-4 rounded-full" />
                   )}
                   <div className="flex justify-between items-center mb-2">
-                    <div className="text-xs font-bold uppercase tracking-widest text-emerald-600">
+                    <div className="text-xs font-bold uppercase tracking-widest text-blue-600">
                       {article.category}
                     </div>
                     <div className="text-xs font-medium text-slate-400">
                       {new Date(article.published_at).toLocaleDateString()}
                     </div>
                   </div>
-                  <h3 className="text-xl font-bold leading-snug group-hover:text-emerald-700 transition mb-3">
+                  <h3 className="text-xl font-bold leading-snug group-hover:text-blue-700 transition mb-3">
                     {article.title}
                   </h3>
                   {article.excerpt && (
@@ -157,7 +132,7 @@ export default async function DistrictPage({ params, searchParams }: DistrictPag
             <div className="mt-16 flex justify-between items-center border-t border-slate-200 pt-8">
               {page > 1 ? (
                 <Link
-                  href={`/district/${districtSlug}${page - 1 > 1 ? `?page=${page - 1}` : ''}`}
+                  href={`${langPrefix}/latest${page - 1 > 1 ? `?page=${page - 1}` : ''}`}
                   className="px-6 py-3 rounded-lg border border-slate-300 font-semibold hover:bg-slate-100 transition text-sm"
                 >
                   &larr; Previous Page
@@ -172,7 +147,7 @@ export default async function DistrictPage({ params, searchParams }: DistrictPag
 
               {hasNextPage ? (
                 <Link
-                  href={`/district/${districtSlug}?page=${page + 1}`}
+                  href={`${langPrefix}/latest?page=${page + 1}`}
                   className="px-6 py-3 rounded-lg border border-slate-300 font-semibold hover:bg-slate-100 transition text-sm"
                 >
                   Next Page &rarr;
@@ -184,7 +159,7 @@ export default async function DistrictPage({ params, searchParams }: DistrictPag
           </>
         ) : (
           <div className="py-20 text-center text-slate-500 text-lg bg-white rounded-xl border border-slate-200">
-            No published articles found for {districtName} district.
+            No published articles found.
           </div>
         )}
       </div>
