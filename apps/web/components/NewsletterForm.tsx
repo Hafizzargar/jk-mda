@@ -40,7 +40,6 @@ export function NewsletterForm() {
     return (
       <div className="bg-emerald-950/60 border border-emerald-500/40 rounded-lg p-4 text-emerald-300 text-sm">
         <p className="font-semibold mb-1">&#10003; {message}</p>
-        <p className="text-xs text-emerald-400/80">You will receive tomorrow morning&apos;s editorial dispatch.</p>
       </div>
     );
   }

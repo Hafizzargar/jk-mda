@@ -179,55 +179,65 @@ describe('P0: View Counter Security & Rate Limiting Integration', { skip: !SERVI
     
     // Create 31 published articles using the correct CMS workflow
     const bulkArticles = [];
-    for (let i = 0; i < 31; i++) {
-      const { data: a } = await authorClient.rpc('create_article', {
-        p_title: `Bulk Test Article ${i}`,
-        p_excerpt: 'Excerpt',
-        p_content: 'Bulk test content',
-        p_slug: `bulk-test-${Date.now()}-${i}`
-      });
-      bulkArticles.push(a);
-      await authorClient.rpc('submit_article_for_review', { p_article_id: a.id });
-      await serviceClient.from('articles').update({
-        status: 'published',
-        published_at: new Date().toISOString(),
-        published_by: testUserId
-      }).eq('id', a.id);
-    }
-    
-    // Attempt to view all 31 articles from the same IP
-    for (let i = 0; i < 30; i++) {
+    try {
+      for (let i = 0; i < 31; i++) {
+        const { data: a, error: createErr } = await authorClient.rpc('create_article', {
+          p_title: `Bulk Test Article ${i}`,
+          p_excerpt: 'Excerpt',
+          p_content: 'Bulk test content',
+          p_slug: `bulk-test-${Date.now()}-${i}`
+        });
+        assert.ok(!createErr, 'Failed to create bulk article: ' + createErr?.message);
+        bulkArticles.push(a);
+        
+        const { error: submitErr } = await authorClient.rpc('submit_article_for_review', { p_article_id: a.id });
+        assert.ok(!submitErr, 'Failed to submit bulk article: ' + submitErr?.message);
+        
+        const { error: pubErr } = await serviceClient.from('articles').update({
+          status: 'published',
+          published_at: new Date().toISOString(),
+          published_by: testUserId
+        }).eq('id', a.id);
+        assert.ok(!pubErr, 'Failed to publish bulk article: ' + pubErr?.message);
+      }
+      
+      // Attempt to view all 31 articles from the same IP
+      for (let i = 0; i < 30; i++) {
+        const { error: viewErr } = await serviceClient.rpc('increment_article_view_count', {
+          p_article_id: bulkArticles[i].id,
+          p_ip_address: testIp
+        });
+        assert.ok(!viewErr, 'Failed to increment view: ' + viewErr?.message);
+      }
+      
+      // The 31st attempt should be rejected by the global IP limit (silently returns)
       await serviceClient.rpc('increment_article_view_count', {
-        p_article_id: bulkArticles[i].id,
+        p_article_id: bulkArticles[30].id,
         p_ip_address: testIp
       });
+      
+      // Verify the log only has 30 entries for this IP
+      const { data: loggedViews, error: logErr } = await serviceClient
+        .from('article_views_log')
+        .select('id')
+        .eq('ip_address', testIp);
+      assert.ok(!logErr, 'Failed to query view logs: ' + logErr?.message);
+      assert.strictEqual(loggedViews?.length, 30, 'Exactly 30 distinct article views should be logged per IP in 15 minutes');
+      
+      // Verify the 31st article's view count remains 0
+      const { data: lastArticle, error: lastArtErr } = await serviceClient
+        .from('articles')
+        .select('view_count')
+        .eq('id', bulkArticles[30].id)
+        .single();
+      assert.ok(!lastArtErr, 'Failed to query last article: ' + lastArtErr?.message);
+      assert.strictEqual(lastArticle?.view_count, 0, 'The 31st article view count must not increment');
+    } finally {
+      // Cleanup bulk articles
+      if (bulkArticles.length > 0) {
+        const idsToDelete = bulkArticles.map(a => a.id);
+        await serviceClient.from('articles').delete().in('id', idsToDelete);
+      }
     }
-    
-    // The 31st attempt should be rejected by the global IP limit
-    await serviceClient.rpc('increment_article_view_count', {
-      p_article_id: bulkArticles[30].id,
-      p_ip_address: testIp
-    });
-    
-    // Verify the log only has 30 entries for this IP
-    const { data: loggedViews } = await serviceClient
-      .from('article_views_log')
-      .select('id')
-      .eq('ip_address', testIp);
-      
-    assert.strictEqual(loggedViews?.length, 30, 'Exactly 30 distinct article views should be logged per IP in 15 minutes');
-    
-    // Verify the 31st article's view count remains 0
-    const { data: lastArticle } = await serviceClient
-      .from('articles')
-      .select('view_count')
-      .eq('id', bulkArticles[30].id)
-      .single();
-      
-    assert.strictEqual(lastArticle?.view_count, 0, 'The 31st article view count must not increment');
-    
-    // Cleanup bulk articles
-    const idsToDelete = bulkArticles.map(a => a.id);
-    await serviceClient.from('articles').delete().in('id', idsToDelete);
   });
 });

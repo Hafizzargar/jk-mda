@@ -3,15 +3,16 @@ import { createClient } from '@supabase/supabase-js';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-function extractClientIp(request: Request): string {
-  // Derive IP from trusted hosting proxy headers to prevent spoofing
+function extractClientIp(request: Request): string | null {
+  // On Vercel, x-vercel-forwarded-for is reliably set by the platform and cannot be spoofed.
   const vercelIp = request.headers.get('x-vercel-forwarded-for');
-  if (vercelIp) return vercelIp.split(',')[0].trim();
+  if (vercelIp) {
+    // It can contain a comma-separated list; the left-most is the true client IP provided by Vercel
+    return vercelIp.split(',')[0].trim();
+  }
 
-  const realIp = request.headers.get('x-real-ip');
-  if (realIp) return realIp.trim();
-
-  return 'anonymous';
+  // Reject the request if it doesn't originate from the trusted Vercel proxy
+  return null;
 }
 
 export async function POST(

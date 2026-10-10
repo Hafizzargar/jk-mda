@@ -4,8 +4,39 @@ import { requireEnv } from '@kjin/config';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Basic in-memory rate limiting map for basic protection.
+// Note: In a true multi-region serverless deployment, hosting-level WAF rate limiting (like Vercel Edge) should be used.
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+
+function extractClientIp(request: Request): string | null {
+  const vercelIp = request.headers.get('x-vercel-forwarded-for');
+  if (vercelIp) {
+    return vercelIp.split(',')[0].trim();
+  }
+  return null;
+}
+
 export async function POST(request: Request) {
   try {
+    const ip = extractClientIp(request);
+    
+    // 1. IP and Rate Limiting
+    if (ip) {
+      const now = Date.now();
+      const record = rateLimitMap.get(ip);
+      
+      if (record && now < record.resetAt) {
+        if (record.count >= 3) {
+          return NextResponse.json({ error: 'Too many requests. Please try again later.' }, { status: 429 });
+        }
+        record.count += 1;
+      } else {
+        rateLimitMap.set(ip, { count: 1, resetAt: now + 60 * 60 * 1000 }); // 1 hour window
+      }
+    } else {
+      return NextResponse.json({ error: 'Untrusted client IP' }, { status: 400 });
+    }
+
     const body = await request.json().catch(() => null);
     if (!body || typeof body.email !== 'string') {
       return NextResponse.json(
