@@ -2,15 +2,18 @@
 -- Decouples Urdu and Hindi translation visibility from automatic publication,
 -- adds translator attribution, independent status, editor tracking, and SEO metadata.
 --
--- Security & Integrity Enhancements:
+-- Security & Integrity Hardening:
 -- 1. Deliberate backfill runs BEFORE enabling new RLS policy.
--- 2. translator_id preserves original translator attribution.
--- 3. last_edited_by tracks the latest modifier.
--- 4. MFA (AAL2) is strictly enforced when publishing translations.
+-- 2. Direct client mutations (INSERT, UPDATE, DELETE) are revoked; all writes must flow
+--    through the SECURITY DEFINER RPC upsert_article_translation(), closing MFA bypasses.
+-- 3. A defense-in-depth trigger unconditionally enforces MFA (AAL2) for translation publication.
+-- 4. translator_id preserves original translator attribution; last_edited_by tracks latest modifier.
 --
 -- Rollback Strategy (Forward-Fix):
 -- ALTER TABLE public.article_translations DROP CONSTRAINT IF EXISTS article_translations_meta_title_len;
 -- ALTER TABLE public.article_translations DROP CONSTRAINT IF EXISTS article_translations_meta_desc_len;
+-- DROP TRIGGER IF EXISTS article_translations_enforce_integrity ON public.article_translations;
+-- DROP FUNCTION IF EXISTS public.article_translations_enforce_integrity cascade;
 -- ALTER TABLE public.article_translations DROP COLUMN IF EXISTS status;
 -- ALTER TABLE public.article_translations DROP COLUMN IF EXISTS translator_id;
 -- ALTER TABLE public.article_translations DROP COLUMN IF EXISTS last_edited_by;
@@ -63,7 +66,39 @@ WHERE a.id = t.article_id
 ALTER TABLE public.article_translations
   ALTER COLUMN status SET NOT NULL;
 
--- 4. Secure RLS: Independent translation visibility check
+-- 4. Defense-in-depth Database Trigger: Enforce MFA (AAL2) on publication at engine level
+CREATE OR REPLACE FUNCTION public.article_translations_enforce_integrity()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = ''
+AS $$
+BEGIN
+    -- Strict MFA enforcement when setting status to published
+    IF NEW.status = 'published' AND COALESCE((SELECT auth.jwt() ->> 'aal'), '') <> 'aal2' THEN
+        RAISE EXCEPTION 'MFA (AAL2) is strictly required to publish translations';
+    END IF;
+
+    -- Invariant consistency
+    IF NEW.status = 'published' THEN
+        IF NEW.published_at IS NULL THEN
+            NEW.published_at := now();
+        END IF;
+    ELSE
+        NEW.published_at := NULL;
+        NEW.published_by := NULL;
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS article_translations_enforce_integrity ON public.article_translations;
+CREATE TRIGGER article_translations_enforce_integrity
+BEFORE INSERT OR UPDATE ON public.article_translations
+FOR EACH ROW EXECUTE FUNCTION public.article_translations_enforce_integrity();
+
+-- 5. Secure RLS & Lock down direct client mutations
 -- Readers can only view a translation if BOTH the parent article is published AND the translation is published.
 DROP POLICY IF EXISTS "Translations are readable if article is readable" ON public.article_translations;
 DROP POLICY IF EXISTS "Published translations of published articles are public" ON public.article_translations;
@@ -83,10 +118,16 @@ USING (
     OR translator_id = (SELECT auth.uid())
 );
 
-GRANT SELECT ON public.article_translations TO anon, authenticated;
-GRANT INSERT, UPDATE, DELETE ON public.article_translations TO authenticated;
+-- Drop legacy direct mutation policies to route all writes through the secured RPC
+DROP POLICY IF EXISTS "Editors can insert translations" ON public.article_translations;
+DROP POLICY IF EXISTS "Editors can update translations" ON public.article_translations;
+DROP POLICY IF EXISTS "Editors can delete translations" ON public.article_translations;
 
--- 5. Updated RPC: upsert_article_translation
+-- Revoke direct mutation privileges from client roles
+REVOKE INSERT, UPDATE, DELETE ON public.article_translations FROM public, anon, authenticated;
+GRANT SELECT ON public.article_translations TO anon, authenticated;
+
+-- 6. Updated RPC: upsert_article_translation
 DROP FUNCTION IF EXISTS public.upsert_article_translation(uuid, text, text, text, text);
 DROP FUNCTION IF EXISTS public.upsert_article_translation(uuid, text, text, text, text, public.article_status, text, text);
 

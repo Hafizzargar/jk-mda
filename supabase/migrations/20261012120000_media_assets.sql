@@ -1,12 +1,13 @@
 -- Migration 3: Media Assets Library
 -- Establishes centralized newsroom media assets catalog with localized alt text,
--- credit metadata, file dimensions, approval status, and mandatory uploader attribution.
+-- credit metadata, file dimensions, approval status, and non-destructive retention.
 -- Preserves existing articles.featured_image_url for seamless backward compatibility.
 --
--- Security Enhancements:
+-- Security & Retention Enhancements:
 -- 1. SVG excluded from MIME check to prevent script injection vectors.
--- 2. uploaded_by is NOT NULL to ensure deterministic attribution.
--- 3. status column guards against accidental exposure of draft/embargoed assets.
+-- 2. uploaded_by uses ON DELETE SET NULL to preserve historical assets when profiles change.
+-- 3. status defaults to 'draft'. Standard authors can only upload drafts; only editors can publish.
+-- 4. Authors can only update their own drafts; published assets can only be modified by editors.
 --
 -- Rollback Strategy (Forward-Fix):
 -- ALTER TABLE public.articles DROP CONSTRAINT IF EXISTS articles_featured_image_id_fkey;
@@ -24,12 +25,12 @@ CREATE TABLE IF NOT EXISTS public.media_assets (
     alt_text_hi text,
     caption text,
     credit text,
-    status text NOT NULL DEFAULT 'published' CHECK (status IN ('draft', 'published', 'archived')),
+    status text NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'archived')),
     width integer CHECK (width IS NULL OR width > 0),
     height integer CHECK (height IS NULL OR height > 0),
     file_size_bytes bigint CHECK (file_size_bytes IS NULL OR file_size_bytes > 0),
     mime_type text NOT NULL CHECK (mime_type IN ('image/jpeg', 'image/png', 'image/webp', 'image/avif')),
-    uploaded_by uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    uploaded_by uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz NOT NULL DEFAULT now()
 );
@@ -55,32 +56,36 @@ ON public.media_assets FOR SELECT
 USING (
     status = 'published'
     OR public.user_has_editor_access()
-    OR uploaded_by = (SELECT auth.uid())
+    OR (uploaded_by IS NOT NULL AND uploaded_by = (SELECT auth.uid()))
 );
 
 DROP POLICY IF EXISTS "Employees create media assets" ON public.media_assets;
-CREATE POLICY "Employees create media assets"
+DROP POLICY IF EXISTS "Employees upload draft media and editors create any" ON public.media_assets;
+CREATE POLICY "Employees upload draft media and editors create any"
 ON public.media_assets FOR INSERT
 TO authenticated
 WITH CHECK (
-    (
-        public.has_permission('article.create')
-        OR public.user_has_editor_access()
-    )
+    uploaded_by IS NOT NULL
     AND uploaded_by = (SELECT auth.uid())
+    AND (
+        (status = 'draft' AND (public.has_permission('article.create') OR public.user_has_editor_access()))
+        OR
+        (status IN ('published', 'archived') AND public.user_has_editor_access())
+    )
 );
 
 DROP POLICY IF EXISTS "Authors update own media and editors update all" ON public.media_assets;
-CREATE POLICY "Authors update own media and editors update all"
+DROP POLICY IF EXISTS "Authors update own drafts and editors update all" ON public.media_assets;
+CREATE POLICY "Authors update own drafts and editors update all"
 ON public.media_assets FOR UPDATE
 TO authenticated
 USING (
-    uploaded_by = (SELECT auth.uid())
-    OR public.user_has_editor_access()
+    public.user_has_editor_access()
+    OR (uploaded_by IS NOT NULL AND uploaded_by = (SELECT auth.uid()) AND status = 'draft')
 )
 WITH CHECK (
-    uploaded_by = (SELECT auth.uid())
-    OR public.user_has_editor_access()
+    public.user_has_editor_access()
+    OR (uploaded_by IS NOT NULL AND uploaded_by = (SELECT auth.uid()) AND status = 'draft')
 );
 
 DROP POLICY IF EXISTS "Editors delete media assets" ON public.media_assets;

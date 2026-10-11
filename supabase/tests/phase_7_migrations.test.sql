@@ -2,17 +2,18 @@
 -- Tests:
 -- 1. Categories & Districts taxonomy and foreign keys
 -- 2. Tags and article_tags composite uniqueness
--- 3. Media assets table constraints, approval status, and visibility
--- 4. Translation workflow: independent publication, dual visibility gate, attribution, and MFA
+-- 3. Media assets table constraints, draft approval workflow, and non-destructive retention
+-- 4. Translation workflow: direct write lockdown, independent publication, dual visibility gate, attribution, and MFA
 -- 5. Full-text search tsvector generation across English and Urdu Unicode scripts
 --
--- Security Simulation:
--- Tests use SET LOCAL ROLE anon / authenticated to verify true RLS policy behavior.
+-- Lifecycle Integrity:
+-- All article test fixtures are generated via valid production RPC transitions:
+-- create_article -> submit_article_for_review -> publish_article -> archive_article.
 
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select extensions.plan(20);
+select extensions.plan(23);
 
 -- Helper functions for true role simulation
 create or replace function pg_temp.assume_employee(p_user_id uuid, p_aal text default 'aal2')
@@ -69,6 +70,68 @@ update public.profiles set role_key = 'editor', status = 'active' where id = '10
 update public.profiles set role_key = 'author', status = 'active' where id = '10000000-0000-0000-0000-000000000203';
 
 -----------------------------------------------------------------------------
+-- Setup Production-Compliant Article Fixtures via Stored Procedures
+-----------------------------------------------------------------------------
+create temp table test_articles (
+  name text primary key,
+  id uuid not null
+);
+grant select on test_articles to public;
+
+-- 1. Create Published Parent Article (author creates -> submits -> editor publishes with AAL2)
+select pg_temp.assume_employee('10000000-0000-0000-0000-000000000203', 'aal1');
+
+insert into test_articles (name, id)
+select 'published_parent', (public.create_article(
+  'Dal Lake Conservation Drive',
+  'Efforts underway to restore Dal Lake',
+  'Full report on lake cleaning project in Srinagar...',
+  'dal-lake-conservation-drive',
+  'srinagar',
+  'General',
+  null, null, null
+)).id;
+
+select public.submit_article_for_review((select id from test_articles where name = 'published_parent'));
+
+select pg_temp.assume_employee('10000000-0000-0000-0000-000000000201', 'aal2');
+select public.publish_article((select id from test_articles where name = 'published_parent'));
+
+-- 2. Create Draft Parent Article (author creates draft and leaves it in draft)
+select pg_temp.assume_employee('10000000-0000-0000-0000-000000000203', 'aal1');
+
+insert into test_articles (name, id)
+select 'draft_parent', (public.create_article(
+  'Draft Article Title',
+  'Draft excerpt',
+  'Draft article content...',
+  'draft-article-for-translation-test',
+  'srinagar',
+  'Local',
+  null, null, null
+)).id;
+
+-- 3. Create Archived Parent Article (valid lifecycle: draft -> review -> published -> archived)
+select pg_temp.assume_employee('10000000-0000-0000-0000-000000000203', 'aal1');
+
+insert into test_articles (name, id)
+select 'archived_parent', (public.create_article(
+  'Archived Article Title',
+  'Archived excerpt',
+  'Archived article content...',
+  'archived-article-for-translation-test',
+  'srinagar',
+  'Economy',
+  null, null, null
+)).id;
+
+select public.submit_article_for_review((select id from test_articles where name = 'archived_parent'));
+
+select pg_temp.assume_employee('10000000-0000-0000-0000-000000000201', 'aal2');
+select public.publish_article((select id from test_articles where name = 'archived_parent'));
+select public.archive_article((select id from test_articles where name = 'archived_parent'));
+
+-----------------------------------------------------------------------------
 -- 1. Test Categories Seed & Lookup (Assertions 1-2)
 -----------------------------------------------------------------------------
 select extensions.is(
@@ -107,7 +170,7 @@ select extensions.is(
 -----------------------------------------------------------------------------
 -- 3. Test Tags & Composite Uniqueness (Assertions 6-7)
 -----------------------------------------------------------------------------
-select pg_temp.assume_employee('10000000-0000-0000-0000-000000000201');
+select pg_temp.assume_employee('10000000-0000-0000-0000-000000000201', 'aal2');
 
 insert into public.tags (slug, name_en, name_ur, name_hi)
 values ('dal-lake', 'Dal Lake', 'ڈل جھیل', 'डल झील')
@@ -118,26 +181,9 @@ select extensions.ok(
   'Assertion 6: Editor successfully created Dal Lake tag'
 );
 
--- Setup test article for tagging (Published)
-select pg_temp.assume_admin();
-insert into public.articles (id, title, excerpt, content, slug, category, status, author_id, author_display_name, published_at, published_by)
-values (
-  '30000000-0000-0000-0000-000000000001',
-  'Dal Lake Conservation Drive',
-  'Efforts underway to restore Dal Lake',
-  'Full report on lake cleaning project in Srinagar...',
-  'dal-lake-conservation-drive',
-  'Environment',
-  'published',
-  '10000000-0000-0000-0000-000000000201',
-  'Phase7 Editor One',
-  now(),
-  '10000000-0000-0000-0000-000000000201'
-) on conflict (id) do nothing;
-
 insert into public.article_tags (article_id, tag_id)
 values (
-  '30000000-0000-0000-0000-000000000001',
+  (select id from test_articles where name = 'published_parent'),
   (select id from public.tags where slug = 'dal-lake')
 );
 
@@ -146,7 +192,7 @@ select extensions.throws_ok(
   $$
     insert into public.article_tags (article_id, tag_id)
     values (
-      '30000000-0000-0000-0000-000000000001',
+      (select id from test_articles where name = 'published_parent'),
       (select id from public.tags where slug = 'dal-lake')
     )
   $$,
@@ -156,32 +202,72 @@ select extensions.throws_ok(
 );
 
 -----------------------------------------------------------------------------
--- 4. Test Media Assets Catalog, Constraints & Visibility (Assertions 8-11)
+-- 4. Test Media Assets Catalog, Approval & Retention (Assertions 8-13)
 -----------------------------------------------------------------------------
-select pg_temp.assume_employee('10000000-0000-0000-0000-000000000201');
+-- Author attempts to upload directly with status = 'published' -> must be blocked
+select pg_temp.assume_employee('10000000-0000-0000-0000-000000000203', 'aal1');
 
--- Published image
-insert into public.media_assets (
-  storage_path, public_url, alt_text_en, alt_text_ur, alt_text_hi, credit, mime_type, status, uploaded_by
-)
-values (
-  '2026/10/dal-lake.webp',
-  'https://cdn.kjin.org/news-media/2026/10/dal-lake.webp',
-  'Shikara on Dal Lake in Srinagar',
-  'ڈل جھیل پر شکارا',
-  'डल झील पर शिकारा',
-  'KJIN Photo / Bilal Ahmad',
-  'image/webp',
-  'published',
-  '10000000-0000-0000-0000-000000000201'
+select extensions.throws_ok(
+  $$
+    insert into public.media_assets (
+      storage_path, public_url, alt_text_en, mime_type, status, uploaded_by
+    )
+    values (
+      '2026/10/unauthorized-pub.webp',
+      'https://cdn.kjin.org/news-media/2026/10/unauthorized-pub.webp',
+      'Unauthorized published image',
+      'image/webp',
+      'published',
+      '10000000-0000-0000-0000-000000000203'
+    )
+  $$,
+  '42501',
+  null,
+  'Assertion 8: Standard author cannot publish media assets directly (must upload as draft)'
 );
 
-select extensions.ok(
-  exists (select 1 from public.media_assets where storage_path = '2026/10/dal-lake.webp'),
-  'Assertion 8: Media asset created with localized alt text and credit'
+-- Author uploads with status = 'draft' -> succeeds
+select extensions.lives_ok(
+  $$
+    insert into public.media_assets (
+      storage_path, public_url, alt_text_en, mime_type, status, uploaded_by
+    )
+    values (
+      '2026/10/author-draft.webp',
+      'https://cdn.kjin.org/news-media/2026/10/author-draft.webp',
+      'Author draft image',
+      'image/webp',
+      'draft',
+      '10000000-0000-0000-0000-000000000203'
+    )
+  $$,
+  'Assertion 9: Standard author can upload draft media assets'
 );
 
--- Verify SVG is blocked by strict image mime_type constraint
+-- Editor uploads directly as published -> succeeds
+select pg_temp.assume_employee('10000000-0000-0000-0000-000000000201', 'aal2');
+
+select extensions.lives_ok(
+  $$
+    insert into public.media_assets (
+      storage_path, public_url, alt_text_en, alt_text_ur, alt_text_hi, credit, mime_type, status, uploaded_by
+    )
+    values (
+      '2026/10/dal-lake.webp',
+      'https://cdn.kjin.org/news-media/2026/10/dal-lake.webp',
+      'Shikara on Dal Lake in Srinagar',
+      'ڈل جھیل پر شکارا',
+      'डल झील पर शिकारा',
+      'KJIN Photo / Bilal Ahmad',
+      'image/webp',
+      'published',
+      '10000000-0000-0000-0000-000000000201'
+    )
+  $$,
+  'Assertion 10: Editor can create published media assets'
+);
+
+-- SVG MIME type is rejected by check constraint
 select extensions.throws_ok(
   $$
     insert into public.media_assets (
@@ -192,90 +278,52 @@ select extensions.throws_ok(
       'https://cdn.kjin.org/news-media/2026/10/exploit.svg',
       'SVG with script',
       'image/svg+xml',
-      'published',
+      'draft',
       '10000000-0000-0000-0000-000000000201'
     )
   $$,
   '23514',
   null,
-  'Assertion 9: SVG mime type is blocked by database check constraint'
+  'Assertion 11: SVG mime type is blocked by database check constraint'
 );
 
--- Draft image (embargoed)
-insert into public.media_assets (
-  storage_path, public_url, alt_text_en, mime_type, status, uploaded_by
-)
-values (
-  '2026/10/embargoed-lake.webp',
-  'https://cdn.kjin.org/news-media/2026/10/embargoed-lake.webp',
-  'Embargoed image',
-  'image/webp',
-  'draft',
-  '10000000-0000-0000-0000-000000000201'
-);
-
--- Under real 'anon' role, draft image is hidden
+-- Anonymous visibility: draft is hidden, published is visible
 select pg_temp.assume_anon();
 
 select extensions.is_empty(
-  $$ select id from public.media_assets where storage_path = '2026/10/embargoed-lake.webp' $$,
-  'Assertion 10: Anonymous reader cannot see media assets with status draft'
+  $$ select id from public.media_assets where storage_path = '2026/10/author-draft.webp' $$,
+  'Assertion 12: Anonymous reader cannot see draft media assets'
 );
-
--- Under uploader role, draft image IS visible
-select pg_temp.assume_employee('10000000-0000-0000-0000-000000000201');
 
 select extensions.is(
-  (select count(*)::int from public.media_assets where storage_path = '2026/10/embargoed-lake.webp'),
+  (select count(*)::int from public.media_assets where storage_path = '2026/10/dal-lake.webp'),
   1,
-  'Assertion 11: Uploader can see their own draft media asset'
+  'Assertion 13: Anonymous reader can see published media assets'
 );
 
 -----------------------------------------------------------------------------
--- 5. Test Translation Workflow, MFA, Attribution & Visibility (Assertions 12-18)
+-- 5. Test Translation Workflow, MFA, Lockdown & Visibility (Assertions 14-21)
 -----------------------------------------------------------------------------
--- Setup articles representing distinct valid lifecycle states
-select pg_temp.assume_admin();
-
--- Article 2: Draft Parent Article
-insert into public.articles (id, title, excerpt, content, slug, category, status, author_id, author_display_name)
-values (
-  '30000000-0000-0000-0000-000000000002',
-  'Draft Article Title',
-  'Draft excerpt',
-  'Draft article content...',
-  'draft-article-for-translation-test',
-  'Local',
-  'draft',
-  '10000000-0000-0000-0000-000000000203',
-  'Phase7 Author'
-) on conflict (id) do nothing;
-
--- Article 3: Archived Parent Article (valid status machine: created as published then archived)
-insert into public.articles (id, title, excerpt, content, slug, category, status, author_id, author_display_name, published_at, published_by, archived_at)
-values (
-  '30000000-0000-0000-0000-000000000003',
-  'Archived Article Title',
-  'Archived excerpt',
-  'Archived article content...',
-  'archived-article-for-translation-test',
-  'Economy',
-  'archived',
-  '10000000-0000-0000-0000-000000000201',
-  'Phase7 Editor One',
-  now(),
-  '10000000-0000-0000-0000-000000000201',
-  now()
-) on conflict (id) do nothing;
-
--- 5a. MFA Enforcement on Translation Publication
--- Editor attempts to publish translation with AAL1 -> must throw error
+-- 5a. Direct Client Mutation Lockdown
+-- Authenticated user attempts direct SQL insert on article_translations -> rejected
 select pg_temp.assume_employee('10000000-0000-0000-0000-000000000201', 'aal1');
 
 select extensions.throws_ok(
   $$
+    insert into public.article_translations (article_id, language_code, title, content, status)
+    values ((select id from test_articles where name = 'published_parent'), 'ur', 'Direct Title', 'Direct Content', 'published')
+  $$,
+  '42501',
+  null,
+  'Assertion 14: Direct client mutations on article_translations are rejected by revoked table privileges'
+);
+
+-- 5b. MFA Enforcement on Translation Publication via RPC
+-- Editor attempts to publish translation with AAL1 -> must throw MFA error
+select extensions.throws_ok(
+  $$
     select public.upsert_article_translation(
-      '30000000-0000-0000-0000-000000000001',
+      (select id from test_articles where name = 'published_parent'),
       'ur',
       'ڈل جھیل کی بحالی مہم',
       'ڈل جھیل کی صفائی کا کام شروع',
@@ -286,7 +334,7 @@ select extensions.throws_ok(
     )
   $$,
   'MFA (AAL2) is strictly required to publish translations',
-  'Assertion 12: Publishing translation with AAL1 is rejected with MFA required error'
+  'Assertion 15: Publishing translation with AAL1 is rejected with MFA required error'
 );
 
 -- Editor publishes translation with AAL2 -> succeeds
@@ -295,7 +343,7 @@ select pg_temp.assume_employee('10000000-0000-0000-0000-000000000201', 'aal2');
 select extensions.lives_ok(
   $$
     select public.upsert_article_translation(
-      '30000000-0000-0000-0000-000000000001',
+      (select id from test_articles where name = 'published_parent'),
       'ur',
       'ڈل جھیل کی بحالی مہم',
       'ڈل جھیل کی صفائی کا کام شروع',
@@ -305,12 +353,12 @@ select extensions.lives_ok(
       'سری نگر میں صفائی کی مہم'
     )
   $$,
-  'Assertion 13: Publishing translation with AAL2 succeeds'
+  'Assertion 16: Publishing translation with AAL2 succeeds'
 );
 
--- Create Draft translation (Urdu) on Article 1 (Published parent)
+-- Create Draft Hindi translation on Published parent
 select public.upsert_article_translation(
-  '30000000-0000-0000-0000-000000000001',
+  (select id from test_articles where name = 'published_parent'),
   'hi',
   'डल झील संरक्षण अभियान',
   'डल झील की सफाई का काम शुरू',
@@ -318,9 +366,9 @@ select public.upsert_article_translation(
   'draft'
 );
 
--- Create Published translation on Article 2 (Draft parent)
+-- Create Published Urdu translation on Draft parent
 select public.upsert_article_translation(
-  '30000000-0000-0000-0000-000000000002',
+  (select id from test_articles where name = 'draft_parent'),
   'ur',
   'مسودہ مضمون کا اردو ترجمہ',
   'مسودہ خلاصہ',
@@ -328,9 +376,9 @@ select public.upsert_article_translation(
   'published'
 );
 
--- Create Published translation on Article 3 (Archived parent)
+-- Create Published Urdu translation on Archived parent
 select public.upsert_article_translation(
-  '30000000-0000-0000-0000-000000000003',
+  (select id from test_articles where name = 'archived_parent'),
   'ur',
   'محفوظ شدہ مضمون کا ترجمہ',
   'خلاصہ',
@@ -338,54 +386,54 @@ select public.upsert_article_translation(
   'published'
 );
 
--- 5b. RLS Dual Visibility Gate Checks under true anon role
+-- 5c. RLS Dual Visibility Gate Checks under true anon role
 select pg_temp.assume_anon();
 
 -- Draft Hindi translation on Published parent -> Hidden
 select extensions.is_empty(
   $$
     select id from public.article_translations
-    where article_id = '30000000-0000-0000-0000-000000000001'
+    where article_id = (select id from test_articles where name = 'published_parent')
       and language_code = 'hi'
   $$,
-  'Assertion 14: Anon reader cannot see draft translation even if parent article is published'
+  'Assertion 17: Anon reader cannot see draft translation even if parent article is published'
 );
 
 -- Published Urdu translation on Published parent -> Visible
 select extensions.is(
   (select count(*)::int from public.article_translations
-   where article_id = '30000000-0000-0000-0000-000000000001'
+   where article_id = (select id from test_articles where name = 'published_parent')
      and language_code = 'ur'),
   1,
-  'Assertion 15: Anon reader can see translation when BOTH parent article and translation are published'
+  'Assertion 18: Anon reader can see translation when BOTH parent article and translation are published'
 );
 
 -- Published translation on Draft parent -> Hidden
 select extensions.is_empty(
   $$
     select id from public.article_translations
-    where article_id = '30000000-0000-0000-0000-000000000002'
+    where article_id = (select id from test_articles where name = 'draft_parent')
       and language_code = 'ur'
   $$,
-  'Assertion 16: Anon reader cannot see published translation if parent article is draft'
+  'Assertion 19: Anon reader cannot see published translation if parent article is draft'
 );
 
 -- Published translation on Archived parent -> Hidden
 select extensions.is_empty(
   $$
     select id from public.article_translations
-    where article_id = '30000000-0000-0000-0000-000000000003'
+    where article_id = (select id from test_articles where name = 'archived_parent')
       and language_code = 'ur'
   $$,
-  'Assertion 17: Anon reader cannot see published translation if parent article is archived'
+  'Assertion 20: Anon reader cannot see published translation if parent article is archived'
 );
 
--- 5c. Test Attribution Immutability and Last Edited By Tracking
+-- 5d. Test Attribution Immutability and Last Edited By Tracking
 select pg_temp.assume_employee('10000000-0000-0000-0000-000000000202', 'aal2');
 
--- Editor Two updates the Urdu translation on Article 1
+-- Editor Two updates the Urdu translation on Published parent
 select public.upsert_article_translation(
-  '30000000-0000-0000-0000-000000000001',
+  (select id from test_articles where name = 'published_parent'),
   'ur',
   'ڈل جھیل کی بحالی مہم - تازہ ترین',
   'ڈل جھیل کی صفائی کا کام جاری ہے',
@@ -399,25 +447,31 @@ select extensions.is(
       'last_editor', last_edited_by
    )::text
    from public.article_translations
-   where article_id = '30000000-0000-0000-0000-000000000001' and language_code = 'ur'),
+   where article_id = (select id from test_articles where name = 'published_parent')
+     and language_code = 'ur'),
   json_build_object(
       'translator', '10000000-0000-0000-0000-000000000201'::uuid,
       'last_editor', '10000000-0000-0000-0000-000000000202'::uuid
   )::text,
-  'Assertion 18: Original translator_id is preserved while last_edited_by tracks latest editor'
+  'Assertion 21: Original translator_id is preserved while last_edited_by tracks latest editor'
 );
 
 -----------------------------------------------------------------------------
--- 6. Test Full-Text Search tsvector Generation (Assertions 19-20)
+-- 6. Test Full-Text Search tsvector Generation (Assertions 22-23)
 -----------------------------------------------------------------------------
 select extensions.ok(
-  (select tsv_search @@ to_tsquery('english', 'conservation') from public.articles where id = '30000000-0000-0000-0000-000000000001'),
-  'Assertion 19: Articles tsv_search matches English query with English stemmer'
+  (select tsv_search @@ to_tsquery('english', 'conservation')
+   from public.articles
+   where id = (select id from test_articles where name = 'published_parent')),
+  'Assertion 22: Articles tsv_search matches English query with English stemmer'
 );
 
 select extensions.ok(
-  (select tsv_search @@ to_tsquery('simple', 'ڈل') from public.article_translations where article_id = '30000000-0000-0000-0000-000000000001' and language_code = 'ur'),
-  'Assertion 20: Article translations tsv_search matches Urdu Unicode query with simple parser'
+  (select tsv_search @@ to_tsquery('simple', 'ڈل')
+   from public.article_translations
+   where article_id = (select id from test_articles where name = 'published_parent')
+     and language_code = 'ur'),
+  'Assertion 23: Article translations tsv_search matches Urdu Unicode query with simple parser'
 );
 
 select * from extensions.finish();

@@ -203,15 +203,16 @@ create index if not exists idx_article_translations_status on public.article_tra
    - `tags` SELECT: Allowed for all (`anon`, `authenticated`). Mutations: `public.user_has_editor_access()`.
    - `article_tags` SELECT: Allowed if the parent article is published (`exists (select 1 from public.articles a where a.id = article_tags.article_id and a.status = 'published')`) or if user is an editor. Mutations: via CMS RPCs or editor role.
 3. **`media_assets`:**
-   - `SELECT`: Allowed for all (`anon`, `authenticated`). Published news photos must render for readers.
-   - `INSERT`: Allowed for authenticated employees with `article.create` permission (`public.has_permission('article.create')`).
-   - `UPDATE / DELETE`: Allowed for uploader or editors (`uploaded_by = auth.uid() or public.user_has_editor_access()`).
-4. **`article_translations` (Updated Security Policy):**
-   - Replace the legacy policy with the independent publication rule:
+   - `SELECT`: Allowed for all (`anon`, `authenticated`) when `status = 'published'`. Draft or embargoed media remains visible only to the uploader and editors.
+   - `INSERT`: Standard journalists can upload drafts (`status = 'draft'`); only editors can publish media directly (`status IN ('published', 'archived')`).
+   - `UPDATE`: Authors can update their own drafts; only editors can modify or publish existing assets.
+   - `DELETE`: Restricted to editors (`public.user_has_editor_access()`).
+   - `Retention`: `uploaded_by` uses `ON DELETE SET NULL` to preserve historical news photos and credit attribution when profiles change.
+4. **`article_translations` (Airtight Mutation Lockdown & Independent Visibility):**
+   - **Direct Write Revocation:** Direct client `INSERT`, `UPDATE`, and `DELETE` privileges are revoked from all client roles. All writes must route through the `SECURITY DEFINER` RPC `upsert_article_translation()`.
+   - **Engine-Level MFA Trigger:** An integrity trigger (`article_translations_enforce_integrity`) enforces that any attempt to set `status = 'published'` requires AAL2 MFA assurance (`(auth.jwt() ->> 'aal') = 'aal2'`), closing any potential direct-write bypass.
+   - **Read Gate:**
    ```sql
-   drop policy if exists "Translations are readable if article is readable" on public.article_translations;
-   drop policy if exists "Published translations of published articles are public" on public.article_translations;
-
    create policy "Published translations of published articles are public"
    on public.article_translations
    for select
