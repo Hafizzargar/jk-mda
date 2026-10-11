@@ -6,6 +6,8 @@ import { createClient } from '@supabase/supabase-js';
 import { readBoundedStream } from '../../../../lib/request-utils';
 import * as Sentry from '@sentry/nextjs';
 
+import { getCustomSummarizeGenerator } from '../../../../lib/ai-provider';
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
@@ -16,6 +18,7 @@ const SummarizeRequestSchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    const customSummarizeGenerator = getCustomSummarizeGenerator();
     const authHeader = request.headers.get('Authorization');
     if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -26,7 +29,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'AI service configuration error' }, { status: 500 });
     }
 
-    if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+    if (!customSummarizeGenerator && !process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
       console.error('Missing GOOGLE_GENERATIVE_AI_API_KEY in AI summarize route');
       return NextResponse.json({ error: 'AI summarizing service is currently unavailable' }, { status: 503 });
     }
@@ -83,21 +86,33 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Rate limiter service temporarily unavailable' }, { status: 500 });
     }
 
-    if (!isAllowed) {
+    if (isAllowed === false) {
       return NextResponse.json({ error: 'Too many requests, please try again later.' }, { status: 429 });
     }
 
-    // 7. Invoke Gemini AI model
-    const result = await generateObject({
-      model: google('gemini-2.5-flash'),
-      system: 'You are an expert news editor for KJIN. Summarize the provided article content into a punchy, engaging 1-2 sentence excerpt suitable for a news homepage or social media.',
-      prompt: `Summarize this article:\n\n${parsed.data.content}`,
-      schema: z.object({
-        excerpt: z.string().describe('A 1-2 sentence summary of the article'),
-      }),
-    });
+    if (isAllowed !== true) {
+      console.error('AI rate limiter RPC returned unexpected value in summarize:', isAllowed);
+      return NextResponse.json({ error: 'Rate limiter service returned unexpected result' }, { status: 500 });
+    }
 
-    return NextResponse.json(result.object);
+    // 7. Invoke Gemini AI model (or custom test generator)
+    let generatedObject: { excerpt: string };
+
+    if (customSummarizeGenerator) {
+      generatedObject = await customSummarizeGenerator({ content: parsed.data.content });
+    } else {
+      const result = await generateObject({
+        model: google('gemini-2.5-flash'),
+        system: 'You are an expert news editor for KJIN. Summarize the provided article content into a punchy, engaging 1-2 sentence excerpt suitable for a news homepage or social media.',
+        prompt: `Summarize this article:\n\n${parsed.data.content}`,
+        schema: z.object({
+          excerpt: z.string().describe('A 1-2 sentence summary of the article'),
+        }),
+      });
+      generatedObject = result.object;
+    }
+
+    return NextResponse.json(generatedObject);
   } catch (error) {
     Sentry.captureException(error);
     console.error('AI Summarize Error:', error);

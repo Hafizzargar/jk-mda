@@ -55,7 +55,12 @@ describe('P0: AI Rate Limiter Security & Concurrency', { skip: !SERVICE_KEY || !
   });
 
   after(async () => {
-    if (authorId1) await serviceClient.auth.admin.deleteUser(authorId1);
+    if (authorId1) {
+      const { error: cleanupErr } = await serviceClient.from('ai_usage_logs').delete().eq('user_id', authorId1);
+      if (cleanupErr) console.warn('Warning: cleanup ai_usage_logs error:', cleanupErr.message);
+      const { error: deleteUserErr } = await serviceClient.auth.admin.deleteUser(authorId1);
+      if (deleteUserErr) console.warn('Warning: deleteUser error:', deleteUserErr.message);
+    }
   });
 
   it('prevents anonymous users from calling check_ai_rate_limit', async () => {
@@ -82,8 +87,9 @@ describe('P0: AI Rate Limiter Security & Concurrency', { skip: !SERVICE_KEY || !
 
   it('enforces isolated quotas per endpoint for the same user', async () => {
     const maxRequests = 5;
-    // Clear logs for this test
-    await serviceClient.from('ai_usage_logs').delete().eq('user_id', authorId1);
+    // Clear logs for this test and assert no error
+    const { error: clearErr } = await serviceClient.from('ai_usage_logs').delete().eq('user_id', authorId1);
+    assert.ifError(clearErr);
 
     // Consume all 5 allowed requests on 'draft'
     for (let i = 0; i < maxRequests; i++) {
@@ -98,22 +104,41 @@ describe('P0: AI Rate Limiter Security & Concurrency', { skip: !SERVICE_KEY || !
     }
 
     // 6th request to 'draft' must be rejected
-    const { data: draftOverLimit } = await serviceClient.rpc('check_ai_rate_limit', {
+    const { data: draftOverLimit, error: draftErr } = await serviceClient.rpc('check_ai_rate_limit', {
       p_user_id: authorId1,
       p_endpoint: 'draft',
       p_max_requests: maxRequests,
       p_window_interval: '1 hour'
     });
+    assert.ifError(draftErr);
     assert.strictEqual(draftOverLimit, false, 'Draft endpoint quota must be rejected once exhausted');
 
     // 'summarize' endpoint for the same user must STILL be allowed (isolated quota)
-    const { data: summarizeAllowed } = await serviceClient.rpc('check_ai_rate_limit', {
+    const { data: summarizeAllowed, error: sumErr } = await serviceClient.rpc('check_ai_rate_limit', {
       p_user_id: authorId1,
       p_endpoint: 'summarize',
       p_max_requests: maxRequests,
       p_window_interval: '1 hour'
     });
+    assert.ifError(sumErr);
     assert.strictEqual(summarizeAllowed, true, 'Summarize endpoint quota must be independent and allowed');
+
+    // Verify endpoint isolation against database records
+    const { data: draftLogs, error: draftLogsErr } = await serviceClient
+      .from('ai_usage_logs')
+      .select('id')
+      .eq('user_id', authorId1)
+      .eq('endpoint', 'draft');
+    assert.ifError(draftLogsErr);
+    assert.strictEqual(draftLogs?.length, maxRequests, 'Draft endpoint should have exactly maxRequests log rows');
+
+    const { data: sumLogs, error: sumLogsErr } = await serviceClient
+      .from('ai_usage_logs')
+      .select('id')
+      .eq('user_id', authorId1)
+      .eq('endpoint', 'summarize');
+    assert.ifError(sumLogsErr);
+    assert.strictEqual(sumLogs?.length, 1, 'Summarize endpoint should have exactly 1 log row');
   });
 
   it('handles concurrent rate limit checks securely via service role', async () => {
@@ -121,8 +146,9 @@ describe('P0: AI Rate Limiter Security & Concurrency', { skip: !SERVICE_KEY || !
     const concurrentRequests = 15;
     const maxRequests = 10;
     
-    // Clear logs for this test
-    await serviceClient.from('ai_usage_logs').delete().eq('user_id', authorId1);
+    // Clear logs for this test and assert no error
+    const { error: clearConcurrentErr } = await serviceClient.from('ai_usage_logs').delete().eq('user_id', authorId1);
+    assert.ifError(clearConcurrentErr);
 
     const promises = [];
     for (let i = 0; i < concurrentRequests; i++) {
@@ -150,13 +176,15 @@ describe('P0: AI Rate Limiter Security & Concurrency', { skip: !SERVICE_KEY || !
     assert.strictEqual(allowedCount, maxRequests, `Exactly ${maxRequests} requests should be allowed`);
     assert.strictEqual(rejectedCount, concurrentRequests - maxRequests, `Exactly ${concurrentRequests - maxRequests} requests should be rejected`);
     
-    // Verify database only has maxRequests rows for this endpoint
-    const { data: logs } = await serviceClient
+    // Verify database only has maxRequests rows for this endpoint, throwing if query fails
+    const { data: logs, error: queryErr } = await serviceClient
       .from('ai_usage_logs')
       .select('id')
       .eq('user_id', authorId1)
       .eq('endpoint', 'concurrent_test');
       
-    assert.strictEqual(logs?.length, maxRequests, 'Database should correctly count exactly the max requests limit despite concurrency race conditions');
+    assert.ifError(queryErr);
+    assert.ok(logs, 'Usage logs query must return an array');
+    assert.strictEqual(logs.length, maxRequests, 'Database should correctly count exactly the max requests limit despite concurrency race conditions');
   });
 });

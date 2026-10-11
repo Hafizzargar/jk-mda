@@ -3,7 +3,68 @@
  * Ensures tests NEVER run against or mutate a production database.
  */
 
-const PRODUCTION_PROJECT_ID = 'ptvfidufwlswbjgsjvzl';
+export const PRODUCTION_PROJECT_ID = 'ptvfidufwlswbjgsjvzl';
+
+/**
+ * Approved staging/isolated test project identifiers.
+ * Only remote projects explicitly recognized here or configured via ALLOWED_STAGING_PROJECT_IDS
+ * can be accessed when ALLOW_INTEGRATION_TESTS_ON_STAGING=true.
+ */
+export const APPROVED_STAGING_PROJECT_IDS: readonly string[] = [
+  'kjin-staging-test',
+  'kjin-isolated-test',
+];
+
+export function getApprovedStagingProjectIds(): string[] {
+  const envExtra = process.env.ALLOWED_STAGING_PROJECT_IDS
+    ? process.env.ALLOWED_STAGING_PROJECT_IDS.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean)
+    : [];
+  return Array.from(new Set([...APPROVED_STAGING_PROJECT_IDS, ...envExtra]));
+}
+
+export function extractProjectIdentifier(supabaseUrl: string): string | null {
+  if (!supabaseUrl) return null;
+  try {
+    const url = new URL(supabaseUrl);
+    const hostname = url.hostname.toLowerCase();
+    const parts = hostname.split('.');
+    if (parts.length >= 3 && hostname.endsWith('supabase.co')) {
+      return parts[0];
+    }
+    return hostname;
+  } catch {
+    const lower = supabaseUrl.toLowerCase();
+    const match = lower.match(/(?:https?:\/\/)?([a-z0-9-]+)\.supabase\.co/);
+    if (match) return match[1];
+    return null;
+  }
+}
+
+export function isLocalHost(supabaseUrl: string): boolean {
+  if (!supabaseUrl) return false;
+  const url = supabaseUrl.toLowerCase();
+  return (
+    url.includes('localhost') ||
+    url.includes('127.0.0.1') ||
+    url.includes('0.0.0.0') ||
+    url.includes('kong:8000') ||
+    url.includes('supabase_kong')
+  );
+}
+
+export function isApprovedStagingEnvironment(supabaseUrl: string): boolean {
+  if (!supabaseUrl) return false;
+  const projectId = extractProjectIdentifier(supabaseUrl);
+  if (!projectId) return false;
+
+  // Hard guarantee: Production is permanently blocked
+  if (projectId === PRODUCTION_PROJECT_ID || supabaseUrl.toLowerCase().includes(PRODUCTION_PROJECT_ID)) {
+    return false;
+  }
+
+  const approvedList = getApprovedStagingProjectIds();
+  return approvedList.includes(projectId);
+}
 
 export function isLocalTestEnvironment(supabaseUrl: string): boolean {
   if (!supabaseUrl) return false;
@@ -14,21 +75,18 @@ export function isLocalTestEnvironment(supabaseUrl: string): boolean {
     return false;
   }
 
-  // Local Supabase instances
-  const isLocal =
-    url.includes('localhost') ||
-    url.includes('127.0.0.1') ||
-    url.includes('0.0.0.0') ||
-    url.includes('kong:8000') ||
-    url.includes('supabase_kong');
-
-  if (isLocal) {
+  // 1. Local Supabase instances are always permitted
+  if (isLocalHost(supabaseUrl)) {
     return true;
   }
 
-  // Explicit staging opt-in for isolated test projects
+  // 2. Remote database URLs require BOTH the opt-in flag AND presence in the approved staging allowlist
   const isStagingOptIn = process.env.ALLOW_INTEGRATION_TESTS_ON_STAGING === 'true';
-  return isStagingOptIn;
+  if (isStagingOptIn && isApprovedStagingEnvironment(supabaseUrl)) {
+    return true;
+  }
+
+  return false;
 }
 
 export function assertSafeTestEnvironment(supabaseUrl: string, suiteName: string): void {
@@ -38,7 +96,7 @@ export function assertSafeTestEnvironment(supabaseUrl: string, suiteName: string
 
   const url = supabaseUrl.toLowerCase();
 
-  // 1. Hard check: Never allow production database project
+  // 1. Hard check: Never allow production database project under any circumstances
   if (url.includes(PRODUCTION_PROJECT_ID)) {
     throw new Error(
       `[CRITICAL SECURITY ALERT] ${suiteName} attempted to run against PRODUCTION database (${PRODUCTION_PROJECT_ID})! ` +
@@ -48,15 +106,28 @@ export function assertSafeTestEnvironment(supabaseUrl: string, suiteName: string
   }
 
   // 2. Allow local test environments
-  if (isLocalTestEnvironment(supabaseUrl)) {
+  if (isLocalHost(supabaseUrl)) {
     return;
   }
 
-  // 3. For any remote URL, require explicit staging opt-in
-  throw new Error(
-    `[SAFETY GUARD] ${suiteName} refused to run against non-local database: "${supabaseUrl}". ` +
-    `Integration tests are restricted to local Supabase instances (localhost:54321 / 127.0.0.1). ` +
-    `To run against an isolated staging project, set ALLOW_INTEGRATION_TESTS_ON_STAGING=true. ` +
-    `Production project (${PRODUCTION_PROJECT_ID}) remains permanently blocked.`
-  );
+  // 3. For remote URLs, require explicit staging opt-in AND verified staging project identity
+  const isStagingOptIn = process.env.ALLOW_INTEGRATION_TESTS_ON_STAGING === 'true';
+  if (!isStagingOptIn) {
+    throw new Error(
+      `[SAFETY GUARD] ${suiteName} refused to run against non-local database: "${supabaseUrl}". ` +
+      `Integration tests are restricted to local Supabase instances (localhost:54321 / 127.0.0.1). ` +
+      `To run against an isolated staging project, set ALLOW_INTEGRATION_TESTS_ON_STAGING=true and configure an approved staging project ID. ` +
+      `Production project (${PRODUCTION_PROJECT_ID}) remains permanently blocked.`
+    );
+  }
+
+  if (!isApprovedStagingEnvironment(supabaseUrl)) {
+    const projId = extractProjectIdentifier(supabaseUrl) || url;
+    throw new Error(
+      `[SAFETY GUARD] ${suiteName} refused to run against unverified remote project: "${projId}". ` +
+      `ALLOW_INTEGRATION_TESTS_ON_STAGING is enabled, but "${projId}" is not in the approved staging allowlist: [${getApprovedStagingProjectIds().join(', ')}]. ` +
+      `To approve this staging project, add it to ALLOWED_STAGING_PROJECT_IDS. ` +
+      `Production project (${PRODUCTION_PROJECT_ID}) remains permanently blocked.`
+    );
+  }
 }
