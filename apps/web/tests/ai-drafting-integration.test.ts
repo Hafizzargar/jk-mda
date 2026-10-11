@@ -2,11 +2,12 @@ import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createClient } from '@supabase/supabase-js';
 import { assertSafeTestEnvironment, isLocalTestEnvironment } from './support/test-env';
+// @ts-expect-error Node.js test runner with custom ESM loader
+import { POST } from '../app/api/ai/draft/route.ts';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321';
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const APP_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
 const isSafeLocal = isLocalTestEnvironment(SUPABASE_URL);
 
@@ -49,18 +50,17 @@ describe('P0: AI Drafting & Mandatory Review', { skip: !SERVICE_KEY || !ANON_KEY
   });
 
   it('rejects unauthenticated requests to AI draft route', async () => {
-    const res = await fetch(`${APP_URL}/api/ai/draft`, {
+    const req = new Request('http://localhost/api/ai/draft', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ rawFacts: 'test' })
+      body: JSON.stringify({ rawFacts: 'test facts with minimum length' })
     });
+    const res = await POST(req);
     assert.strictEqual(res.status, 401, 'Unauthenticated requests must be rejected');
   });
 
   it('verifies AI drafting returns data for review (without auto-publishing)', async () => {
-    // Note: This test will fail if GOOGLE_GENERATIVE_AI_API_KEY is missing or APP_URL is down.
-    // It verifies the endpoint interface works for an authenticated author.
-    const res = await fetch(`${APP_URL}/api/ai/draft`, {
+    const req = new Request('http://localhost/api/ai/draft', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
@@ -68,9 +68,11 @@ describe('P0: AI Drafting & Mandatory Review', { skip: !SERVICE_KEY || !ANON_KEY
       },
       body: JSON.stringify({ rawFacts: 'The local municipal council announced a new budget.' })
     });
+    const res = await POST(req);
     
-    // We only assert 200 or 500 (if API key is missing), 
-    // but the key point is it doesn't bypass auth
+    // If GOOGLE_GENERATIVE_AI_API_KEY is not provided (like in CI environment without secret),
+    // it returns 503 ('AI drafting service is currently unavailable').
+    // If it succeeded (200), verify response schema and ensure no auto-publish into articles table.
     if (res.status === 200) {
       const data = await res.json();
       assert.ok(data.title, 'Draft must include a title');
@@ -80,6 +82,8 @@ describe('P0: AI Drafting & Mandatory Review', { skip: !SERVICE_KEY || !ANON_KEY
       // Verify no article was automatically inserted into the DB by the AI endpoint
       const { data: articles } = await serviceClient.from('articles').select('*').eq('title', data.title);
       assert.strictEqual(articles?.length, 0, 'AI must NOT automatically publish/insert the draft');
+    } else {
+      assert.ok([403, 500, 503].includes(res.status), `Expected acceptable status (403, 500, 503), got ${res.status}`);
     }
   });
 });

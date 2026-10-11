@@ -67,6 +67,7 @@ $$;
 -----------------------------------------------------------------------------
 insert into public.employee_invites (id, email, display_name, role_key, reason, status)
 values
+  ('20000000-0000-0000-0000-000000000200', 'p7-superadmin@test.invalid', 'Phase7 Superadmin', 'superadmin', 'test fixture', 'sending'),
   ('20000000-0000-0000-0000-000000000201', 'p7-editor1@test.invalid', 'Phase7 Editor One', 'editor', 'test fixture', 'sending'),
   ('20000000-0000-0000-0000-000000000202', 'p7-editor2@test.invalid', 'Phase7 Editor Two', 'editor', 'test fixture', 'sending'),
   ('20000000-0000-0000-0000-000000000203', 'p7-author@test.invalid', 'Phase7 Author', 'author', 'test fixture', 'sending')
@@ -74,14 +75,16 @@ on conflict do nothing;
 
 insert into auth.users (id, aud, role, email, encrypted_password, raw_user_meta_data, created_at, updated_at)
 values
+  ('10000000-0000-0000-0000-000000000200', 'authenticated', 'authenticated', 'p7-superadmin@test.invalid', '', '{"employee_invite_id":"20000000-0000-0000-0000-000000000200"}', now(), now()),
   ('10000000-0000-0000-0000-000000000201', 'authenticated', 'authenticated', 'p7-editor1@test.invalid', '', '{"employee_invite_id":"20000000-0000-0000-0000-000000000201"}', now(), now()),
   ('10000000-0000-0000-0000-000000000202', 'authenticated', 'authenticated', 'p7-editor2@test.invalid', '', '{"employee_invite_id":"20000000-0000-0000-0000-000000000202"}', now(), now()),
   ('10000000-0000-0000-0000-000000000203', 'authenticated', 'authenticated', 'p7-author@test.invalid', '', '{"employee_invite_id":"20000000-0000-0000-0000-000000000203"}', now(), now())
 on conflict do nothing;
 
-update public.profiles set role_key = 'editor', status = 'active' where id = '10000000-0000-0000-0000-000000000201';
-update public.profiles set role_key = 'editor', status = 'active' where id = '10000000-0000-0000-0000-000000000202';
-update public.profiles set role_key = 'author', status = 'active' where id = '10000000-0000-0000-0000-000000000203';
+update public.profiles set role = 'superadmin', role_key = 'superadmin', status = 'active' where id = '10000000-0000-0000-0000-000000000200';
+update public.profiles set role = 'editor', role_key = 'editor', status = 'active' where id = '10000000-0000-0000-0000-000000000201';
+update public.profiles set role = 'editor', role_key = 'editor', status = 'active' where id = '10000000-0000-0000-0000-000000000202';
+update public.profiles set role = 'author', role_key = 'author', status = 'active' where id = '10000000-0000-0000-0000-000000000203';
 
 -----------------------------------------------------------------------------
 -- Setup Production-Compliant Article Fixtures via Stored Procedures
@@ -92,7 +95,7 @@ create temp table test_articles (
 );
 grant all on test_articles to public, authenticated, anon;
 
--- 1. Create Published Parent Article (author creates -> submits -> editor publishes with AAL2)
+-- 1. Create Published Parent Article (author creates -> submits -> superadmin publishes with AAL2)
 select pg_temp.assume_employee('10000000-0000-0000-0000-000000000203', 'aal1');
 
 insert into test_articles (name, id)
@@ -108,7 +111,7 @@ select 'published_parent', (public.create_article(
 
 select public.submit_article_for_review((select id from test_articles where name = 'published_parent'));
 
-select pg_temp.assume_employee('10000000-0000-0000-0000-000000000201', 'aal2');
+select pg_temp.assume_employee('10000000-0000-0000-0000-000000000200', 'aal2');
 select public.publish_article((select id from test_articles where name = 'published_parent'));
 
 -- 2. Create Draft Parent Article (author creates draft and leaves it in draft)
@@ -141,7 +144,7 @@ select 'archived_parent', (public.create_article(
 
 select public.submit_article_for_review((select id from test_articles where name = 'archived_parent'));
 
-select pg_temp.assume_employee('10000000-0000-0000-0000-000000000201', 'aal2');
+select pg_temp.assume_employee('10000000-0000-0000-0000-000000000200', 'aal2');
 select public.publish_article((select id from test_articles where name = 'archived_parent'));
 select public.archive_article((select id from test_articles where name = 'archived_parent'));
 
