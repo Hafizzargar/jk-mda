@@ -26,6 +26,10 @@ Following the audit of all 21 existing migrations and application code contracts
 4. **Multilingual Search Strategy:**
    - PostgreSQL's default `'english'` text search configuration does not parse or stem Urdu (Arabic script) or Hindi (Devanagari script) accurately.
    - Search vectors will combine PostgreSQL's `'simple'` dictionary (which tokenizes Unicode whitespace/punctuation without altering scripts) with `'english'` stemming for English fields, indexed via GIN.
+5. **AI Rate Limiting Policy & Concurrency Control:**
+   - Quotas in `public.check_ai_rate_limit()` are strictly isolated **per endpoint** (`draft`, `summarize`), calibrated to 50 requests per 15-minute sliding window per user.
+   - Usage log counting and sliding window cleanup query on `(user_id, endpoint)` backed by a composite index `(user_id, endpoint, created_at)`.
+   - Transaction-level advisory locking (`pg_advisory_xact_lock(hashtext(p_user_id::text || ':' || p_endpoint))`) eliminates race conditions per endpoint without cross-blocking concurrent operations between different AI tools.
 
 ---
 

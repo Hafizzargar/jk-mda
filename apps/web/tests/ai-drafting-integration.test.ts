@@ -7,6 +7,10 @@ const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const APP_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
+if (!SERVICE_KEY || !ANON_KEY) {
+  console.warn('⚠️  [SKIPPED] P0: AI Drafting & Mandatory Review — Integration test skipped because SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY is not set.');
+}
+
 describe('P0: AI Drafting & Mandatory Review', { skip: !SERVICE_KEY || !ANON_KEY }, () => {
   const serviceClient = createClient(SUPABASE_URL, SERVICE_KEY);
   const anonClient = createClient(SUPABASE_URL, ANON_KEY, {

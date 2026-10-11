@@ -6,6 +6,10 @@ const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:5
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
+if (!SERVICE_KEY || !ANON_KEY) {
+  console.warn('⚠️  [SKIPPED] P0: AI Rate Limiter Security & Concurrency — Integration test skipped because SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY is not set. Run with valid local Supabase credentials to execute.');
+}
+
 describe('P0: AI Rate Limiter Security & Concurrency', { skip: !SERVICE_KEY || !ANON_KEY }, () => {
   const serviceClient = createClient(SUPABASE_URL, SERVICE_KEY);
   const anonClient = createClient(SUPABASE_URL, ANON_KEY, {
@@ -70,6 +74,42 @@ describe('P0: AI Rate Limiter Security & Concurrency', { skip: !SERVICE_KEY || !
     assert.ok(error.message.includes('Could not find the function') || error.code === '42883' || error.message.includes('permission denied'), 'Should fail completely due to revoke');
   });
 
+  it('enforces isolated quotas per endpoint for the same user', async () => {
+    const maxRequests = 5;
+    // Clear logs for this test
+    await serviceClient.from('ai_usage_logs').delete().eq('user_id', authorId1);
+
+    // Consume all 5 allowed requests on 'draft'
+    for (let i = 0; i < maxRequests; i++) {
+      const { data: allowed, error } = await serviceClient.rpc('check_ai_rate_limit', {
+        p_user_id: authorId1,
+        p_endpoint: 'draft',
+        p_max_requests: maxRequests,
+        p_window_interval: '1 hour'
+      });
+      if (error) throw error;
+      assert.strictEqual(allowed, true, `Draft request #${i + 1} should be allowed`);
+    }
+
+    // 6th request to 'draft' must be rejected
+    const { data: draftOverLimit } = await serviceClient.rpc('check_ai_rate_limit', {
+      p_user_id: authorId1,
+      p_endpoint: 'draft',
+      p_max_requests: maxRequests,
+      p_window_interval: '1 hour'
+    });
+    assert.strictEqual(draftOverLimit, false, 'Draft endpoint quota must be rejected once exhausted');
+
+    // 'summarize' endpoint for the same user must STILL be allowed (isolated quota)
+    const { data: summarizeAllowed } = await serviceClient.rpc('check_ai_rate_limit', {
+      p_user_id: authorId1,
+      p_endpoint: 'summarize',
+      p_max_requests: maxRequests,
+      p_window_interval: '1 hour'
+    });
+    assert.strictEqual(summarizeAllowed, true, 'Summarize endpoint quota must be independent and allowed');
+  });
+
   it('handles concurrent rate limit checks securely via service role', async () => {
     // Fire 15 requests concurrently, but max is 10.
     const concurrentRequests = 15;
@@ -104,7 +144,7 @@ describe('P0: AI Rate Limiter Security & Concurrency', { skip: !SERVICE_KEY || !
     assert.strictEqual(allowedCount, maxRequests, `Exactly ${maxRequests} requests should be allowed`);
     assert.strictEqual(rejectedCount, concurrentRequests - maxRequests, `Exactly ${concurrentRequests - maxRequests} requests should be rejected`);
     
-    // Verify database only has maxRequests rows
+    // Verify database only has maxRequests rows for this endpoint
     const { data: logs } = await serviceClient
       .from('ai_usage_logs')
       .select('id')

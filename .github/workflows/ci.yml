@@ -28,14 +28,23 @@ jobs:
       - name: Install Dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Typecheck
-        run: pnpm --filter @kjin/web typecheck
+      - name: Typecheck Monorepo
+        run: pnpm -r typecheck
 
-      - name: Test
+      - name: Test (Web)
         run: pnpm --filter @kjin/web test
+
+      - name: Test (Admin)
+        run: pnpm --filter admin test
         
-      - name: Build
+      - name: Build (Web)
         run: pnpm --filter @kjin/web build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co"
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: "dummy-key"
+
+      - name: Build (Admin)
+        run: pnpm --filter admin build
         env:
           NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co"
           NEXT_PUBLIC_SUPABASE_ANON_KEY: "dummy-key"

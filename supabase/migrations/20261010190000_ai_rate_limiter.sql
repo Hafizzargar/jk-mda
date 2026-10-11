@@ -1,4 +1,5 @@
 -- Migration: AI Rate Limiting
+-- Enforces isolated per-endpoint rate limiting with advisory locking and automatic window cleanup.
 
 create table if not exists public.ai_usage_logs (
     id uuid primary key default gen_random_uuid(),
@@ -7,13 +8,14 @@ create table if not exists public.ai_usage_logs (
     created_at timestamptz not null default now()
 );
 
--- Index for faster rate limit counting
+-- Indexes for fast composite queries on user + endpoint + time window
 create index if not exists ai_usage_logs_user_created_at_idx on public.ai_usage_logs (user_id, created_at);
+create index if not exists ai_usage_logs_user_endpoint_created_idx on public.ai_usage_logs (user_id, endpoint, created_at);
 
--- Set up RLS (though mostly accessed via backend service role)
+-- Set up RLS (accessed via backend service role)
 alter table public.ai_usage_logs enable row level security;
 
--- Create an RPC to atomically check and record usage
+-- Create an RPC to atomically check and record usage per endpoint
 create or replace function public.check_ai_rate_limit(
     p_user_id uuid,
     p_endpoint text,
@@ -28,27 +30,29 @@ begin
         raise exception 'Unauthorized: You can only record rate limits for your own user ID.';
     end if;
 
-    -- 2. Concurrency Control: Acquire an exclusive transaction-level lock for this user
-    -- hashtext converts the UUID string to a 32-bit integer for the lock ID
-    perform pg_advisory_xact_lock(hashtext(p_user_id::text));
+    -- 2. Concurrency Control: Acquire an exclusive transaction-level lock for this user + endpoint
+    -- Hash user UUID and endpoint name together so concurrent requests across different endpoints do not block each other
+    perform pg_advisory_xact_lock(hashtext(p_user_id::text || ':' || coalesce(p_endpoint, 'default')));
 
-    -- 3. Cleanup: Delete old logs to prevent unbounded growth
+    -- 3. Cleanup: Delete expired logs for this user and endpoint to prevent unbounded table growth
     delete from public.ai_usage_logs
     where user_id = p_user_id
+      and endpoint = p_endpoint
       and created_at < now() - p_window_interval;
 
-    -- 4. Count: Count recent requests
+    -- 4. Count: Count recent requests within the window for this specific endpoint
     select count(*)
     into v_recent_count
     from public.ai_usage_logs
     where user_id = p_user_id
+      and endpoint = p_endpoint
       and created_at >= now() - p_window_interval;
 
     if v_recent_count >= p_max_requests then
-        return false; -- Rate limit exceeded
+        return false; -- Rate limit exceeded for this endpoint
     end if;
 
-    -- 5. Record: Insert the new request
+    -- 5. Record: Insert the new request log
     insert into public.ai_usage_logs (user_id, endpoint)
     values (p_user_id, p_endpoint);
 
