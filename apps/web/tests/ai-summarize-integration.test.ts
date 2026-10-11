@@ -1,0 +1,274 @@
+import { describe, it, before, after } from 'node:test';
+import assert from 'node:assert/strict';
+import { createClient } from '@supabase/supabase-js';
+import {
+  assertSafeTestEnvironment,
+  isLocalTestEnvironment,
+} from './support/test-env';
+
+// @ts-expect-error Node.js test runner with custom ESM loader
+import { POST } from '../app/api/ai/summarize/route.ts';
+// @ts-expect-error Node.js test runner with custom ESM loader
+import { setCustomSummarizeGenerator } from './support/ai-mock.ts';
+
+const SUPABASE_URL =
+  process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321';
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+
+const isSafeLocal = isLocalTestEnvironment(SUPABASE_URL);
+
+if (!SERVICE_KEY || !ANON_KEY) {
+  console.warn(
+    '⚠️  [SKIPPED] AI Summarization Integration — Integration test skipped because SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY is not set.',
+  );
+} else if (!isSafeLocal) {
+  console.warn(
+    `⚠️  [SKIPPED] AI Summarization Integration — Integration test refused to run against non-local database (${SUPABASE_URL}) to protect production.`,
+  );
+}
+
+const serviceClient = createClient(SUPABASE_URL, SERVICE_KEY || 'missing', {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
+
+const anonClient = createClient(SUPABASE_URL, ANON_KEY || 'missing', {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
+
+describe(
+  'AI summarization integration',
+  { skip: !SERVICE_KEY || !ANON_KEY || !isSafeLocal },
+  () => {
+    let authorId = '';
+    let authorToken = '';
+
+    before(async () => {
+      assertSafeTestEnvironment(
+        SUPABASE_URL,
+        'AI summarization integration',
+      );
+
+      const email = `test-summary-${crypto.randomUUID()}@kjin.local`;
+
+      const { data: invite, error: inviteError } =
+        await serviceClient
+          .from('employee_invites')
+          .insert({
+            email,
+            role_key: 'author',
+            status: 'sending',
+          })
+          .select('id')
+          .single();
+
+      if (inviteError) throw inviteError;
+
+      const { data: userData, error: userError } =
+        await serviceClient.auth.admin.createUser({
+          email,
+          password: 'test-password-123!',
+          email_confirm: true,
+          user_metadata: {
+            employee_invite_id: invite.id,
+            display_name: 'Summary Test Author',
+          },
+        });
+
+      if (userError) throw userError;
+      authorId = userData.user.id;
+
+      const { data: sessionData, error: signInError } =
+        await anonClient.auth.signInWithPassword({
+          email,
+          password: 'test-password-123!',
+        });
+
+      if (signInError) throw signInError;
+      authorToken = sessionData.session!.access_token;
+    });
+
+    after(async () => {
+      setCustomSummarizeGenerator(null);
+
+      if (authorId) {
+        const { error: logErr } = await serviceClient
+          .from('ai_usage_logs')
+          .delete()
+          .eq('user_id', authorId);
+
+        if (logErr) {
+          console.error('Failed to clean test usage logs:', logErr.message);
+        }
+
+        const { error: deleteError } =
+          await serviceClient.auth.admin.deleteUser(authorId);
+
+        if (deleteError) {
+          console.error('Failed to clean test user:', deleteError.message);
+        }
+      }
+    });
+
+    function makeRequest(content: string) {
+      return new Request(
+        'http://localhost/api/ai/summarize',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${authorToken}`,
+          },
+          body: JSON.stringify({ content }),
+        },
+      );
+    }
+
+    it('rejects unauthenticated requests', async () => {
+      const response = await POST(
+        new Request('http://localhost/api/ai/summarize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: 'A sufficiently long article for testing.',
+          }),
+        }),
+      );
+
+      assert.equal(response.status, 401);
+    });
+
+    it('rejects invalid content before invoking AI', async () => {
+      let generatorCalled = false;
+
+      setCustomSummarizeGenerator(async () => {
+        generatorCalled = true;
+        return { excerpt: 'This should not be returned.' };
+      });
+
+      try {
+        const response = await POST(makeRequest('short'));
+
+        assert.equal(response.status, 400);
+        assert.equal(generatorCalled, false);
+      } finally {
+        setCustomSummarizeGenerator(null);
+      }
+    });
+
+    it('returns 503 when the provider is unavailable', async () => {
+      const originalKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+
+      delete process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+      setCustomSummarizeGenerator(null);
+
+      try {
+        const response = await POST(
+          makeRequest(
+            'The local council announced a new public transport plan today.',
+          ),
+        );
+
+        assert.equal(response.status, 503);
+      } finally {
+        if (originalKey === undefined) {
+          delete process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+        } else {
+          process.env.GOOGLE_GENERATIVE_AI_API_KEY = originalKey;
+        }
+      }
+    });
+
+    it('returns a validated summary and records usage', async () => {
+      const expectedExcerpt =
+        'The council announced a new transport plan for local residents.';
+
+      setCustomSummarizeGenerator(async ({ content }) => {
+        assert.ok(content.includes('public transport'));
+
+        return { excerpt: expectedExcerpt };
+      });
+
+      try {
+        const response = await POST(
+          makeRequest(
+            'The local council announced a new public transport plan today.',
+          ),
+        );
+
+        assert.equal(response.status, 200);
+
+        const result = await response.json();
+        assert.deepEqual(result, { excerpt: expectedExcerpt });
+
+        const { data: logs, error } = await serviceClient
+          .from('ai_usage_logs')
+          .select('id')
+          .eq('user_id', authorId)
+          .eq('endpoint', 'summarize');
+
+        assert.ifError(error);
+        assert.ok(logs && logs.length > 0);
+      } finally {
+        setCustomSummarizeGenerator(null);
+      }
+    });
+
+    it('returns 502 when model or mock produces invalid summary output', async () => {
+      setCustomSummarizeGenerator(async () => {
+        return { excerpt: '' }; // violates min(1)
+      });
+
+      try {
+        const response = await POST(
+          makeRequest(
+            'The local council announced a new public transport plan today.',
+          ),
+        );
+
+        assert.equal(response.status, 502);
+        const data = await response.json();
+        assert.equal(data.error, 'AI generated an invalid summary. Please try again.');
+      } finally {
+        setCustomSummarizeGenerator(null);
+      }
+    });
+
+    it('returns 429 when the summarization quota is exhausted', async () => {
+      setCustomSummarizeGenerator(async () => ({
+        excerpt: 'The generator must not run.',
+      }));
+
+      const { error: clearError } = await serviceClient
+        .from('ai_usage_logs')
+        .delete()
+        .eq('user_id', authorId)
+        .eq('endpoint', 'summarize');
+
+      assert.ifError(clearError);
+
+      const quotaRows = Array.from({ length: 50 }, () => ({
+        user_id: authorId,
+        endpoint: 'summarize',
+      }));
+
+      const { error: insertError } = await serviceClient
+        .from('ai_usage_logs')
+        .insert(quotaRows);
+
+      assert.ifError(insertError);
+
+      try {
+        const response = await POST(
+          makeRequest(
+            'The local council announced a new public transport plan today.',
+          ),
+        );
+
+        assert.equal(response.status, 429);
+      } finally {
+        setCustomSummarizeGenerator(null);
+      }
+    });
+  },
+);

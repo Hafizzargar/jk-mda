@@ -14,7 +14,33 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
 const DraftRequestSchema = z.object({
-  rawFacts: z.string().min(10, 'Input must be at least 10 characters').max(15000, 'Input too long'),
+  rawFacts: z
+    .string()
+    .trim()
+    .min(10, 'Input must be at least 10 characters')
+    .max(15_000, 'Input too long'),
+});
+
+const DraftOutputSchema = z.object({
+  title: z.string().trim().min(1).max(180),
+  excerpt: z.string().trim().min(1).max(500),
+  content: z.string().min(1).max(100_000),
+  slug: z
+    .string()
+    .min(1)
+    .max(200)
+    .regex(
+      /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+      'Slug must contain lowercase letters, numbers and hyphens only',
+    ),
+  category: z.enum([
+    'Politics',
+    'Business',
+    'Sports',
+    'Technology',
+    'General',
+  ]),
+  district: z.string().trim().min(1).max(100).nullable(),
 });
 
 export async function POST(request: Request) {
@@ -97,15 +123,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Rate limiter service returned unexpected result' }, { status: 500 });
     }
 
-    // 7. Invoke Gemini AI model (or custom test generator)
-    let generatedObject: {
-      title: string;
-      excerpt: string;
-      content: string;
-      slug: string;
-      category: string;
-      district: string | null;
-    };
+    // 8. Invoke Gemini AI model (or custom test generator)
+    let generatedObject: unknown;
 
     if (customDraftGenerator) {
       generatedObject = await customDraftGenerator({ rawFacts: parsed.data.rawFacts });
@@ -123,23 +142,33 @@ Your task is to take raw notes, facts, or press releases and draft a professiona
 - 'district' can be null or a valid district name in Kashmir/Jammu if applicable.
 - The tone should be formal, unbiased, and journalistic.`,
         prompt: `Draft a complete news article based on the following raw facts:\n\n${parsed.data.rawFacts}`,
-        schema: z.object({
-          title: z.string().describe('The headline of the article'),
-          excerpt: z.string().describe('A short summary of the article'),
-          content: z.string().describe('The main body of the article formatted as semantic HTML'),
-          slug: z.string().describe('URL-friendly slug (e.g. this-is-a-slug)'),
-          category: z.string().describe('News category'),
-          district: z.string().nullable().describe('Relevant district, or null if global/national'),
-        }),
+        schema: DraftOutputSchema,
       });
       generatedObject = result.object;
     }
 
-    // 8. Sanitize generated HTML content to prevent stored XSS from untrusted model outputs
-    const sanitizedHtml = sanitizeArticleHtml(generatedObject.content);
+    // 9. Validate AI model output before sanitization or returning to client
+    const validatedDraft = DraftOutputSchema.safeParse(generatedObject);
+
+    if (!validatedDraft.success) {
+      console.error(
+        'AI draft output failed validation:',
+        validatedDraft.error.issues,
+      );
+
+      return NextResponse.json(
+        { error: 'AI generated an invalid draft. Please try again.' },
+        { status: 502 },
+      );
+    }
+
+    // 10. Sanitize generated HTML content to prevent stored XSS from untrusted model outputs
+    const sanitizedHtml = sanitizeArticleHtml(
+      validatedDraft.data.content,
+    );
 
     return NextResponse.json({
-      ...generatedObject,
+      ...validatedDraft.data,
       content: sanitizedHtml,
     });
 

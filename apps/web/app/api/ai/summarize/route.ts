@@ -16,6 +16,10 @@ const SummarizeRequestSchema = z.object({
   content: z.string().min(10, 'Content must be at least 10 characters').max(20000, 'Content too long'),
 });
 
+const SummarizeOutputSchema = z.object({
+  excerpt: z.string().trim().min(1).max(500),
+});
+
 export async function POST(request: Request) {
   try {
     const customSummarizeGenerator = getTestSummarizeGenerator();
@@ -96,24 +100,38 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Rate limiter service returned unexpected result' }, { status: 500 });
     }
 
-    // 7. Invoke Gemini AI model (or custom test generator)
-    let generatedObject: { excerpt: string };
+    // 8. Invoke Gemini AI model (or custom test generator)
+    let generatedObject: unknown;
 
     if (customSummarizeGenerator) {
       generatedObject = await customSummarizeGenerator({ content: parsed.data.content });
     } else {
       const result = await generateObject({
         model: google('gemini-2.5-flash'),
-        system: 'You are an expert news editor for KJIN. Summarize the provided article content into a punchy, engaging 1-2 sentence excerpt suitable for a news homepage or social media.',
+        system:
+          'You are an expert news editor for KJIN. Summarize the article into a clear, accurate 1–2 sentence excerpt.',
         prompt: `Summarize this article:\n\n${parsed.data.content}`,
-        schema: z.object({
-          excerpt: z.string().describe('A 1-2 sentence summary of the article'),
-        }),
+        schema: SummarizeOutputSchema,
       });
       generatedObject = result.object;
     }
 
-    return NextResponse.json(generatedObject);
+    // 9. Validate AI summary output before returning
+    const validatedSummary = SummarizeOutputSchema.safeParse(generatedObject);
+
+    if (!validatedSummary.success) {
+      console.error(
+        'AI summary output failed validation:',
+        validatedSummary.error.issues,
+      );
+
+      return NextResponse.json(
+        { error: 'AI generated an invalid summary. Please try again.' },
+        { status: 502 },
+      );
+    }
+
+    return NextResponse.json(validatedSummary.data);
   } catch (error) {
     Sentry.captureException(error);
     console.error('AI Summarize Error:', error);

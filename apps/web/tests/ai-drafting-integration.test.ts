@@ -159,4 +159,34 @@ describe('P0: AI Drafting & Mandatory Review', { skip: !SERVICE_KEY || !ANON_KEY
       setCustomDraftGenerator(null);
     }
   });
+
+  it('returns 502 when model or mock produces invalid draft output', async () => {
+    setCustomDraftGenerator(async () => {
+      return {
+        title: '', // invalid: min(1) violated
+        excerpt: 'Short excerpt',
+        content: '<p>Content</p>',
+        slug: 'INVALID SLUG WITH SPACES', // regex violated
+        category: 'NonExistentCategory' as any, // enum violated
+        district: null,
+      };
+    });
+
+    try {
+      const req = new Request('http://localhost/api/ai/draft', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authorToken}`
+        },
+        body: JSON.stringify({ rawFacts: 'The local municipal council announced a new annual budget in Srinagar.' })
+      });
+      const res = await POST(req);
+      assert.strictEqual(res.status, 502, 'Malformed AI output must be rejected with 502 Bad Gateway');
+      const data = await res.json();
+      assert.strictEqual(data.error, 'AI generated an invalid draft. Please try again.');
+    } finally {
+      setCustomDraftGenerator(null);
+    }
+  });
 });
