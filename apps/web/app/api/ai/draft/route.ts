@@ -30,11 +30,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'AI service configuration error' }, { status: 500 });
     }
 
-    if (!customDraftGenerator && !process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-      console.error('Missing GOOGLE_GENERATIVE_AI_API_KEY in AI draft route');
-      return NextResponse.json({ error: 'AI drafting service is currently unavailable' }, { status: 503 });
-    }
-
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
     });
@@ -71,7 +66,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Validation failed', details: parsed.error.issues }, { status: 400 });
     }
 
-    // 6. Charge quota ONLY after request payload is verified valid
+    // 6. Verify AI provider availability before charging quota
+    if (!customDraftGenerator && !process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+      console.error('Missing GOOGLE_GENERATIVE_AI_API_KEY in AI draft route');
+      return NextResponse.json({ error: 'AI drafting service is currently unavailable' }, { status: 503 });
+    }
+
+    // 7. Charge quota ONLY after request payload is verified valid and AI service is confirmed available
     const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
     const { data: isAllowed, error: rateLimitError } = await serviceClient.rpc('check_ai_rate_limit', {
       p_user_id: user.id,
