@@ -3,7 +3,7 @@
 -- 1. Categories & Districts taxonomy and foreign keys
 -- 2. Tags and article_tags composite uniqueness
 -- 3. Media assets table constraints, draft approval workflow, and non-destructive retention
--- 4. Translation workflow: direct write lockdown, independent publication, dual visibility gate, attribution, and MFA
+-- 4. Translation workflow: direct write lockdown, trigger MFA enforcement, RPC gate, attribution, and dual visibility
 -- 5. Full-text search tsvector generation across English and Urdu Unicode scripts
 --
 -- Lifecycle Integrity:
@@ -13,7 +13,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select extensions.plan(23);
+select extensions.plan(26);
 
 -- Helper functions for true role simulation
 create or replace function pg_temp.assume_employee(p_user_id uuid, p_aal text default 'aal2')
@@ -48,6 +48,20 @@ begin
 end;
 $$;
 
+create or replace function pg_temp.assume_admin_with_jwt(p_user_id uuid, p_aal text default 'aal1')
+returns void language plpgsql as $$
+begin
+  reset role;
+  perform set_config('request.jwt.claim.sub', p_user_id::text, true);
+  perform set_config('request.jwt.claims', jsonb_build_object(
+    'sub', p_user_id::text,
+    'role', 'authenticated',
+    'aal', p_aal,
+    'session_id', gen_random_uuid()::text
+  )::text, true);
+end;
+$$;
+
 -----------------------------------------------------------------------------
 -- Setup Test Users with Valid 32-Hex-Digit (36-char) UUIDs
 -----------------------------------------------------------------------------
@@ -76,7 +90,7 @@ create temp table test_articles (
   name text primary key,
   id uuid not null
 );
-grant select on test_articles to public;
+grant all on test_articles to public, authenticated, anon;
 
 -- 1. Create Published Parent Article (author creates -> submits -> editor publishes with AAL2)
 select pg_temp.assume_employee('10000000-0000-0000-0000-000000000203', 'aal1');
@@ -130,6 +144,9 @@ select public.submit_article_for_review((select id from test_articles where name
 select pg_temp.assume_employee('10000000-0000-0000-0000-000000000201', 'aal2');
 select public.publish_article((select id from test_articles where name = 'archived_parent'));
 select public.archive_article((select id from test_articles where name = 'archived_parent'));
+
+-- Reset to clean admin state before assertions
+select pg_temp.assume_admin();
 
 -----------------------------------------------------------------------------
 -- 1. Test Categories Seed & Lookup (Assertions 1-2)
@@ -202,7 +219,7 @@ select extensions.throws_ok(
 );
 
 -----------------------------------------------------------------------------
--- 4. Test Media Assets Catalog, Approval & Retention (Assertions 8-13)
+-- 4. Test Media Assets Catalog, Approval & Retention (Assertions 8-15)
 -----------------------------------------------------------------------------
 -- Author attempts to upload directly with status = 'published' -> must be blocked
 select pg_temp.assume_employee('10000000-0000-0000-0000-000000000203', 'aal1');
@@ -301,8 +318,68 @@ select extensions.is(
   'Assertion 13: Anonymous reader can see published media assets'
 );
 
+-- Retention & Non-Destructive Deprovisioning: Deleting uploader profile preserves media record with uploaded_by set to NULL
+select pg_temp.assume_admin();
+
+insert into public.employee_invites (id, email, display_name, role_key, reason, status)
+values ('20000000-0000-0000-0000-000000000299', 'p7-retention@test.invalid', 'Phase7 Retention Author', 'author', 'retention test', 'sending')
+on conflict do nothing;
+
+insert into auth.users (id, aud, role, email, encrypted_password, raw_user_meta_data, created_at, updated_at)
+values ('10000000-0000-0000-0000-000000000299', 'authenticated', 'authenticated', 'p7-retention@test.invalid', '', '{"employee_invite_id":"20000000-0000-0000-0000-000000000299"}', now(), now())
+on conflict do nothing;
+
+update public.profiles set role_key = 'author', status = 'active' where id = '10000000-0000-0000-0000-000000000299';
+
+select pg_temp.assume_employee('10000000-0000-0000-0000-000000000299', 'aal1');
+insert into public.media_assets (
+  storage_path, public_url, alt_text_en, mime_type, status, uploaded_by
+)
+values (
+  '2026/10/retention-photo.webp',
+  'https://cdn.kjin.org/news-media/2026/10/retention-photo.webp',
+  'Retention photojournalist photo',
+  'image/webp',
+  'draft',
+  '10000000-0000-0000-0000-000000000299'
+);
+
+select pg_temp.assume_employee('10000000-0000-0000-0000-000000000201', 'aal2');
+update public.media_assets
+set status = 'published'
+where storage_path = '2026/10/retention-photo.webp';
+
+-- Delete author profile as admin
+select pg_temp.assume_admin();
+delete from auth.users where id = '10000000-0000-0000-0000-000000000299';
+
+select extensions.is(
+  (select json_build_object(
+      'exists', count(*) > 0,
+      'uploaded_by', (select uploaded_by from public.media_assets where storage_path = '2026/10/retention-photo.webp')
+   )::text
+   from public.media_assets
+   where storage_path = '2026/10/retention-photo.webp'),
+  json_build_object(
+      'exists', true,
+      'uploaded_by', null
+  )::text,
+  'Assertion 14: Deleting uploader profile preserves media record with uploaded_by set to NULL (ON DELETE SET NULL)'
+);
+
+-- Verify editor can still manage the retained media asset
+select pg_temp.assume_employee('10000000-0000-0000-0000-000000000201', 'aal2');
+select extensions.lives_ok(
+  $$
+    update public.media_assets
+    set credit = 'Preserved Historical Archive / KJIN'
+    where storage_path = '2026/10/retention-photo.webp'
+  $$,
+  'Assertion 15: Editor can manage published media asset even after uploader profile is deleted'
+);
+
 -----------------------------------------------------------------------------
--- 5. Test Translation Workflow, MFA, Lockdown & Visibility (Assertions 14-21)
+-- 5. Test Translation Workflow, MFA, Lockdown & Visibility (Assertions 16-24)
 -----------------------------------------------------------------------------
 -- 5a. Direct Client Mutation Lockdown
 -- Authenticated user attempts direct SQL insert on article_translations -> rejected
@@ -315,11 +392,35 @@ select extensions.throws_ok(
   $$,
   '42501',
   null,
-  'Assertion 14: Direct client mutations on article_translations are rejected by revoked table privileges'
+  'Assertion 16: Direct client mutations on article_translations are rejected by revoked table privileges'
 );
 
--- 5b. MFA Enforcement on Translation Publication via RPC
+-- 5b. Direct Trigger MFA Enforcement (Defense-in-Depth)
+-- Table-privileged context setting status = 'published' with AAL1 -> rejected by trigger
+select pg_temp.assume_admin_with_jwt('10000000-0000-0000-0000-000000000201', 'aal1');
+
+select extensions.throws_ok(
+  $$
+    insert into public.article_translations (
+      article_id, language_code, title, excerpt, content, status
+    )
+    values (
+      (select id from test_articles where name = 'published_parent'),
+      'hi',
+      'बायपास शीर्षक',
+      'बायपास सारांश',
+      'बायपास सामग्री...',
+      'published'
+    )
+  $$,
+  'MFA (AAL2) is strictly required to publish translations',
+  'Assertion 17: Database trigger article_translations_enforce_integrity directly rejects publication when AAL is not aal2'
+);
+
+-- 5c. MFA Enforcement on Translation Publication via RPC
 -- Editor attempts to publish translation with AAL1 -> must throw MFA error
+select pg_temp.assume_employee('10000000-0000-0000-0000-000000000201', 'aal1');
+
 select extensions.throws_ok(
   $$
     select public.upsert_article_translation(
@@ -334,7 +435,7 @@ select extensions.throws_ok(
     )
   $$,
   'MFA (AAL2) is strictly required to publish translations',
-  'Assertion 15: Publishing translation with AAL1 is rejected with MFA required error'
+  'Assertion 18: Publishing translation with AAL1 is rejected with MFA required error via RPC'
 );
 
 -- Editor publishes translation with AAL2 -> succeeds
@@ -353,7 +454,7 @@ select extensions.lives_ok(
       'سری نگر میں صفائی کی مہم'
     )
   $$,
-  'Assertion 16: Publishing translation with AAL2 succeeds'
+  'Assertion 19: Publishing translation with AAL2 succeeds via RPC'
 );
 
 -- Create Draft Hindi translation on Published parent
@@ -386,7 +487,7 @@ select public.upsert_article_translation(
   'published'
 );
 
--- 5c. RLS Dual Visibility Gate Checks under true anon role
+-- 5d. RLS Dual Visibility Gate Checks under true anon role
 select pg_temp.assume_anon();
 
 -- Draft Hindi translation on Published parent -> Hidden
@@ -396,7 +497,7 @@ select extensions.is_empty(
     where article_id = (select id from test_articles where name = 'published_parent')
       and language_code = 'hi'
   $$,
-  'Assertion 17: Anon reader cannot see draft translation even if parent article is published'
+  'Assertion 20: Anon reader cannot see draft translation even if parent article is published'
 );
 
 -- Published Urdu translation on Published parent -> Visible
@@ -405,7 +506,7 @@ select extensions.is(
    where article_id = (select id from test_articles where name = 'published_parent')
      and language_code = 'ur'),
   1,
-  'Assertion 18: Anon reader can see translation when BOTH parent article and translation are published'
+  'Assertion 21: Anon reader can see translation when BOTH parent article and translation are published'
 );
 
 -- Published translation on Draft parent -> Hidden
@@ -415,7 +516,7 @@ select extensions.is_empty(
     where article_id = (select id from test_articles where name = 'draft_parent')
       and language_code = 'ur'
   $$,
-  'Assertion 19: Anon reader cannot see published translation if parent article is draft'
+  'Assertion 22: Anon reader cannot see published translation if parent article is draft'
 );
 
 -- Published translation on Archived parent -> Hidden
@@ -425,10 +526,10 @@ select extensions.is_empty(
     where article_id = (select id from test_articles where name = 'archived_parent')
       and language_code = 'ur'
   $$,
-  'Assertion 20: Anon reader cannot see published translation if parent article is archived'
+  'Assertion 23: Anon reader cannot see published translation if parent article is archived'
 );
 
--- 5d. Test Attribution Immutability and Last Edited By Tracking
+-- 5e. Test Attribution Immutability and Last Edited By Tracking
 select pg_temp.assume_employee('10000000-0000-0000-0000-000000000202', 'aal2');
 
 -- Editor Two updates the Urdu translation on Published parent
@@ -453,17 +554,17 @@ select extensions.is(
       'translator', '10000000-0000-0000-0000-000000000201'::uuid,
       'last_editor', '10000000-0000-0000-0000-000000000202'::uuid
   )::text,
-  'Assertion 21: Original translator_id is preserved while last_edited_by tracks latest editor'
+  'Assertion 24: Original translator_id is preserved while last_edited_by tracks latest editor'
 );
 
 -----------------------------------------------------------------------------
--- 6. Test Full-Text Search tsvector Generation (Assertions 22-23)
+-- 6. Test Full-Text Search tsvector Generation (Assertions 25-26)
 -----------------------------------------------------------------------------
 select extensions.ok(
   (select tsv_search @@ to_tsquery('english', 'conservation')
    from public.articles
    where id = (select id from test_articles where name = 'published_parent')),
-  'Assertion 22: Articles tsv_search matches English query with English stemmer'
+  'Assertion 25: Articles tsv_search matches English query with English stemmer'
 );
 
 select extensions.ok(
@@ -471,7 +572,7 @@ select extensions.ok(
    from public.article_translations
    where article_id = (select id from test_articles where name = 'published_parent')
      and language_code = 'ur'),
-  'Assertion 23: Article translations tsv_search matches Urdu Unicode query with simple parser'
+  'Assertion 26: Article translations tsv_search matches Urdu Unicode query with simple parser'
 );
 
 select * from extensions.finish();

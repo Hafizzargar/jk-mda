@@ -21,6 +21,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
+      console.error('Missing Supabase configuration in AI draft route');
+      return NextResponse.json({ error: 'AI service configuration error' }, { status: 500 });
+    }
+
+    if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+      console.error('Missing GOOGLE_GENERATIVE_AI_API_KEY in AI draft route');
+      return NextResponse.json({ error: 'AI drafting service is currently unavailable' }, { status: 503 });
+    }
+
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } }
     });
@@ -97,6 +107,6 @@ Your task is to take raw notes, facts, or press releases and draft a professiona
   } catch (error) {
     Sentry.captureException(error);
     console.error('AI Draft Error:', error);
-    return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to generate draft. Please try again later.' }, { status: 500 });
   }
 }

@@ -355,15 +355,15 @@ where (lower(trim(coalesce(a.district, ''))) = d.slug or lower(trim(coalesce(a.d
 
 ---
 
-### Rollback Strategy per Migration
+### Rollback Strategy per Migration (Forward-Fix & Non-Destructive)
 
-| Migration | Rollback Action | Risk to Core Articles |
+| Migration | Rollback Action (Forward-Fix) | Risk to Core Data |
 |---|---|---|
-| **M1** | `alter table public.articles drop column if exists category_id, drop column if exists district_id; drop table if exists public.categories, public.districts cascade;` | **Zero.** Core `articles.category` and `articles.district` text columns remain completely intact. |
-| **M2** | `drop table if exists public.article_tags, public.tags cascade;` | **Zero.** Standalone junction and table. |
-| **M3** | `drop table if exists public.media_assets cascade;` | **Zero.** Standalone asset table; `articles.featured_image_url` remains unaffected. |
-| **M4** | `alter table public.article_translations drop column if exists status, drop column if exists translator_id, drop column if exists meta_title, drop column if exists meta_description, drop column if exists published_at, drop column if exists published_by;` (restore prior RLS policy). | **Low.** Original translation text (`title`, `excerpt`, `content`) remains untouched. |
-| **M5** | `alter table public.articles drop column if exists tsv_search; alter table public.article_translations drop column if exists tsv_search;` | **Zero.** Search vectors are purely derived. |
+| **M1** | `ALTER TABLE public.articles DROP CONSTRAINT IF EXISTS articles_category_id_fkey; ALTER TABLE public.articles DROP CONSTRAINT IF EXISTS articles_district_id_fkey; ALTER TABLE public.articles DROP COLUMN IF EXISTS category_id, DROP COLUMN IF EXISTS district_id; DROP TABLE IF EXISTS public.categories; DROP TABLE IF EXISTS public.districts;` | **Zero.** Core `articles.category` and `articles.district` text columns remain completely intact. |
+| **M2** | `DROP TABLE IF EXISTS public.article_tags; DROP TABLE IF EXISTS public.tags;` | **Zero.** Standalone junction and table. |
+| **M3** | `ALTER TABLE public.articles DROP CONSTRAINT IF EXISTS articles_featured_image_id_fkey; ALTER TABLE public.articles DROP COLUMN IF EXISTS featured_image_id; DROP TABLE IF EXISTS public.media_assets;` | **Zero.** Standalone asset table; `articles.featured_image_url` remains unaffected. |
+| **M4** | `ALTER TABLE public.article_translations DROP CONSTRAINT IF EXISTS article_translations_meta_title_len; ALTER TABLE public.article_translations DROP CONSTRAINT IF EXISTS article_translations_meta_desc_len; DROP TRIGGER IF EXISTS article_translations_enforce_integrity ON public.article_translations; DROP FUNCTION IF EXISTS public.article_translations_enforce_integrity; ALTER TABLE public.article_translations DROP COLUMN IF EXISTS status, DROP COLUMN IF EXISTS translator_id, DROP COLUMN IF EXISTS last_edited_by, DROP COLUMN IF EXISTS meta_title, DROP COLUMN IF EXISTS meta_description, DROP COLUMN IF EXISTS published_at, DROP COLUMN IF EXISTS published_by;` (restore prior RLS policy). | **Zero.** Original translation text (`title`, `excerpt`, `content`) remains untouched. |
+| **M5** | `DROP INDEX IF EXISTS idx_articles_tsv_search; DROP INDEX IF EXISTS idx_article_translations_tsv_search; ALTER TABLE public.articles DROP COLUMN IF EXISTS tsv_search; ALTER TABLE public.article_translations DROP COLUMN IF EXISTS tsv_search;` | **Zero.** Search vectors are purely derived. |
 
 ---
 
@@ -372,5 +372,5 @@ where (lower(trim(coalesce(a.district, ''))) = d.slug or lower(trim(coalesce(a.d
 - [x] Step 1: Audit existing database schema and migrations.
 - [x] Step 2: Finalize schema design and entity relationships.
 - [x] Step 3: Complete gap analysis and migration sequence planning.
-- [ ] Step 4: Author migration SQL files in `supabase/migrations/` (M1 through M5).
-- [ ] Step 5: Write and execute tests to verify RLS, translation visibility, and zero regression against existing web application queries.
+- [x] Step 4: Author migration SQL files in `supabase/migrations/` (M1 through M5).
+- [x] Step 5: Write and execute tests to verify RLS, translation visibility, and zero regression against existing web application queries (26 pgTAP assertions + web/admin builds + typecheck).
