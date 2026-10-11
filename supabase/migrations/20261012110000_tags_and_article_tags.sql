@@ -63,3 +63,6 @@ ON public.article_tags FOR ALL
 TO authenticated
 USING (public.user_has_editor_access())
 WITH CHECK (public.user_has_editor_access());
+
+GRANT SELECT ON public.tags, public.article_tags TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.tags, public.article_tags TO authenticated;

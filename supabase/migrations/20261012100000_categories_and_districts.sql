@@ -45,6 +45,9 @@ TO authenticated
 USING (public.user_has_editor_access())
 WITH CHECK (public.user_has_editor_access());
 
+GRANT SELECT ON public.categories TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.categories TO authenticated;
+
 -- 2. Seed canonical categories (9 categories from apps/web/lib/taxonomy.ts)
 INSERT INTO public.categories (slug, name_en, name_ur, name_hi, description, display_order)
 VALUES
@@ -99,6 +102,9 @@ ON public.districts FOR ALL
 TO authenticated
 USING (public.user_has_editor_access())
 WITH CHECK (public.user_has_editor_access());
+
+GRANT SELECT ON public.districts TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.districts TO authenticated;
 
 -- 4. Seed official 20 J&K districts (from apps/web/lib/taxonomy.ts)
 INSERT INTO public.districts (slug, name_en, name_ur, name_hi, division, display_order)

@@ -1,26 +1,30 @@
 -- Migration 4: Translation Workflow & Independent Publication Lifecycle
 -- Decouples Urdu and Hindi translation visibility from automatic publication,
--- adds translator attribution, independent status, and SEO metadata.
+-- adds translator attribution, independent status, editor tracking, and SEO metadata.
 --
--- Safety Notice:
--- Existing translations are deliberately backfilled to match parent article publication status
--- BEFORE enabling the new RLS policy, guaranteeing zero content disappearance or exposure leak.
+-- Security & Integrity Enhancements:
+-- 1. Deliberate backfill runs BEFORE enabling new RLS policy.
+-- 2. translator_id preserves original translator attribution.
+-- 3. last_edited_by tracks the latest modifier.
+-- 4. MFA (AAL2) is strictly enforced when publishing translations.
 --
 -- Rollback Strategy (Forward-Fix):
 -- ALTER TABLE public.article_translations DROP CONSTRAINT IF EXISTS article_translations_meta_title_len;
 -- ALTER TABLE public.article_translations DROP CONSTRAINT IF EXISTS article_translations_meta_desc_len;
 -- ALTER TABLE public.article_translations DROP COLUMN IF EXISTS status;
 -- ALTER TABLE public.article_translations DROP COLUMN IF EXISTS translator_id;
+-- ALTER TABLE public.article_translations DROP COLUMN IF EXISTS last_edited_by;
 -- ALTER TABLE public.article_translations DROP COLUMN IF EXISTS meta_title;
 -- ALTER TABLE public.article_translations DROP COLUMN IF EXISTS meta_description;
 -- ALTER TABLE public.article_translations DROP COLUMN IF EXISTS published_at;
 -- ALTER TABLE public.article_translations DROP COLUMN IF EXISTS published_by;
 -- (Restore previous policy "Translations are readable if article is readable").
 
--- 1. Add workflow and metadata columns to article_translations
+-- 1. Add workflow, attribution, and SEO columns to article_translations
 ALTER TABLE public.article_translations
   ADD COLUMN IF NOT EXISTS status public.article_status DEFAULT 'draft',
   ADD COLUMN IF NOT EXISTS translator_id uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
+  ADD COLUMN IF NOT EXISTS last_edited_by uuid REFERENCES public.profiles(id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS meta_title text,
   ADD COLUMN IF NOT EXISTS meta_description text,
   ADD COLUMN IF NOT EXISTS published_at timestamptz,
@@ -32,6 +36,7 @@ ALTER TABLE public.article_translations
 
 CREATE INDEX IF NOT EXISTS idx_article_translations_status ON public.article_translations (status);
 CREATE INDEX IF NOT EXISTS idx_article_translations_translator ON public.article_translations (translator_id);
+CREATE INDEX IF NOT EXISTS idx_article_translations_last_edited_by ON public.article_translations (last_edited_by);
 
 -- 2. DELIBERATE BACKFILL: Synchronize existing translation status with parent article status
 -- Prior to this migration, any translation of a published article was treated as public.
@@ -78,9 +83,12 @@ USING (
     OR translator_id = (SELECT auth.uid())
 );
 
+GRANT SELECT ON public.article_translations TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.article_translations TO authenticated;
+
 -- 5. Updated RPC: upsert_article_translation
--- Replaces previous RPC signature to support translation status and SEO metadata
 DROP FUNCTION IF EXISTS public.upsert_article_translation(uuid, text, text, text, text);
+DROP FUNCTION IF EXISTS public.upsert_article_translation(uuid, text, text, text, text, public.article_status, text, text);
 
 CREATE OR REPLACE FUNCTION public.upsert_article_translation(
     p_article_id uuid,
@@ -116,6 +124,11 @@ BEGIN
         RAISE EXCEPTION 'Parent article not found';
     END IF;
 
+    -- Strict MFA enforcement when publishing translations
+    IF p_status = 'published' AND COALESCE((SELECT auth.jwt() ->> 'aal'), '') <> 'aal2' THEN
+        RAISE EXCEPTION 'MFA (AAL2) is strictly required to publish translations';
+    END IF;
+
     IF p_status = 'published' THEN
         v_published_at := now();
         v_published_by := actor_uid;
@@ -123,12 +136,12 @@ BEGIN
 
     INSERT INTO public.article_translations (
         article_id, language_code, title, excerpt, content,
-        status, translator_id, meta_title, meta_description,
+        status, translator_id, last_edited_by, meta_title, meta_description,
         published_at, published_by
     )
     VALUES (
         p_article_id, p_language_code, trim(p_title), trim(COALESCE(p_excerpt, '')), trim(p_content),
-        p_status, actor_uid, nullif(trim(COALESCE(p_meta_title, '')), ''), nullif(trim(COALESCE(p_meta_description, '')), ''),
+        p_status, actor_uid, actor_uid, nullif(trim(COALESCE(p_meta_title, '')), ''), nullif(trim(COALESCE(p_meta_description, '')), ''),
         v_published_at, v_published_by
     )
     ON CONFLICT (article_id, language_code)
@@ -137,6 +150,9 @@ BEGIN
         excerpt = excluded.excerpt,
         content = excluded.content,
         status = excluded.status,
+        -- Preserve original translator_id; track modifier in last_edited_by
+        translator_id = COALESCE(public.article_translations.translator_id, excluded.translator_id),
+        last_edited_by = actor_uid,
         meta_title = excluded.meta_title,
         meta_description = excluded.meta_description,
         published_at = CASE WHEN excluded.status = 'published' THEN COALESCE(public.article_translations.published_at, now()) ELSE NULL END,

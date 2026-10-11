@@ -154,26 +154,29 @@ create table if not exists public.media_assets (
     alt_text_hi text,
     caption text,
     credit text,
+    status text not null default 'published' check (status in ('draft', 'published', 'archived')),
     width integer check (width is null or width > 0),
     height integer check (height is null or height > 0),
     file_size_bytes bigint check (file_size_bytes is null or file_size_bytes > 0),
-    mime_type text not null check (mime_type in ('image/jpeg', 'image/png', 'image/webp', 'image/avif', 'image/svg+xml')),
-    uploaded_by uuid references public.profiles(id) on delete set null,
+    mime_type text not null check (mime_type in ('image/jpeg', 'image/png', 'image/webp', 'image/avif')),
+    uploaded_by uuid not null references public.profiles(id) on delete cascade,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
 
+create index if not exists idx_media_assets_status on public.media_assets (status);
 create index if not exists idx_media_assets_uploaded_by on public.media_assets (uploaded_by);
 create index if not exists idx_media_assets_created_at on public.media_assets (created_at desc);
 ```
 
 ### 3.6 Enhanced `public.article_translations`
-Extends the existing table to support independent publication status, translator attribution, and localized SEO meta headers.
+Extends the existing table to support independent publication status, translator attribution, last editor tracking, and localized SEO meta headers.
 
 ```sql
 alter table public.article_translations
     add column if not exists status public.article_status not null default 'draft',
     add column if not exists translator_id uuid references public.profiles(id) on delete set null,
+    add column if not exists last_edited_by uuid references public.profiles(id) on delete set null,
     add column if not exists meta_title text,
     add column if not exists meta_description text,
     add column if not exists published_at timestamptz,
