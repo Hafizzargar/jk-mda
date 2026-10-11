@@ -24,21 +24,26 @@ export type SummarizeGenerator = (options: {
   content: string;
 }) => Promise<SummarizeResult>;
 
-let customDraftGenerator: DraftGenerator | null = null;
-let customSummarizeGenerator: SummarizeGenerator | null = null;
-
-export function getCustomDraftGenerator(): DraftGenerator | null {
-  return customDraftGenerator;
+/**
+ * Retrieves a test mock generator if registered during automated tests.
+ * In production (NODE_ENV === 'production'), always returns null to ensure live AI provider is used.
+ */
+export function getTestDraftGenerator(): DraftGenerator | null {
+  if (process.env.NODE_ENV === 'production') {
+    return null;
+  }
+  const globalStore = globalThis as { __KJIN_TEST_DRAFT_GENERATOR__?: DraftGenerator | null };
+  return globalStore.__KJIN_TEST_DRAFT_GENERATOR__ ?? null;
 }
 
-export function setCustomDraftGenerator(generator: DraftGenerator | null): void {
-  customDraftGenerator = generator;
-}
-
-export function getCustomSummarizeGenerator(): SummarizeGenerator | null {
-  return customSummarizeGenerator;
-}
-
-export function setCustomSummarizeGenerator(generator: SummarizeGenerator | null): void {
-  customSummarizeGenerator = generator;
+/**
+ * Retrieves a test mock generator if registered during automated tests.
+ * In production (NODE_ENV === 'production'), always returns null to ensure live AI provider is used.
+ */
+export function getTestSummarizeGenerator(): SummarizeGenerator | null {
+  if (process.env.NODE_ENV === 'production') {
+    return null;
+  }
+  const globalStore = globalThis as { __KJIN_TEST_SUMMARIZE_GENERATOR__?: SummarizeGenerator | null };
+  return globalStore.__KJIN_TEST_SUMMARIZE_GENERATOR__ ?? null;
 }

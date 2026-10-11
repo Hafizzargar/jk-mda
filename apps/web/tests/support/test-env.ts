@@ -22,34 +22,75 @@ export function getApprovedStagingProjectIds(): string[] {
   return Array.from(new Set([...APPROVED_STAGING_PROJECT_IDS, ...envExtra]));
 }
 
-export function extractProjectIdentifier(supabaseUrl: string): string | null {
-  if (!supabaseUrl) return null;
+/**
+ * Approved exact local hostnames for loopback / local development.
+ */
+export const APPROVED_LOCAL_HOSTNAMES: readonly string[] = [
+  'localhost',
+  '127.0.0.1',
+  '0.0.0.0',
+  '::1',
+];
+
+/**
+ * Approved exact Docker / container network hostnames used in local CI or Supabase CLI containers.
+ */
+export const APPROVED_DOCKER_HOSTNAMES: readonly string[] = [
+  'kong',
+  'supabase_kong',
+  'host.docker.internal',
+];
+
+/**
+ * Safely parses the hostname from an input URL or host string.
+ * Strips port numbers, square brackets from IPv6, and normalizes to lowercase.
+ */
+export function extractHostname(rawUrl: string): string | null {
+  if (!rawUrl || typeof rawUrl !== 'string') return null;
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return null;
+
   try {
-    const url = new URL(supabaseUrl);
-    const hostname = url.hostname.toLowerCase();
-    const parts = hostname.split('.');
-    if (parts.length >= 3 && hostname.endsWith('supabase.co')) {
-      return parts[0];
+    const hasProtocol = /^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(trimmed);
+    const parsed = new URL(hasProtocol ? trimmed : `http://${trimmed}`);
+    let hostname = parsed.hostname.toLowerCase();
+    // Normalize IPv6 bracketed hosts, e.g. [::1] -> ::1
+    if (hostname.startsWith('[') && hostname.endsWith(']')) {
+      hostname = hostname.slice(1, -1);
     }
     return hostname;
   } catch {
-    const lower = supabaseUrl.toLowerCase();
-    const match = lower.match(/(?:https?:\/\/)?([a-z0-9-]+)\.supabase\.co/);
-    if (match) return match[1];
     return null;
   }
 }
 
+export function extractProjectIdentifier(supabaseUrl: string): string | null {
+  if (!supabaseUrl) return null;
+  const hostname = extractHostname(supabaseUrl);
+  if (!hostname) return null;
+
+  const parts = hostname.split('.');
+  if (parts.length >= 3 && hostname.endsWith('.supabase.co')) {
+    return parts[0];
+  }
+  return hostname;
+}
+
 export function isLocalHost(supabaseUrl: string): boolean {
-  if (!supabaseUrl) return false;
-  const url = supabaseUrl.toLowerCase();
-  return (
-    url.includes('localhost') ||
-    url.includes('127.0.0.1') ||
-    url.includes('0.0.0.0') ||
-    url.includes('kong:8000') ||
-    url.includes('supabase_kong')
-  );
+  const hostname = extractHostname(supabaseUrl);
+  if (!hostname) return false;
+
+  // 1. Check exact approved local loopback hostnames
+  if (APPROVED_LOCAL_HOSTNAMES.includes(hostname)) {
+    return true;
+  }
+
+  // 2. Check exact approved local Docker network hostnames
+  if (APPROVED_DOCKER_HOSTNAMES.includes(hostname)) {
+    return true;
+  }
+
+  return false;
 }
 
 export function isApprovedStagingEnvironment(supabaseUrl: string): boolean {

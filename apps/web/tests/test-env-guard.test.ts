@@ -5,6 +5,10 @@ import {
   assertSafeTestEnvironment,
   isApprovedStagingEnvironment,
   extractProjectIdentifier,
+  extractHostname,
+  isLocalHost,
+  APPROVED_LOCAL_HOSTNAMES,
+  APPROVED_DOCKER_HOSTNAMES,
   PRODUCTION_PROJECT_ID,
 } from './support/test-env';
 
@@ -13,6 +17,39 @@ describe('P0: Integration Test Safety Guard & Staging Allowlist', () => {
     assert.strictEqual(extractProjectIdentifier('https://ptvfidufwlswbjgsjvzl.supabase.co'), 'ptvfidufwlswbjgsjvzl');
     assert.strictEqual(extractProjectIdentifier('https://kjin-staging-test.supabase.co'), 'kjin-staging-test');
     assert.strictEqual(extractProjectIdentifier('http://127.0.0.1:54321'), '127.0.0.1');
+  });
+
+  it('safely parses and extracts normalized hostnames', () => {
+    assert.strictEqual(extractHostname('http://localhost:54321'), 'localhost');
+    assert.strictEqual(extractHostname('https://notlocalhost.example/path'), 'notlocalhost.example');
+    assert.strictEqual(extractHostname('http://[::1]:54321'), '::1');
+    assert.strictEqual(extractHostname('kong:8000'), 'kong');
+    assert.strictEqual(extractHostname(''), null);
+  });
+
+  it('strictly rejects remote hostnames containing localhost or docker names as substrings', () => {
+    // Substring attacks that previously could bypass .includes('localhost')
+    const deceptiveUrls = [
+      'https://notlocalhost.example',
+      'https://localhost.attacker.com',
+      'https://attacker.com/localhost',
+      'https://attacker.com?ref=localhost',
+      'https://not127.0.0.1.example',
+      'https://attacker.com?ip=127.0.0.1',
+      'https://not-kong.example:8000',
+      'https://evil-supabase_kong.com',
+      'https://host.docker.internal.attacker.com',
+    ];
+
+    for (const deceptiveUrl of deceptiveUrls) {
+      assert.strictEqual(isLocalHost(deceptiveUrl), false, `Must reject deceptive URL: ${deceptiveUrl}`);
+      assert.strictEqual(isLocalTestEnvironment(deceptiveUrl), false, `isLocalTestEnvironment must reject: ${deceptiveUrl}`);
+      assert.throws(
+        () => assertSafeTestEnvironment(deceptiveUrl, 'Deceptive Suite'),
+        /refused to run against non-local database/,
+        `assertSafeTestEnvironment must throw for: ${deceptiveUrl}`
+      );
+    }
   });
 
   it('permanently blocks production database under all conditions', () => {

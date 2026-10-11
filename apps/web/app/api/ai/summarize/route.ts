@@ -6,7 +6,7 @@ import { createClient } from '@supabase/supabase-js';
 import { readBoundedStream } from '../../../../lib/request-utils';
 import * as Sentry from '@sentry/nextjs';
 
-import { getCustomSummarizeGenerator } from '../../../../lib/ai-provider';
+import { getTestSummarizeGenerator } from '../../../../lib/ai-provider';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -18,7 +18,7 @@ const SummarizeRequestSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    const customSummarizeGenerator = getCustomSummarizeGenerator();
+    const customSummarizeGenerator = getTestSummarizeGenerator();
     const authHeader = request.headers.get('Authorization');
     if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

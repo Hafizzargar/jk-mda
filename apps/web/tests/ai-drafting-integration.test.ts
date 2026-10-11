@@ -5,7 +5,7 @@ import { assertSafeTestEnvironment, isLocalTestEnvironment } from './support/tes
 // @ts-expect-error Node.js test runner with custom ESM loader
 import { POST } from '../app/api/ai/draft/route.ts';
 // @ts-expect-error Node.js test runner with custom ESM loader
-import { setCustomDraftGenerator } from '../lib/ai-provider.ts';
+import { setCustomDraftGenerator } from './support/ai-mock.ts';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321';
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';

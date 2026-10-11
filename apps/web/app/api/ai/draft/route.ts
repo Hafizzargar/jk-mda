@@ -7,7 +7,7 @@ import { readBoundedStream } from '../../../../lib/request-utils';
 import { sanitizeArticleHtml } from '../../../../lib/sanitize';
 import * as Sentry from '@sentry/nextjs';
 
-import { getCustomDraftGenerator } from '../../../../lib/ai-provider';
+import { getTestDraftGenerator } from '../../../../lib/ai-provider';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -19,7 +19,7 @@ const DraftRequestSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    const customDraftGenerator = getCustomDraftGenerator();
+    const customDraftGenerator = getTestDraftGenerator();
     const authHeader = request.headers.get('Authorization');
     if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
