@@ -8,7 +8,7 @@ on:
 
 jobs:
   build_and_test:
-    name: Build & Test
+    name: Build & Test Applications
     runs-on: ubuntu-latest
 
     steps:
@@ -48,3 +48,46 @@ jobs:
         env:
           NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co"
           NEXT_PUBLIC_SUPABASE_ANON_KEY: "dummy-key"
+
+  database_and_migrations:
+    name: Database Migrations & pgTAP Verification
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Start Local Supabase Container
+        run: supabase start
+
+      - name: Run Migration History & pgTAP Suite
+        run: supabase test db
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 11.25.0
+
+      - name: Install Dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Execute Integration Tests Against Local Supabase
+        run: |
+          API_URL=$(supabase status -o json | jq -r .API_URL)
+          ANON_KEY=$(supabase status -o json | jq -r .ANON_KEY)
+          SERVICE_ROLE_KEY=$(supabase status -o json | jq -r .SERVICE_ROLE_KEY)
+          
+          NEXT_PUBLIC_SUPABASE_URL="$API_URL" \
+          NEXT_PUBLIC_SUPABASE_ANON_KEY="$ANON_KEY" \
+          SUPABASE_SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY" \
+          pnpm --filter @kjin/web test

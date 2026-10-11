@@ -1,13 +1,22 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createClient } from '@supabase/supabase-js';
+import { assertSafeTestEnvironment, isLocalTestEnvironment } from './support/test-env';
 // @ts-expect-error Node.js test runner with custom ESM loader
 import { POST } from '../app/api/newsletter/subscribe/route.ts';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321';
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-describe('P1: Newsletter Subscription Integration', { skip: !SERVICE_KEY }, () => {
+const isSafeLocal = isLocalTestEnvironment(SUPABASE_URL);
+
+if (!SERVICE_KEY) {
+  console.warn('⚠️  [SKIPPED] P1: Newsletter Subscription Integration — Integration test skipped because SUPABASE_SERVICE_ROLE_KEY is not set.');
+} else if (!isSafeLocal) {
+  console.warn(`⚠️  [SKIPPED] P1: Newsletter Subscription Integration — Integration test refused to run against non-local database (${SUPABASE_URL}) to protect production.`);
+}
+
+describe('P1: Newsletter Subscription Integration', { skip: !SERVICE_KEY || !isSafeLocal }, () => {
   const serviceClient = createClient(SUPABASE_URL, SERVICE_KEY);
   const testIp = '203.0.113.99';
   const testEmail = `test-newsletter-${Date.now()}@example.com`;
@@ -16,6 +25,7 @@ describe('P1: Newsletter Subscription Integration', { skip: !SERVICE_KEY }, () =
   const testEmails = [testEmail, `second-${testEmail}`, `third-${testEmail}`, `fourth-${testEmail}`];
 
   before(async () => {
+    assertSafeTestEnvironment(SUPABASE_URL, 'P1: Newsletter Subscription Integration');
     // Ensure clean state for test IP and email
     const { error: ipError } = await serviceClient.from('newsletter_ip_rate_limit').delete().in('ip_address', testIps);
     const { error: emailError } = await serviceClient.from('newsletter_subscribers').delete().in('email', testEmails);

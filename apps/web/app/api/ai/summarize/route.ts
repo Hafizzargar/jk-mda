@@ -35,38 +35,25 @@ export async function POST(request: Request) {
       global: { headers: { Authorization: authHeader } }
     });
 
+    // 1. Authenticate user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Permission check
+    // 2. Authorize user (article.create permission)
     const { data: hasPerm } = await supabase.rpc('has_permission', { p_permission_key: 'article.create' });
     if (!hasPerm) {
       return NextResponse.json({ error: 'Permission denied: article.create required' }, { status: 403 });
     }
 
-    // Shared Database AI Rate Limiter (max 50 requests per 15 minutes) - Called via Service Role
-    const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
-    
-    const { data: isAllowed, error: rateLimitError } = await serviceClient.rpc('check_ai_rate_limit', {
-      p_user_id: user.id,
-      p_endpoint: 'summarize',
-      p_max_requests: 50,
-      p_window_interval: '15 minutes'
-    });
-    
-    if (rateLimitError || !isAllowed) {
-      return NextResponse.json({ error: 'Too many requests, please try again later.' }, { status: 429 });
-    }
-
-    // Input size limiting using bounded stream (max 50KB for content)
+    // 3. Read and enforce body stream size limit (max 50KB for content) BEFORE charging quota
     const { text, error: streamError } = await readBoundedStream(request, 50 * 1024);
     if (streamError || !text) {
       return NextResponse.json({ error: streamError || 'Empty request body' }, { status: 413 });
     }
 
-    // Zod validation
+    // 4. Validate JSON payload BEFORE charging quota
     let body;
     try {
       body = JSON.parse(text);
@@ -74,11 +61,33 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
     }
 
+    // 5. Validate schema bounds BEFORE charging quota
     const parsed = SummarizeRequestSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: 'Validation failed', details: parsed.error.issues }, { status: 400 });
     }
 
+    // 6. Charge quota ONLY after request payload is verified valid
+    const serviceClient = createClient(supabaseUrl, supabaseServiceKey);
+    const { data: isAllowed, error: rateLimitError } = await serviceClient.rpc('check_ai_rate_limit', {
+      p_user_id: user.id,
+      p_endpoint: 'summarize',
+      p_max_requests: 50,
+      p_window_interval: '15 minutes'
+    });
+    
+    // Distinguish rate limiter infrastructure errors (500) from quota exhaustion (429)
+    if (rateLimitError) {
+      Sentry.captureException(rateLimitError);
+      console.error('AI rate limiter RPC failure in summarize:', rateLimitError);
+      return NextResponse.json({ error: 'Rate limiter service temporarily unavailable' }, { status: 500 });
+    }
+
+    if (!isAllowed) {
+      return NextResponse.json({ error: 'Too many requests, please try again later.' }, { status: 429 });
+    }
+
+    // 7. Invoke Gemini AI model
     const result = await generateObject({
       model: google('gemini-2.5-flash'),
       system: 'You are an expert news editor for KJIN. Summarize the provided article content into a punchy, engaging 1-2 sentence excerpt suitable for a news homepage or social media.',

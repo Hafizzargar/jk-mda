@@ -1,5 +1,6 @@
 -- Migration: AI Rate Limiting
--- Enforces isolated per-endpoint rate limiting with advisory locking and automatic window cleanup.
+-- Enforces isolated per-endpoint rate limiting with advisory locking,
+-- per-user window pruning, and a dedicated global retention cleanup procedure.
 
 create table if not exists public.ai_usage_logs (
     id uuid primary key default gen_random_uuid(),
@@ -11,6 +12,7 @@ create table if not exists public.ai_usage_logs (
 -- Indexes for fast composite queries on user + endpoint + time window
 create index if not exists ai_usage_logs_user_created_at_idx on public.ai_usage_logs (user_id, created_at);
 create index if not exists ai_usage_logs_user_endpoint_created_idx on public.ai_usage_logs (user_id, endpoint, created_at);
+create index if not exists ai_usage_logs_created_at_idx on public.ai_usage_logs (created_at);
 
 -- Set up RLS (accessed via backend service role)
 alter table public.ai_usage_logs enable row level security;
@@ -34,13 +36,20 @@ begin
     -- Hash user UUID and endpoint name together so concurrent requests across different endpoints do not block each other
     perform pg_advisory_xact_lock(hashtext(p_user_id::text || ':' || coalesce(p_endpoint, 'default')));
 
-    -- 3. Cleanup: Delete expired logs for this user and endpoint to prevent unbounded table growth
+    -- 3. Cleanup: Delete expired logs for this specific user and endpoint
     delete from public.ai_usage_logs
     where user_id = p_user_id
       and endpoint = p_endpoint
       and created_at < now() - p_window_interval;
 
-    -- 4. Count: Count recent requests within the window for this specific endpoint
+    -- 4. Opportunistic Global Maintenance: Purge stale logs older than 7 days probabilistically (~2% of calls)
+    -- This bounds overall table size even when dedicated cron jobs are paused
+    if random() < 0.02 then
+        delete from public.ai_usage_logs
+        where created_at < now() - interval '7 days';
+    end if;
+
+    -- 5. Count: Count recent requests within the window for this specific endpoint
     select count(*)
     into v_recent_count
     from public.ai_usage_logs
@@ -52,7 +61,7 @@ begin
         return false; -- Rate limit exceeded for this endpoint
     end if;
 
-    -- 5. Record: Insert the new request log
+    -- 6. Record: Insert the new request log
     insert into public.ai_usage_logs (user_id, endpoint)
     values (p_user_id, p_endpoint);
 
@@ -60,7 +69,30 @@ begin
 end;
 $$ language plpgsql security definer set search_path = '';
 
+-- Dedicated Global Maintenance Cleanup: Purges expired usage logs across all users and endpoints
+create or replace function public.cleanup_ai_usage_logs(
+    p_retention_window interval default '7 days'
+) returns bigint as $$
+declare
+    v_deleted_count bigint;
+begin
+    -- Authorization: Restrict to service_role or admin
+    if auth.role() != 'service_role' and not public.user_has_editor_access() then
+        raise exception 'Unauthorized: Service role or admin access required for maintenance cleanup.';
+    end if;
+
+    delete from public.ai_usage_logs
+    where created_at < now() - p_retention_window;
+
+    get diagnostics v_deleted_count = row_count;
+    return v_deleted_count;
+end;
+$$ language plpgsql security definer set search_path = '';
+
 -- Revoke default execute permissions
 revoke all on function public.check_ai_rate_limit(uuid, text, int, interval) from public, anon, authenticated;
+revoke all on function public.cleanup_ai_usage_logs(interval) from public, anon, authenticated;
+
 -- Grant explicitly only to service_role
 grant execute on function public.check_ai_rate_limit(uuid, text, int, interval) to service_role;
+grant execute on function public.cleanup_ai_usage_logs(interval) to service_role;

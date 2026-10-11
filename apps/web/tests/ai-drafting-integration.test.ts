@@ -1,17 +1,22 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createClient } from '@supabase/supabase-js';
+import { assertSafeTestEnvironment, isLocalTestEnvironment } from './support/test-env';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321';
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const APP_URL = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
+const isSafeLocal = isLocalTestEnvironment(SUPABASE_URL);
+
 if (!SERVICE_KEY || !ANON_KEY) {
   console.warn('⚠️  [SKIPPED] P0: AI Drafting & Mandatory Review — Integration test skipped because SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY is not set.');
+} else if (!isSafeLocal) {
+  console.warn(`⚠️  [SKIPPED] P0: AI Drafting & Mandatory Review — Integration test refused to run against non-local database (${SUPABASE_URL}) to protect production.`);
 }
 
-describe('P0: AI Drafting & Mandatory Review', { skip: !SERVICE_KEY || !ANON_KEY }, () => {
+describe('P0: AI Drafting & Mandatory Review', { skip: !SERVICE_KEY || !ANON_KEY || !isSafeLocal }, () => {
   const serviceClient = createClient(SUPABASE_URL, SERVICE_KEY);
   const anonClient = createClient(SUPABASE_URL, ANON_KEY, {
     auth: { persistSession: false, autoRefreshToken: false }
@@ -21,6 +26,7 @@ describe('P0: AI Drafting & Mandatory Review', { skip: !SERVICE_KEY || !ANON_KEY
   let authorId: string;
 
   before(async () => {
+    assertSafeTestEnvironment(SUPABASE_URL, 'P0: AI Drafting & Mandatory Review');
     // 1. Create Author
     const authorInviteId = crypto.randomUUID();
     const authorEmail = `test-author-ai-${Date.now()}@kjin.local`;

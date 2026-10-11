@@ -16,5 +16,14 @@ export async function resolve(specifier, context, nextResolve) {
   if (specifier === 'next/server') {
     return { url: pathToFileURL(path.join(WEB_ROOT, 'tests', 'support', 'next-server-mock.mjs')).href, shortCircuit: true };
   }
+  if ((specifier.startsWith('./') || specifier.startsWith('../')) && context.parentURL) {
+    const parentDir = path.dirname(fileURLToPath(context.parentURL));
+    const base = path.resolve(parentDir, specifier);
+    for (const candidate of [`${base}.ts`, `${base}.tsx`, `${base}.mjs`, path.join(base, 'index.ts')]) {
+      if (existsSync(candidate)) {
+        return { url: pathToFileURL(candidate).href, shortCircuit: true };
+      }
+    }
+  }
   return nextResolve(specifier, context);
 }

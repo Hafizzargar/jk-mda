@@ -1,12 +1,21 @@
 import { describe, it, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createClient } from '@supabase/supabase-js';
+import { assertSafeTestEnvironment, isLocalTestEnvironment } from './support/test-env';
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://localhost:54321';
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-describe('P0: View Counter Security & Rate Limiting Integration', { skip: !SERVICE_KEY || !ANON_KEY }, () => {
+const isSafeLocal = isLocalTestEnvironment(SUPABASE_URL);
+
+if (!SERVICE_KEY || !ANON_KEY) {
+  console.warn('⚠️  [SKIPPED] P0: View Counter Security & Rate Limiting Integration — Integration test skipped because SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_ANON_KEY is not set.');
+} else if (!isSafeLocal) {
+  console.warn(`⚠️  [SKIPPED] P0: View Counter Security & Rate Limiting Integration — Integration test refused to run against non-local database (${SUPABASE_URL}) to protect production.`);
+}
+
+describe('P0: View Counter Security & Rate Limiting Integration', { skip: !SERVICE_KEY || !ANON_KEY || !isSafeLocal }, () => {
   const anonClient = createClient(SUPABASE_URL, ANON_KEY);
   const serviceClient = createClient(SUPABASE_URL, SERVICE_KEY);
 
@@ -16,6 +25,7 @@ describe('P0: View Counter Security & Rate Limiting Integration', { skip: !SERVI
   let authorClient: any;
 
   before(async () => {
+    assertSafeTestEnvironment(SUPABASE_URL, 'P0: View Counter Security & Rate Limiting Integration');
     // 1. Create employee invitation to satisfy trigger requirements
     const inviteId = crypto.randomUUID();
     const email = `test-author-${Date.now()}@kjin.local`;
