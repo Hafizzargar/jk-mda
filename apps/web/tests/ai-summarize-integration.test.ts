@@ -90,8 +90,11 @@ describe(
       if (confirmErr) throw confirmErr;
 
       // Ensure profile is marked active and invite accepted
-      await serviceClient.from('profiles').update({ status: 'active' }).eq('id', authorId);
-      await serviceClient.from('employee_invites').update({ status: 'accepted' }).eq('id', authorInviteId);
+      const { error: profileErr } = await serviceClient.from('profiles').update({ status: 'active' }).eq('id', authorId);
+      if (profileErr) throw profileErr;
+
+      const { error: inviteUpdateErr } = await serviceClient.from('employee_invites').update({ status: 'accepted' }).eq('id', authorInviteId);
+      if (inviteUpdateErr) throw inviteUpdateErr;
 
       // 4. Authenticate as Author
       const { data: sessionData, error: signInError } =

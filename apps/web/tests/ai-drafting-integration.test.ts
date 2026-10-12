@@ -57,8 +57,11 @@ describe('P0: AI Drafting & Mandatory Review', { skip: !SERVICE_KEY || !ANON_KEY
     if (confirmErr) throw confirmErr;
 
     // Ensure profile is marked active and invite accepted
-    await serviceClient.from('profiles').update({ status: 'active' }).eq('id', authorId);
-    await serviceClient.from('employee_invites').update({ status: 'accepted' }).eq('id', authorInviteId);
+    const { error: profileErr } = await serviceClient.from('profiles').update({ status: 'active' }).eq('id', authorId);
+    if (profileErr) throw profileErr;
+
+    const { error: inviteUpdateErr } = await serviceClient.from('employee_invites').update({ status: 'accepted' }).eq('id', authorInviteId);
+    if (inviteUpdateErr) throw inviteUpdateErr;
 
     // 4. Authenticate as Author
     const { data: authorSession, error: signInErr } = await anonClient.auth.signInWithPassword({
@@ -82,14 +85,19 @@ describe('P0: AI Drafting & Mandatory Review', { skip: !SERVICE_KEY || !ANON_KEY
   after(async () => {
     setCustomDraftGenerator(null);
     if (authorId) {
-      await serviceClient.from('ai_usage_logs').delete().eq('user_id', authorId);
-      await serviceClient.auth.admin.deleteUser(authorId);
+      const { error: logErr } = await serviceClient.from('ai_usage_logs').delete().eq('user_id', authorId);
+      if (logErr) console.error('Failed to clean test usage logs:', logErr.message);
+
+      const { error: userErr } = await serviceClient.auth.admin.deleteUser(authorId);
+      if (userErr) console.error('Failed to clean test user:', userErr.message);
     }
     if (authorInviteId) {
-      await serviceClient.from('employee_invites').delete().eq('id', authorInviteId);
+      const { error: invErr } = await serviceClient.from('employee_invites').delete().eq('id', authorInviteId);
+      if (invErr) console.error('Failed to clean test invite:', invErr.message);
     }
     if (authorEmail) {
-      await serviceClient.from('employee_invites').delete().eq('email', authorEmail);
+      const { error: emailErr } = await serviceClient.from('employee_invites').delete().eq('email', authorEmail);
+      if (emailErr) console.error('Failed to clean test invite by email:', emailErr.message);
     }
   });
 
