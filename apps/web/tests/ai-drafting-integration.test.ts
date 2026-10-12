@@ -27,29 +27,56 @@ describe('P0: AI Drafting & Mandatory Review', { skip: !SERVICE_KEY || !ANON_KEY
 
   let authorToken: string;
   let authorId: string;
+  let authorInviteId: string;
+  let authorEmail: string;
 
   before(async () => {
     assertSafeTestEnvironment(SUPABASE_URL, 'P0: AI Drafting & Mandatory Review');
-    // 1. Create Author
-    const authorInviteId = crypto.randomUUID();
-    const authorEmail = `test-author-ai-${Date.now()}@kjin.local`;
+    // 1. Create Author Invite
+    authorInviteId = crypto.randomUUID();
+    authorEmail = `test-author-ai-${Date.now()}@kjin.local`;
     const { error: inviteErr } = await serviceClient.from('employee_invites').insert({
       id: authorInviteId, email: authorEmail, role_key: 'author', status: 'sending'
     });
     if (inviteErr) throw inviteErr;
 
+    // 2. Create Auth User linked to invite (initially unconfirmed)
     const { data: authorData, error: userErr } = await serviceClient.auth.admin.createUser({
-      email: authorEmail, password: 'password123', email_confirm: true,
+      email: authorEmail,
+      password: 'password123',
+      email_confirm: false,
       user_metadata: { employee_invite_id: authorInviteId, display_name: 'AI Test Author' }
     });
     if (userErr) throw userErr;
     authorId = authorData.user!.id;
 
+    // 3. Confirm email to trigger activation workflow
+    const { error: confirmErr } = await serviceClient.auth.admin.updateUserById(authorId, {
+      email_confirm: true
+    });
+    if (confirmErr) throw confirmErr;
+
+    // Ensure profile is marked active and invite accepted
+    await serviceClient.from('profiles').update({ status: 'active' }).eq('id', authorId);
+    await serviceClient.from('employee_invites').update({ status: 'accepted' }).eq('id', authorInviteId);
+
+    // 4. Authenticate as Author
     const { data: authorSession, error: signInErr } = await anonClient.auth.signInWithPassword({
       email: authorEmail, password: 'password123'
     });
     if (signInErr) throw signInErr;
     authorToken = authorSession.session!.access_token;
+
+    // 5. Assert fixture has active article.create permission before running route tests
+    const authorClient = createClient(SUPABASE_URL, ANON_KEY, {
+      global: { headers: { Authorization: `Bearer ${authorToken}` } },
+      auth: { persistSession: false, autoRefreshToken: false }
+    });
+    const { data: hasPerm, error: permErr } = await authorClient.rpc('has_permission', {
+      p_permission_key: 'article.create'
+    });
+    assert.ifError(permErr);
+    assert.strictEqual(hasPerm, true, 'Author fixture must have active article.create permission');
   });
 
   after(async () => {
@@ -57,6 +84,12 @@ describe('P0: AI Drafting & Mandatory Review', { skip: !SERVICE_KEY || !ANON_KEY
     if (authorId) {
       await serviceClient.from('ai_usage_logs').delete().eq('user_id', authorId);
       await serviceClient.auth.admin.deleteUser(authorId);
+    }
+    if (authorInviteId) {
+      await serviceClient.from('employee_invites').delete().eq('id', authorInviteId);
+    }
+    if (authorEmail) {
+      await serviceClient.from('employee_invites').delete().eq('email', authorEmail);
     }
   });
 

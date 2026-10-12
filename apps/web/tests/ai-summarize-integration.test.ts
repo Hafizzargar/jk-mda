@@ -43,6 +43,8 @@ describe(
   () => {
     let authorId = '';
     let authorToken = '';
+    let authorInviteId = '';
+    let authorEmail = '';
 
     before(async () => {
       assertSafeTestEnvironment(
@@ -50,28 +52,30 @@ describe(
         'AI summarization integration',
       );
 
-      const email = `test-summary-${crypto.randomUUID()}@kjin.local`;
+      authorInviteId = crypto.randomUUID();
+      authorEmail = `test-summary-${Date.now()}@kjin.local`;
 
-      const { data: invite, error: inviteError } =
+      // 1. Create Author Invite
+      const { error: inviteError } =
         await serviceClient
           .from('employee_invites')
           .insert({
-            email,
+            id: authorInviteId,
+            email: authorEmail,
             role_key: 'author',
             status: 'sending',
-          })
-          .select('id')
-          .single();
+          });
 
       if (inviteError) throw inviteError;
 
+      // 2. Create Auth User linked to invite (initially unconfirmed)
       const { data: userData, error: userError } =
         await serviceClient.auth.admin.createUser({
-          email,
+          email: authorEmail,
           password: 'test-password-123!',
-          email_confirm: true,
+          email_confirm: false,
           user_metadata: {
-            employee_invite_id: invite.id,
+            employee_invite_id: authorInviteId,
             display_name: 'Summary Test Author',
           },
         });
@@ -79,14 +83,36 @@ describe(
       if (userError) throw userError;
       authorId = userData.user.id;
 
+      // 3. Confirm email to trigger activation workflow
+      const { error: confirmErr } = await serviceClient.auth.admin.updateUserById(authorId, {
+        email_confirm: true,
+      });
+      if (confirmErr) throw confirmErr;
+
+      // Ensure profile is marked active and invite accepted
+      await serviceClient.from('profiles').update({ status: 'active' }).eq('id', authorId);
+      await serviceClient.from('employee_invites').update({ status: 'accepted' }).eq('id', authorInviteId);
+
+      // 4. Authenticate as Author
       const { data: sessionData, error: signInError } =
         await anonClient.auth.signInWithPassword({
-          email,
+          email: authorEmail,
           password: 'test-password-123!',
         });
 
       if (signInError) throw signInError;
       authorToken = sessionData.session!.access_token;
+
+      // 5. Assert fixture has active article.create permission before running route tests
+      const authorClient = createClient(SUPABASE_URL, ANON_KEY, {
+        global: { headers: { Authorization: `Bearer ${authorToken}` } },
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const { data: hasPerm, error: permErr } = await authorClient.rpc('has_permission', {
+        p_permission_key: 'article.create',
+      });
+      assert.ifError(permErr);
+      assert.strictEqual(hasPerm, true, 'Author fixture must have active article.create permission');
     });
 
     after(async () => {
@@ -108,6 +134,13 @@ describe(
         if (deleteError) {
           console.error('Failed to clean test user:', deleteError.message);
         }
+      }
+
+      if (authorInviteId) {
+        await serviceClient.from('employee_invites').delete().eq('id', authorInviteId);
+      }
+      if (authorEmail) {
+        await serviceClient.from('employee_invites').delete().eq('email', authorEmail);
       }
     });
 
