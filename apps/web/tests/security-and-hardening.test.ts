@@ -94,9 +94,31 @@ describe('P0: Article HTML XSS Prevention', () => {
     assert.strictEqual(isAllowedImageSrc('https://[::1]/test.png', { isProduction: true }), false);
   });
 
-  it('allows loopback hosts in non-production development/test environment when configured', () => {
+  it('requires strict opt-in for loopback hosts in non-production environments', () => {
+    // Default in non-production without opt-in is rejected
+    assert.strictEqual(isAllowedImageSrc('https://localhost:3000/test.png', { isProduction: false }), false);
+    assert.strictEqual(isAllowedImageSrc('https://127.0.0.1:3000/test.png', { isProduction: false }), false);
+
+    // Explicitly opted in via allowLoopback in non-production is accepted
     assert.strictEqual(isAllowedImageSrc('https://localhost:3000/test.png', { isProduction: false, allowLoopback: true }), true);
     assert.strictEqual(isAllowedImageSrc('https://127.0.0.1:3000/test.png', { isProduction: false, allowLoopback: true }), true);
+
+    // In production, loopback remains strictly rejected even if allowLoopback is requested
+    assert.strictEqual(isAllowedImageSrc('https://localhost:3000/test.png', { isProduction: true, allowLoopback: true }), false);
+    assert.strictEqual(isAllowedImageSrc('https://127.0.0.1:3000/test.png', { isProduction: true, allowLoopback: true }), false);
+  });
+
+  it('rejects arbitrary or unapproved subdomains of site domains', () => {
+    const subdomainImg = '<img src="https://arbitrary.kjin.in/tracker.png" alt="Subdomain" />';
+    const orgSubdomainImg = '<img src="https://user.kjin.org/pixel.gif" alt="Org Subdomain" />';
+
+    const cleanedSubdomain = sanitizeArticleHtml(subdomainImg);
+    assert.ok(!cleanedSubdomain.includes('arbitrary.kjin.in'), 'must reject arbitrary subdomain');
+    assert.ok(!cleanedSubdomain.includes('<img'), 'must not render img tag for arbitrary subdomain');
+
+    const cleanedOrgSubdomain = sanitizeArticleHtml(orgSubdomainImg);
+    assert.ok(!cleanedOrgSubdomain.includes('user.kjin.org'), 'must reject arbitrary org subdomain');
+    assert.ok(!cleanedOrgSubdomain.includes('<img'), 'must not render img tag for arbitrary org subdomain');
   });
 
   it('drops unapproved external HTTPS image hosts to protect reader privacy', () => {
@@ -130,12 +152,17 @@ describe('P0: Article HTML XSS Prevention', () => {
     assert.strictEqual(isAllowedImageSrc('/images/news.png'), true);
     assert.strictEqual(isAllowedImageSrc('https://ptvfidufwlswbjgsjvzl.supabase.co/storage/v1/object/public/test.jpg'), true);
     assert.strictEqual(isAllowedImageSrc('https://kjin.in/hero.jpg'), true);
-    assert.strictEqual(isAllowedImageSrc('https://media.kjin.in/banner.webp'), true);
+    assert.strictEqual(isAllowedImageSrc('https://www.kjin.in/banner.webp'), true);
+    assert.strictEqual(isAllowedImageSrc('https://kjin.org/hero.jpg'), true);
+    assert.strictEqual(isAllowedImageSrc('https://www.kjin.org/banner.webp'), true);
     assert.strictEqual(isAllowedImageSrc('https://images.unsplash.com/photo-1234'), true);
 
     // Disallowed sources
+    assert.strictEqual(isAllowedImageSrc('https://arbitrary.kjin.in/test.png'), false); // unapproved site subdomain
+    assert.strictEqual(isAllowedImageSrc('https://user-blog.kjin.org/test.png'), false); // unapproved site subdomain
     assert.strictEqual(isAllowedImageSrc('https://unrelated-project.supabase.co/storage/v1/test.png'), false); // other tenant
     assert.strictEqual(isAllowedImageSrc('https://supabase.co/logo.png'), false); // naked supabase
+    assert.strictEqual(isAllowedImageSrc('https://localhost:3000/test.png'), false); // loopback without opt-in
     assert.strictEqual(isAllowedImageSrc('https://localhost:3000/test.png', { isProduction: true }), false); // loopback in prod
     assert.strictEqual(isAllowedImageSrc('//evil.com/tracker.png'), false);
     assert.strictEqual(isAllowedImageSrc('http://kjin.in/hero.jpg'), false); // insecure http

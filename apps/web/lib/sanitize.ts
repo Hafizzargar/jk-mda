@@ -11,8 +11,8 @@ export interface ImageValidationOptions {
 /**
  * Approved host patterns for embedded article images.
  * Restricts remote connections strictly to approved media sources (the application's
- * specific Supabase project storage, official site domains, trusted editorial CDNs) to protect
- * reader privacy from third-party tracking beacons, other Supabase tenants, and remote IP harvesting.
+ * specific Supabase project storage, exact official site domains, trusted editorial CDNs) to protect
+ * reader privacy from third-party tracking beacons, other Supabase tenants, subdomain takeovers, and remote IP harvesting.
  */
 export function isAllowedImageSrc(
   src: string | null | undefined,
@@ -44,7 +44,8 @@ export function isAllowedImageSrc(
     const isProduction =
       options?.isProduction ?? process.env.NODE_ENV === 'production';
 
-    // Loopback hosts: strictly rejected in production to prevent local-network exposure / SSRF
+    // Loopback hosts: strictly rejected in production to prevent local-network exposure / SSRF.
+    // In development and test environments, loopback is strictly opt-in via allowLoopback or ALLOW_LOOPBACK_IMAGES=true.
     const isLoopback =
       hostname === 'localhost' ||
       hostname === '127.0.0.1' ||
@@ -53,13 +54,12 @@ export function isAllowedImageSrc(
       hostname === '[::1]';
 
     if (isLoopback) {
-      if (isProduction || options?.allowLoopback === false) {
+      if (isProduction) {
         return false;
       }
       return (
-        options?.allowLoopback ??
-        (process.env.ALLOW_LOOPBACK_IMAGES === 'true' ||
-          process.env.NODE_ENV !== 'production')
+        options?.allowLoopback === true ||
+        process.env.ALLOW_LOOPBACK_IMAGES === 'true'
       );
     }
 
@@ -88,20 +88,38 @@ export function isAllowedImageSrc(
       }
     }
 
-    // Additional allowed image hosts from environment configuration
+    // Exact approved site hostnames (no wildcard subdomains to prevent subdomain takeover or abuse)
+    const approvedSiteHosts = new Set<string>([
+      'kjin.in',
+      'www.kjin.in',
+      'kjin.org',
+      'www.kjin.org',
+    ]);
+
+    // Include the exact hostname of the configured site URL if available
+    const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL;
+    if (configuredSiteUrl) {
+      try {
+        const siteParsed = new URL(
+          configuredSiteUrl.startsWith('http') ? configuredSiteUrl : `https://${configuredSiteUrl}`
+        );
+        approvedSiteHosts.add(siteParsed.hostname.toLowerCase());
+      } catch {
+        // ignore malformed env URL
+      }
+    }
+
+    // Additional explicitly allowed image hosts from environment configuration
     const extraHosts = process.env.ALLOWED_IMAGE_HOSTS
       ? process.env.ALLOWED_IMAGE_HOSTS.split(',')
           .map((h) => h.trim().toLowerCase())
           .filter(Boolean)
       : [];
 
-    // Check against approved hostnames / domain patterns
+    // Check against approved hostnames (all exact matches)
     const isApprovedHost =
       approvedSupabaseHosts.has(hostname) ||
-      hostname === 'kjin.in' ||
-      hostname.endsWith('.kjin.in') ||
-      hostname === 'kjin.org' ||
-      hostname.endsWith('.kjin.org') ||
+      approvedSiteHosts.has(hostname) ||
       hostname === 'images.unsplash.com' ||
       extraHosts.includes(hostname);
 
