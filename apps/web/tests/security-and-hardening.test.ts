@@ -42,14 +42,14 @@ describe('P0: Article HTML XSS Prevention', () => {
   });
 
   it('enforces approved image hosts with no-referrer and lazy loading', () => {
-    const supabaseImg = '<img src="https://media.supabase.co/storage/v1/object/public/articles/photo.jpg" alt="Photo" />';
+    const supabaseImg = '<img src="https://ptvfidufwlswbjgsjvzl.supabase.co/storage/v1/object/public/articles/photo.jpg" alt="Photo" />';
     const localImg = '<img src="/uploads/local-banner.png" alt="Banner" />';
     const unsplashImg = '<img src="https://images.unsplash.com/photo-1234.jpg" alt="Stock" />';
 
     const supabaseCleaned = sanitizeArticleHtml(supabaseImg);
     assert.ok(supabaseCleaned.includes('referrerpolicy="no-referrer"'), 'must include referrerpolicy="no-referrer"');
     assert.ok(supabaseCleaned.includes('loading="lazy"'), 'must include loading="lazy"');
-    assert.ok(supabaseCleaned.includes('https://media.supabase.co/storage/v1/object/public/articles/photo.jpg'), 'must preserve supabase image src');
+    assert.ok(supabaseCleaned.includes('https://ptvfidufwlswbjgsjvzl.supabase.co/storage/v1/object/public/articles/photo.jpg'), 'must preserve approved project supabase image src');
 
     const localCleaned = sanitizeArticleHtml(localImg);
     assert.ok(localCleaned.includes('referrerpolicy="no-referrer"'), 'must include referrerpolicy="no-referrer"');
@@ -57,6 +57,46 @@ describe('P0: Article HTML XSS Prevention', () => {
 
     const unsplashCleaned = sanitizeArticleHtml(unsplashImg);
     assert.ok(unsplashCleaned.includes('https://images.unsplash.com/photo-1234.jpg'), 'must preserve unsplash image src');
+  });
+
+  it('rejects unrelated Supabase tenants and naked supabase.co domain', () => {
+    const otherTenantImg = '<img src="https://unrelated-project.supabase.co/storage/v1/object/public/tracker.png" alt="Other Tenant" />';
+    const attackerTenantImg = '<img src="https://attacker.supabase.co/pixel.gif" alt="Attacker Tenant" />';
+    const nakedSupabaseImg = '<img src="https://supabase.co/logo.png" alt="Naked Supabase" />';
+
+    const otherCleaned = sanitizeArticleHtml(otherTenantImg);
+    assert.ok(!otherCleaned.includes('unrelated-project.supabase.co'), 'must reject unrelated tenant');
+    assert.ok(!otherCleaned.includes('<img'), 'must not render img tag for unrelated tenant');
+
+    const attackerCleaned = sanitizeArticleHtml(attackerTenantImg);
+    assert.ok(!attackerCleaned.includes('attacker.supabase.co'), 'must reject attacker tenant');
+    assert.ok(!attackerCleaned.includes('<img'), 'must not render img tag for attacker tenant');
+
+    const nakedCleaned = sanitizeArticleHtml(nakedSupabaseImg);
+    assert.ok(!nakedCleaned.includes('https://supabase.co/logo.png'), 'must reject naked supabase.co');
+    assert.ok(!nakedCleaned.includes('<img'), 'must not render img tag for naked supabase.co');
+  });
+
+  it('rejects loopback hosts (localhost, 127.0.0.1, ::1) in production environment', () => {
+    const localhostImg = '<img src="https://localhost:8443/tracker.png" alt="Localhost" />';
+    const ipImg = '<img src="https://127.0.0.1:8443/beacon.png" alt="IP" />';
+
+    const cleanedLocalhost = sanitizeArticleHtml(localhostImg, { isProduction: true });
+    assert.ok(!cleanedLocalhost.includes('localhost'), 'must reject localhost in production');
+    assert.ok(!cleanedLocalhost.includes('<img'), 'must not render img for localhost in production');
+
+    const cleanedIp = sanitizeArticleHtml(ipImg, { isProduction: true });
+    assert.ok(!cleanedIp.includes('127.0.0.1'), 'must reject 127.0.0.1 in production');
+    assert.ok(!cleanedIp.includes('<img'), 'must not render img for 127.0.0.1 in production');
+
+    assert.strictEqual(isAllowedImageSrc('https://localhost/test.png', { isProduction: true }), false);
+    assert.strictEqual(isAllowedImageSrc('https://127.0.0.1/test.png', { isProduction: true }), false);
+    assert.strictEqual(isAllowedImageSrc('https://[::1]/test.png', { isProduction: true }), false);
+  });
+
+  it('allows loopback hosts in non-production development/test environment when configured', () => {
+    assert.strictEqual(isAllowedImageSrc('https://localhost:3000/test.png', { isProduction: false, allowLoopback: true }), true);
+    assert.strictEqual(isAllowedImageSrc('https://127.0.0.1:3000/test.png', { isProduction: false, allowLoopback: true }), true);
   });
 
   it('drops unapproved external HTTPS image hosts to protect reader privacy', () => {
@@ -92,9 +132,11 @@ describe('P0: Article HTML XSS Prevention', () => {
     assert.strictEqual(isAllowedImageSrc('https://kjin.in/hero.jpg'), true);
     assert.strictEqual(isAllowedImageSrc('https://media.kjin.in/banner.webp'), true);
     assert.strictEqual(isAllowedImageSrc('https://images.unsplash.com/photo-1234'), true);
-    assert.strictEqual(isAllowedImageSrc('https://localhost:3000/test.png'), true);
 
     // Disallowed sources
+    assert.strictEqual(isAllowedImageSrc('https://unrelated-project.supabase.co/storage/v1/test.png'), false); // other tenant
+    assert.strictEqual(isAllowedImageSrc('https://supabase.co/logo.png'), false); // naked supabase
+    assert.strictEqual(isAllowedImageSrc('https://localhost:3000/test.png', { isProduction: true }), false); // loopback in prod
     assert.strictEqual(isAllowedImageSrc('//evil.com/tracker.png'), false);
     assert.strictEqual(isAllowedImageSrc('http://kjin.in/hero.jpg'), false); // insecure http
     assert.strictEqual(isAllowedImageSrc('https://malicious-tracking.com/beacon.gif'), false); // unapproved host
