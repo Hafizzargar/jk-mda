@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { sanitizeArticleHtml, safeJsonLd } from '@/lib/sanitize';
+import { sanitizeArticleHtml, safeJsonLd, isAllowedImageSrc } from '@/lib/sanitize';
 import { parsePageParam, getPaginationRange } from '@/lib/pagination';
 import { isValidCategory, isValidDistrict, getCategoryDisplayName, getDistrictDisplayName } from '@/lib/taxonomy';
 import { SITE_URL } from '@/lib/config';
@@ -41,18 +41,69 @@ describe('P0: Article HTML XSS Prevention', () => {
     assert.strictEqual(cleaned, richText);
   });
 
-  it('enforces secure HTTPS images with no-referrer and lazy loading while dropping insecure HTTP images', () => {
-    const secureImg = '<img src="https://images.example.com/photo.jpg" alt="Photo" />';
-    const insecureImg = '<img src="http://insecure.example.com/tracker.png" alt="Tracker" />';
+  it('enforces approved image hosts with no-referrer and lazy loading', () => {
+    const supabaseImg = '<img src="https://media.supabase.co/storage/v1/object/public/articles/photo.jpg" alt="Photo" />';
+    const localImg = '<img src="/uploads/local-banner.png" alt="Banner" />';
+    const unsplashImg = '<img src="https://images.unsplash.com/photo-1234.jpg" alt="Stock" />';
 
-    const secureCleaned = sanitizeArticleHtml(secureImg);
-    assert.ok(secureCleaned.includes('referrerpolicy="no-referrer"'), 'must include referrerpolicy="no-referrer"');
-    assert.ok(secureCleaned.includes('loading="lazy"'), 'must include loading="lazy"');
-    assert.ok(secureCleaned.includes('https://images.example.com/photo.jpg'), 'must preserve https image src');
+    const supabaseCleaned = sanitizeArticleHtml(supabaseImg);
+    assert.ok(supabaseCleaned.includes('referrerpolicy="no-referrer"'), 'must include referrerpolicy="no-referrer"');
+    assert.ok(supabaseCleaned.includes('loading="lazy"'), 'must include loading="lazy"');
+    assert.ok(supabaseCleaned.includes('https://media.supabase.co/storage/v1/object/public/articles/photo.jpg'), 'must preserve supabase image src');
+
+    const localCleaned = sanitizeArticleHtml(localImg);
+    assert.ok(localCleaned.includes('referrerpolicy="no-referrer"'), 'must include referrerpolicy="no-referrer"');
+    assert.ok(localCleaned.includes('/uploads/local-banner.png'), 'must preserve local relative path');
+
+    const unsplashCleaned = sanitizeArticleHtml(unsplashImg);
+    assert.ok(unsplashCleaned.includes('https://images.unsplash.com/photo-1234.jpg'), 'must preserve unsplash image src');
+  });
+
+  it('drops unapproved external HTTPS image hosts to protect reader privacy', () => {
+    const unapprovedImg = '<img src="https://unapproved-tracker.com/pixel.png" alt="Tracker" />';
+    const arbitraryImg = '<img src="https://arbitrary-site.com/image.jpg" alt="Arbitrary" />';
+
+    const cleanedTracker = sanitizeArticleHtml(unapprovedImg);
+    assert.ok(!cleanedTracker.includes('unapproved-tracker.com'), 'must drop unapproved host');
+    assert.ok(!cleanedTracker.includes('<img'), 'must not render img tag for unapproved host');
+
+    const cleanedArbitrary = sanitizeArticleHtml(arbitraryImg);
+    assert.ok(!cleanedArbitrary.includes('arbitrary-site.com'), 'must drop arbitrary remote host');
+    assert.ok(!cleanedArbitrary.includes('<img'), 'must not render img tag for arbitrary remote host');
+  });
+
+  it('drops insecure HTTP and protocol-relative image URLs', () => {
+    const insecureImg = '<img src="http://insecure.example.com/tracker.png" alt="Tracker" />';
+    const protoRelativeImg = '<img src="//evil.com/tracker.png" alt="Protocol Relative" />';
 
     const insecureCleaned = sanitizeArticleHtml(insecureImg);
     assert.ok(!insecureCleaned.includes('http://insecure.example.com'), 'must drop insecure http image src');
     assert.ok(!insecureCleaned.includes('<img'), 'must not render img tag for insecure http');
+
+    const protoCleaned = sanitizeArticleHtml(protoRelativeImg);
+    assert.ok(!protoCleaned.includes('//evil.com'), 'must drop protocol-relative image src');
+    assert.ok(!protoCleaned.includes('<img'), 'must not render img tag for protocol-relative');
+  });
+
+  it('accurately verifies allowed and disallowed image sources with isAllowedImageSrc', () => {
+    // Approved sources
+    assert.strictEqual(isAllowedImageSrc('/images/news.png'), true);
+    assert.strictEqual(isAllowedImageSrc('https://ptvfidufwlswbjgsjvzl.supabase.co/storage/v1/object/public/test.jpg'), true);
+    assert.strictEqual(isAllowedImageSrc('https://kjin.in/hero.jpg'), true);
+    assert.strictEqual(isAllowedImageSrc('https://media.kjin.in/banner.webp'), true);
+    assert.strictEqual(isAllowedImageSrc('https://images.unsplash.com/photo-1234'), true);
+    assert.strictEqual(isAllowedImageSrc('https://localhost:3000/test.png'), true);
+
+    // Disallowed sources
+    assert.strictEqual(isAllowedImageSrc('//evil.com/tracker.png'), false);
+    assert.strictEqual(isAllowedImageSrc('http://kjin.in/hero.jpg'), false); // insecure http
+    assert.strictEqual(isAllowedImageSrc('https://malicious-tracking.com/beacon.gif'), false); // unapproved host
+    assert.strictEqual(isAllowedImageSrc('https://evil-supabase.co.attacker.com/image.jpg'), false); // deceptive subdomain
+    assert.strictEqual(isAllowedImageSrc('javascript:alert(1)'), false);
+    assert.strictEqual(isAllowedImageSrc('data:image/png;base64,abc'), false);
+    assert.strictEqual(isAllowedImageSrc(''), false);
+    assert.strictEqual(isAllowedImageSrc(null), false);
+    assert.strictEqual(isAllowedImageSrc(undefined), false);
   });
 });
 

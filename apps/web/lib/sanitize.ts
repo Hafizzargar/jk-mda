@@ -1,5 +1,53 @@
 import sanitizeHtml from 'sanitize-html';
 
+/**
+ * Approved host patterns for embedded article images.
+ * Restricts remote connections strictly to approved media sources (Supabase storage,
+ * official site domains, local testing hosts, and trusted editorial CDNs) to protect
+ * reader privacy from third-party tracking beacons and remote IP harvesting.
+ */
+export function isAllowedImageSrc(src: string | null | undefined): boolean {
+  if (!src || typeof src !== 'string') return false;
+
+  const trimmed = src.trim();
+
+  // Explicitly reject protocol-relative URLs (e.g. //tracker.evil.com/img.png)
+  if (trimmed.startsWith('//') || trimmed.startsWith('\\\\')) return false;
+
+  // Allow relative URLs that start with / (single leading slash only, not followed by / or \)
+  if (trimmed.startsWith('/') && !trimmed.startsWith('//') && !trimmed.startsWith('/\\')) {
+    return true;
+  }
+
+  // Parse absolute URL safely
+  try {
+    const parsed = new URL(trimmed);
+
+    // Enforce HTTPS exclusively for remote URLs (rejects http, data, ftp, javascript, etc.)
+    if (parsed.protocol !== 'https:') {
+      return false;
+    }
+
+    const hostname = parsed.hostname.toLowerCase();
+
+    // Check against approved hostnames / domain patterns
+    const isAllowed =
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === 'supabase.co' ||
+      hostname.endsWith('.supabase.co') ||
+      hostname === 'kjin.in' ||
+      hostname.endsWith('.kjin.in') ||
+      hostname === 'kjin.org' ||
+      hostname.endsWith('.kjin.org') ||
+      hostname === 'images.unsplash.com';
+
+    return isAllowed;
+  } catch {
+    return false;
+  }
+}
+
 const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
   allowedTags: [
     'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
@@ -22,6 +70,7 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
   allowedSchemesByTag: {
     img: ['https'],
   },
+  allowProtocolRelative: false,
   transformTags: {
     a: (tagName, attribs) => {
       // Force external links to open safely with noopener noreferrer
@@ -42,9 +91,9 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     },
     img: (tagName, attribs) => {
       const src = attribs.src || '';
-      // Drop insecure unencrypted HTTP images to mitigate tracking and mixed-content risks
-      if (src.startsWith('http://')) {
-        return { tagName: 'span', attribs: {}, text: '' };
+      // Drop unapproved, insecure, or protocol-relative image URLs to mitigate tracking and privacy leakage
+      if (!isAllowedImageSrc(src)) {
+        return { tagName: 'span', attribs: {} };
       }
       return {
         tagName: 'img',
