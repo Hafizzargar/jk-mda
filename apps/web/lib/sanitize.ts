@@ -13,14 +13,14 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
   ],
   allowedAttributes: {
     a: ['href', 'name', 'target', 'rel', 'title'],
-    img: ['src', 'alt', 'title', 'width', 'height', 'loading'],
+    img: ['src', 'alt', 'title', 'width', 'height', 'loading', 'referrerpolicy'],
     th: ['scope', 'colspan', 'rowspan'],
     td: ['colspan', 'rowspan'],
     '*': ['class'],
   },
   allowedSchemes: ['http', 'https', 'mailto'],
   allowedSchemesByTag: {
-    img: ['http', 'https'],
+    img: ['https'],
   },
   transformTags: {
     a: (tagName, attribs) => {
@@ -40,13 +40,21 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
         },
       };
     },
-    img: (tagName, attribs) => ({
-      tagName: 'img',
-      attribs: {
-        ...attribs,
-        loading: 'lazy',
-      },
-    }),
+    img: (tagName, attribs) => {
+      const src = attribs.src || '';
+      // Drop insecure unencrypted HTTP images to mitigate tracking and mixed-content risks
+      if (src.startsWith('http://')) {
+        return { tagName: 'span', attribs: {}, text: '' };
+      }
+      return {
+        tagName: 'img',
+        attribs: {
+          ...attribs,
+          loading: 'lazy',
+          referrerpolicy: 'no-referrer',
+        },
+      };
+    },
   },
   disallowedTagsMode: 'discard',
 };

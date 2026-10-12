@@ -25,6 +25,19 @@ describe('P0: Bounded Stream Reader', () => {
     
     const result = await readBoundedStream(req, 2000);
     assert.strictEqual(result.error, 'Payload too large.');
+    assert.strictEqual(result.code, 'PAYLOAD_TOO_LARGE');
+    assert.strictEqual(result.text, undefined);
+  });
+
+  it('returns EMPTY_BODY error for empty request bodies', async () => {
+    const req = new Request('http://localhost', {
+      method: 'POST',
+      body: '   '
+    });
+
+    const result = await readBoundedStream(req, 2000);
+    assert.strictEqual(result.error, 'Empty request body.');
+    assert.strictEqual(result.code, 'EMPTY_BODY');
     assert.strictEqual(result.text, undefined);
   });
 });

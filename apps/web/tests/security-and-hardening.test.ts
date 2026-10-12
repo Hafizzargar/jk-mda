@@ -40,6 +40,20 @@ describe('P0: Article HTML XSS Prevention', () => {
     const cleaned = sanitizeArticleHtml(richText);
     assert.strictEqual(cleaned, richText);
   });
+
+  it('enforces secure HTTPS images with no-referrer and lazy loading while dropping insecure HTTP images', () => {
+    const secureImg = '<img src="https://images.example.com/photo.jpg" alt="Photo" />';
+    const insecureImg = '<img src="http://insecure.example.com/tracker.png" alt="Tracker" />';
+
+    const secureCleaned = sanitizeArticleHtml(secureImg);
+    assert.ok(secureCleaned.includes('referrerpolicy="no-referrer"'), 'must include referrerpolicy="no-referrer"');
+    assert.ok(secureCleaned.includes('loading="lazy"'), 'must include loading="lazy"');
+    assert.ok(secureCleaned.includes('https://images.example.com/photo.jpg'), 'must preserve https image src');
+
+    const insecureCleaned = sanitizeArticleHtml(insecureImg);
+    assert.ok(!insecureCleaned.includes('http://insecure.example.com'), 'must drop insecure http image src');
+    assert.ok(!insecureCleaned.includes('<img'), 'must not render img tag for insecure http');
+  });
 });
 
 describe('P0: JSON-LD Safe Serialization', () => {

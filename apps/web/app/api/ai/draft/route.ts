@@ -67,16 +67,25 @@ export async function POST(request: Request) {
     }
 
     // 2. Authorize user (article.create permission)
-    const { data: hasPerm } = await supabase.rpc('has_permission', { p_permission_key: 'article.create' });
+    const { data: hasPerm, error: permError } = await supabase.rpc('has_permission', { p_permission_key: 'article.create' });
+    if (permError) {
+      Sentry.captureException(permError);
+      console.error('Authorization check RPC failure in draft route:', permError);
+      return NextResponse.json({ error: 'Authorization service temporarily unavailable' }, { status: 500 });
+    }
     if (!hasPerm) {
       return NextResponse.json({ error: 'Permission denied: article.create required' }, { status: 403 });
     }
 
     // 3. Read and enforce body stream size limit (max 50KB for raw facts) BEFORE charging quota
-    const { text, error: streamError } = await readBoundedStream(request, 50 * 1024);
-    if (streamError || !text) {
-      return NextResponse.json({ error: streamError || 'Empty request body' }, { status: 413 });
+    const streamResult = await readBoundedStream(request, 50 * 1024);
+    if (streamResult.error || !streamResult.text) {
+      if (streamResult.code === 'PAYLOAD_TOO_LARGE') {
+        return NextResponse.json({ error: streamResult.error }, { status: 413 });
+      }
+      return NextResponse.json({ error: streamResult.error || 'Empty request body' }, { status: 400 });
     }
+    const text = streamResult.text;
 
     // 4. Validate JSON payload BEFORE charging quota
     let body;

@@ -20,10 +20,14 @@ export async function POST(request: Request) {
     }
 
     // Strictly enforce 2000-byte limit via streaming read BEFORE any database interaction
-    const { text: rawText, error: streamError } = await readBoundedStream(request, 2000);
-    if (streamError) {
-      return NextResponse.json({ error: streamError }, { status: 413 });
+    const streamResult = await readBoundedStream(request, 2000);
+    if (streamResult.error) {
+      if (streamResult.code === 'PAYLOAD_TOO_LARGE') {
+        return NextResponse.json({ error: streamResult.error }, { status: 413 });
+      }
+      return NextResponse.json({ error: streamResult.error }, { status: 400 });
     }
+    const rawText = streamResult.text;
 
     let body;
     try {

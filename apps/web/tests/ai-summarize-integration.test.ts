@@ -140,10 +140,12 @@ describe(
       }
 
       if (authorInviteId) {
-        await serviceClient.from('employee_invites').delete().eq('id', authorInviteId);
+        const { error: invErr } = await serviceClient.from('employee_invites').delete().eq('id', authorInviteId);
+        if (invErr) console.error('Failed to clean test invite:', invErr.message);
       }
       if (authorEmail) {
-        await serviceClient.from('employee_invites').delete().eq('email', authorEmail);
+        const { error: emailErr } = await serviceClient.from('employee_invites').delete().eq('email', authorEmail);
+        if (emailErr) console.error('Failed to clean test invite by email:', emailErr.message);
       }
     });
 
