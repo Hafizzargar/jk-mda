@@ -112,19 +112,35 @@ export function isAllowedImageSrc(
       'images.unsplash.com',
     ]);
 
-    // Additional allowed image hosts from environment configuration (strictly normalized, no wildcards, no loopback in prod)
+    // Additional allowed image hosts from environment configuration (strictly plain hostnames or validated HTTPS URLs only)
     const extraHosts = process.env.ALLOWED_IMAGE_HOSTS
       ? process.env.ALLOWED_IMAGE_HOSTS.split(',')
           .map((h) => {
             const raw = h.trim().toLowerCase();
-            try {
-              if (raw.includes('://')) return new URL(raw).hostname.toLowerCase();
-            } catch {
-              // fallback
+            if (!raw) return null;
+
+            // If a URL scheme is provided, strictly enforce https://
+            if (raw.includes('://')) {
+              try {
+                const parsedUrl = new URL(raw);
+                if (parsedUrl.protocol !== 'https:') {
+                  return null; // Reject insecure schemes like http://, ftp://, etc.
+                }
+                return parsedUrl.hostname.toLowerCase();
+              } catch {
+                return null;
+              }
             }
-            return raw.replace(/^\/+|\/+$/g, '');
+
+            // Plain hostname: clean any accidental leading/trailing slashes
+            const cleanHost = raw.replace(/^\/+|\/+$/g, '');
+            // Validate that plain host looks like a valid hostname (alphanumeric, dots, hyphens only)
+            if (!/^[a-z0-9.-]+$/.test(cleanHost)) {
+              return null;
+            }
+            return cleanHost;
           })
-          .filter((h) => {
+          .filter((h): h is string => {
             if (!h || h.includes('*')) return false;
             if (isProduction && (h === 'localhost' || h === '127.0.0.1' || h === '0.0.0.0' || h === '::1' || h === '[::1]')) {
               return false;
