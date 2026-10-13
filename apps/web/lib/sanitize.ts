@@ -9,6 +9,32 @@ export interface ImageValidationOptions {
 }
 
 /**
+ * Validates that a string is a well-formed RFC 1123 hostname.
+ * Rejects empty strings, credentials, wildcards, malformed dots, leading/trailing hyphens, etc.
+ */
+export function isValidHostname(hostname: string | null | undefined): boolean {
+  if (!hostname || typeof hostname !== 'string') return false;
+  const lower = hostname.toLowerCase();
+  if (lower.length > 253) return false;
+
+  // Reject leading/trailing dots or consecutive dots
+  if (lower.startsWith('.') || lower.endsWith('.')) return false;
+
+  const labels = lower.split('.');
+  if (labels.length === 0) return false;
+
+  for (const label of labels) {
+    if (!label || label.length > 63) return false;
+    // Each label must start and end with an alphanumeric char, containing alphanumeric or hyphens in between
+    if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(label)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
  * Approved host patterns for embedded article images.
  * Restricts remote connections strictly to approved media sources (the application's
  * specific Supabase project storage, exact official site domains, trusted editorial CDNs) to protect
@@ -39,7 +65,17 @@ export function isAllowedImageSrc(
       return false;
     }
 
+    // Reject URLs containing userinfo/credentials (e.g. https://user:pass@kjin.in/hero.jpg)
+    if (parsed.username || parsed.password) {
+      return false;
+    }
+
     const hostname = parsed.hostname.toLowerCase();
+
+    // Validate that hostname is structurally well-formed (or IPv6 loopback literal)
+    if (!isValidHostname(hostname) && hostname !== '::1' && hostname !== '[::1]') {
+      return false;
+    }
 
     const isProduction =
       options?.isProduction ?? process.env.NODE_ENV === 'production';
@@ -91,10 +127,17 @@ export function isAllowedImageSrc(
           const confParsed = new URL(
             configuredUrl.startsWith('http') ? configuredUrl : `https://${configuredUrl}`
           );
-          const confHost = confParsed.hostname.toLowerCase();
-          // Allow the app's own configured Supabase host (e.g., in staging or preview deployment)
-          if (confHost.endsWith('.supabase.co')) {
-            approvedSupabaseHosts.add(confHost);
+          // Reject URLs with credentials or insecure schemes
+          if (
+            confParsed.protocol === 'https:' &&
+            !confParsed.username &&
+            !confParsed.password
+          ) {
+            const confHost = confParsed.hostname.toLowerCase();
+            // Allow the app's own configured Supabase host (e.g., in staging or preview deployment)
+            if (confHost.endsWith('.supabase.co') && isValidHostname(confHost)) {
+              approvedSupabaseHosts.add(confHost);
+            }
           }
         } catch {
           // ignore malformed env URL
@@ -119,14 +162,21 @@ export function isAllowedImageSrc(
             const raw = h.trim().toLowerCase();
             if (!raw) return null;
 
-            // If a URL scheme is provided, strictly enforce https://
+            // If a URL scheme is provided, strictly enforce https://, disallow credentials, and validate hostname
             if (raw.includes('://')) {
               try {
                 const parsedUrl = new URL(raw);
                 if (parsedUrl.protocol !== 'https:') {
                   return null; // Reject insecure schemes like http://, ftp://, etc.
                 }
-                return parsedUrl.hostname.toLowerCase();
+                if (parsedUrl.username || parsedUrl.password) {
+                  return null; // Reject URLs with credentials
+                }
+                const hName = parsedUrl.hostname.toLowerCase();
+                if (!isValidHostname(hName)) {
+                  return null;
+                }
+                return hName;
               } catch {
                 return null;
               }
@@ -134,8 +184,8 @@ export function isAllowedImageSrc(
 
             // Plain hostname: clean any accidental leading/trailing slashes
             const cleanHost = raw.replace(/^\/+|\/+$/g, '');
-            // Validate that plain host looks like a valid hostname (alphanumeric, dots, hyphens only)
-            if (!/^[a-z0-9.-]+$/.test(cleanHost)) {
+            // Validate that plain host is a valid RFC 1123 hostname
+            if (!isValidHostname(cleanHost)) {
               return null;
             }
             return cleanHost;

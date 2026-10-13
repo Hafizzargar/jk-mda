@@ -4,6 +4,7 @@ import { google } from '@ai-sdk/google';
 import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
 import { readBoundedStream } from '../../../../lib/request-utils';
+import sanitizeHtml from 'sanitize-html';
 import * as Sentry from '@sentry/nextjs';
 
 import { getTestSummarizeGenerator } from '../../../../lib/ai-provider';
@@ -125,12 +126,25 @@ export async function POST(request: Request) {
       generatedObject = result.object;
     }
 
-    // 9. Validate AI summary output before returning
-    const validatedSummary = SummarizeOutputSchema.safeParse(generatedObject);
+    // 9. Extract and sanitize excerpt to plain text using sanitizeHtml (stripping tags, scripts, and non-text elements)
+    const rawExcerpt =
+      typeof (generatedObject as { excerpt?: unknown })?.excerpt === 'string'
+        ? (generatedObject as { excerpt: string }).excerpt
+        : '';
+    const safeExcerpt = sanitizeHtml(rawExcerpt, {
+      allowedTags: [],
+      allowedAttributes: {},
+    }).trim();
+
+    // 10. Revalidate the cleaned AI summary output before returning
+    const validatedSummary = SummarizeOutputSchema.safeParse({
+      ...((typeof generatedObject === 'object' && generatedObject !== null) ? generatedObject : {}),
+      excerpt: safeExcerpt,
+    });
 
     if (!validatedSummary.success) {
       console.error(
-        'AI summary output failed validation:',
+        'AI summary output failed validation after HTML removal:',
         validatedSummary.error.issues,
       );
 
@@ -140,10 +154,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 10. Strip any HTML from the plain-text excerpt as defense-in-depth
-    const safeExcerpt = validatedSummary.data.excerpt.replace(/<[^>]*>/g, '').trim();
-
-    return NextResponse.json({ ...validatedSummary.data, excerpt: safeExcerpt });
+    return NextResponse.json(validatedSummary.data);
   } catch (error) {
     Sentry.captureException(error);
     console.error('AI Summarize Error:', error);

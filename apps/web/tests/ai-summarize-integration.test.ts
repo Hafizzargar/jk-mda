@@ -273,7 +273,7 @@ describe(
       }
     });
 
-    it('strips HTML tags from the model-generated excerpt as defense-in-depth', async () => {
+    it('strips HTML tags and script content from the model-generated excerpt as defense-in-depth', async () => {
       const excerptWithHtml =
         'Council approves plan. <script>alert("xss")</script><b>Important</b> update.';
 
@@ -295,6 +295,10 @@ describe(
           'Script tags must be stripped from excerpt',
         );
         assert.ok(
+          !result.excerpt.includes('alert('),
+          'Script contents must be discarded from excerpt',
+        );
+        assert.ok(
           !result.excerpt.includes('<b>'),
           'HTML tags must be stripped from excerpt',
         );
@@ -305,6 +309,29 @@ describe(
         assert.ok(
           result.excerpt.includes('Important'),
           'Text within stripped tags must be preserved',
+        );
+      } finally {
+        setCustomSummarizeGenerator(null);
+      }
+    });
+
+    it('returns 502 when HTML stripping leaves excerpt empty', async () => {
+      setCustomSummarizeGenerator(async () => ({
+        excerpt: '<script>alert("xss")</script> <b></b>',
+      }));
+
+      try {
+        const response = await POST(
+          makeRequest(
+            'The local council announced a new public transport plan today.',
+          ),
+        );
+
+        assert.equal(response.status, 502);
+        const data = await response.json();
+        assert.equal(
+          data.error,
+          'AI generated an invalid summary. Please try again.',
         );
       } finally {
         setCustomSummarizeGenerator(null);

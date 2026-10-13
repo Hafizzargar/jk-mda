@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { sanitizeArticleHtml, safeJsonLd, isAllowedImageSrc } from '@/lib/sanitize';
+import { sanitizeArticleHtml, safeJsonLd, isAllowedImageSrc, isValidHostname } from '@/lib/sanitize';
 import { parsePageParam, getPaginationRange } from '@/lib/pagination';
 import { isValidCategory, isValidDistrict, getCategoryDisplayName, getDistrictDisplayName } from '@/lib/taxonomy';
 import { SITE_URL } from '@/lib/config';
@@ -235,6 +235,18 @@ describe('P0: Article HTML XSS Prevention', () => {
     assert.strictEqual(isAllowedImageSrc('https://evil-supabase.co.attacker.com/image.jpg'), false); // deceptive subdomain
     assert.strictEqual(isAllowedImageSrc('javascript:alert(1)'), false);
     assert.strictEqual(isAllowedImageSrc('data:image/png;base64,abc'), false);
+    // URLs with credentials/userinfo are strictly rejected
+    assert.strictEqual(isAllowedImageSrc('https://user:pass@kjin.in/hero.jpg'), false);
+    assert.strictEqual(isAllowedImageSrc('https://user@kjin.in/hero.jpg'), false);
+    assert.strictEqual(isAllowedImageSrc('https://ptvfidufwlswbjgsjvzl:secret@ptvfidufwlswbjgsjvzl.supabase.co/img.png'), false);
+
+    // Malformed hostnames are strictly rejected
+    assert.strictEqual(isAllowedImageSrc('https://kjin..in/hero.jpg'), false);
+    assert.strictEqual(isAllowedImageSrc('https://-kjin.in/hero.jpg'), false);
+    assert.strictEqual(isAllowedImageSrc('https://kjin-.in/hero.jpg'), false);
+    assert.strictEqual(isAllowedImageSrc('https://kjin.in./hero.jpg'), false);
+    assert.strictEqual(isAllowedImageSrc('https://..kjin.in/hero.jpg'), false);
+
     assert.strictEqual(isAllowedImageSrc(''), false);
     assert.strictEqual(isAllowedImageSrc(null), false);
     assert.strictEqual(isAllowedImageSrc(undefined), false);
@@ -244,15 +256,22 @@ describe('P0: Article HTML XSS Prevention', () => {
     const originalEnv = process.env.ALLOWED_IMAGE_HOSTS;
     try {
       process.env.ALLOWED_IMAGE_HOSTS =
-        'cdn.custom-news.com, https://media.partner.org/, http://insecure-news.com, ftp://files.partner.org, *.wildcard-evil.com, localhost';
+        'cdn.custom-news.com, https://media.partner.org/, http://insecure-news.com, ftp://files.partner.org, https://user:pass@secret.partner.org, malformed..partner.org, -bad-.partner.org, *.wildcard-evil.com, localhost';
 
       // Valid plain host and validated https URL are permitted and normalized
       assert.strictEqual(isAllowedImageSrc('https://cdn.custom-news.com/photo.jpg'), true);
       assert.strictEqual(isAllowedImageSrc('https://media.partner.org/banner.webp'), true);
 
-      // Insecure HTTP URL configurations are strictly discarded
+      // Insecure HTTP and FTP URL configurations are strictly discarded
       assert.strictEqual(isAllowedImageSrc('https://insecure-news.com/photo.jpg'), false);
       assert.strictEqual(isAllowedImageSrc('https://files.partner.org/photo.jpg'), false);
+
+      // Configured URLs with credentials are strictly discarded
+      assert.strictEqual(isAllowedImageSrc('https://secret.partner.org/photo.jpg'), false);
+
+      // Malformed hostnames in configuration are strictly discarded
+      assert.strictEqual(isAllowedImageSrc('https://malformed..partner.org/photo.jpg'), false);
+      assert.strictEqual(isAllowedImageSrc('https://-bad-.partner.org/photo.jpg'), false);
 
       // Wildcards are strictly discarded
       assert.strictEqual(isAllowedImageSrc('https://sub.wildcard-evil.com/photo.jpg'), false);
@@ -266,6 +285,57 @@ describe('P0: Article HTML XSS Prevention', () => {
         delete process.env.ALLOWED_IMAGE_HOSTS;
       }
     }
+  });
+
+  it('strictly validates RFC 1123 hostnames with isValidHostname', () => {
+    // Valid hostnames
+    assert.strictEqual(isValidHostname('kjin.in'), true);
+    assert.strictEqual(isValidHostname('media.kjin.org'), true);
+    assert.strictEqual(isValidHostname('cdn.custom-news.com'), true);
+    assert.strictEqual(isValidHostname('localhost'), true);
+    assert.strictEqual(isValidHostname('127.0.0.1'), true);
+
+    // Invalid hostnames
+    assert.strictEqual(isValidHostname(''), false);
+    assert.strictEqual(isValidHostname('kjin..in'), false);
+    assert.strictEqual(isValidHostname('.kjin.in'), false);
+    assert.strictEqual(isValidHostname('kjin.in.'), false);
+    assert.strictEqual(isValidHostname('-bad.com'), false);
+    assert.strictEqual(isValidHostname('bad-.com'), false);
+    assert.strictEqual(isValidHostname('foo_bar.com'), false);
+    assert.strictEqual(isValidHostname('user:pass@host.com'), false);
+    assert.strictEqual(isValidHostname('*.kjin.in'), false);
+    assert.strictEqual(isValidHostname(null), false);
+    assert.strictEqual(isValidHostname(undefined), false);
+  });
+
+  it('disallows credentials and malformed hostnames in configuredSupabaseUrl in non-production', () => {
+    // Legitimate staging Supabase URL
+    assert.strictEqual(
+      isAllowedImageSrc('https://kjin-preview-123.supabase.co/img.png', {
+        isProduction: false,
+        configuredSupabaseUrl: 'https://kjin-preview-123.supabase.co',
+      }),
+      true
+    );
+
+    // Staging URL with credentials must be rejected
+    assert.strictEqual(
+      isAllowedImageSrc('https://kjin-preview-123.supabase.co/img.png', {
+        isProduction: false,
+        configuredSupabaseUrl: 'https://user:secret@kjin-preview-123.supabase.co',
+      }),
+      false
+    );
+
+    // Staging URL with malformed hostname must be rejected
+    assert.strictEqual(
+      isAllowedImageSrc('https://kjin-preview..supabase.co/img.png', {
+        isProduction: false,
+        configuredSupabaseUrl: 'https://kjin-preview..supabase.co',
+      }),
+      false
+    );
   });
 });
 
