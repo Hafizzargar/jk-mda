@@ -239,6 +239,29 @@ describe('P0: Article HTML XSS Prevention', () => {
     assert.strictEqual(isAllowedImageSrc(null), false);
     assert.strictEqual(isAllowedImageSrc(undefined), false);
   });
+
+  it('safely parses ALLOWED_IMAGE_HOSTS without allowing wildcards or loopback bypass in production', () => {
+    const originalEnv = process.env.ALLOWED_IMAGE_HOSTS;
+    try {
+      process.env.ALLOWED_IMAGE_HOSTS = 'cdn.custom-news.com, https://media.partner.org/, *.wildcard-evil.com, localhost';
+
+      // Valid hosts are permitted and normalized
+      assert.strictEqual(isAllowedImageSrc('https://cdn.custom-news.com/photo.jpg'), true);
+      assert.strictEqual(isAllowedImageSrc('https://media.partner.org/banner.webp'), true);
+
+      // Wildcards are strictly discarded
+      assert.strictEqual(isAllowedImageSrc('https://sub.wildcard-evil.com/photo.jpg'), false);
+
+      // In production, loopback in ALLOWED_IMAGE_HOSTS is strictly rejected
+      assert.strictEqual(isAllowedImageSrc('https://localhost:3000/photo.jpg', { isProduction: true }), false);
+    } finally {
+      if (originalEnv !== undefined) {
+        process.env.ALLOWED_IMAGE_HOSTS = originalEnv;
+      } else {
+        delete process.env.ALLOWED_IMAGE_HOSTS;
+      }
+    }
+  });
 });
 
 describe('P0: JSON-LD Safe Serialization', () => {
