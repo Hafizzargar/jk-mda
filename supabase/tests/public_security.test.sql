@@ -1,5 +1,5 @@
 begin;
-select plan(14);
+select no_plan();
 
 create function pg_temp.assume_employee(p_user_id uuid)
 returns void
@@ -188,6 +188,17 @@ select throws_ok(
   'permission denied for table audit_logs',
   'Anon cannot read audit logs'
 );
+
+-- Test 9: Verify RPC permissions and cleanup functions are restricted correctly
+select ok(not has_function_privilege('anon', 'public.has_permission(text)', 'execute'), 'Anon cannot execute has_permission');
+select ok(not has_function_privilege('anon', 'public.increment_article_view_count(uuid, text)', 'execute'), 'Anon cannot execute increment_article_view_count');
+select ok(not has_function_privilege('authenticated', 'public.increment_article_view_count(uuid, text)', 'execute'), 'Authenticated cannot execute increment_article_view_count');
+select ok(not has_function_privilege('anon', 'public.check_newsletter_rate_limit(text)', 'execute'), 'Anon cannot execute check_newsletter_rate_limit');
+select ok(not has_function_privilege('authenticated', 'public.check_newsletter_rate_limit(text)', 'execute'), 'Authenticated cannot execute check_newsletter_rate_limit');
+select ok(not has_function_privilege('anon', 'public.cleanup_ai_usage_logs(interval)', 'execute'), 'Anon cannot execute cleanup_ai_usage_logs');
+select ok(not has_function_privilege('authenticated', 'public.cleanup_ai_usage_logs(interval)', 'execute'), 'Authenticated cannot execute cleanup_ai_usage_logs');
+select ok(not has_function_privilege('anon', 'public.check_ai_rate_limit(uuid, text, integer, interval)', 'execute'), 'Anon cannot execute check_ai_rate_limit');
+select ok(not has_function_privilege('authenticated', 'public.check_ai_rate_limit(uuid, text, integer, interval)', 'execute'), 'Authenticated cannot execute check_ai_rate_limit');
 
 select * from finish();
 rollback;
