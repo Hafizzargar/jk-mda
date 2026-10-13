@@ -207,13 +207,23 @@ select extensions.lives_ok(
 );
 
 -----------------------------------------------------------------------------
--- 16. Editor archive -> denied
+-- 16. Author archive without permission -> denied
 -----------------------------------------------------------------------------
-select pg_temp.assume_employee('10000000-0000-0000-0000-000000000102');
+select pg_temp.assume_employee('10000000-0000-0000-0000-000000000103');
 select extensions.throws_ok(
   $$ select public.archive_article((select v from test_vars where k = 'a1_id')) $$,
   'Article archive permission required',
-  'Editor cannot archive'
+  'Author cannot archive'
+);
+
+-----------------------------------------------------------------------------
+-- 16b. Editor archive without AAL2 -> denied (MFA required)
+-----------------------------------------------------------------------------
+select pg_temp.assume_employee('10000000-0000-0000-0000-000000000102', 'aal1');
+select extensions.throws_ok(
+  $$ select public.archive_article((select v from test_vars where k = 'a1_id')) $$,
+  'MFA (AAL2) is strictly required to archive articles',
+  'Editor without AAL2 cannot archive'
 );
 
 -----------------------------------------------------------------------------
