@@ -1,5 +1,5 @@
 begin;
-select plan(8);
+select plan(14);
 
 create function pg_temp.assume_employee(p_user_id uuid)
 returns void
@@ -17,6 +17,17 @@ begin
     )::text,
     true
   );
+end;
+$$;
+
+create function pg_temp.assume_anon()
+returns void
+language plpgsql
+as $$
+begin
+  set local role anon;
+  perform set_config('request.jwt.claim.sub', '', true);
+  perform set_config('request.jwt.claims', jsonb_build_object('role', 'anon')::text, true);
 end;
 $$;
 
@@ -57,11 +68,36 @@ select public.submit_article_for_review((select id from test_articles where name
 select public.publish_article((select id from test_articles where name = 'archived'));
 select public.archive_article((select id from test_articles where name = 'archived'));
 
+-- Media Assets fixtures (1 published, 1 draft)
+insert into public.media_assets (id, storage_path, public_url, alt_text_en, mime_type, status, uploaded_by)
+values
+  ('30000000-0000-0000-0000-000000000001', '2026/10/public-photo.webp', 'https://cdn.kjin.org/pub.webp', 'Pub', 'image/webp', 'published', '10000000-0000-0000-0000-000000000001'),
+  ('30000000-0000-0000-0000-000000000002', '2026/10/draft-photo.webp', 'https://cdn.kjin.org/draft.webp', 'Draft', 'image/webp', 'draft', '10000000-0000-0000-0000-000000000001');
+
+-- Article Translations fixtures (1 published on published article, 1 draft on published article)
+select public.upsert_article_translation(
+  (select id from test_articles where name = 'published'),
+  'ur', 'عنوان', 'خلاصہ', 'مواد...', 'published'
+);
+select public.upsert_article_translation(
+  (select id from test_articles where name = 'published'),
+  'hi', 'शीर्षक', 'सारांश', 'सामग्री...', 'draft'
+);
+
+-- Tags and Article Tags fixtures (1 tag on published article, 1 tag on draft article)
+insert into public.tags (id, name_en, slug) values
+  ('40000000-0000-0000-0000-000000000001', 'Public Tag', 'public-tag'),
+  ('40000000-0000-0000-0000-000000000002', 'Draft Tag', 'draft-tag')
+on conflict do nothing;
+
+insert into public.article_tags (article_id, tag_id) values
+  ((select id from test_articles where name = 'published'), '40000000-0000-0000-0000-000000000001'),
+  ((select id from test_articles where name = 'draft'), '40000000-0000-0000-0000-000000000002');
+
 grant select on test_articles to anon;
 
 -- Switch to anon role
-set local role anon;
-select set_config('request.jwt.claims', '{"role":"anon"}', true);
+select pg_temp.assume_anon();
 
 -- Test 1: anon -> published article ✅
 select is(
@@ -88,7 +124,44 @@ select is_empty(
   'Anon cannot read archived articles'
 );
 
--- Test 5: anon -> article_versions ❌
+-- Test 5: anon -> media_assets (published visible, draft hidden)
+select is(
+  (select count(*)::int from public.media_assets where id = '30000000-0000-0000-0000-000000000001'),
+  1,
+  'Anon can read published media assets'
+);
+select is_empty(
+  $$ select id from public.media_assets where id = '30000000-0000-0000-0000-000000000002' $$,
+  'Anon cannot read draft media assets'
+);
+
+-- Test 6: anon -> article_translations (published translation on published article visible, draft hidden)
+select is(
+  (select count(*)::int from public.article_translations
+   where article_id = (select id from test_articles where name = 'published') and language_code = 'ur'),
+  1,
+  'Anon can read published translation of published article'
+);
+select is_empty(
+  $$ select id from public.article_translations
+     where article_id = (select id from test_articles where name = 'published') and language_code = 'hi' $$,
+  'Anon cannot read draft translation'
+);
+
+-- Test 7: anon -> article_tags (tags on published visible, tags on draft hidden)
+select is(
+  (select count(*)::int from public.article_tags
+   where article_id = (select id from test_articles where name = 'published') and tag_id = '40000000-0000-0000-0000-000000000001'),
+  1,
+  'Anon can read article tags of published articles'
+);
+select is_empty(
+  $$ select article_id from public.article_tags
+     where article_id = (select id from test_articles where name = 'draft') $$,
+  'Anon cannot read article tags of draft articles'
+);
+
+-- Test 8: anon -> article_versions ❌
 select is_empty(
   $$ select id from public.article_versions $$,
   'Anon cannot read article versions'
