@@ -140,7 +140,10 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json(validatedSummary.data);
+    // 10. Strip any HTML from the plain-text excerpt as defense-in-depth
+    const safeExcerpt = validatedSummary.data.excerpt.replace(/<[^>]*>/g, '').trim();
+
+    return NextResponse.json({ ...validatedSummary.data, excerpt: safeExcerpt });
   } catch (error) {
     Sentry.captureException(error);
     console.error('AI Summarize Error:', error);

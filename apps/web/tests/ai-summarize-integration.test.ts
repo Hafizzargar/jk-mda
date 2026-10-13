@@ -273,6 +273,44 @@ describe(
       }
     });
 
+    it('strips HTML tags from the model-generated excerpt as defense-in-depth', async () => {
+      const excerptWithHtml =
+        'Council approves plan. <script>alert("xss")</script><b>Important</b> update.';
+
+      setCustomSummarizeGenerator(async () => ({
+        excerpt: excerptWithHtml,
+      }));
+
+      try {
+        const response = await POST(
+          makeRequest(
+            'The local council announced a new public transport plan today.',
+          ),
+        );
+
+        assert.equal(response.status, 200);
+        const result = await response.json();
+        assert.ok(
+          !result.excerpt.includes('<script>'),
+          'Script tags must be stripped from excerpt',
+        );
+        assert.ok(
+          !result.excerpt.includes('<b>'),
+          'HTML tags must be stripped from excerpt',
+        );
+        assert.ok(
+          result.excerpt.includes('Council approves plan.'),
+          'Plain text content must be preserved',
+        );
+        assert.ok(
+          result.excerpt.includes('Important'),
+          'Text within stripped tags must be preserved',
+        );
+      } finally {
+        setCustomSummarizeGenerator(null);
+      }
+    });
+
     it('returns 429 when the summarization quota is exhausted', async () => {
       setCustomSummarizeGenerator(async () => ({
         excerpt: 'The generator must not run.',
