@@ -12,7 +12,7 @@ export interface ImageValidationOptions {
  * Approved host patterns for embedded article images.
  * Restricts remote connections strictly to approved media sources (the application's
  * specific Supabase project storage, exact official site domains, trusted editorial CDNs) to protect
- * reader privacy from third-party tracking beacons, other Supabase tenants, subdomain takeovers, and remote IP harvesting.
+ * reader privacy from third-party tracking beacons, other Supabase tenants, and remote IP harvesting.
  */
 export function isAllowedImageSrc(
   src: string | null | undefined,
@@ -45,7 +45,8 @@ export function isAllowedImageSrc(
       options?.isProduction ?? process.env.NODE_ENV === 'production';
 
     // Loopback hosts: strictly rejected in production to prevent local-network exposure / SSRF.
-    // In development and test environments, loopback is strictly opt-in via allowLoopback or ALLOW_LOOPBACK_IMAGES=true.
+    // In non-production environments (development/test), loopback image loading is strictly opt-in
+    // via options.allowLoopback === true or process.env.ALLOW_LOOPBACK_IMAGES === 'true'.
     const isLoopback =
       hostname === 'localhost' ||
       hostname === '127.0.0.1' ||
@@ -88,39 +89,27 @@ export function isAllowedImageSrc(
       }
     }
 
-    // Exact approved site hostnames (no wildcard subdomains to prevent subdomain takeover or abuse)
-    const approvedSiteHosts = new Set<string>([
+    // Exact trusted application and media CDN hostnames (no wildcard subdomains)
+    const exactTrustedHosts = new Set<string>([
       'kjin.in',
-      'www.kjin.in',
+      'media.kjin.in',
       'kjin.org',
-      'www.kjin.org',
+      'cdn.kjin.org',
+      'media.kjin.org',
+      'images.unsplash.com',
     ]);
 
-    // Include the exact hostname of the configured site URL if available
-    const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL;
-    if (configuredSiteUrl) {
-      try {
-        const siteParsed = new URL(
-          configuredSiteUrl.startsWith('http') ? configuredSiteUrl : `https://${configuredSiteUrl}`
-        );
-        approvedSiteHosts.add(siteParsed.hostname.toLowerCase());
-      } catch {
-        // ignore malformed env URL
-      }
-    }
-
-    // Additional explicitly allowed image hosts from environment configuration
+    // Additional allowed image hosts from environment configuration
     const extraHosts = process.env.ALLOWED_IMAGE_HOSTS
       ? process.env.ALLOWED_IMAGE_HOSTS.split(',')
           .map((h) => h.trim().toLowerCase())
           .filter(Boolean)
       : [];
 
-    // Check against approved hostnames (all exact matches)
+    // Check against approved hostnames (exact matching)
     const isApprovedHost =
       approvedSupabaseHosts.has(hostname) ||
-      approvedSiteHosts.has(hostname) ||
-      hostname === 'images.unsplash.com' ||
+      exactTrustedHosts.has(hostname) ||
       extraHosts.includes(hostname);
 
     return isApprovedHost;
