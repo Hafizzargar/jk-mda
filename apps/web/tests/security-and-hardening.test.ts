@@ -77,6 +77,33 @@ describe('P0: Article HTML XSS Prevention', () => {
     assert.ok(!nakedCleaned.includes('<img'), 'must not render img tag for naked supabase.co');
   });
 
+  it('strictly restricts production Supabase host to authorized production project', () => {
+    // In production, only the authorized production project ID is accepted
+    assert.strictEqual(
+      isAllowedImageSrc(
+        'https://ptvfidufwlswbjgsjvzl.supabase.co/storage/v1/object/public/test.jpg',
+        { isProduction: true }
+      ),
+      true
+    );
+
+    // Staging and unapproved projects must be rejected in production even if passed as configured URL
+    assert.strictEqual(
+      isAllowedImageSrc(
+        'https://kjin-staging-test.supabase.co/storage/v1/object/public/test.jpg',
+        { isProduction: true }
+      ),
+      false
+    );
+    assert.strictEqual(
+      isAllowedImageSrc(
+        'https://unintended-project.supabase.co/storage/v1/object/public/test.jpg',
+        { isProduction: true, configuredSupabaseUrl: 'https://unintended-project.supabase.co' }
+      ),
+      false
+    );
+  });
+
   it('rejects loopback hosts (localhost, 127.0.0.1, ::1) in production environment', () => {
     const localhostImg = '<img src="https://localhost:8443/tracker.png" alt="Localhost" />';
     const ipImg = '<img src="https://127.0.0.1:8443/beacon.png" alt="IP" />';

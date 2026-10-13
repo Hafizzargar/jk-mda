@@ -65,27 +65,40 @@ export function isAllowedImageSrc(
     }
 
     // Determine approved Supabase project hostnames (exact match only - NEVER wildcard *.supabase.co)
-    const approvedSupabaseHosts = new Set<string>([
-      `${PRODUCTION_SUPABASE_PROJECT_ID}.supabase.co`,
-      'kjin-staging-test.supabase.co',
-      'kjin-isolated-test.supabase.co',
-    ]);
+    const approvedSupabaseHosts = new Set<string>();
 
-    // Include the explicitly configured application Supabase URL hostname if available
-    const configuredUrl =
-      options?.configuredSupabaseUrl ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
-    if (configuredUrl) {
-      try {
-        const confParsed = new URL(
-          configuredUrl.startsWith('http') ? configuredUrl : `https://${configuredUrl}`
-        );
-        const confHost = confParsed.hostname.toLowerCase();
-        // Allow the app's own configured Supabase host (e.g., in staging or preview deployment)
-        if (confHost.endsWith('.supabase.co')) {
-          approvedSupabaseHosts.add(confHost);
+    if (isProduction) {
+      // In production, strictly lock down to the authorized production project host
+      approvedSupabaseHosts.add(`${PRODUCTION_SUPABASE_PROJECT_ID}.supabase.co`);
+    } else {
+      // In non-production (staging/test/preview), allow production storage for read-only fixtures plus staging test projects
+      approvedSupabaseHosts.add(`${PRODUCTION_SUPABASE_PROJECT_ID}.supabase.co`);
+      approvedSupabaseHosts.add('kjin-staging-test.supabase.co');
+      approvedSupabaseHosts.add('kjin-isolated-test.supabase.co');
+
+      const stagingProjectIds = process.env.ALLOWED_STAGING_PROJECT_IDS
+        ? process.env.ALLOWED_STAGING_PROJECT_IDS.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean)
+        : [];
+      for (const pid of stagingProjectIds) {
+        approvedSupabaseHosts.add(`${pid}.supabase.co`);
+      }
+
+      // Include the explicitly configured application Supabase URL hostname in non-production
+      const configuredUrl =
+        options?.configuredSupabaseUrl ?? process.env.NEXT_PUBLIC_SUPABASE_URL;
+      if (configuredUrl) {
+        try {
+          const confParsed = new URL(
+            configuredUrl.startsWith('http') ? configuredUrl : `https://${configuredUrl}`
+          );
+          const confHost = confParsed.hostname.toLowerCase();
+          // Allow the app's own configured Supabase host (e.g., in staging or preview deployment)
+          if (confHost.endsWith('.supabase.co')) {
+            approvedSupabaseHosts.add(confHost);
+          }
+        } catch {
+          // ignore malformed env URL
         }
-      } catch {
-        // ignore malformed env URL
       }
     }
 
