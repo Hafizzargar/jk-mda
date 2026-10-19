@@ -195,6 +195,11 @@ export function isAllowedImageSrc(
             if (isProduction && (h === 'localhost' || h === '127.0.0.1' || h === '0.0.0.0' || h === '::1' || h === '[::1]')) {
               return false;
             }
+            // In production, reject any *.supabase.co hostname that is not the
+            // exclusively authorized production project to prevent foreign-tenant bypass.
+            if (isProduction && h.endsWith('.supabase.co') && h !== `${PRODUCTION_SUPABASE_PROJECT_ID}.supabase.co`) {
+              return false;
+            }
             return true;
           })
       : [];

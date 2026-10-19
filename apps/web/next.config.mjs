@@ -2,6 +2,9 @@ import { withSentryConfig } from '@sentry/nextjs/config';
 
 export const PRODUCTION_SUPABASE_PROJECT_ID = 'ptvfidufwlswbjgsjvzl';
 
+/** @type {string} */
+export const AUTHORIZED_SUPABASE_HOST = `${PRODUCTION_SUPABASE_PROJECT_ID}.supabase.co`;
+
 /**
  * Builds the remotePatterns configuration for Next.js image optimization.
  * Enforces strict origin restrictions:
@@ -97,7 +100,9 @@ export function buildImageRemotePatterns(env = process.env) {
 
   // Exact trusted media CDNs
   const trustedHosts = [
+    'kjin.in',
     'media.kjin.in',
+    'kjin.org',
     'cdn.kjin.org',
     'media.kjin.org',
     'images.unsplash.com',
@@ -138,6 +143,12 @@ export function buildImageRemotePatterns(env = process.env) {
           host === '::1' ||
           host === '[::1]')
       ) {
+        continue;
+      }
+      // In production, reject any *.supabase.co hostname that is not the
+      // exclusively authorized production project. This prevents a foreign
+      // Supabase tenant from being admitted via ALLOWED_IMAGE_HOSTS.
+      if (isProd && host.endsWith('.supabase.co') && host !== AUTHORIZED_SUPABASE_HOST) {
         continue;
       }
       patterns.push({

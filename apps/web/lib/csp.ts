@@ -1,4 +1,5 @@
 export const PRODUCTION_SUPABASE_PROJECT_ID = 'ptvfidufwlswbjgsjvzl';
+export const AUTHORIZED_SUPABASE_HOST = `${PRODUCTION_SUPABASE_PROJECT_ID}.supabase.co`;
 
 export interface CspOptions {
   nonce: string;
@@ -22,7 +23,9 @@ export function buildCspHeader(options: CspOptions): string {
 
   const trustedImageHosts = [
     `https://${PRODUCTION_SUPABASE_PROJECT_ID}.supabase.co`,
+    'https://kjin.in',
     'https://media.kjin.in',
+    'https://kjin.org',
     'https://cdn.kjin.org',
     'https://media.kjin.org',
     'https://images.unsplash.com',
@@ -100,6 +103,11 @@ export function buildCspHeader(options: CspOptions): string {
           host === '::1' ||
           host === '[::1]')
       ) {
+        continue;
+      }
+      // In production, reject any *.supabase.co hostname other than the
+      // exclusively authorized production project to prevent foreign-tenant bypass.
+      if (!isDev && host.endsWith('.supabase.co') && host !== AUTHORIZED_SUPABASE_HOST) {
         continue;
       }
       const fullOrigin = `https://${host}`;
