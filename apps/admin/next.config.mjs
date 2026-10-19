@@ -1,3 +1,10 @@
+export const PRODUCTION_SUPABASE_PROJECT_ID = 'ptvfidufwlswbjgsjvzl';
+export const AUTHORIZED_SUPABASE_HOST = `${PRODUCTION_SUPABASE_PROJECT_ID}.supabase.co`;
+
+const configuredSupabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL
+  ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).host
+  : AUTHORIZED_SUPABASE_HOST;
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -18,8 +25,8 @@ const nextConfig = {
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline'",
               "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: https://*.supabase.co/storage/v1/object/public/ https://images.unsplash.com",
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+              `img-src 'self' data: https://${configuredSupabaseHost}/storage/v1/object/public/ https://images.unsplash.com`,
+              `connect-src 'self' https://${configuredSupabaseHost} wss://${configuredSupabaseHost}`,
               "font-src 'self' data:",
               "object-src 'none'",
               "worker-src 'self' blob:",

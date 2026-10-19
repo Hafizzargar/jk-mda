@@ -14,6 +14,7 @@ const inviteRoute = await import('../app/api/employees/invite/route.ts');
 const operationsRoute = await import('../app/api/employees/operations/route.ts');
 const statusRoute = await import('../app/api/employees/[id]/status/route.ts');
 const contactRoute = await import('../app/api/employees/[id]/contact/route.ts');
+const publishRoute = await import('../app/api/articles/[id]/publish/route.ts');
 
 const VALID_UUID = TARGET_ID;
 
@@ -24,8 +25,8 @@ function configure(options: { role?: string; grants?: string[] } = {}) {
   harness.syncActor();
 }
 
-function jsonRequest(url: string, options: { method?: string; body?: unknown; token?: string | null } = {}) {
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+function jsonRequest(url: string, options: { method?: string; body?: unknown; token?: string | null; headers?: Record<string, string> } = {}) {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json', ...(options.headers ?? {}) };
   if (options.token) headers.Authorization = `Bearer ${options.token}`;
   const body =
     options.body === undefined
@@ -644,6 +645,75 @@ test('mfa: verify proxy rejects disabled employee with 403', async () => {
   assert.equal(res.status, 403);
 });
 
+// ---------------------------------------------------------------------------
+// IP Audit Capture & Article Publish Error Sanitization
+// ---------------------------------------------------------------------------
 
+test('audit IP: records valid trusted client IP from x-vercel-forwarded-for', async () => {
+  configure({ role: 'admin', grants: [] });
+  const res = await inviteRoute.POST(
+    jsonRequest('http://localhost/api/employees/invite', {
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
+      headers: { 'x-vercel-forwarded-for': '203.0.113.195, 10.0.0.1' },
+      body: { email: 'test@example.com', display_name: 'Test', role_key: 'author', reason: 'IP test' },
+    })
+  );
+  assert.equal(res.status, 403);
+  const auditRow = harness.audits.find((row) => row.action === 'employee.permission_denied');
+  assert.ok(auditRow, 'Denied action must be recorded in audit log');
+  assert.equal(auditRow.ip_address, '203.0.113.195', 'Audit context must extract verified client IP');
+});
 
+test('audit IP: discards malformed IP header and sets ip_address to null', async () => {
+  configure({ role: 'admin', grants: [] });
+  const res = await inviteRoute.POST(
+    jsonRequest('http://localhost/api/employees/invite', {
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
+      headers: { 'x-vercel-forwarded-for': 'malformed-injection-attempt' },
+      body: { email: 'test@example.com', display_name: 'Test', role_key: 'author', reason: 'IP injection test' },
+    })
+  );
+  assert.equal(res.status, 403);
+  const auditRow = harness.audits.find((row) => row.action === 'employee.permission_denied');
+  assert.ok(auditRow, 'Denied action must be recorded in audit log');
+  assert.equal(auditRow.ip_address, null, 'Malformed IP must not pass to database inet column');
+});
 
+test('publish: deliberate database raises pass through to the client', async () => {
+  configure({ role: 'owner', grants: ['article.publish'] });
+  harness.rpcErrors.publish_article = {
+    message: 'Article must be in review status before publishing',
+    code: 'P0001',
+  };
+
+  const res = await publishRoute.POST(
+    jsonRequest('http://localhost/api/articles/art-123/publish', {
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
+    }),
+    params('art-123')
+  );
+
+  assert.equal(res.status, 400);
+  const body = (await res.json()) as { error?: string };
+  assert.equal(body.error, 'Article must be in review status before publishing');
+});
+
+test('publish: internal database errors are hidden from the client', async () => {
+  configure({ role: 'owner', grants: ['article.publish'] });
+  harness.rpcErrors.publish_article = {
+    message: 'syntax error at or near "SELECT" in relation "articles"',
+    code: '42601',
+  };
+
+  const res = await publishRoute.POST(
+    jsonRequest('http://localhost/api/articles/art-123/publish', {
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
+    }),
+    params('art-123')
+  );
+
+  assert.equal(res.status, 400);
+  const body = (await res.json()) as { error?: string };
+  assert.equal(body.error, 'Unable to publish article');
+  assert.ok(!JSON.stringify(body).includes('syntax error'), 'Internal error details must not leak');
+});

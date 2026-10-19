@@ -26,11 +26,17 @@ export async function POST(
     });
 
     if (error) {
-      return new Response(JSON.stringify({ error: error.message }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+      console.error('publish_article RPC failed:', error);
+      const clientMessage =
+        error.code === 'P0001'
+          ? error.message
+          : 'Unable to publish article';
+      return new Response(JSON.stringify({ error: clientMessage }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 
     return new Response(JSON.stringify(data), { status: 200, headers: { 'Content-Type': 'application/json' } });
-  } catch {
+  } catch (err: unknown) {
+    console.error('Error publishing article:', err);
     return new Response(JSON.stringify({ error: 'Internal Server Error' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 }
