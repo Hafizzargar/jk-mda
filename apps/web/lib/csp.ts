@@ -124,6 +124,7 @@ export function buildCspHeader(options: CspOptions): string {
     `img-src 'self' data: blob: ${trustedImageHosts.join(' ')}`,
     `connect-src 'self' ${trustedConnectHosts.join(' ')}`,
     "font-src 'self'",
+    "object-src 'none'",
     "worker-src 'self' blob:",
     "base-uri 'self'",
     "form-action 'self'",

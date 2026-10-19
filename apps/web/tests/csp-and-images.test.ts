@@ -146,6 +146,17 @@ describe('P0: Content Security Policy (CSP) Directives', () => {
 
     // Clickjacking protection: frame-ancestors 'none'
     assert.ok(csp.includes("frame-ancestors 'none'"), "CSP must include frame-ancestors 'none'");
+
+    // Legacy plugin content must be blocked unconditionally
+    assert.ok(csp.includes("object-src 'none'"), "CSP must include object-src 'none' to block plugins");
+  });
+
+  it('includes object-src none in development as well as production', () => {
+    const csp = buildCspHeader({
+      nonce: 'dev-nonce-obj-src',
+      env: { NODE_ENV: 'development' },
+    });
+    assert.ok(csp.includes("object-src 'none'"), "Dev CSP must also include object-src 'none'");
   });
 
   it('permits loopback and unsafe-eval only in development', () => {
