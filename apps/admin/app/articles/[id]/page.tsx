@@ -3,6 +3,7 @@
 import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 
 type Article = {
@@ -226,8 +227,14 @@ export default function ArticleViewPage({ params }: { params: Promise<{ id: stri
 
       <article className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/50 shadow-xl">
         {article.featured_image_url && (
-          <div className="aspect-[21/9] w-full overflow-hidden bg-slate-800">
-            <img src={article.featured_image_url} alt="Featured" className="h-full w-full object-cover" />
+          <div className="relative aspect-[21/9] w-full overflow-hidden bg-slate-800">
+            <Image
+              src={article.featured_image_url}
+              alt={article.title || 'Featured'}
+              fill
+              unoptimized
+              className="object-cover"
+            />
           </div>
         )}
         

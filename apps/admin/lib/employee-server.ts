@@ -3,6 +3,7 @@ import 'server-only';
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js';
 import { env } from '@kjin/config';
 import { requiresMfa } from './mfa.ts';
+import { extractClientIp } from './ip.ts';
 
 type EmployeeProfile = {
   id: string;
@@ -19,6 +20,7 @@ type EmployeeAuthorization = {
     session_id: string | null;
     request_id: string | null;
     user_agent: string | null;
+    ip_address: string | null;
   };
   aal: string | null;
   amr: Array<{ method: string; timestamp: number }> | null;
@@ -73,6 +75,7 @@ export async function authenticateEmployeeRequest(
     session_id: sessionId,
     request_id: request.headers.get('x-request-id'),
     user_agent: request.headers.get('user-agent'),
+    ip_address: extractClientIp(request),
   };
   const { data: profile, error: profileError } = await service
     .from('profiles')

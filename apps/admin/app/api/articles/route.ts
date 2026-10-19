@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     let body;
     try {
       body = await request.json();
-    } catch (e) {
+    } catch {
       return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
       p_source_name = optionalString(source_name);
       p_source_url = optionalString(source_url);
       p_featured_image_url = optionalString(featured_image_url);
-    } catch (e) {
+    } catch {
       return new Response(JSON.stringify({ error: 'Invalid type for optional string field' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 

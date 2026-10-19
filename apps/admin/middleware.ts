@@ -38,9 +38,48 @@ export async function middleware(request: NextRequest) {
   
   const isDev = process.env.NODE_ENV === 'development';
   const supabaseHost = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).host;
+
+  // img-src: self + data URIs for avatars/icons, the Supabase storage endpoint
+  // for article thumbnails and employee avatars, and Unsplash editorial images.
+  // The broad `https:` wildcard that was previously here is removed; any new
+  // image source must be explicitly listed.
+  const imgSrc = [
+    "'self'",
+    'data:',
+    `https://${supabaseHost}/storage/v1/object/public/`,
+    'https://images.unsplash.com',
+  ].join(' ');
+
+  // connect-src: self + the exact Supabase project over HTTPS and WSS.
+  // The previous header allowed all of https: and wss: which was overly broad.
+  const connectSrc = [
+    "'self'",
+    `https://${supabaseHost}`,
+    `wss://${supabaseHost}`,
+    ...(isDev ? ['http://localhost:*', 'ws://localhost:*', 'http://127.0.0.1:*', 'ws://127.0.0.1:*'] : []),
+  ].join(' ');
+
+  // script-src: unsafe-inline is required by Next.js for its inline bootstrap
+  // script; unsafe-eval is limited to development (Fast Refresh / HMR).
+  const scriptSrc = isDev
+    ? `'self' 'unsafe-inline' 'unsafe-eval'`
+    : `'self' 'unsafe-inline'`;
+
   supabaseResponse.headers.set(
     'Content-Security-Policy',
-    `default-src 'self'; script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://${supabaseHost};`
+    [
+      "default-src 'self'",
+      `script-src ${scriptSrc}`,
+      "style-src 'self' 'unsafe-inline'",
+      `img-src ${imgSrc}`,
+      `connect-src ${connectSrc}`,
+      "font-src 'self' data:",
+      "object-src 'none'",
+      "worker-src 'self' blob:",
+      "base-uri 'self'",
+      "form-action 'self'",
+      "frame-ancestors 'none'",
+    ].join('; ')
   );
 
   const { pathname } = request.nextUrl;

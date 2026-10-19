@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
@@ -25,7 +25,6 @@ export default function ArticlesPage() {
   const router = useRouter();
   
   // Auth & Permissions State
-  const [role, setRole] = useState<string | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [authStatus, setAuthStatus] = useState('Loading workspace...');
@@ -83,7 +82,6 @@ export default function ArticlesPage() {
         }
       }
 
-      setRole(userRole);
       setPermissions((permResult.data as string[] | null) ?? []);
       setIsAuthorized(true);
     }
