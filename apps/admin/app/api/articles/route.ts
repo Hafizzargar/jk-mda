@@ -1,5 +1,6 @@
 import { authorizeEmployeeRequest, isEmployeeAuthorization } from '@/lib/employee-server';
 import { validateArticleInput } from '@/lib/article-validation';
+import { readBoundedJson, MAX_ARTICLE_PAYLOAD_BYTES } from '@/lib/request-utils';
 
 export async function POST(request: Request) {
   try {
@@ -10,17 +11,15 @@ export async function POST(request: Request) {
 
     const { userClient } = authorization;
 
-    let body;
-    try {
-      body = await request.json();
-    } catch {
-      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
-        status: 400,
+    const bodyResult = await readBoundedJson(request, MAX_ARTICLE_PAYLOAD_BYTES);
+    if (!bodyResult.success) {
+      return new Response(JSON.stringify({ error: bodyResult.error }), {
+        status: bodyResult.status,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    const validation = validateArticleInput(body);
+    const validation = validateArticleInput(bodyResult.data);
     if (!validation.success) {
       return new Response(JSON.stringify({ error: validation.error }), {
         status: validation.status,
@@ -55,12 +54,34 @@ export async function POST(request: Request) {
 
     if (error) {
       console.error('create_article RPC failed:', error);
-      const clientMessage =
-        error.code === '23505'
-          ? 'An article with this slug already exists'
-          : 'Unable to create article';
-      return new Response(JSON.stringify({ error: clientMessage }), {
-        status: 400,
+
+      // Client error: duplicate slug
+      if (error.code === '23505') {
+        return new Response(JSON.stringify({ error: 'An article with this slug already exists' }), {
+          status: 409,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Client error: explicit permission/auth failures from RPC
+      if (error.code === 'P0001') {
+        if (error.message === 'Article creation permission required') {
+          return new Response(JSON.stringify({ error: error.message }), {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+        if (error.message === 'Authenticated employee required') {
+          return new Response(JSON.stringify({ error: error.message }), {
+            status: 401,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+      }
+
+      // Server failure: hide unexpected database internals
+      return new Response(JSON.stringify({ error: 'Unable to create article' }), {
+        status: 500,
         headers: { 'Content-Type': 'application/json' },
       });
     }

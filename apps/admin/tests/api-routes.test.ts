@@ -996,3 +996,348 @@ test('permissions: editor without article.publish cannot publish (403)', async (
   assert.equal(res.status, 403);
 });
 
+// ---------------------------------------------------------------------------
+// Request Body Size Limit Tests
+// ---------------------------------------------------------------------------
+
+test('articles create: rejects oversized payload with 413 Payload Too Large', async () => {
+  configure({ role: 'author', grants: ['article.create'] });
+  const largeContent = 'a'.repeat(520 * 1024);
+  const res = await articlesRoute.POST(
+    jsonRequest('http://localhost/api/articles', {
+      token: MFA_VALID_TOKEN,
+      body: { title: 'Valid Title', slug: 'valid-slug', content: largeContent },
+    })
+  );
+  assert.equal(res.status, 413);
+  const body = (await res.json()) as { error?: string };
+  assert.equal(body.error, 'Payload too large');
+});
+
+test('articles update: rejects oversized payload with 413 Payload Too Large', async () => {
+  configure({ role: 'author', grants: ['article.create'] });
+  const largeContent = 'a'.repeat(520 * 1024);
+  const res = await articleIdRoute.PATCH(
+    jsonRequest(`http://localhost/api/articles/${VALID_UUID}`, {
+      token: MFA_VALID_TOKEN,
+      body: { title: 'Valid Title', slug: 'valid-slug', content: largeContent },
+    }),
+    params(VALID_UUID)
+  );
+  assert.equal(res.status, 413);
+  const body = (await res.json()) as { error?: string };
+  assert.equal(body.error, 'Payload too large');
+});
+
+// ---------------------------------------------------------------------------
+// URL Strict Validation Tests
+// ---------------------------------------------------------------------------
+
+test('articles create: rejects protocol-relative URLs with 400', async () => {
+  configure({ role: 'author', grants: ['article.create'] });
+  const res = await articlesRoute.POST(
+    jsonRequest('http://localhost/api/articles', {
+      token: MFA_VALID_TOKEN,
+      body: {
+        title: 'Valid Title',
+        slug: 'valid-slug',
+        content: 'Content',
+        source_url: '//evil.com/phish',
+      },
+    })
+  );
+  assert.equal(res.status, 400);
+  const body = (await res.json()) as { error?: string };
+  assert.ok(body.error?.includes('must not be a protocol-relative URL'));
+});
+
+test('articles create: rejects URLs containing embedded user credentials with 400', async () => {
+  configure({ role: 'author', grants: ['article.create'] });
+  const res = await articlesRoute.POST(
+    jsonRequest('http://localhost/api/articles', {
+      token: MFA_VALID_TOKEN,
+      body: {
+        title: 'Valid Title',
+        slug: 'valid-slug',
+        content: 'Content',
+        source_url: 'https://admin:secret@kjin.in/news',
+      },
+    })
+  );
+  assert.equal(res.status, 400);
+  const body = (await res.json()) as { error?: string };
+  assert.ok(body.error?.includes('must not contain user credentials'));
+});
+
+// ---------------------------------------------------------------------------
+// Database Error Status Codes & Client Separation Tests
+// ---------------------------------------------------------------------------
+
+test('articles create: duplicate slug (23505) returns 409 Conflict', async () => {
+  configure({ role: 'author', grants: ['article.create'] });
+  harness.rpcErrors.create_article = {
+    message: 'duplicate key value violates unique constraint "articles_slug_key"',
+    code: '23505',
+  };
+  const res = await articlesRoute.POST(
+    jsonRequest('http://localhost/api/articles', {
+      token: MFA_VALID_TOKEN,
+      body: { title: 'Duplicate Slug Story', slug: 'duplicate-slug', content: 'Content' },
+    })
+  );
+  assert.equal(res.status, 409);
+  const body = (await res.json()) as { error?: string };
+  assert.equal(body.error, 'An article with this slug already exists');
+});
+
+test('articles create: unexpected database error returns 500 without leaking internals', async () => {
+  configure({ role: 'author', grants: ['article.create'] });
+  harness.rpcErrors.create_article = {
+    message: 'syntax error at or near "SELECT" in relation "articles"',
+    code: '42601',
+  };
+  const res = await articlesRoute.POST(
+    jsonRequest('http://localhost/api/articles', {
+      token: MFA_VALID_TOKEN,
+      body: { title: 'Error Story', slug: 'error-slug', content: 'Content' },
+    })
+  );
+  assert.equal(res.status, 500);
+  const body = (await res.json()) as { error?: string };
+  assert.equal(body.error, 'Unable to create article');
+  assert.ok(!JSON.stringify(body).includes('42601'));
+});
+
+test('articles update: duplicate slug (23505) returns 409 Conflict', async () => {
+  configure({ role: 'author', grants: ['article.create'] });
+  harness.rpcErrors.update_article = {
+    message: 'duplicate key value violates unique constraint "articles_slug_key"',
+    code: '23505',
+  };
+  const res = await articleIdRoute.PATCH(
+    jsonRequest(`http://localhost/api/articles/${VALID_UUID}`, {
+      token: MFA_VALID_TOKEN,
+      body: { title: 'Updated Title', slug: 'conflict-slug', content: 'Updated content' },
+    }),
+    params(VALID_UUID)
+  );
+  assert.equal(res.status, 409);
+  const body = (await res.json()) as { error?: string };
+  assert.equal(body.error, 'An article with this slug already exists');
+});
+
+test('articles update: unexpected database error returns 500 without leaking internals', async () => {
+  configure({ role: 'author', grants: ['article.create'] });
+  harness.rpcErrors.update_article = {
+    message: 'connection reset by peer',
+    code: '08006',
+  };
+  const res = await articleIdRoute.PATCH(
+    jsonRequest(`http://localhost/api/articles/${VALID_UUID}`, {
+      token: MFA_VALID_TOKEN,
+      body: { title: 'Updated Title', slug: 'valid-slug', content: 'Updated content' },
+    }),
+    params(VALID_UUID)
+  );
+  assert.equal(res.status, 500);
+  const body = (await res.json()) as { error?: string };
+  assert.equal(body.error, 'Unable to update article');
+  assert.ok(!JSON.stringify(body).includes('08006'));
+});
+
+test('articles update: article not found returns 404', async () => {
+  configure({ role: 'author', grants: ['article.create'] });
+  harness.rpcErrors.update_article = {
+    message: 'Article not found',
+    code: 'P0001',
+  };
+  const res = await articleIdRoute.PATCH(
+    jsonRequest(`http://localhost/api/articles/${VALID_UUID}`, {
+      token: MFA_VALID_TOKEN,
+      body: { title: 'Updated Title', slug: 'valid-slug', content: 'Updated content' },
+    }),
+    params(VALID_UUID)
+  );
+  assert.equal(res.status, 404);
+  const body = (await res.json()) as { error?: string };
+  assert.equal(body.error, 'Article not found');
+});
+
+test('articles update: unauthorized state edit returns 403', async () => {
+  configure({ role: 'author', grants: ['article.create'] });
+  harness.rpcErrors.update_article = {
+    message: 'Unauthorized to edit this article in its current state',
+    code: 'P0001',
+  };
+  const res = await articleIdRoute.PATCH(
+    jsonRequest(`http://localhost/api/articles/${VALID_UUID}`, {
+      token: MFA_VALID_TOKEN,
+      body: { title: 'Updated Title', slug: 'valid-slug', content: 'Updated content' },
+    }),
+    params(VALID_UUID)
+  );
+  assert.equal(res.status, 403);
+  const body = (await res.json()) as { error?: string };
+  assert.equal(body.error, 'Unauthorized to edit this article in its current state');
+});
+
+test('articles submit: draft conflict returns 409', async () => {
+  configure({ role: 'author', grants: ['article.submit_review'] });
+  harness.rpcErrors.submit_article_for_review = {
+    message: 'Only drafts can be submitted for review',
+    code: 'P0001',
+  };
+  const res = await submitRoute.POST(
+    jsonRequest(`http://localhost/api/articles/${VALID_UUID}/submit`, {
+      token: MFA_VALID_TOKEN,
+    }),
+    params(VALID_UUID)
+  );
+  assert.equal(res.status, 409);
+  const body = (await res.json()) as { error?: string };
+  assert.equal(body.error, 'Only drafts can be submitted for review');
+});
+
+test('articles submit: unexpected database error returns 500', async () => {
+  configure({ role: 'author', grants: ['article.submit_review'] });
+  harness.rpcErrors.submit_article_for_review = {
+    message: 'disk full',
+    code: '53100',
+  };
+  const res = await submitRoute.POST(
+    jsonRequest(`http://localhost/api/articles/${VALID_UUID}/submit`, {
+      token: MFA_VALID_TOKEN,
+    }),
+    params(VALID_UUID)
+  );
+  assert.equal(res.status, 500);
+  const body = (await res.json()) as { error?: string };
+  assert.equal(body.error, 'Unable to submit article for review');
+});
+
+test('articles return: state conflict returns 409', async () => {
+  configure({ role: 'editor', grants: ['article.review'] });
+  harness.rpcErrors.return_article_to_draft = {
+    message: 'Only articles in review can be returned to draft',
+    code: 'P0001',
+  };
+  const res = await returnRoute.POST(
+    jsonRequest(`http://localhost/api/articles/${VALID_UUID}/return`, {
+      token: MFA_VALID_TOKEN,
+    }),
+    params(VALID_UUID)
+  );
+  assert.equal(res.status, 409);
+  const body = (await res.json()) as { error?: string };
+  assert.equal(body.error, 'Only articles in review can be returned to draft');
+});
+
+test('articles return: unexpected database error returns 500', async () => {
+  configure({ role: 'editor', grants: ['article.review'] });
+  harness.rpcErrors.return_article_to_draft = {
+    message: 'syntax error',
+    code: '42601',
+  };
+  const res = await returnRoute.POST(
+    jsonRequest(`http://localhost/api/articles/${VALID_UUID}/return`, {
+      token: MFA_VALID_TOKEN,
+    }),
+    params(VALID_UUID)
+  );
+  assert.equal(res.status, 500);
+  const body = (await res.json()) as { error?: string };
+  assert.equal(body.error, 'Unable to return article to draft');
+});
+
+test('articles archive: state conflict returns 409', async () => {
+  configure({ role: 'editor', grants: ['article.archive'] });
+  harness.rpcErrors.archive_article = {
+    message: 'Only published or in-review articles can be archived',
+    code: 'P0001',
+  };
+  const res = await archiveRoute.POST(
+    jsonRequest(`http://localhost/api/articles/${VALID_UUID}/archive`, {
+      token: MFA_VALID_TOKEN,
+    }),
+    params(VALID_UUID)
+  );
+  assert.equal(res.status, 409);
+  const body = (await res.json()) as { error?: string };
+  assert.equal(body.error, 'Only published or in-review articles can be archived');
+});
+
+test('articles archive: unexpected database error returns 500', async () => {
+  configure({ role: 'editor', grants: ['article.archive'] });
+  harness.rpcErrors.archive_article = {
+    message: 'lock timeout',
+    code: '55P03',
+  };
+  const res = await archiveRoute.POST(
+    jsonRequest(`http://localhost/api/articles/${VALID_UUID}/archive`, {
+      token: MFA_VALID_TOKEN,
+    }),
+    params(VALID_UUID)
+  );
+  assert.equal(res.status, 500);
+  const body = (await res.json()) as { error?: string };
+  assert.equal(body.error, 'Unable to archive article');
+});
+
+// ---------------------------------------------------------------------------
+// Granular Permission End-to-End Tests
+// ---------------------------------------------------------------------------
+
+test('permissions: author cannot create article without article.create (403)', async () => {
+  configure({ role: 'author', grants: [] });
+  const res = await articlesRoute.POST(
+    jsonRequest('http://localhost/api/articles', {
+      token: MFA_VALID_TOKEN,
+      body: { title: 'Unauthorized Story', slug: 'unauthorized-story', content: 'Content' },
+    })
+  );
+  assert.equal(res.status, 403);
+});
+
+test('permissions: author cannot submit another author draft for review (403)', async () => {
+  configure({ role: 'author', grants: ['article.submit_review'] });
+  harness.rpcErrors.submit_article_for_review = {
+    message: 'Only the author can submit their draft for review',
+    code: 'P0001',
+  };
+  const res = await submitRoute.POST(
+    jsonRequest(`http://localhost/api/articles/${VALID_UUID}/submit`, {
+      token: MFA_VALID_TOKEN,
+    }),
+    params(VALID_UUID)
+  );
+  assert.equal(res.status, 403);
+  const body = (await res.json()) as { error?: string };
+  assert.equal(body.error, 'Only the author can submit their draft for review');
+});
+
+test('permissions: editor with article.review can return article to draft (200)', async () => {
+  configure({ role: 'editor', grants: ['article.review'] });
+  const res = await returnRoute.POST(
+    jsonRequest(`http://localhost/api/articles/${VALID_UUID}/return`, {
+      token: MFA_VALID_TOKEN,
+    }),
+    params(VALID_UUID)
+  );
+  assert.equal(res.status, 200);
+  const call = harness.calls.find((c) => c.kind === 'rpc' && c.rpc === 'return_article_to_draft');
+  assert.ok(call);
+});
+
+test('permissions: admin with article.publish and AAL2 can publish article (200)', async () => {
+  configure({ role: 'admin', grants: ['article.publish'] });
+  const res = await publishRoute.POST(
+    jsonRequest(`http://localhost/api/articles/${VALID_UUID}/publish`, {
+      token: MFA_VALID_TOKEN,
+    }),
+    params(VALID_UUID)
+  );
+  assert.equal(res.status, 200);
+  const call = harness.calls.find((c) => c.kind === 'rpc' && c.rpc === 'publish_article');
+  assert.ok(call);
+});
+

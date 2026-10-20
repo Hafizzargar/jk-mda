@@ -38,6 +38,35 @@ const parseOptionalString = (value: unknown, fieldName: string): string | null =
   return trimmed || null;
 };
 
+export function validateHttpUrl(
+  rawUrl: string,
+  fieldName: string
+): { valid: true; url: string } | { valid: false; error: string } {
+  const trimmed = rawUrl.trim();
+  if (trimmed.length > MAX_URL_LENGTH) {
+    return { valid: false, error: `${fieldName} must not exceed ${MAX_URL_LENGTH} characters` };
+  }
+  if (trimmed.startsWith('//') || trimmed.startsWith('\\\\')) {
+    return { valid: false, error: `${fieldName} must not be a protocol-relative URL` };
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(trimmed);
+  } catch {
+    return { valid: false, error: `${fieldName} must be a valid, well-formed URL` };
+  }
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    return { valid: false, error: `${fieldName} must be an HTTP or HTTPS URL` };
+  }
+  if (parsed.username || parsed.password) {
+    return { valid: false, error: `${fieldName} must not contain user credentials` };
+  }
+  if (!parsed.hostname || parsed.hostname.length === 0) {
+    return { valid: false, error: `${fieldName} must contain a valid hostname` };
+  }
+  return { valid: true, url: parsed.href };
+}
+
 export function validateArticleInput(body: unknown): ArticleValidationResult {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
     return { success: false, error: 'Invalid request body', status: 400 };
@@ -124,39 +153,30 @@ export function validateArticleInput(body: unknown): ArticleValidationResult {
     };
   }
 
-  // 5. URL validation (matching articles_source_url_format & articles_featured_image_url_format)
+
+  // 5. URL validation (parsing & verifying well-formed HTTP/HTTPS URLs)
   if (p_source_url) {
-    if (p_source_url.length > MAX_URL_LENGTH) {
+    const urlCheck = validateHttpUrl(p_source_url, 'Source URL');
+    if (!urlCheck.valid) {
       return {
         success: false,
-        error: `Source URL must not exceed ${MAX_URL_LENGTH} characters`,
+        error: urlCheck.error,
         status: 400,
       };
     }
-    if (!URL_REGEX.test(p_source_url)) {
-      return {
-        success: false,
-        error: 'Source URL must be an HTTP or HTTPS URL (starting with http:// or https://)',
-        status: 400,
-      };
-    }
+    p_source_url = urlCheck.url;
   }
 
   if (p_featured_image_url) {
-    if (p_featured_image_url.length > MAX_URL_LENGTH) {
+    const urlCheck = validateHttpUrl(p_featured_image_url, 'Featured image URL');
+    if (!urlCheck.valid) {
       return {
         success: false,
-        error: `Featured image URL must not exceed ${MAX_URL_LENGTH} characters`,
+        error: urlCheck.error,
         status: 400,
       };
     }
-    if (!URL_REGEX.test(p_featured_image_url)) {
-      return {
-        success: false,
-        error: 'Featured image URL must be an HTTP or HTTPS URL (starting with http:// or https://)',
-        status: 400,
-      };
-    }
+    p_featured_image_url = urlCheck.url;
   }
 
   // 6. Source name length validation

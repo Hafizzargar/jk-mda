@@ -1,5 +1,6 @@
 import { authenticateEmployeeRequest, isEmployeeAuthorization } from '@/lib/employee-server';
 import { validateArticleInput, UUID_PATTERN } from '@/lib/article-validation';
+import { readBoundedJson, MAX_ARTICLE_PAYLOAD_BYTES } from '@/lib/request-utils';
 
 export async function PATCH(
   request: Request,
@@ -23,17 +24,15 @@ export async function PATCH(
       });
     }
 
-    let body;
-    try {
-      body = await request.json();
-    } catch {
-      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
-        status: 400,
+    const bodyResult = await readBoundedJson(request, MAX_ARTICLE_PAYLOAD_BYTES);
+    if (!bodyResult.success) {
+      return new Response(JSON.stringify({ error: bodyResult.error }), {
+        status: bodyResult.status,
         headers: { 'Content-Type': 'application/json' },
       });
     }
 
-    const validation = validateArticleInput(body);
+    const validation = validateArticleInput(bodyResult.data);
     if (!validation.success) {
       return new Response(JSON.stringify({ error: validation.error }), {
         status: validation.status,
@@ -70,6 +69,13 @@ export async function PATCH(
     if (error) {
       console.error('update_article RPC failed:', error);
 
+      if (error.code === '22P02') {
+        return new Response(JSON.stringify({ error: 'Invalid article ID' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
       if (error.code === 'P0001') {
         if (error.message === 'Article not found') {
           return new Response(JSON.stringify({ error: 'Article not found' }), {
@@ -93,13 +99,13 @@ export async function PATCH(
 
       if (error.code === '23505') {
         return new Response(JSON.stringify({ error: 'An article with this slug already exists' }), {
-          status: 400,
+          status: 409,
           headers: { 'Content-Type': 'application/json' },
         });
       }
 
       return new Response(JSON.stringify({ error: 'Unable to update article' }), {
-        status: 400,
+        status: 500,
         headers: { 'Content-Type': 'application/json' },
       });
     }

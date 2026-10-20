@@ -28,6 +28,13 @@ export async function POST(
     if (error) {
       console.error('return_article_to_draft RPC failed:', error);
 
+      if (error.code === '22P02') {
+        return new Response(JSON.stringify({ error: 'Invalid article ID' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
       if (error.code === 'P0001') {
         if (error.message === 'Article not found') {
           return new Response(JSON.stringify({ error: 'Article not found' }), {
@@ -41,6 +48,12 @@ export async function POST(
             headers: { 'Content-Type': 'application/json' },
           });
         }
+        if (error.message === 'Only articles in review can be returned to draft') {
+          return new Response(JSON.stringify({ error: error.message }), {
+            status: 409,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
         if (error.message === 'Authenticated employee required') {
           return new Response(JSON.stringify({ error: error.message }), {
             status: 401,
@@ -50,7 +63,7 @@ export async function POST(
       }
 
       return new Response(JSON.stringify({ error: 'Unable to return article to draft' }), {
-        status: 400,
+        status: 500,
         headers: { 'Content-Type': 'application/json' },
       });
     }
