@@ -229,9 +229,15 @@ export default function EmployeesPage() {
         reason: form.get('reason'),
       }),
     });
-    const result = (await response.json()) as { error?: string };
-    setStatus(response.ok ? 'Invitation sent. The employee will activate after accepting it.' : `Invitation failed: ${result.error ?? 'Unknown error.'}`);
-    if (response.ok) formElement.reset();
+    const result = (await response.json()) as { error?: string; temporary_password?: string; email_sent?: boolean };
+    if (response.ok) {
+      const emailNotice = result.email_sent ? 'Invitation email sent to employee.' : 'Invitation created.';
+      const pwdNotice = result.temporary_password ? ` Initial password: ${result.temporary_password}` : '';
+      setStatus(`${emailNotice}${pwdNotice}`);
+      formElement.reset();
+    } else {
+      setStatus(`Invitation failed: ${result.error ?? 'Unknown error.'}`);
+    }
     setIsSubmitting(false);
     await loadWorkspace();
   };
@@ -249,8 +255,14 @@ export default function EmployeesPage() {
       },
       body: JSON.stringify({ request_id: requestId, reason: reason.trim() }),
     });
-    const result = (await response.json()) as { error?: string };
-    setStatus(response.ok ? 'Invitation sent from the employee request.' : `Invitation failed: ${result.error ?? 'Unknown error.'}`);
+    const result = (await response.json()) as { error?: string; temporary_password?: string; email_sent?: boolean };
+    if (response.ok) {
+      const emailNotice = result.email_sent ? 'Invitation email sent from request.' : 'Invitation created from request.';
+      const pwdNotice = result.temporary_password ? ` Initial password: ${result.temporary_password}` : '';
+      setStatus(`${emailNotice}${pwdNotice}`);
+    } else {
+      setStatus(`Invitation failed: ${result.error ?? 'Unknown error.'}`);
+    }
     setIsSubmitting(false);
     await loadWorkspace();
   };

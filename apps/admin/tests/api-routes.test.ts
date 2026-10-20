@@ -156,6 +156,22 @@ test('invite: pending-invite conflict maps to a friendly 409', async () => {
   assert.ok(harness.audits.some((row) => row.action === 'employee.invite_failed'));
 });
 
+test('invite: happy path provisions user with temporary password and returns it', async () => {
+  configure({ role: 'admin', grants: ['employee.invite'] });
+  const res = await inviteRoute.POST(
+    jsonRequest('http://localhost/api/employees/invite', {
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
+      body: { email: 'successful-invite@example.com', display_name: 'Success Hire', role_key: 'author', reason: 'Onboarding test' },
+    })
+  );
+  assert.equal(res.status, 201);
+  const body = (await res.json()) as { id: string; status: string; temporary_password?: string; email_sent?: boolean };
+  assert.equal(body.status, 'invited');
+  assert.ok(body.temporary_password, 'temporary password must be returned');
+  assert.equal(body.temporary_password.length, 16);
+  assert.ok(harness.audits.some((row) => row.action === 'employee.invited'));
+});
+
 // ---------------------------------------------------------------------------
 // POST /api/employees/operations
 // ---------------------------------------------------------------------------

@@ -1,4 +1,5 @@
 import { authorizeEmployeeRequest, isEmployeeAuthorization, requireRecentAuthentication } from '@/lib/employee-server';
+import { generateSecurePassword, sendEmployeeInviteEmail } from '@/lib/mailer';
 
 const roleRanks: Record<string, number> = {
   owner: 500,
@@ -251,6 +252,26 @@ export async function POST(request: Request) {
       .eq('status', 'pending');
   }
 
+  // Provision a secure temporary password and set it on the user account
+  const temporaryPassword = generateSecurePassword();
+  try {
+    await authorization.service.auth.admin.updateUserById(invited.user.id, {
+      password: temporaryPassword,
+      email_confirm: true,
+    });
+  } catch (pwdError) {
+    console.warn('[Invite] Notice: Could not set initial password on user:', pwdError);
+  }
+
+  // Dispatch invitation credentials email via Nodemailer
+  const mailResult = await sendEmployeeInviteEmail({
+    to: email,
+    displayName,
+    roleKey,
+    temporaryPassword,
+    reason,
+  });
+
   await authorization.service.from('audit_logs').insert({
     actor_profile_id: authorization.user.id,
     action: 'employee.invited',
@@ -258,9 +279,20 @@ export async function POST(request: Request) {
     target_id: invited.user.id,
     result: 'success',
     reason,
-    details: { email, role_key: roleKey, invite_id: invite.id },
+    details: {
+      email,
+      role_key: roleKey,
+      invite_id: invite.id,
+      email_sent: mailResult.success,
+      email_skipped: mailResult.skipped ?? false,
+    },
     ...authorization.auditContext,
   });
 
-  return Response.json({ id: invited.user.id, status: 'invited' }, { status: 201 });
+  return Response.json({
+    id: invited.user.id,
+    status: 'invited',
+    temporary_password: temporaryPassword,
+    email_sent: mailResult.success,
+  }, { status: 201 });
 }
