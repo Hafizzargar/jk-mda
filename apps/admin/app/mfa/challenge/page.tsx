@@ -38,14 +38,7 @@ function MFAChallengeForm() {
           return;
         }
 
-        // If nextLevel is aal1, they don't have MFA enrolled!
-        if (aalData.nextLevel === 'aal1') {
-          setStatus('MFA is not enrolled. Redirecting to setup...');
-          setTimeout(() => router.push('/mfa/enroll'), 500);
-          return;
-        }
-
-        // Find their existing TOTP factor
+        // Check actual enrolled factors from listFactors()
         const { data: factorsData, error: factorsError } = await supabase.auth.mfa.listFactors();
         if (factorsError) {
           setErrorMsg(factorsError.message);
@@ -53,10 +46,14 @@ function MFAChallengeForm() {
           return;
         }
 
-        const totpFactor = factorsData.totp.find((f) => f.status === 'verified');
+        const allFactors = [...(factorsData?.all ?? []), ...(factorsData?.totp ?? [])];
+        const totpFactor = allFactors.find((f) => f.factor_type === 'totp' && f.status === 'verified');
         if (!totpFactor) {
-          setStatus('No verified TOTP factor found. Redirecting to enrollment...');
-          setTimeout(() => router.push('/mfa/enroll'), 500);
+          setStatus('MFA is not enrolled. Redirecting to setup...');
+          const search = typeof window !== 'undefined' ? window.location.search : '';
+          setTimeout(() => {
+            window.location.href = `/mfa/enroll${search}`;
+          }, 300);
           return;
         }
 
@@ -109,8 +106,12 @@ function MFAChallengeForm() {
       }
       
       // The API returns the upgraded session. We MUST set it so the browser knows we are AAL2.
-      if (verifyResult.data?.session) {
-        await supabase.auth.setSession(verifyResult.data.session);
+      const newSession = verifyResult.data?.session || verifyResult.data;
+      if (newSession?.access_token && newSession?.refresh_token) {
+        await supabase.auth.setSession({
+          access_token: newSession.access_token,
+          refresh_token: newSession.refresh_token,
+        });
       }
       
       // Verify the session actually became aal2
@@ -123,11 +124,10 @@ function MFAChallengeForm() {
       
       setStatus('Verification successful! Redirecting...');
       const nextUrl = searchParams.get('next');
-      if (nextUrl && nextUrl.startsWith('/') && !nextUrl.startsWith('//')) {
-        setTimeout(() => router.push(nextUrl), 500);
-      } else {
-        setTimeout(() => router.push('/'), 500);
-      }
+      const target = nextUrl && nextUrl.startsWith('/') && !nextUrl.startsWith('//') ? nextUrl : '/';
+      setTimeout(() => {
+        window.location.href = target;
+      }, 500);
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Invalid code or verification failed.');
     } finally {

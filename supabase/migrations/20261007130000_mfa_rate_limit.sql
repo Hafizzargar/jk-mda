@@ -24,7 +24,7 @@ begin
   end if;
 
   insert into public.audit_logs (actor_profile_id, action, target_type, target_id, result, reason)
-  values (auth.uid(), 'employee.mfa_challenge_attempt', 'profile', auth.uid(), 'in_progress', 'MFA challenge attempt rate-limit claim');
+  values (auth.uid(), 'employee.mfa_challenge_attempt', 'profile', auth.uid(), 'success', 'MFA challenge attempt rate-limit claim');
 end;
 $$;
 

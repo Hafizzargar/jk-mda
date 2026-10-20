@@ -26,7 +26,8 @@ export async function POST(request: Request) {
   if (factorsError) {
     return Response.json({ error: 'Unable to verify MFA factor status.' }, { status: 500 });
   }
-  const targetFactor = factors?.totp.find(f => f.id === body.factorId);
+  const allFactors = [...(factors?.all ?? []), ...(factors?.totp ?? [])];
+  const targetFactor = allFactors.find(f => f.id === body.factorId);
   if (!targetFactor) {
     return Response.json({ error: 'Invalid MFA factor.' }, { status: 400 });
   }
@@ -68,5 +69,13 @@ export async function POST(request: Request) {
   });
 
   // Return the upgraded session to the client
-  return Response.json({ data: verifyData });
+  return Response.json({
+    data: {
+      session: {
+        access_token: verifyData.access_token,
+        refresh_token: verifyData.refresh_token,
+      },
+      ...verifyData,
+    },
+  });
 }

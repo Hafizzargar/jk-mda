@@ -16,5 +16,12 @@ port = 54323
 site_url = "http://localhost:3001"
 enable_signup = false
 
+[auth.mfa]
+max_enrolled_factors = 10
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
+
 [storage]
 file_size_limit = "50MiB"

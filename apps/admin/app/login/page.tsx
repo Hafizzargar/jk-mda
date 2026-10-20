@@ -29,13 +29,10 @@ function LoginForm() {
         return;
       }
 
-      setStatus('Signed in successfully. Checking your KJIN profile...');
+      setStatus('Signed in successfully. Redirecting...');
       const nextUrl = searchParams.get('next');
-      if (nextUrl && nextUrl.startsWith('/') && !nextUrl.startsWith('//')) {
-        router.push(nextUrl);
-      } else {
-        router.push('/');
-      }
+      const target = nextUrl && nextUrl.startsWith('/') && !nextUrl.startsWith('//') ? nextUrl : '/';
+      window.location.href = target;
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Unable to sign in right now.');
       setIsSubmitting(false);

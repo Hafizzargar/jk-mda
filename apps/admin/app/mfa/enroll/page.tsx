@@ -34,11 +34,27 @@ export default function MFAEnrollmentPage() {
           return;
         }
 
-        // If nextLevel is aal2, they have enrolled but just need to verify (Login challenge)
-        if (aalData.nextLevel === 'aal2') {
+        // Check actual enrolled factors from listFactors()
+        const { data: existingFactors } = await supabase.auth.mfa.listFactors();
+        const allFactors = [...(existingFactors?.all ?? []), ...(existingFactors?.totp ?? [])];
+        const hasVerifiedFactor = allFactors.some((f) => f.status === 'verified');
+
+        if (hasVerifiedFactor || aalData.nextLevel === 'aal2') {
           setStatus('MFA is already enrolled. Redirecting to verification...');
-          setTimeout(() => router.push('/mfa/challenge'), 500);
+          const search = typeof window !== 'undefined' ? window.location.search : '';
+          setTimeout(() => {
+            window.location.href = `/mfa/challenge${search}`;
+          }, 300);
           return;
+        }
+
+        // Clean up any stale unverified factors from previous incomplete sessions
+        if (existingFactors?.all) {
+          for (const factor of existingFactors.all) {
+            if (factor.status === 'unverified') {
+              await supabase.auth.mfa.unenroll({ factorId: factor.id });
+            }
+          }
         }
 
         // Otherwise, they need to enroll
@@ -101,10 +117,18 @@ export default function MFAEnrollmentPage() {
       }
       
       const { data } = await verifyResponse.json();
-      await supabase.auth.setSession(data.session);
+      const newSession = data?.session || data;
+      if (newSession?.access_token && newSession?.refresh_token) {
+        await supabase.auth.setSession({
+          access_token: newSession.access_token,
+          refresh_token: newSession.refresh_token,
+        });
+      }
       
       setStatus('MFA successfully enrolled! Redirecting...');
-      setTimeout(() => router.push('/'), 1500);
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 1000);
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Invalid code or verification failed.');
     } finally {

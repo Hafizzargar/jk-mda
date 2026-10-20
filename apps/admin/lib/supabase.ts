@@ -1,14 +1,8 @@
-import { createClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
 import { requireEnv } from '@kjin/config';
 
-export const supabase = createClient(
+export const supabase = createBrowserClient(
   requireEnv('NEXT_PUBLIC_SUPABASE_URL'),
-  requireEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
-  {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: true,
-    },
-  }
+  requireEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY')
 );
+
