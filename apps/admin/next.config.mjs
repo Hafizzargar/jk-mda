@@ -13,28 +13,11 @@ const nextConfig = {
       {
         source: '/(.*)',
         headers: [
-          {
-            // NOTE: The middleware generates a richer, env-aware CSP that
-            // overrides this header at request time for all authenticated routes.
-            // This static fallback covers Next.js error pages and any edge-case
-            // HTML responses that bypass middleware. Keep both in sync.
-            // unsafe-eval is intentionally absent here; the middleware adds it
-            // only in development via process.env.NODE_ENV.
-            key: 'Content-Security-Policy',
-            value: [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-inline'",
-              "style-src 'self' 'unsafe-inline'",
-              `img-src 'self' data: https://${configuredSupabaseHost}/storage/v1/object/public/ https://images.unsplash.com`,
-              `connect-src 'self' https://${configuredSupabaseHost} wss://${configuredSupabaseHost}`,
-              "font-src 'self' data:",
-              "object-src 'none'",
-              "worker-src 'self' blob:",
-              "base-uri 'self'",
-              "form-action 'self'",
-              "frame-ancestors 'none'",
-            ].join('; '),
-          },
+          // NOTE: Content-Security-Policy is intentionally managed dynamically
+          // with per-request cryptographic nonces in middleware.ts (via buildAdminCspHeader).
+          // Static CSP in nextConfig cannot provide dynamic nonces and would require
+          // 'unsafe-inline'. Keeping CSP strictly in middleware eliminates 'unsafe-inline'
+          // in production while supporting Next.js inline bootstrap scripts via nonces.
           {
             key: 'X-Content-Type-Options',
             value: 'nosniff'

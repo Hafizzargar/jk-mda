@@ -1,11 +1,29 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import { requiresMfa } from '@/lib/mfa';
+import { buildAdminCspHeader } from '@/lib/csp';
 
 export async function middleware(request: NextRequest) {
+  // Generate a cryptographically secure random nonce for this request
+  const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
+  const cspHeader = buildAdminCspHeader({ nonce });
+
+  // Attach nonce and CSP to request headers so Next.js internals pick up the nonce for inline bootstrap scripts
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-nonce', nonce);
+  requestHeaders.set('Content-Security-Policy', cspHeader);
+
+  const applySecurityHeaders = (res: NextResponse) => {
+    res.headers.set('X-Content-Type-Options', 'nosniff');
+    res.headers.set('X-Frame-Options', 'DENY');
+    res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
+    res.headers.set('Content-Security-Policy', cspHeader);
+  };
+
   let supabaseResponse = NextResponse.next({
     request: {
-      headers: request.headers,
+      headers: requestHeaders,
     },
   });
 
@@ -20,67 +38,20 @@ export async function middleware(request: NextRequest) {
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value));
           supabaseResponse = NextResponse.next({
-            request,
+            request: {
+              headers: requestHeaders,
+            },
           });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           );
+          applySecurityHeaders(supabaseResponse);
         },
       },
     }
   );
 
-  // Security Headers
-  supabaseResponse.headers.set('X-Content-Type-Options', 'nosniff');
-  supabaseResponse.headers.set('X-Frame-Options', 'DENY');
-  supabaseResponse.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
-  supabaseResponse.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
-  
-  const isDev = process.env.NODE_ENV === 'development';
-  const supabaseHost = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).host;
-
-  // img-src: self + data URIs for avatars/icons, the Supabase storage endpoint
-  // for article thumbnails and employee avatars, and Unsplash editorial images.
-  // The broad `https:` wildcard that was previously here is removed; any new
-  // image source must be explicitly listed.
-  const imgSrc = [
-    "'self'",
-    'data:',
-    `https://${supabaseHost}/storage/v1/object/public/`,
-    'https://images.unsplash.com',
-  ].join(' ');
-
-  // connect-src: self + the exact Supabase project over HTTPS and WSS.
-  // The previous header allowed all of https: and wss: which was overly broad.
-  const connectSrc = [
-    "'self'",
-    `https://${supabaseHost}`,
-    `wss://${supabaseHost}`,
-    ...(isDev ? ['http://localhost:*', 'ws://localhost:*', 'http://127.0.0.1:*', 'ws://127.0.0.1:*'] : []),
-  ].join(' ');
-
-  // script-src: unsafe-inline is required by Next.js for its inline bootstrap
-  // script; unsafe-eval is limited to development (Fast Refresh / HMR).
-  const scriptSrc = isDev
-    ? `'self' 'unsafe-inline' 'unsafe-eval'`
-    : `'self' 'unsafe-inline'`;
-
-  supabaseResponse.headers.set(
-    'Content-Security-Policy',
-    [
-      "default-src 'self'",
-      `script-src ${scriptSrc}`,
-      "style-src 'self' 'unsafe-inline'",
-      `img-src ${imgSrc}`,
-      `connect-src ${connectSrc}`,
-      "font-src 'self' data:",
-      "object-src 'none'",
-      "worker-src 'self' blob:",
-      "base-uri 'self'",
-      "form-action 'self'",
-      "frame-ancestors 'none'",
-    ].join('; ')
-  );
+  applySecurityHeaders(supabaseResponse);
 
   const { pathname } = request.nextUrl;
   

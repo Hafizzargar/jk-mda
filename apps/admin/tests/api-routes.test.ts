@@ -15,6 +15,11 @@ const operationsRoute = await import('../app/api/employees/operations/route.ts')
 const statusRoute = await import('../app/api/employees/[id]/status/route.ts');
 const contactRoute = await import('../app/api/employees/[id]/contact/route.ts');
 const publishRoute = await import('../app/api/articles/[id]/publish/route.ts');
+const articlesRoute = await import('../app/api/articles/route.ts');
+const articleIdRoute = await import('../app/api/articles/[id]/route.ts');
+const archiveRoute = await import('../app/api/articles/[id]/archive/route.ts');
+const returnRoute = await import('../app/api/articles/[id]/return/route.ts');
+const submitRoute = await import('../app/api/articles/[id]/submit/route.ts');
 
 const VALID_UUID = TARGET_ID;
 
@@ -679,7 +684,24 @@ test('audit IP: discards malformed IP header and sets ip_address to null', async
   assert.equal(auditRow.ip_address, null, 'Malformed IP must not pass to database inet column');
 });
 
-test('publish: deliberate database raises pass through to the client', async () => {
+const MFA_VALID_TOKEN =
+  'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy';
+
+test('publish: non-uuid id returns 400 validation error before RPC', async () => {
+  configure({ role: 'owner', grants: ['article.publish'] });
+  const res = await publishRoute.POST(
+    jsonRequest('http://localhost/api/articles/not-a-uuid/publish', {
+      token: MFA_VALID_TOKEN,
+    }),
+    params('not-a-uuid')
+  );
+
+  assert.equal(res.status, 400);
+  const body = (await res.json()) as { error?: string };
+  assert.equal(body.error, 'Invalid article ID');
+});
+
+test('publish: deliberate state conflict raises pass through with 409', async () => {
   configure({ role: 'owner', grants: ['article.publish'] });
   harness.rpcErrors.publish_article = {
     message: 'Article must be in review status before publishing',
@@ -687,18 +709,57 @@ test('publish: deliberate database raises pass through to the client', async () 
   };
 
   const res = await publishRoute.POST(
-    jsonRequest('http://localhost/api/articles/art-123/publish', {
-      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
+    jsonRequest(`http://localhost/api/articles/${VALID_UUID}/publish`, {
+      token: MFA_VALID_TOKEN,
     }),
-    params('art-123')
+    params(VALID_UUID)
   );
 
-  assert.equal(res.status, 400);
+  assert.equal(res.status, 409);
   const body = (await res.json()) as { error?: string };
   assert.equal(body.error, 'Article must be in review status before publishing');
 });
 
-test('publish: internal database errors are hidden from the client', async () => {
+test('publish: article not found returns 404', async () => {
+  configure({ role: 'owner', grants: ['article.publish'] });
+  harness.rpcErrors.publish_article = {
+    message: 'Article not found',
+    code: 'P0001',
+  };
+
+  const res = await publishRoute.POST(
+    jsonRequest(`http://localhost/api/articles/${VALID_UUID}/publish`, {
+      token: MFA_VALID_TOKEN,
+    }),
+    params(VALID_UUID)
+  );
+
+  assert.equal(res.status, 404);
+  const body = (await res.json()) as { error?: string };
+  assert.equal(body.error, 'Article not found');
+});
+
+test('publish: unapproved P0001 database details are hidden and return 500', async () => {
+  configure({ role: 'owner', grants: ['article.publish'] });
+  harness.rpcErrors.publish_article = {
+    message: 'internal trigger failure: public.articles_integrity_trigger violates check',
+    code: 'P0001',
+  };
+
+  const res = await publishRoute.POST(
+    jsonRequest(`http://localhost/api/articles/${VALID_UUID}/publish`, {
+      token: MFA_VALID_TOKEN,
+    }),
+    params(VALID_UUID)
+  );
+
+  assert.equal(res.status, 500);
+  const body = (await res.json()) as { error?: string };
+  assert.equal(body.error, 'Unable to publish article');
+  assert.ok(!JSON.stringify(body).includes('integrity_trigger'), 'Internal trigger details must not leak');
+});
+
+test('publish: internal database errors are hidden from the client and return 500', async () => {
   configure({ role: 'owner', grants: ['article.publish'] });
   harness.rpcErrors.publish_article = {
     message: 'syntax error at or near "SELECT" in relation "articles"',
@@ -706,14 +767,232 @@ test('publish: internal database errors are hidden from the client', async () =>
   };
 
   const res = await publishRoute.POST(
-    jsonRequest('http://localhost/api/articles/art-123/publish', {
-      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
+    jsonRequest(`http://localhost/api/articles/${VALID_UUID}/publish`, {
+      token: MFA_VALID_TOKEN,
     }),
-    params('art-123')
+    params(VALID_UUID)
   );
 
-  assert.equal(res.status, 400);
+  assert.equal(res.status, 500);
   const body = (await res.json()) as { error?: string };
   assert.equal(body.error, 'Unable to publish article');
   assert.ok(!JSON.stringify(body).includes('syntax error'), 'Internal error details must not leak');
 });
+
+// ---------------------------------------------------------------------------
+// Article Input Limits (POST /api/articles & PATCH /api/articles/[id])
+// ---------------------------------------------------------------------------
+
+test('articles create: rejects missing or empty title with 400', async () => {
+  configure({ role: 'author', grants: ['article.create'] });
+  const res = await articlesRoute.POST(
+    jsonRequest('http://localhost/api/articles', {
+      token: MFA_VALID_TOKEN,
+      body: { title: '   ', slug: 'valid-slug', content: 'Some content' },
+    })
+  );
+  assert.equal(res.status, 400);
+  const body = (await res.json()) as { error?: string };
+  assert.ok(body.error?.includes('Title must be between'));
+});
+
+test('articles create: rejects oversized title (>255) with 400', async () => {
+  configure({ role: 'author', grants: ['article.create'] });
+  const res = await articlesRoute.POST(
+    jsonRequest('http://localhost/api/articles', {
+      token: MFA_VALID_TOKEN,
+      body: { title: 'a'.repeat(256), slug: 'valid-slug', content: 'Some content' },
+    })
+  );
+  assert.equal(res.status, 400);
+  const body = (await res.json()) as { error?: string };
+  assert.ok(body.error?.includes('Title must be between 1 and 255'));
+});
+
+test('articles create: rejects invalid slug format and oversized slug (>255) with 400', async () => {
+  configure({ role: 'author', grants: ['article.create'] });
+  // Invalid characters
+  let res = await articlesRoute.POST(
+    jsonRequest('http://localhost/api/articles', {
+      token: MFA_VALID_TOKEN,
+      body: { title: 'Valid Title', slug: 'Invalid Slug!', content: 'Some content' },
+    })
+  );
+  assert.equal(res.status, 400);
+  let body = (await res.json()) as { error?: string };
+  assert.ok(body.error?.includes('Slug must contain only'));
+
+  // Oversized slug
+  res = await articlesRoute.POST(
+    jsonRequest('http://localhost/api/articles', {
+      token: MFA_VALID_TOKEN,
+      body: { title: 'Valid Title', slug: 'a'.repeat(256), content: 'Some content' },
+    })
+  );
+  assert.equal(res.status, 400);
+  body = (await res.json()) as { error?: string };
+  assert.ok(body.error?.includes('Slug must be between 1 and 255'));
+});
+
+test('articles create: rejects oversized excerpt (>1000) with 400', async () => {
+  configure({ role: 'author', grants: ['article.create'] });
+  const res = await articlesRoute.POST(
+    jsonRequest('http://localhost/api/articles', {
+      token: MFA_VALID_TOKEN,
+      body: { title: 'Valid Title', slug: 'valid-slug', content: 'Some content', excerpt: 'x'.repeat(1001) },
+    })
+  );
+  assert.equal(res.status, 400);
+  const body = (await res.json()) as { error?: string };
+  assert.ok(body.error?.includes('Excerpt must not exceed 1000'));
+});
+
+test('articles create: rejects empty content and oversized content (>200,000) with 400', async () => {
+  configure({ role: 'author', grants: ['article.create'] });
+  // Empty content
+  let res = await articlesRoute.POST(
+    jsonRequest('http://localhost/api/articles', {
+      token: MFA_VALID_TOKEN,
+      body: { title: 'Valid Title', slug: 'valid-slug', content: '   ' },
+    })
+  );
+  assert.equal(res.status, 400);
+  let body = (await res.json()) as { error?: string };
+  assert.ok(body.error?.includes('content cannot be empty'));
+
+  // Oversized content
+  res = await articlesRoute.POST(
+    jsonRequest('http://localhost/api/articles', {
+      token: MFA_VALID_TOKEN,
+      body: { title: 'Valid Title', slug: 'valid-slug', content: 'x'.repeat(200_001) },
+    })
+  );
+  assert.equal(res.status, 400);
+  body = (await res.json()) as { error?: string };
+  assert.ok(body.error?.includes('content exceeds maximum allowed length'));
+});
+
+test('articles create: rejects invalid URLs or URLs exceeding 2048 chars', async () => {
+  configure({ role: 'author', grants: ['article.create'] });
+  // javascript: scheme URL
+  let res = await articlesRoute.POST(
+    jsonRequest('http://localhost/api/articles', {
+      token: MFA_VALID_TOKEN,
+      body: { title: 'Valid Title', slug: 'valid-slug', content: 'Content', source_url: 'javascript:alert(1)' },
+    })
+  );
+  assert.equal(res.status, 400);
+  let body = (await res.json()) as { error?: string };
+  assert.ok(body.error?.includes('Source URL must be an HTTP or HTTPS URL'));
+
+  // Oversized URL
+  res = await articlesRoute.POST(
+    jsonRequest('http://localhost/api/articles', {
+      token: MFA_VALID_TOKEN,
+      body: { title: 'Valid Title', slug: 'valid-slug', content: 'Content', featured_image_url: `https://example.com/${'x'.repeat(2048)}` },
+    })
+  );
+  assert.equal(res.status, 400);
+  body = (await res.json()) as { error?: string };
+  assert.ok(body.error?.includes('Featured image URL must not exceed 2048'));
+});
+
+test('articles create: accepts valid input and calls create_article RPC', async () => {
+  configure({ role: 'author', grants: ['article.create'] });
+  const res = await articlesRoute.POST(
+    jsonRequest('http://localhost/api/articles', {
+      token: MFA_VALID_TOKEN,
+      body: {
+        title: 'Fresh News from Srinagar',
+        slug: 'fresh-news-from-srinagar',
+        content: 'Report body text here',
+        excerpt: 'Brief overview',
+        category: 'local',
+        district: 'srinagar',
+        source_name: 'KJIN Bureau',
+        source_url: 'https://kjin.in/sources/1',
+        featured_image_url: 'https://images.unsplash.com/photo-1234',
+      },
+    })
+  );
+  assert.equal(res.status, 201);
+  const rpcCall = harness.calls.find((c) => c.kind === 'rpc' && c.rpc === 'create_article');
+  assert.ok(rpcCall, 'create_article RPC must be invoked');
+});
+
+test('articles update: rejects non-uuid id with 400', async () => {
+  configure({ role: 'author', grants: ['article.create'] });
+  const res = await articleIdRoute.PATCH(
+    jsonRequest('http://localhost/api/articles/invalid-uuid', {
+      token: MFA_VALID_TOKEN,
+      body: { title: 'Updated Title', slug: 'updated-slug', content: 'Updated content' },
+    }),
+    params('invalid-uuid')
+  );
+  assert.equal(res.status, 400);
+  const body = (await res.json()) as { error?: string };
+  assert.equal(body.error, 'Invalid article ID');
+});
+
+test('articles update: rejects oversized fields with 400', async () => {
+  configure({ role: 'author', grants: ['article.create'] });
+  const res = await articleIdRoute.PATCH(
+    jsonRequest(`http://localhost/api/articles/${VALID_UUID}`, {
+      token: MFA_VALID_TOKEN,
+      body: { title: 'x'.repeat(256), slug: 'valid-slug', content: 'Valid content' },
+    }),
+    params(VALID_UUID)
+  );
+  assert.equal(res.status, 400);
+  const body = (await res.json()) as { error?: string };
+  assert.ok(body.error?.includes('Title must be between 1 and 255'));
+});
+
+// ---------------------------------------------------------------------------
+// Article Lifecycle Permission Verification
+// ---------------------------------------------------------------------------
+
+test('permissions: ordinary author without article.publish cannot publish (403)', async () => {
+  configure({ role: 'author', grants: ['article.create', 'article.submit_review'] });
+  const res = await publishRoute.POST(
+    jsonRequest(`http://localhost/api/articles/${VALID_UUID}/publish`, {
+      token: MFA_VALID_TOKEN,
+    }),
+    params(VALID_UUID)
+  );
+  assert.equal(res.status, 403);
+});
+
+test('permissions: ordinary author without article.archive cannot archive (403)', async () => {
+  configure({ role: 'author', grants: ['article.create'] });
+  const res = await archiveRoute.POST(
+    jsonRequest(`http://localhost/api/articles/${VALID_UUID}/archive`, {
+      token: MFA_VALID_TOKEN,
+    }),
+    params(VALID_UUID)
+  );
+  assert.equal(res.status, 403);
+});
+
+test('permissions: ordinary author without article.review cannot return article to draft (403)', async () => {
+  configure({ role: 'author', grants: ['article.create'] });
+  const res = await returnRoute.POST(
+    jsonRequest(`http://localhost/api/articles/${VALID_UUID}/return`, {
+      token: MFA_VALID_TOKEN,
+    }),
+    params(VALID_UUID)
+  );
+  assert.equal(res.status, 403);
+});
+
+test('permissions: editor without article.publish cannot publish (403)', async () => {
+  configure({ role: 'editor', grants: ['article.review', 'article.archive'] });
+  const res = await publishRoute.POST(
+    jsonRequest(`http://localhost/api/articles/${VALID_UUID}/publish`, {
+      token: MFA_VALID_TOKEN,
+    }),
+    params(VALID_UUID)
+  );
+  assert.equal(res.status, 403);
+});
+
