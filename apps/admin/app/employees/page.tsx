@@ -99,7 +99,11 @@ export default function EmployeesPage() {
       },
       body: JSON.stringify({ operation, ...values }),
     });
-    const result = (await response.json()) as { error?: string; data?: unknown };
+    const result = (await response.json()) as { error?: string; data?: unknown; code?: string };
+    if (!response.ok && response.status === 403 && (result.code === 'reauth_required' || result.error?.includes('Recent authentication'))) {
+      window.location.href = '/mfa/challenge?next=/employees';
+      return { error: 'Recent authentication required. Redirecting to MFA verification...' };
+    }
     return response.ok ? { data: result.data } : { error: result.error ?? 'Employee operation failed.' };
   };
 
@@ -229,13 +233,18 @@ export default function EmployeesPage() {
         reason: form.get('reason'),
       }),
     });
-    const result = (await response.json()) as { error?: string; temporary_password?: string; email_sent?: boolean };
+    const result = (await response.json()) as { error?: string; temporary_password?: string; email_sent?: boolean; code?: string };
     if (response.ok) {
       const emailNotice = result.email_sent ? 'Invitation email sent to employee.' : 'Invitation created.';
       const pwdNotice = result.temporary_password ? ` Initial password: ${result.temporary_password}` : '';
       setStatus(`${emailNotice}${pwdNotice}`);
       formElement.reset();
     } else {
+      if (response.status === 403 && (result.code === 'reauth_required' || result.error?.includes('Recent authentication'))) {
+        setStatus('Recent authentication required for security. Redirecting to MFA verification...');
+        window.location.href = '/mfa/challenge?next=/employees';
+        return;
+      }
       setStatus(`Invitation failed: ${result.error ?? 'Unknown error.'}`);
     }
     setIsSubmitting(false);
@@ -255,12 +264,17 @@ export default function EmployeesPage() {
       },
       body: JSON.stringify({ request_id: requestId, reason: reason.trim() }),
     });
-    const result = (await response.json()) as { error?: string; temporary_password?: string; email_sent?: boolean };
+    const result = (await response.json()) as { error?: string; temporary_password?: string; email_sent?: boolean; code?: string };
     if (response.ok) {
       const emailNotice = result.email_sent ? 'Invitation email sent from request.' : 'Invitation created from request.';
       const pwdNotice = result.temporary_password ? ` Initial password: ${result.temporary_password}` : '';
       setStatus(`${emailNotice}${pwdNotice}`);
     } else {
+      if (response.status === 403 && (result.code === 'reauth_required' || result.error?.includes('Recent authentication'))) {
+        setStatus('Recent authentication required for security. Redirecting to MFA verification...');
+        window.location.href = '/mfa/challenge?next=/employees';
+        return;
+      }
       setStatus(`Invitation failed: ${result.error ?? 'Unknown error.'}`);
     }
     setIsSubmitting(false);
