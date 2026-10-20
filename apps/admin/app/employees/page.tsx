@@ -195,8 +195,9 @@ export default function EmployeesPage() {
 
   const submitInviteRequest = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const formElement = event.currentTarget;
     setIsSubmitting(true);
-    const form = new FormData(event.currentTarget);
+    const form = new FormData(formElement);
     const { error } = await runEmployeeOperation('request-invite', {
       email: String(form.get('email') ?? ''),
       display_name: String(form.get('display_name') ?? ''),
@@ -204,15 +205,16 @@ export default function EmployeesPage() {
       reason: String(form.get('reason') ?? ''),
     });
     setStatus(error ? `Request failed: ${error}` : 'Invitation request submitted for review.');
-    if (!error) event.currentTarget.reset();
+    if (!error) formElement.reset();
     setIsSubmitting(false);
     await loadWorkspace();
   };
 
   const sendInvite = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    const formElement = event.currentTarget;
     setIsSubmitting(true);
-    const form = new FormData(event.currentTarget);
+    const form = new FormData(formElement);
     const { data } = await supabase.auth.getSession();
     const response = await fetch('/api/employees/invite', {
       method: 'POST',
@@ -229,7 +231,7 @@ export default function EmployeesPage() {
     });
     const result = (await response.json()) as { error?: string };
     setStatus(response.ok ? 'Invitation sent. The employee will activate after accepting it.' : `Invitation failed: ${result.error ?? 'Unknown error.'}`);
-    if (response.ok) event.currentTarget.reset();
+    if (response.ok) formElement.reset();
     setIsSubmitting(false);
     await loadWorkspace();
   };
