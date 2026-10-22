@@ -191,7 +191,15 @@ export default function DashboardPage() {
         </div>
 
         <div className="mb-8 flex justify-end">
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3">
+            {userRole && ['owner', 'superadmin', 'admin'].includes(userRole) ? (
+              <Link
+                href="/templates"
+                className="rounded-full border border-cyan-500/40 bg-cyan-500/10 px-5 py-2.5 font-semibold text-cyan-200 hover:border-cyan-400 hover:bg-cyan-500/20"
+              >
+                Website Templates
+              </Link>
+            ) : null}
             <Link
               href="/employees"
               className="rounded-full border border-slate-700 px-5 py-2.5 font-semibold text-white hover:border-cyan-500"

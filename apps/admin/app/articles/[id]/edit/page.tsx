@@ -74,6 +74,14 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
       const hasReviewPermission = permissions.includes('article.review');
       const hasCreatePermission = permissions.includes('article.create');
 
+      const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!UUID_REGEX.test(id)) {
+        setAuthStatus('Invalid article ID format.');
+        setIsAuthorized(false);
+        setIsLoading(false);
+        return;
+      }
+
       // Fetch article
       const { data: articleData, error: articleError } = await supabase
         .from('articles')

@@ -27,7 +27,8 @@ From the project root:
 pnpm dev
 
 # Or run them individually:
-pnpm dev:admin    # http://localhost:3001
+pnpm dev:admin    # 
+
 pnpm dev:web      # http://localhost:3000
 ```
 
@@ -76,13 +77,15 @@ pnpm typecheck
 
 ## 6. Managing the Local Supabase Database
 
+If you don't have the Supabase CLI installed globally, run these commands using `npx`:
+
 ```bash
 # Start local database containers:
-supabase start
+npx supabase start
 
 # Check status of local database services:
-supabase status
+npx supabase status
 
 # Stop local database containers:
-supabase stop
+npx supabase stop
 ```

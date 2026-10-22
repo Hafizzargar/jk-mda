@@ -68,6 +68,15 @@ export class Harness {
       employee_invites: [],
       employee_invite_requests: [],
       audit_logs: [],
+      site_settings: [
+        {
+          key: 'active_template',
+          value: {
+            template_id: 'classic-editorial',
+            name: 'Classic Editorial Broadsheet',
+          },
+        },
+      ],
     };
     this.actor = { id: ACTOR_ID, role_key: 'admin', status: 'active' };
     this.grants = [];
@@ -124,6 +133,18 @@ export class Harness {
             return ok(null);
           }
           if (table === 'employee_invites') return this.inviteInsert;
+          if (table === 'site_settings' && state.payload) {
+            const settings = (this.fixtures.site_settings ??= []);
+            const existingIdx = settings.findIndex(
+              (r) => (r as Record<string, unknown>).key === state.payload?.key
+            );
+            if (existingIdx >= 0) {
+              settings[existingIdx] = state.payload;
+            } else {
+              settings.push(state.payload);
+            }
+            return ok(state.payload);
+          }
           return ok(state.payload);
         }
         if (state.action === 'update') {
@@ -146,6 +167,11 @@ export class Harness {
           return builder;
         },
         insert(payload: Record<string, unknown>) {
+          state.action = 'insert';
+          state.payload = payload;
+          return builder;
+        },
+        upsert(payload: Record<string, unknown>) {
           state.action = 'insert';
           state.payload = payload;
           return builder;

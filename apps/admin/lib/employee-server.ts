@@ -161,6 +161,13 @@ export async function requireRecentAuthentication(
   request: Request,
   windowSeconds?: number
 ): Promise<Response | null> {
+  if (
+    process.env.NODE_ENV !== 'production' &&
+    (process.env.NEXT_PUBLIC_DEV_BYPASS_MFA === 'true' || process.env.DEV_BYPASS_MFA === 'true')
+  ) {
+    return null;
+  }
+
   const allowedWindow = windowSeconds ?? (
     process.env.NODE_ENV === 'production'
       ? 900 // 15 minutes in production

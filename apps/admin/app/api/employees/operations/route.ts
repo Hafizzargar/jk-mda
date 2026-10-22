@@ -87,6 +87,14 @@ export async function POST(request: Request) {
       details: { operation: typedOperation, request_id: body.request_id ?? null },
       ...authorization.auditContext,
     });
+    // Handle duplicate pending deletion gracefully
+    if (error.code === '23505' || error.message.includes('idx_employee_deletion_one_pending')) {
+      return Response.json(
+        { error: 'A deprovisioning request is already pending for this employee. Please review it in the Pending deletion tab.' },
+        { status: 409 }
+      );
+    }
+
     // Only deliberate raise-exception messages (SQLSTATE P0001) are safe to show;
     // every other database error is internal and must not reach the browser.
     const clientMessage =

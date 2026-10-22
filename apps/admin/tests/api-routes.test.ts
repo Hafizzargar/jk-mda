@@ -20,6 +20,8 @@ const articleIdRoute = await import('../app/api/articles/[id]/route.ts');
 const archiveRoute = await import('../app/api/articles/[id]/archive/route.ts');
 const returnRoute = await import('../app/api/articles/[id]/return/route.ts');
 const submitRoute = await import('../app/api/articles/[id]/submit/route.ts');
+const resendInviteRoute = await import('../app/api/employees/resend-invite/route.ts');
+const templateRoute = await import('../app/api/settings/template/route.ts');
 
 const VALID_UUID = TARGET_ID;
 
@@ -170,6 +172,83 @@ test('invite: happy path provisions user with temporary password and returns it'
   assert.ok(body.temporary_password, 'temporary password must be returned');
   assert.equal(body.temporary_password.length, 16);
   assert.ok(harness.audits.some((row) => row.action === 'employee.invited'));
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/employees/resend-invite
+// ---------------------------------------------------------------------------
+
+test('resend-invite: missing token returns 401', async () => {
+  const res = await resendInviteRoute.POST(
+    jsonRequest('http://localhost/api/employees/resend-invite', {
+      body: { employee_id: VALID_UUID, reason: 'Lost credentials' },
+    })
+  );
+  assert.equal(res.status, 401);
+});
+
+test('resend-invite: missing employee_id or reason returns 400', async () => {
+  configure({ role: 'owner', grants: ['employee.invite'] });
+  let res = await resendInviteRoute.POST(
+    jsonRequest('http://localhost/api/employees/resend-invite', {
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
+      body: { reason: 'Lost credentials' },
+    })
+  );
+  assert.equal(res.status, 400);
+
+  res = await resendInviteRoute.POST(
+    jsonRequest('http://localhost/api/employees/resend-invite', {
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
+      body: { employee_id: VALID_UUID },
+    })
+  );
+  assert.equal(res.status, 400);
+});
+
+test('resend-invite: employee not in invited status returns 400', async () => {
+  configure({ role: 'owner', grants: ['employee.invite'] });
+  harness.addProfile({ id: VALID_UUID, email: 'active@example.com', role_key: 'author', status: 'active' });
+  const res = await resendInviteRoute.POST(
+    jsonRequest('http://localhost/api/employees/resend-invite', {
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
+      body: { employee_id: VALID_UUID, reason: 'Resending credentials' },
+    })
+  );
+  assert.equal(res.status, 400);
+  const body = (await res.json()) as { error?: string };
+  assert.ok(body.error?.includes('invited'));
+});
+
+test('resend-invite: subordinate without rank or permission is rejected with 403', async () => {
+  configure({ role: 'admin', grants: ['employee.invite'] });
+  harness.addProfile({ id: VALID_UUID, email: 'super@example.com', role_key: 'superadmin', status: 'invited' });
+  const res = await resendInviteRoute.POST(
+    jsonRequest('http://localhost/api/employees/resend-invite', {
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
+      body: { employee_id: VALID_UUID, reason: 'Trying to resend to superadmin' },
+    })
+  );
+  assert.equal(res.status, 403);
+  assert.ok(harness.audits.some((row) => row.action === 'employee.resend_invite_denied'));
+});
+
+test('resend-invite: happy path (owner resends to invited author) returns 200 and temporary password', async () => {
+  configure({ role: 'owner', grants: ['employee.invite'] });
+  harness.addProfile({ id: VALID_UUID, email: 'author-invite@example.com', display_name: 'Invited Author', role_key: 'author', status: 'invited' });
+  const res = await resendInviteRoute.POST(
+    jsonRequest('http://localhost/api/employees/resend-invite', {
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
+      body: { employee_id: VALID_UUID, reason: 'Candidate requested new invitation email' },
+    })
+  );
+  assert.equal(res.status, 200);
+  const body = (await res.json()) as { success?: boolean; temporary_password?: string; email_sent?: boolean; email?: string };
+  assert.equal(body.success, true);
+  assert.equal(body.email, 'author-invite@example.com');
+  assert.ok(body.temporary_password, 'temporary password must be returned');
+  assert.equal(body.temporary_password.length, 16);
+  assert.ok(harness.audits.some((row) => row.action === 'employee.invite_resent'));
 });
 
 // ---------------------------------------------------------------------------
@@ -1356,4 +1435,137 @@ test('permissions: admin with article.publish and AAL2 can publish article (200)
   const call = harness.calls.find((c) => c.kind === 'rpc' && c.rpc === 'publish_article');
   assert.ok(call);
 });
+
+// ---------------------------------------------------------------------------
+// GET & POST /api/settings/template
+// ---------------------------------------------------------------------------
+
+test('template: GET unauthenticated request returns 401', async () => {
+  const res = await templateRoute.GET(
+    new Request('http://localhost/api/settings/template', { method: 'GET' })
+  );
+  assert.equal(res.status, 401);
+});
+
+test('template: GET returns active template and available templates list', async () => {
+  configure({ role: 'admin' });
+  const res = await templateRoute.GET(
+    new Request('http://localhost/api/settings/template', {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${MFA_VALID_TOKEN}` },
+    })
+  );
+  assert.equal(res.status, 200);
+  const body = (await res.json()) as {
+    active_template: { template_id: string; name: string };
+    available_templates: Array<{ id: string; name: string }>;
+    can_manage: boolean;
+  };
+  assert.equal(body.active_template.template_id, 'classic-editorial');
+  assert.equal(body.available_templates.length, 10);
+  assert.equal(body.can_manage, true);
+});
+
+test('template: GET indicates can_manage=false for editor and author roles', async () => {
+  configure({ role: 'editor' });
+  const res = await templateRoute.GET(
+    new Request('http://localhost/api/settings/template', {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${MFA_VALID_TOKEN}` },
+    })
+  );
+  assert.equal(res.status, 200);
+  const body = (await res.json()) as { can_manage: boolean };
+  assert.equal(body.can_manage, false);
+});
+
+test('template: POST unauthenticated request returns 401', async () => {
+  const res = await templateRoute.POST(
+    jsonRequest('http://localhost/api/settings/template', {
+      body: { template_id: 'modern-magazine' },
+    })
+  );
+  assert.equal(res.status, 401);
+});
+
+test('template: POST author or editor returns 403 forbidden', async () => {
+  configure({ role: 'editor' });
+  const res = await templateRoute.POST(
+    jsonRequest('http://localhost/api/settings/template', {
+      token: MFA_VALID_TOKEN,
+      body: { template_id: 'modern-magazine' },
+    })
+  );
+  assert.equal(res.status, 403);
+  const body = (await res.json()) as { error?: string };
+  assert.match(body.error ?? '', /Only Owner, Superadmin, and Admin/);
+});
+
+test('template: POST invalid template_id returns 400', async () => {
+  configure({ role: 'admin' });
+  const res = await templateRoute.POST(
+    jsonRequest('http://localhost/api/settings/template', {
+      token: MFA_VALID_TOKEN,
+      body: { template_id: 'invalid-nonexistent-template' },
+    })
+  );
+  assert.equal(res.status, 400);
+  const body = (await res.json()) as { error?: string };
+  assert.match(body.error ?? '', /Invalid template_id/);
+});
+
+test('template: POST admin successfully updates template and records audit log (200)', async () => {
+  configure({ role: 'admin' });
+  const res = await templateRoute.POST(
+    jsonRequest('http://localhost/api/settings/template', {
+      token: MFA_VALID_TOKEN,
+      body: { template_id: 'bento-grid', reason: 'Switching to Bento Grid layout for launch' },
+    })
+  );
+  assert.equal(res.status, 200);
+  const body = (await res.json()) as {
+    success: boolean;
+    active_template: { template_id: string; name: string };
+  };
+  assert.equal(body.success, true);
+  assert.equal(body.active_template.template_id, 'bento-grid');
+
+  // Verify site_settings was updated
+  const setting = harness.fixtures.site_settings?.find(
+    (s: any) => s.key === 'active_template'
+  );
+  assert.ok(setting);
+  assert.equal((setting.value as any).template_id, 'bento-grid');
+
+  // Verify audit log
+  const audit = harness.audits.find(
+    (a) => a.action === 'site_settings.template_changed'
+  );
+  assert.ok(audit, 'Audit log entry must be created on template change');
+  assert.equal(audit.target_type, 'site_settings');
+  assert.equal((audit.details as any)?.template_id, 'bento-grid');
+});
+
+test('template: POST superadmin and owner can activate templates (200)', async () => {
+  configure({ role: 'superadmin' });
+  const resSuper = await templateRoute.POST(
+    jsonRequest('http://localhost/api/settings/template', {
+      token: MFA_VALID_TOKEN,
+      body: { template_id: 'breaking-wire' },
+    })
+  );
+  assert.equal(resSuper.status, 200);
+
+  configure({ role: 'owner' });
+  const resOwner = await templateRoute.POST(
+    jsonRequest('http://localhost/api/settings/template', {
+      token: MFA_VALID_TOKEN,
+      body: { template_id: 'minimal-focus' },
+    })
+  );
+  assert.equal(resOwner.status, 200);
+  const bodyOwner = (await resOwner.json()) as { active_template: { template_id: string } };
+  assert.equal(bodyOwner.active_template.template_id, 'minimal-focus');
+});
+
 

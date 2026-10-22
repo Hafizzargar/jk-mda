@@ -174,7 +174,27 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
       />
       <ViewTracker articleId={article.id} />
       
-      <article className="max-w-4xl mx-auto px-4 py-8">
+      <main className="min-h-screen bg-slate-50 text-slate-900 pb-20">
+        <header className="bg-white border-b border-slate-200 py-4 px-4 md:px-8 shadow-sm mb-6">
+          <div className="max-w-4xl mx-auto flex justify-between items-center">
+            <Link
+              href={`${resolvedParams.lang === 'en' ? '' : `/${resolvedParams.lang}`}/`}
+              className="text-2xl font-black tracking-tighter text-blue-900 uppercase hover:text-blue-700 transition"
+            >
+              KJIN
+            </Link>
+            <div className="flex items-center gap-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+              <Link
+                href={`${resolvedParams.lang === 'en' ? '' : `/${resolvedParams.lang}`}/category/${displayArticle.category.toLowerCase()}`}
+                className="hover:text-blue-600 transition"
+              >
+                &larr; Back to {displayArticle.category}
+              </Link>
+            </div>
+          </div>
+        </header>
+
+        <article className="max-w-4xl mx-auto px-6 py-8 bg-white rounded-2xl border border-slate-200 shadow-sm">
         <header className="mb-8">
           <div className="flex items-center text-sm text-slate-500 mb-4 gap-4 flex-wrap">
             <Link
@@ -336,6 +356,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           </aside>
         )}
       </article>
+      </main>
     </>
   );
 }

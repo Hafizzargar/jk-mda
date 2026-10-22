@@ -17,6 +17,41 @@ type ReviewArticle = {
   status: 'draft' | 'review' | 'published' | 'archived';
 };
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const FALLBACK_ARTICLES: Record<string, ReviewArticle> = {
+  'fallback-review-1': {
+    id: 'fallback-review-1',
+    title: 'District update: Srinagar power outage',
+    summary: 'Awaiting editorial sign-off.',
+    body: 'Power grid operations in downtown Srinagar were disrupted following unexpected sub-station maintenance. Repair teams are active on site and full restoration is estimated within 4 hours.',
+    category: 'District',
+    author: 'Staff Reporter',
+    language: 'en',
+    status: 'review',
+  },
+  'fallback-draft-1': {
+    id: 'fallback-draft-1',
+    title: 'Election monitoring brief',
+    summary: 'Ready for final review.',
+    body: 'Observer teams have completed verification across polling districts. Final documentation and security assessments are compiled for editorial review.',
+    category: 'Governance',
+    author: 'Desk Correspondent',
+    language: 'en',
+    status: 'draft',
+  },
+  'fallback-published-1': {
+    id: 'fallback-published-1',
+    title: 'Local development coverage',
+    summary: 'Published to the public desk.',
+    body: 'Infrastructure upgrades across high-density corridors have reached milestone completion, improving inter-district transit times.',
+    category: 'Development',
+    author: 'Bureau Staff',
+    language: 'en',
+    status: 'published',
+  },
+};
+
 export default function ArticleReviewPage() {
   const params = useParams<{ id: string }>();
   const [article, setArticle] = useState<ReviewArticle | null>(null);
@@ -26,6 +61,26 @@ export default function ArticleReviewPage() {
 
   useEffect(() => {
     async function loadArticle() {
+      if (!params.id) {
+        return;
+      }
+
+      // Check if it's a fallback demo article
+      const fallbackItem = FALLBACK_ARTICLES[params.id];
+      if (fallbackItem) {
+        const { data: permData } = await supabase.rpc('current_user_permissions');
+        setPermissions((permData as string[] | null) ?? ['article.review', 'article.publish']);
+        setArticle(fallbackItem);
+        setStatusMessage(`Previewing demo article: ${fallbackItem.title}.`);
+        return;
+      }
+
+      // Ensure valid UUID before querying PostgREST to prevent 400 Bad Request
+      if (!UUID_REGEX.test(params.id)) {
+        setStatusMessage('Invalid article ID format.');
+        return;
+      }
+
       const [{ data, error }, permissionResult] = await Promise.all([
         supabase.from('articles').select('*').eq('id', params.id).single(),
         supabase.rpc('current_user_permissions'),
@@ -43,9 +98,7 @@ export default function ArticleReviewPage() {
       setStatusMessage(`Article loaded with status: ${data.status}.`);
     }
 
-    if (params.id) {
-      loadArticle();
-    }
+    loadArticle();
   }, [params.id]);
 
   const updateStatus = async (nextStatus: ReviewArticle['status']) => {
@@ -60,6 +113,14 @@ export default function ArticleReviewPage() {
 
     setIsSubmitting(true);
     setStatusMessage(`Updating article to ${nextStatus}...`);
+
+    if (article.id.startsWith('fallback-')) {
+      // Simulate transition for fallback / demo articles
+      setArticle((current) => (current ? { ...current, status: nextStatus } : current));
+      setStatusMessage(`Article marked as ${nextStatus} (Demo mode).`);
+      setIsSubmitting(false);
+      return;
+    }
 
     const { error } = await supabase.rpc('transition_article_status', {
       p_article_id: article.id,

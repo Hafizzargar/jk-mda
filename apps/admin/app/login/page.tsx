@@ -29,9 +29,18 @@ function LoginForm() {
         return;
       }
 
-      setStatus('Signed in successfully. Redirecting...');
+      setStatus('Checking authentication assurance level...');
+      const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
       const nextUrl = searchParams.get('next');
       const target = nextUrl && nextUrl.startsWith('/') && !nextUrl.startsWith('//') ? nextUrl : '/';
+
+      if (aalData?.nextLevel === 'aal2') {
+        setStatus('Two-factor verification required. Redirecting...');
+        window.location.href = `/mfa/challenge?next=${encodeURIComponent(target)}`;
+        return;
+      }
+
+      setStatus('Signed in successfully. Redirecting...');
       window.location.href = target;
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Unable to sign in right now.');

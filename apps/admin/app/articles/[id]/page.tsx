@@ -47,6 +47,13 @@ export default function ArticleViewPage({ params }: { params: Promise<{ id: stri
   useEffect(() => {
     async function loadData() {
       setIsLoading(true);
+
+      const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!UUID_REGEX.test(id)) {
+        setError('Invalid article ID format');
+        setIsLoading(false);
+        return;
+      }
       
       const [articleRes, permRes, versionsRes] = await Promise.all([
         supabase.from('articles').select('*').eq('id', id).single(),

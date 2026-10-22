@@ -28,7 +28,7 @@ export default async function RootLayout({
   const { lang } = await params;
   const dir = lang === 'ur' ? 'rtl' : 'ltr';
   return (
-    <html lang={lang} dir={dir}>
+    <html lang={lang} dir={dir} data-scroll-behavior="smooth">
       <body className="min-h-screen bg-slate-50 antialiased">{children}</body>
     </html>
   );

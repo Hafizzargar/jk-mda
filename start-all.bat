@@ -5,10 +5,17 @@ echo        Starting KJIN Local Development
 echo ===================================================
 echo.
 echo 1. Checking Supabase status...
-call supabase status >nul 2>&1
+where supabase >nul 2>&1
+if %errorlevel% equ 0 (
+    set "SUPABASE_CMD=supabase"
+) else (
+    set "SUPABASE_CMD=npx supabase"
+)
+
+call %SUPABASE_CMD% status >nul 2>&1
 if %errorlevel% neq 0 (
     echo Supabase is not running. Starting local Supabase containers...
-    call supabase start
+    call %SUPABASE_CMD% start
 ) else (
     echo [OK] Local Supabase is already running.
 )
