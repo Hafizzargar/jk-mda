@@ -101,7 +101,7 @@ export default function EmployeesPage() {
     });
     const result = (await response.json()) as { error?: string; data?: unknown; code?: string };
     if (!response.ok && response.status === 403 && (result.code === 'reauth_required' || result.error?.includes('Recent authentication'))) {
-      window.location.href = '/mfa/challenge?next=/employees';
+      window.location.href = '/mfa/challenge?reauth=true&next=/employees';
       return { error: 'Recent authentication required. Redirecting to MFA verification...' };
     }
     return response.ok ? { data: result.data } : { error: result.error ?? 'Employee operation failed.' };
@@ -242,7 +242,7 @@ export default function EmployeesPage() {
     } else {
       if (response.status === 403 && (result.code === 'reauth_required' || result.error?.includes('Recent authentication'))) {
         setStatus('Recent authentication required for security. Redirecting to MFA verification...');
-        window.location.href = '/mfa/challenge?next=/employees';
+        window.location.href = '/mfa/challenge?reauth=true&next=/employees';
         return;
       }
       setStatus(`Invitation failed: ${result.error ?? 'Unknown error.'}`);
@@ -272,7 +272,7 @@ export default function EmployeesPage() {
     } else {
       if (response.status === 403 && (result.code === 'reauth_required' || result.error?.includes('Recent authentication'))) {
         setStatus('Recent authentication required for security. Redirecting to MFA verification...');
-        window.location.href = '/mfa/challenge?next=/employees';
+        window.location.href = '/mfa/challenge?reauth=true&next=/employees';
         return;
       }
       setStatus(`Invitation failed: ${result.error ?? 'Unknown error.'}`);

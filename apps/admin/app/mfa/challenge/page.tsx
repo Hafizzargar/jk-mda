@@ -25,15 +25,35 @@ function MFAChallengeForm() {
           return;
         }
 
-        // If they are already AAL2, they are fully authenticated
-        if (aalData.currentLevel === 'aal2') {
+        const isReauth = searchParams.get('reauth') === 'true';
+
+        // Check whether user's TOTP authentication is fresh (< 15 mins)
+        let isFresh = false;
+        try {
+          const { data: sessionData } = await supabase.auth.getSession();
+          const token = sessionData.session?.access_token;
+          if (token) {
+            const raw = token.split('.')[1];
+            const base64 = raw.replace(/-/g, '+').replace(/_/g, '/');
+            const claims = JSON.parse(decodeURIComponent(atob(base64).split('').map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')));
+            const totpEntry = claims.amr?.find((m: { method: string }) => m.method === 'totp' || m.method === 'mfa');
+            if (totpEntry && (Date.now() / 1000 - totpEntry.timestamp < 900)) {
+              isFresh = true;
+            }
+          }
+        } catch {
+          isFresh = false;
+        }
+
+        // Only auto-redirect if they are ALREADY AAL2 AND their TOTP is fresh AND not re-authenticating
+        if (aalData.currentLevel === 'aal2' && isFresh && !isReauth) {
           setStatus('MFA is already verified. Redirecting...');
           const nextUrl = searchParams.get('next');
           // Ensure it is a relative path to prevent open redirects
           if (nextUrl && nextUrl.startsWith('/') && !nextUrl.startsWith('//')) {
-            setTimeout(() => router.push(nextUrl), 500);
+            setTimeout(() => router.push(nextUrl), 300);
           } else {
-            setTimeout(() => router.push('/'), 500);
+            setTimeout(() => router.push('/'), 300);
           }
           return;
         }
