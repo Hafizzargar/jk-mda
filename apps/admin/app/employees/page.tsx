@@ -396,7 +396,7 @@ export default function EmployeesPage() {
           message: `Employee ${actionModal.employee.display_name || actionModal.employee.email} ${actionModal.nextStatus}.`,
         });
       } else if (actionModal.type === 'request-deletion') {
-        const { error } = await runEmployeeOperation('request-deletion', {
+        const { data: requestResult, error } = await runEmployeeOperation('request-deletion', {
           target_id: actionModal.employee.id,
           reason,
         });
@@ -405,6 +405,35 @@ export default function EmployeesPage() {
           setIsSubmitting(false);
           return;
         }
+
+        // If the current user has resolve authority (Owner / Superadmin), immediately resolve and disable
+        if (can('employee.deletion.resolve') && typeof requestResult === 'string') {
+          const { error: resolveErr } = await runEmployeeOperation('resolve-deletion', {
+            request_id: requestResult,
+            decision: 'approved',
+            reason,
+          });
+          if (!resolveErr) {
+            const { data: sessionData } = await supabase.auth.getSession();
+            await fetch(`/api/employees/${actionModal.employee.id}/status`, {
+              method: 'PATCH',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(sessionData?.session?.access_token ? { Authorization: `Bearer ${sessionData.session.access_token}` } : {}),
+              },
+              body: JSON.stringify({ status: 'disabled', reason }),
+            });
+            setFeedback({
+              type: 'success',
+              message: `Employee ${actionModal.employee.display_name || actionModal.employee.email} successfully deleted and disabled.`,
+            });
+            closeModal();
+            setIsSubmitting(false);
+            await loadWorkspace();
+            return;
+          }
+        }
+
         setFeedback({
           type: 'success',
           message: 'Deprovisioning request submitted for review.',
@@ -426,7 +455,7 @@ export default function EmployeesPage() {
             method: 'PATCH',
             headers: {
               'Content-Type': 'application/json',
-              ...(data.session?.access_token ? { Authorization: `Bearer ${data.session.access_token}` } : {}),
+              ...(data?.session?.access_token ? { Authorization: `Bearer ${data.session.access_token}` } : {}),
             },
             body: JSON.stringify({ status: 'disabled', reason }),
           });
@@ -444,7 +473,10 @@ export default function EmployeesPage() {
         }
         setFeedback({
           type: 'success',
-          message: `Deprovisioning request ${actionModal.decision}.`,
+          message:
+            actionModal.decision === 'approved'
+              ? `Employee ${actionModal.request.target_name || 'profile'} successfully deleted and disabled.`
+              : `Deprovisioning request cancelled.`,
         });
       } else if (actionModal.type === 'approve-invite-request') {
         const { data } = await supabase.auth.getSession();
@@ -817,25 +849,55 @@ export default function EmployeesPage() {
                               ))}
                             </select>
                           ) : null}
-                          {deletionRequests.some((req) => req.target_profile_id === employee.id) ? (
-                            <button
-                              type="button"
-                              onClick={() => setActiveTab('deletion')}
-                              className="inline-flex items-center gap-1.5 rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-xs font-semibold text-amber-300 hover:bg-amber-500/20"
-                              title="A deprovisioning request is already pending. Click to review in Pending deletion."
-                            >
-                              <span>⏳</span> Pending deletion
-                            </button>
-                          ) : employee.can_manage && can('employee.deletion.request') && employee.status !== 'disabled' ? (
-                            <button
-                              type="button"
-                              disabled={isSubmitting}
-                              onClick={() => openModal({ type: 'request-deletion', employee })}
-                              className="rounded-md border border-red-500/40 px-2.5 py-1.5 text-red-200 hover:bg-red-500/10"
-                            >
-                              Request deletion
-                            </button>
-                          ) : null}
+                          {(() => {
+                            const pendingReq = deletionRequests.find((req) => req.target_profile_id === employee.id);
+                            if (pendingReq) {
+                              return (
+                                <div className="flex items-center gap-1.5">
+                                  {can('employee.deletion.resolve') ? (
+                                    <button
+                                      type="button"
+                                      disabled={isSubmitting}
+                                      onClick={() => openModal({ type: 'resolve-deletion', request: pendingReq, decision: 'approved' })}
+                                      className="rounded-md bg-red-600 hover:bg-red-500 px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm transition"
+                                      title="Approve deprovisioning and delete employee access"
+                                    >
+                                      Delete employee
+                                    </button>
+                                  ) : (
+                                    <span className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-xs font-semibold text-amber-300">
+                                      Pending deletion
+                                    </span>
+                                  )}
+                                  <button
+                                    type="button"
+                                    disabled={isSubmitting}
+                                    onClick={() => openModal({ type: 'resolve-deletion', request: pendingReq, decision: 'rejected' })}
+                                    className="rounded-md border border-slate-700 hover:border-slate-500 px-2 py-1.5 text-xs text-slate-400 hover:text-white transition"
+                                    title="Cancel this pending deletion request"
+                                  >
+                                    Cancel request
+                                  </button>
+                                </div>
+                              );
+                            }
+
+                            if (employee.can_manage && can('employee.deletion.request') && employee.status !== 'disabled') {
+                              return (
+                                <button
+                                  type="button"
+                                  disabled={isSubmitting}
+                                  onClick={() => openModal({ type: 'request-deletion', employee })}
+                                  className="rounded-md border border-red-500/40 hover:bg-red-500/10 px-2.5 py-1.5 text-xs font-semibold text-red-200 transition"
+                                  title="Deprovision and delete employee"
+                                >
+                                  Delete employee
+                                </button>
+                              );
+                            }
+
+                            return null;
+                          })()}
                           {(role === 'owner' || (employee.can_manage && can('employee.invite'))) && employee.status === 'invited' ? (
                             <button
                               type="button"
@@ -917,8 +979,8 @@ export default function EmployeesPage() {
                   {actionModal.type === 'change-role' && 'Change Employee Role'}
                   {actionModal.type === 'update-name' && 'Update Employee Name'}
                   {actionModal.type === 'change-status' && (actionModal.nextStatus === 'disabled' ? 'Disable Employee' : 'Enable Employee')}
-                  {actionModal.type === 'request-deletion' && 'Request Deprovisioning'}
-                  {actionModal.type === 'resolve-deletion' && (actionModal.decision === 'approved' ? 'Approve Deprovisioning' : 'Reject Deprovisioning')}
+                  {actionModal.type === 'request-deletion' && (can('employee.deletion.resolve') ? 'Delete Employee' : 'Request Deprovisioning')}
+                  {actionModal.type === 'resolve-deletion' && (actionModal.decision === 'approved' ? 'Delete Employee' : 'Cancel Deletion Request')}
                   {actionModal.type === 'approve-invite-request' && 'Approve Invitation Request'}
                   {actionModal.type === 'reject-invite-request' && 'Decline Invitation Request'}
                   {actionModal.type === 'resend-invite' && 'Resend Employee Invitation'}
@@ -935,8 +997,16 @@ export default function EmployeesPage() {
                       <>Enabling this account will remove the login block and <strong className="text-white">allow them to log in</strong> again ({actionModal.employee.display_name || actionModal.employee.email}).</>
                     )
                   )}
-                  {actionModal.type === 'request-deletion' && `Submit a formal deprovisioning request for ${actionModal.employee.display_name || actionModal.employee.email}.`}
-                  {actionModal.type === 'resolve-deletion' && `${actionModal.decision === 'approved' ? 'Approve and disable account for' : 'Reject request for'} ${actionModal.request.target_name || 'this employee'}.`}
+                  {actionModal.type === 'request-deletion' && (
+                    can('employee.deletion.resolve')
+                      ? <>Permanently revoke login and disable account for <strong className="text-white">{actionModal.employee.display_name || actionModal.employee.email}</strong>.</>
+                      : <>Submit a formal deprovisioning request for <strong className="text-white">{actionModal.employee.display_name || actionModal.employee.email}</strong>.</>
+                  )}
+                  {actionModal.type === 'resolve-deletion' && (
+                    actionModal.decision === 'approved'
+                      ? <>Permanently revoke login and disable account for <strong className="text-white">{actionModal.request.target_name || 'this employee'}</strong>.</>
+                      : <>Cancel and withdraw the pending deletion request for <strong className="text-white">{actionModal.request.target_name || 'this employee'}</strong>.</>
+                  )}
                   {actionModal.type === 'approve-invite-request' && `Send invitation to ${actionModal.request.display_name} (${actionModal.request.email}) as ${actionModal.request.requested_role}.`}
                   {actionModal.type === 'reject-invite-request' && `Decline invitation request for ${actionModal.request.display_name} (${actionModal.request.email}).`}
                   {actionModal.type === 'resend-invite' && (
@@ -1030,6 +1100,10 @@ export default function EmployeesPage() {
                     ? actionModal.nextStatus === 'disabled'
                       ? 'Confirm & Disable'
                       : 'Confirm & Enable'
+                    : actionModal.type === 'request-deletion'
+                    ? (can('employee.deletion.resolve') ? 'Delete employee' : 'Submit request')
+                    : actionModal.type === 'resolve-deletion'
+                    ? (actionModal.decision === 'approved' ? 'Delete employee' : 'Cancel request')
                     : 'Confirm'}
                 </button>
               </div>

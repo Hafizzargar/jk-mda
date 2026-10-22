@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { NewsletterForm } from '@/components/NewsletterForm';
 import { SITE_SHORT_NAME } from '@/lib/config';
 import { TemplateProps } from './types';
+import { RegionalCoverageWidget } from './RegionalCoverageWidget';
 
 export function ModernMagazineTemplate({
   langPrefix,
@@ -203,24 +204,8 @@ export function ModernMagazineTemplate({
               <NewsletterForm />
             </div>
 
-            {/* Regional Pulse / District Directory */}
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5 backdrop-blur-sm">
-              <div className="text-[11px] font-bold uppercase tracking-widest text-slate-400 mb-3 flex items-center justify-between">
-                <span>District Coverage</span>
-                <span className="text-cyan-400 font-mono text-[10px]">20 DISTRICTS</span>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {['Srinagar', 'Jammu', 'Baramulla', 'Anantnag', 'Ganderbal', 'Pulwama', 'Budgam', 'Doda', 'Rajouri'].map((dist) => (
-                  <Link
-                    key={dist}
-                    href={`${langPrefix}/district/${dist.toLowerCase()}`}
-                    className="px-2.5 py-1 rounded-lg bg-slate-800/80 hover:bg-blue-600/20 hover:text-blue-300 border border-slate-700/50 text-[11px] text-slate-300 transition font-medium"
-                  >
-                    {dist}
-                  </Link>
-                ))}
-              </div>
-            </div>
+            {/* Regional Pulse / 5-Region Coverage Directory */}
+            <RegionalCoverageWidget langPrefix={langPrefix} />
           </aside>
         </div>
 

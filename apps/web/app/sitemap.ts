@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next';
 import { createServerAnonClient } from '@/lib/supabase-server';
 import { SITE_URL } from '@/lib/config';
-import { NEWS_CATEGORIES, JK_DISTRICTS } from '@/lib/taxonomy';
+import { NEWS_CATEGORIES, JK_DISTRICTS, REGIONAL_DIVISIONS } from '@/lib/taxonomy';
 
 // Limit per sitemap file to comply with search engine standards and memory bounds
 const SITEMAP_MAX_ARTICLES = 10000;
@@ -40,6 +40,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.85,
   }));
 
+  // 4. Regional division feeds (Pir Panjal, Chenab Valley, Kashmir, Jammu, Leh)
+  const regionUrls: MetadataRoute.Sitemap = Object.keys(REGIONAL_DIVISIONS).map((reg) => ({
+    url: `${SITE_URL}/region/${reg}`,
+    lastModified: new Date(),
+    changeFrequency: 'hourly',
+    priority: 0.9,
+  }));
+
   return [
     {
       url: SITE_URL,
@@ -47,6 +55,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'always',
       priority: 1.0,
     },
+    ...regionUrls,
     ...categoryUrls,
     ...districtUrls,
     ...articleUrls,

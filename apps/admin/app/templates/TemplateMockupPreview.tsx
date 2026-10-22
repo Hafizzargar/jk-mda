@@ -341,7 +341,7 @@ export function TemplateMockupPreview({ templateId }: TemplateMockupPreviewProps
           {/* Civic Advisory Banner */}
           <div className="bg-emerald-800 text-white px-2 py-0.5 rounded text-[7px] font-bold flex items-center justify-between">
             <span>CIVIC BULLETIN &bull; NH-44 NORMAL</span>
-            <span className="text-emerald-300">20 DISTRICTS</span>
+            <span className="text-emerald-300">5 REGIONS &bull; 22 DISTRICTS</span>
           </div>
 
           {/* District Quick Switcher Pills */}

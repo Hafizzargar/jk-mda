@@ -1,31 +1,112 @@
 /**
- * Controlled Taxonomy for Categories and Districts in Kashmir Jammu Information Network (KJIN)
+ * Controlled Taxonomy for Categories, Districts, and Regional Divisions in Kashmir Jammu Information Network (KJIN)
+ * Covers 5 distinct geographical & socio-cultural regions across 22 districts:
+ * 1. Pir Panjal Range (Rajouri, Poonch)
+ * 2. Chenab Valley (Doda, Kishtwar, Ramban)
+ * 3. Kashmir Valley (10 Districts)
+ * 4. Jammu Plains (5 Districts)
+ * 5. Leh & Ladakh (Leh, Kargil)
  */
 
-export const JK_DISTRICTS: Record<string, { name: string; region: 'Kashmir' | 'Jammu' }> = {
-  // Kashmir Division
-  srinagar: { name: 'Srinagar', region: 'Kashmir' },
-  anantnag: { name: 'Anantnag', region: 'Kashmir' },
-  baramulla: { name: 'Baramulla', region: 'Kashmir' },
-  budgam: { name: 'Budgam', region: 'Kashmir' },
-  bandipora: { name: 'Bandipora', region: 'Kashmir' },
-  ganderbal: { name: 'Ganderbal', region: 'Kashmir' },
-  kulgam: { name: 'Kulgam', region: 'Kashmir' },
-  kupwara: { name: 'Kupwara', region: 'Kashmir' },
-  pulwama: { name: 'Pulwama', region: 'Kashmir' },
-  shopian: { name: 'Shopian', region: 'Kashmir' },
+export type KJINRegionKey = 'pir-panjal' | 'chenab-valley' | 'kashmir' | 'jammu' | 'leh';
+export type KJINRegionName = 'Pir Panjal' | 'Chenab Valley' | 'Kashmir' | 'Jammu' | 'Leh & Ladakh';
 
-  // Jammu Division
-  jammu: { name: 'Jammu', region: 'Jammu' },
-  doda: { name: 'Doda', region: 'Jammu' },
-  kathua: { name: 'Kathua', region: 'Jammu' },
-  kishtwar: { name: 'Kishtwar', region: 'Jammu' },
-  poonch: { name: 'Poonch', region: 'Jammu' },
-  rajouri: { name: 'Rajouri', region: 'Jammu' },
-  ramban: { name: 'Ramban', region: 'Jammu' },
-  reasi: { name: 'Reasi', region: 'Jammu' },
-  samba: { name: 'Samba', region: 'Jammu' },
-  udhampur: { name: 'Udhampur', region: 'Jammu' },
+export interface RegionalDivision {
+  id: KJINRegionKey;
+  name: string;
+  shortName: string;
+  tagline: string;
+  accentColor: string;
+  borderAccent: string;
+  badgeBg: string;
+  districts: string[];
+}
+
+export const REGIONAL_DIVISIONS: Record<KJINRegionKey, RegionalDivision> = {
+  'pir-panjal': {
+    id: 'pir-panjal',
+    name: 'Pir Panjal Range',
+    shortName: 'Pir Panjal',
+    tagline: 'Highland passes, Mughal Road corridor, and border communities',
+    accentColor: 'text-purple-400',
+    borderAccent: 'border-purple-500/40',
+    badgeBg: 'bg-purple-500/10 text-purple-300 border-purple-500/30',
+    districts: ['rajouri', 'poonch'],
+  },
+  'chenab-valley': {
+    id: 'chenab-valley',
+    name: 'Chenab Valley',
+    shortName: 'Chenab Valley',
+    tagline: 'River basin gorges, hydropower corridors, and mountain towns',
+    accentColor: 'text-cyan-400',
+    borderAccent: 'border-cyan-500/40',
+    badgeBg: 'bg-cyan-500/10 text-cyan-300 border-cyan-500/30',
+    districts: ['doda', 'kishtwar', 'ramban'],
+  },
+  'kashmir': {
+    id: 'kashmir',
+    name: 'Kashmir Valley',
+    shortName: 'Kashmir',
+    tagline: 'Jhelum river basin, saffron plateaus, orchard belts, and central valley',
+    accentColor: 'text-emerald-400',
+    borderAccent: 'border-emerald-500/40',
+    badgeBg: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30',
+    districts: ['srinagar', 'baramulla', 'anantnag', 'pulwama', 'budgam', 'kupwara', 'bandipora', 'ganderbal', 'kulgam', 'shopian'],
+  },
+  'jammu': {
+    id: 'jammu',
+    name: 'Jammu Plains',
+    shortName: 'Jammu',
+    tagline: 'Tawi river plains, Shivalik foothills, commercial hubs, and pilgrimage routes',
+    accentColor: 'text-amber-400',
+    borderAccent: 'border-amber-500/40',
+    badgeBg: 'bg-amber-500/10 text-amber-300 border-amber-500/30',
+    districts: ['jammu', 'samba', 'kathua', 'udhampur', 'reasi'],
+  },
+  'leh': {
+    id: 'leh',
+    name: 'Leh & Ladakh',
+    shortName: 'Leh / Ladakh',
+    tagline: 'Trans-Himalayan plateau, high passes, and frontier valley settlements',
+    accentColor: 'text-sky-300',
+    borderAccent: 'border-sky-500/40',
+    badgeBg: 'bg-sky-500/10 text-sky-200 border-sky-500/30',
+    districts: ['leh', 'kargil'],
+  },
+};
+
+export const JK_DISTRICTS: Record<string, { name: string; region: KJINRegionName; regionKey: KJINRegionKey }> = {
+  // Kashmir Valley (10)
+  srinagar: { name: 'Srinagar', region: 'Kashmir', regionKey: 'kashmir' },
+  anantnag: { name: 'Anantnag', region: 'Kashmir', regionKey: 'kashmir' },
+  baramulla: { name: 'Baramulla', region: 'Kashmir', regionKey: 'kashmir' },
+  budgam: { name: 'Budgam', region: 'Kashmir', regionKey: 'kashmir' },
+  bandipora: { name: 'Bandipora', region: 'Kashmir', regionKey: 'kashmir' },
+  ganderbal: { name: 'Ganderbal', region: 'Kashmir', regionKey: 'kashmir' },
+  kulgam: { name: 'Kulgam', region: 'Kashmir', regionKey: 'kashmir' },
+  kupwara: { name: 'Kupwara', region: 'Kashmir', regionKey: 'kashmir' },
+  pulwama: { name: 'Pulwama', region: 'Kashmir', regionKey: 'kashmir' },
+  shopian: { name: 'Shopian', region: 'Kashmir', regionKey: 'kashmir' },
+
+  // Jammu Division (5)
+  jammu: { name: 'Jammu', region: 'Jammu', regionKey: 'jammu' },
+  kathua: { name: 'Kathua', region: 'Jammu', regionKey: 'jammu' },
+  reasi: { name: 'Reasi', region: 'Jammu', regionKey: 'jammu' },
+  samba: { name: 'Samba', region: 'Jammu', regionKey: 'jammu' },
+  udhampur: { name: 'Udhampur', region: 'Jammu', regionKey: 'jammu' },
+
+  // Chenab Valley (3)
+  doda: { name: 'Doda', region: 'Chenab Valley', regionKey: 'chenab-valley' },
+  kishtwar: { name: 'Kishtwar', region: 'Chenab Valley', regionKey: 'chenab-valley' },
+  ramban: { name: 'Ramban', region: 'Chenab Valley', regionKey: 'chenab-valley' },
+
+  // Pir Panjal Range (2)
+  rajouri: { name: 'Rajouri', region: 'Pir Panjal', regionKey: 'pir-panjal' },
+  poonch: { name: 'Poonch', region: 'Pir Panjal', regionKey: 'pir-panjal' },
+
+  // Leh & Ladakh (2)
+  leh: { name: 'Leh', region: 'Leh & Ladakh', regionKey: 'leh' },
+  kargil: { name: 'Kargil', region: 'Leh & Ladakh', regionKey: 'leh' },
 };
 
 export const NEWS_CATEGORIES: Record<string, { name: string; description: string }> = {
@@ -50,6 +131,11 @@ export function isValidDistrict(slug: string): boolean {
   return Object.prototype.hasOwnProperty.call(JK_DISTRICTS, slug.toLowerCase().trim());
 }
 
+export function isValidRegion(slug: string): boolean {
+  if (!slug) return false;
+  return Object.prototype.hasOwnProperty.call(REGIONAL_DIVISIONS, slug.toLowerCase().trim());
+}
+
 export function getCategoryDisplayName(slug: string): string {
   const normalized = slug.toLowerCase().trim();
   return NEWS_CATEGORIES[normalized]?.name || slug.charAt(0).toUpperCase() + slug.slice(1);
@@ -58,4 +144,14 @@ export function getCategoryDisplayName(slug: string): string {
 export function getDistrictDisplayName(slug: string): string {
   const normalized = slug.toLowerCase().trim();
   return JK_DISTRICTS[normalized]?.name || slug.charAt(0).toUpperCase() + slug.slice(1);
+}
+
+export function getRegion(slug: string): RegionalDivision | null {
+  const normalized = slug.toLowerCase().trim();
+  return REGIONAL_DIVISIONS[normalized as KJINRegionKey] || null;
+}
+
+export function getDistrictsByRegion(regionSlug: string): string[] {
+  const reg = getRegion(regionSlug);
+  return reg ? reg.districts : [];
 }

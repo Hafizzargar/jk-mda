@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import { sanitizeArticleHtml, safeJsonLd, isAllowedImageSrc, isValidHostname } from '@/lib/sanitize';
 import { parsePageParam, getPaginationRange } from '@/lib/pagination';
-import { isValidCategory, isValidDistrict, getCategoryDisplayName, getDistrictDisplayName } from '@/lib/taxonomy';
+import { isValidCategory, isValidDistrict, isValidRegion, getCategoryDisplayName, getDistrictDisplayName, getRegion } from '@/lib/taxonomy';
 import { SITE_URL } from '@/lib/config';
 
 describe('P0: Article HTML XSS Prevention', () => {
@@ -408,18 +408,29 @@ describe('P1: Category & District Controlled Taxonomy', () => {
     assert.strictEqual(isValidCategory(''), false);
   });
 
-  it('validates official Jammu & Kashmir districts', () => {
-    // Kashmir
+  it('validates official Jammu & Kashmir and Ladakh districts', () => {
+    // Kashmir Valley (10)
     assert.strictEqual(isValidDistrict('srinagar'), true);
     assert.strictEqual(isValidDistrict('anantnag'), true);
     assert.strictEqual(isValidDistrict('baramulla'), true);
     assert.strictEqual(isValidDistrict('pulwama'), true);
 
-    // Jammu
+    // Jammu Plains (5)
     assert.strictEqual(isValidDistrict('jammu'), true);
+    assert.strictEqual(isValidDistrict('kathua'), true);
+
+    // Chenab Valley (3)
     assert.strictEqual(isValidDistrict('doda'), true);
+    assert.strictEqual(isValidDistrict('kishtwar'), true);
+    assert.strictEqual(isValidDistrict('ramban'), true);
+
+    // Pir Panjal Range (2)
     assert.strictEqual(isValidDistrict('rajouri'), true);
-    assert.strictEqual(isValidDistrict('udhampur'), true);
+    assert.strictEqual(isValidDistrict('poonch'), true);
+
+    // Leh & Ladakh (2)
+    assert.strictEqual(isValidDistrict('leh'), true);
+    assert.strictEqual(isValidDistrict('kargil'), true);
 
     // Invalid districts
     assert.strictEqual(isValidDistrict('paris'), false);
@@ -427,9 +438,30 @@ describe('P1: Category & District Controlled Taxonomy', () => {
     assert.strictEqual(isValidDistrict('unknown_district'), false);
   });
 
+  it('validates the 5 distinct regional divisions', () => {
+    assert.strictEqual(isValidRegion('pir-panjal'), true);
+    assert.strictEqual(isValidRegion('chenab-valley'), true);
+    assert.strictEqual(isValidRegion('kashmir'), true);
+    assert.strictEqual(isValidRegion('jammu'), true);
+    assert.strictEqual(isValidRegion('leh'), true);
+    assert.strictEqual(isValidRegion('invalid-region'), false);
+
+    const pirPanjal = getRegion('pir-panjal');
+    assert.ok(pirPanjal);
+    assert.strictEqual(pirPanjal.name, 'Pir Panjal Range');
+    assert.deepStrictEqual(pirPanjal.districts, ['rajouri', 'poonch']);
+
+    const chenab = getRegion('chenab-valley');
+    assert.ok(chenab);
+    assert.strictEqual(chenab.name, 'Chenab Valley');
+    assert.deepStrictEqual(chenab.districts, ['doda', 'kishtwar', 'ramban']);
+  });
+
   it('provides formatted display names', () => {
     assert.strictEqual(getCategoryDisplayName('politics'), 'Politics');
     assert.strictEqual(getDistrictDisplayName('srinagar'), 'Srinagar');
+    assert.strictEqual(getDistrictDisplayName('leh'), 'Leh');
+    assert.strictEqual(getDistrictDisplayName('rajouri'), 'Rajouri');
   });
 });
 
