@@ -8,6 +8,7 @@
     "packages/*"
   ],
   "scripts": {
+    "dev": "pnpm --parallel --filter @kjin/web --filter @kjin/admin dev",
     "dev:web": "pnpm --dir apps/web dev",
     "dev:admin": "pnpm --dir apps/admin dev",
     "build:web": "pnpm --dir apps/web build",
