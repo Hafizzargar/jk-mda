@@ -159,8 +159,13 @@ export function isEmployeeAuthorization(
 export async function requireRecentAuthentication(
   auth: EmployeeAuthorization,
   request: Request,
-  windowSeconds = 900 // 15 minutes by default
+  windowSeconds?: number
 ): Promise<Response | null> {
+  const allowedWindow = windowSeconds ?? (
+    process.env.NODE_ENV === 'production'
+      ? 900 // 15 minutes in production
+      : (process.env.REAUTH_WINDOW_SECONDS ? Number(process.env.REAUTH_WINDOW_SECONDS) : 86400) // 24 hours in dev
+  );
   const now = Math.floor(Date.now() / 1000);
   let mostRecent = 0;
   
@@ -177,7 +182,7 @@ export async function requireRecentAuthentication(
     }
   }
   
-  if (now - mostRecent > windowSeconds) {
+  if (now - mostRecent > allowedWindow) {
     await auth.service.from('audit_logs').insert({
       actor_profile_id: auth.user.id,
       action: 'employee.reauth_required',
