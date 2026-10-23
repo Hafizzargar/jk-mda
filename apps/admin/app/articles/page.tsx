@@ -1,8 +1,8 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useState, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { requiresMfa } from '@/lib/mfa';
 import { CATEGORY_OPTIONS, DISTRICT_GROUPS } from '@/lib/taxonomy-options';
@@ -22,6 +22,8 @@ type Article = {
   archived_at?: string | null;
 };
 
+type TopicMode = 'news' | 'civic' | 'all';
+
 const PAGE_SIZE = 20;
 
 const RETRACTION_REASON_PRESETS = [
@@ -33,8 +35,12 @@ const RETRACTION_REASON_PRESETS = [
   'Legal or policy compliance notice',
 ];
 
-export default function ArticlesPage() {
+function ArticlesPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialCategory = searchParams?.get('category');
+  const initialTopic: TopicMode =
+    initialCategory === 'Local' ? 'civic' : (searchParams?.get('topic') as TopicMode) || 'news';
   
   // Auth & Permissions State
   const [permissions, setPermissions] = useState<string[]>([]);
@@ -49,10 +55,11 @@ export default function ArticlesPage() {
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   
-  // Filters State
+  // Topic Architecture & Filters State (Default is 'news'!)
+  const [topicFilter, setTopicFilter] = useState<TopicMode>(initialTopic);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
+  const [categoryFilter, setCategoryFilter] = useState<string>(initialCategory || 'all');
   const [districtFilter, setDistrictFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
 
@@ -109,7 +116,7 @@ export default function ArticlesPage() {
     checkAuth();
   }, [router]);
 
-  // Load Articles
+  // Load Articles with topic segregation
   const loadArticles = async () => {
     if (isAuthorized !== true) return;
     setIsLoading(true);
@@ -123,9 +130,20 @@ export default function ArticlesPage() {
     if (statusFilter !== 'all') {
       query = query.eq('status', statusFilter);
     }
-    if (categoryFilter !== 'all') {
+
+    // Apply Topic segregation
+    if (topicFilter === 'news') {
+      if (categoryFilter !== 'all') {
+        query = query.eq('category', categoryFilter);
+      } else {
+        query = query.neq('category', 'Local');
+      }
+    } else if (topicFilter === 'civic') {
+      query = query.eq('category', 'Local');
+    } else if (categoryFilter !== 'all') {
       query = query.eq('category', categoryFilter);
     }
+
     if (districtFilter !== 'all') {
       query = query.eq('district', districtFilter);
     }
@@ -149,7 +167,7 @@ export default function ArticlesPage() {
   useEffect(() => {
     loadArticles();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthorized, search, statusFilter, categoryFilter, districtFilter, page]);
+  }, [isAuthorized, search, statusFilter, topicFilter, categoryFilter, districtFilter, page]);
 
   // Handle Quick Reactivate
   const handleReactivate = async (article: Article) => {
@@ -268,15 +286,15 @@ export default function ArticlesPage() {
   return (
     <div className="p-6 md:p-8">
       <div className="mx-auto max-w-7xl">
-        <header className="mb-8 flex flex-wrap items-end justify-between gap-4 border-b border-slate-800 pb-6">
+        <header className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-slate-800 pb-5">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="text-xs font-mono uppercase tracking-widest text-cyan-400">Editorial Desk</span>
               <span className="text-slate-600">•</span>
-              <span className="text-xs text-slate-400">Database Records</span>
+              <span className="text-xs text-slate-400">Topic Architecture</span>
             </div>
-            <h1 className="text-3xl font-bold tracking-tight text-white">Articles & Stories</h1>
-            <p className="mt-1 text-sm text-slate-400">Full editorial CRUD management, live publication, retraction, and deletion</p>
+            <h1 className="text-3xl font-bold tracking-tight text-white">Articles &amp; Newsroom Desks</h1>
+            <p className="mt-1 text-sm text-slate-400">Full editorial CRUD management with dedicated News, Civic Area Problems, and Investigative Desks</p>
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -288,11 +306,82 @@ export default function ArticlesPage() {
             </button>
             {can('article.create') ? (
               <Link href="/articles/new" className="rounded-lg bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-cyan-300 shadow-md shadow-cyan-950/40">
-                + New article
+                + New story
               </Link>
             ) : null}
           </div>
         </header>
+
+        {/* Primary Newsroom Topic Tabs */}
+        <div className="mb-6 rounded-2xl border border-slate-800 bg-slate-900/70 p-2 shadow-xl backdrop-blur-md">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setTopicFilter('news');
+                setCategoryFilter('all');
+                setPage(1);
+              }}
+              className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all ${
+                topicFilter === 'news'
+                  ? 'bg-gradient-to-r from-cyan-500/25 via-sky-500/20 to-transparent text-white border border-cyan-400/50 shadow-md shadow-cyan-950/60'
+                  : 'border border-transparent text-slate-400 hover:bg-slate-800 hover:text-white'
+              }`}
+            >
+              <span className="text-base">📰</span>
+              <span>News &amp; Reports</span>
+              <span className={`ml-1 rounded-full px-2 py-0.5 text-[10px] font-mono ${
+                topicFilter === 'news' ? 'bg-cyan-400 text-slate-950 font-black' : 'bg-slate-800 text-slate-400'
+              }`}>
+                Default Topic
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setTopicFilter('civic');
+                setCategoryFilter('Local');
+                setPage(1);
+              }}
+              className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all ${
+                topicFilter === 'civic'
+                  ? 'bg-gradient-to-r from-amber-500/25 via-orange-500/20 to-transparent text-amber-200 border border-amber-400/50 shadow-md shadow-amber-950/60'
+                  : 'border border-transparent text-slate-400 hover:bg-slate-800 hover:text-white'
+              }`}
+            >
+              <span className="text-base">🏛️</span>
+              <span>Civic &amp; Area Problems</span>
+              <span className={`ml-1 rounded-full px-2 py-0.5 text-[10px] font-mono ${
+                topicFilter === 'civic' ? 'bg-amber-400 text-slate-950 font-black' : 'bg-slate-800 text-slate-400'
+              }`}>
+                Ground Issues
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setTopicFilter('all');
+                setCategoryFilter('all');
+                setPage(1);
+              }}
+              className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all ${
+                topicFilter === 'all'
+                  ? 'bg-gradient-to-r from-slate-700/50 to-slate-800/50 text-white border border-slate-600/70 shadow-md'
+                  : 'border border-transparent text-slate-400 hover:bg-slate-800 hover:text-white'
+              }`}
+            >
+              <span className="text-base">📂</span>
+              <span>All Articles &amp; Desks</span>
+              <span className={`ml-1 rounded-full px-2 py-0.5 text-[10px] font-mono ${
+                topicFilter === 'all' ? 'bg-slate-200 text-slate-950 font-black' : 'bg-slate-800 text-slate-400'
+              }`}>
+                Archive ({totalCount})
+              </span>
+            </button>
+          </div>
+        </div>
 
         {/* Feedback Message */}
         {feedback && (
@@ -324,37 +413,20 @@ export default function ArticlesPage() {
 
         {/* Quick Filter Presets */}
         <div className="mb-4 flex flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 mr-1">Quick Filters:</span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 mr-1">Quick Status:</span>
           <button
             type="button"
             onClick={() => {
-              setCategoryFilter('all');
               setStatusFilter('all');
-              setDistrictFilter('all');
               setPage(1);
             }}
             className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-              categoryFilter === 'all' && statusFilter === 'all' && districtFilter === 'all'
+              statusFilter === 'all'
                 ? 'bg-cyan-500 text-slate-950 font-bold'
                 : 'border border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500'
             }`}
           >
-            All Articles ({totalCount})
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setCategoryFilter('Local');
-              setStatusFilter('all');
-              setPage(1);
-            }}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition flex items-center gap-1.5 ${
-              categoryFilter === 'Local'
-                ? 'bg-amber-400 text-slate-950 font-bold'
-                : 'border border-amber-500/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20'
-            }`}
-          >
-            <span>🏛️</span> Area Problems & Civic Grievances
+            All Statuses
           </button>
           <button
             type="button"
@@ -370,6 +442,21 @@ export default function ArticlesPage() {
           >
             <span className="h-2 w-2 rounded-full bg-emerald-400" />
             Live Published
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setStatusFilter('review');
+              setPage(1);
+            }}
+            className={`rounded-full px-3 py-1 text-xs font-medium transition flex items-center gap-1.5 ${
+              statusFilter === 'review'
+                ? 'bg-amber-400 text-slate-950 font-bold'
+                : 'border border-amber-500/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20'
+            }`}
+          >
+            <span>⏳</span>
+            In Review
           </button>
           <button
             type="button"
@@ -416,18 +503,28 @@ export default function ArticlesPage() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium uppercase text-slate-400">Category / Desk</label>
+              <label className="block text-xs font-medium uppercase text-slate-400">
+                {topicFilter === 'news' ? 'News Beat / Category' : topicFilter === 'civic' ? 'Civic Category' : 'Category / Desk'}
+              </label>
               <select 
                 value={categoryFilter}
                 onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
                 className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-cyan-500 focus:outline-none"
               >
-                <option value="all">All Categories</option>
-                {CATEGORY_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
+                {topicFilter === 'civic' ? (
+                  <option value="Local">Local — Civic Issues &amp; Ground Reporting</option>
+                ) : (
+                  <>
+                    <option value="all">
+                      {topicFilter === 'news' ? 'All News Desks (General, Politics, Economy, etc.)' : 'All Categories'}
+                    </option>
+                    {CATEGORY_OPTIONS.filter((opt) => topicFilter !== 'news' || opt.value !== 'Local').map((opt) => (
+                      <option key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </>
+                )}
               </select>
             </div>
             <div>
@@ -786,5 +883,22 @@ export default function ArticlesPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function ArticlesPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center bg-slate-950 p-8 text-white">
+          <div className="flex items-center gap-3">
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
+            <span className="font-mono text-sm text-slate-400">Loading newsroom editorial desks...</span>
+          </div>
+        </main>
+      }
+    >
+      <ArticlesPageContent />
+    </Suspense>
   );
 }

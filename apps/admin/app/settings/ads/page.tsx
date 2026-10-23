@@ -193,24 +193,19 @@ export default function AdsSettingsPage() {
         const hasAccess = ['owner', 'superadmin', 'admin'].includes(role);
         setCanManage(hasAccess);
 
-        // Fetch current custom_ads from site_settings
-        const { data: settingRow } = await supabase
-          .from('site_settings')
-          .select('value')
-          .eq('key', 'custom_ads')
-          .maybeSingle();
-
-        if (settingRow?.value) {
-          const raw = settingRow.value as Partial<CustomAdsSettings>;
-          setForm({
-            monetization_enabled: raw.monetization_enabled ?? true,
-            contact_email_for_ads: raw.contact_email_for_ads || DEFAULT_ADS_SETTINGS.contact_email_for_ads,
-            contact_phone_for_ads: raw.contact_phone_for_ads || DEFAULT_ADS_SETTINGS.contact_phone_for_ads,
-            pricing_badge: raw.pricing_badge || DEFAULT_ADS_SETTINGS.pricing_badge,
-            placements: Array.isArray(raw.placements) && raw.placements.length > 0
-              ? (raw.placements as CustomAdPlacement[])
-              : DEFAULT_ADS_SETTINGS.placements,
-          });
+        // Fetch current custom_ads from API route
+        const token = sessionData.session.access_token;
+        const res = await fetch('/api/settings/ads', {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.settings) {
+            setForm(json.settings);
+          }
+          if (typeof json.can_manage === 'boolean') {
+            setCanManage(json.can_manage);
+          }
         }
       } catch (err: unknown) {
         console.error('Failed to load ads settings:', err);
@@ -249,37 +244,25 @@ export default function AdsSettingsPage() {
 
     try {
       const { data: sessionData } = await supabase.auth.getSession();
-      const userId = sessionData?.session?.user.id;
+      const token = sessionData?.session?.access_token;
 
-      // Upsert into site_settings
-      const { error: upsertError } = await supabase
-        .from('site_settings')
-        .upsert(
-          {
-            key: 'custom_ads',
-            value: form,
-            updated_at: new Date().toISOString(),
-            updated_by: userId || null,
-          },
-          { onConflict: 'key' }
-        );
+      const res = await fetch('/api/settings/ads', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(form),
+      });
 
-      if (upsertError) {
-        throw new Error(upsertError.message);
+      const json = await res.json();
+      if (!res.ok) {
+        throw new Error(json.error || 'Failed to save monetization settings');
       }
 
-      // Log to audit_logs
-      await supabase.from('audit_logs').insert({
-        user_id: userId,
-        action: 'UPDATE',
-        entity_name: 'site_settings',
-        entity_id: 'custom_ads',
-        changes: {
-          monetization_enabled: form.monetization_enabled,
-          placements_count: form.placements.length,
-          timestamp: new Date().toISOString(),
-        },
-      });
+      if (json.settings) {
+        setForm(json.settings);
+      }
 
       setSuccessMsg('Monetization settings & attractive custom ads saved successfully!');
       setTimeout(() => setSuccessMsg(null), 5000);
