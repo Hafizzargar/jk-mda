@@ -1,6 +1,8 @@
 import '../globals.css';
 import type { Metadata } from 'next';
 import { SITE_URL, SITE_NAME, SITE_SHORT_NAME } from '@/lib/config';
+import { createServerAnonClient } from '@/lib/supabase-server';
+import { getTemplateTheme, type TemplateId } from '@/lib/templates';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -14,7 +16,14 @@ export const metadata: Metadata = {
     follow: true,
   },
   icons: {
-    icon: '/favicon.ico',
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/icon.png', type: 'image/png', sizes: '32x32' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
   },
 };
 
@@ -27,9 +36,31 @@ export default async function RootLayout({
 }) {
   const { lang } = await params;
   const dir = lang === 'ur' ? 'rtl' : 'ltr';
+
+  const supabase = createServerAnonClient();
+  const { data: settingRow } = await supabase
+    .from('site_settings')
+    .select('value')
+    .eq('key', 'active_template')
+    .maybeSingle();
+
+  const dbTemplateId = (settingRow?.value as { template_id?: string } | null)?.template_id as TemplateId | undefined;
+  const activeTemplateId: TemplateId = dbTemplateId || 'classic-editorial';
+  const theme = getTemplateTheme(activeTemplateId);
+
   return (
-    <html lang={lang} dir={dir} data-scroll-behavior="smooth">
-      <body className="min-h-screen bg-slate-50 antialiased">{children}</body>
+    <html
+      lang={lang}
+      dir={dir}
+      data-scroll-behavior="smooth"
+      data-theme={theme.isDark ? 'dark' : 'light'}
+      style={{ backgroundColor: theme.pageBgHex }}
+    >
+      <body
+        className={`min-h-screen ${theme.pageBgClass} ${theme.textPrimaryClass} ${theme.fontFamilyClass} ${theme.selectionClass} antialiased transition-colors duration-200`}
+      >
+        {children}
+      </body>
     </html>
   );
 }

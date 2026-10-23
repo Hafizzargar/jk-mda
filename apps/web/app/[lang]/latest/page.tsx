@@ -5,6 +5,7 @@ import { createServerAnonClient } from '@/lib/supabase-server';
 import { parsePageParam, getPaginationRange } from '@/lib/pagination';
 import { SITE_URL, SITE_SHORT_NAME } from '@/lib/config';
 import { applyTranslations } from '@/lib/i18n';
+import { getTemplateTheme, type TemplateId } from '@/lib/templates';
 
 interface LatestPageProps {
   params: Promise<{ lang: string }>;
@@ -58,29 +59,41 @@ export default async function LatestPage({ params, searchParams }: LatestPagePro
   const totalArticles = count ?? 0;
   const hasNextPage = from + limit < totalArticles;
 
+  // Fetch Active Template Setting to align theme & background colors
+  const { data: settingRow } = await supabase
+    .from('site_settings')
+    .select('value')
+    .eq('key', 'active_template')
+    .maybeSingle();
+
+  const dbTemplateId = (settingRow?.value as { template_id?: string } | null)?.template_id as TemplateId | undefined;
+  const theme = getTemplateTheme(dbTemplateId);
+
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900 pb-20">
-      <header className="bg-white border-b border-slate-200 py-6 px-4 md:px-8 shadow-sm mb-10">
+    <main className={`min-h-screen ${theme.pageBgClass} ${theme.textPrimaryClass} ${theme.fontFamilyClass} ${theme.selectionClass} pb-20`}>
+      <header className={`${theme.headerBgClass} ${theme.headerBorderClass} py-6 px-4 md:px-8 shadow-sm mb-10`}>
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <Link
             href={`${langPrefix}/`}
-            className="text-3xl font-black tracking-tighter text-blue-900 uppercase hover:text-blue-700 transition"
+            className={`text-3xl font-black tracking-tighter uppercase transition ${
+              theme.isDark ? 'text-white hover:text-cyan-400' : 'text-blue-900 hover:text-blue-700'
+            }`}
           >
-            KJIN
+            {SITE_SHORT_NAME}
           </Link>
-          <div className="text-sm font-bold uppercase tracking-widest text-slate-500">
+          <div className={`text-sm font-bold uppercase tracking-widest ${theme.textMutedClass}`}>
             Latest News
           </div>
         </div>
       </header>
 
       <div className="max-w-7xl mx-auto px-4 md:px-8">
-        <div className="mb-4 border-b-4 border-blue-600 inline-block pb-2">
-          <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight">
+        <div className={`mb-4 border-b-4 ${theme.accentBorderClass} inline-block pb-2`}>
+          <h1 className={`text-4xl md:text-5xl font-extrabold tracking-tight ${theme.textPrimaryClass}`}>
             Latest News
           </h1>
         </div>
-        <p className="text-slate-600 mb-10 text-lg max-w-2xl">
+        <p className={`${theme.textSecondaryClass} mb-10 text-lg max-w-2xl`}>
           All recent reporting and updates from across Jammu and Kashmir.
         </p>
 
@@ -91,10 +104,10 @@ export default async function LatestPage({ params, searchParams }: LatestPagePro
                 <Link
                   key={article.id}
                   href={`${langPrefix}/${article.category.toLowerCase()}/${article.slug}`}
-                  className="group flex flex-col h-full bg-white rounded-xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition"
+                  className={`group flex flex-col h-full ${theme.cardBgClass} rounded-xl ${theme.cardBorderClass} ${theme.cardHoverClass} p-5 transition`}
                 >
                   {article.featured_image_url ? (
-                    <div className="relative w-full h-52 mb-4 overflow-hidden rounded-lg bg-slate-100">
+                    <div className={`relative w-full h-52 mb-4 overflow-hidden rounded-lg ${theme.subtleBgClass}`}>
                       <Image
                         src={article.featured_image_url}
                         alt={article.title}
@@ -104,36 +117,36 @@ export default async function LatestPage({ params, searchParams }: LatestPagePro
                       />
                     </div>
                   ) : (
-                    <div className="w-full h-2 bg-blue-200 group-hover:bg-blue-400 transition mb-4 rounded-full" />
+                    <div className={`w-full h-2 ${theme.accentBgClass} opacity-60 group-hover:opacity-100 transition mb-4 rounded-full`} />
                   )}
                   <div className="flex justify-between items-center mb-2">
-                    <div className="text-xs font-bold uppercase tracking-widest text-blue-600">
+                    <div className={`text-xs font-bold uppercase tracking-widest ${theme.accentTextClass}`}>
                       {article.category}
                     </div>
-                    <div className="text-xs font-medium text-slate-400">
+                    <div className={`text-xs font-medium ${theme.textMutedClass}`}>
                       {new Date(article.published_at).toLocaleDateString()}
                     </div>
                   </div>
-                  <h3 className="text-xl font-bold leading-snug group-hover:text-blue-700 transition mb-3">
+                  <h3 className={`text-xl font-bold leading-snug ${theme.textPrimaryClass} group-hover:opacity-80 transition mb-3`}>
                     {article.title}
                   </h3>
                   {article.excerpt && (
-                    <p className="text-slate-600 line-clamp-3 mb-4 flex-grow text-sm">
+                    <p className={`${theme.textSecondaryClass} line-clamp-3 mb-4 flex-grow text-sm`}>
                       {article.excerpt}
                     </p>
                   )}
-                  <div className="mt-auto text-xs font-medium text-slate-400 pt-2 border-t border-slate-100">
+                  <div className={`mt-auto text-xs font-medium ${theme.textMutedClass} pt-2 border-t ${theme.borderMutedClass}`}>
                     By {article.author_display_name || 'KJIN Desk'}
                   </div>
                 </Link>
               ))}
             </div>
 
-            <div className="mt-16 flex justify-between items-center border-t border-slate-200 pt-8">
+            <div className={`mt-16 flex justify-between items-center border-t ${theme.borderClass} pt-8`}>
               {page > 1 ? (
                 <Link
                   href={`${langPrefix}/latest${page - 1 > 1 ? `?page=${page - 1}` : ''}`}
-                  className="px-6 py-3 rounded-lg border border-slate-300 font-semibold hover:bg-slate-100 transition text-sm"
+                  className={`px-6 py-3 rounded-lg border ${theme.borderClass} ${theme.cardBgClass} ${theme.textPrimaryClass} font-semibold hover:opacity-80 transition text-sm`}
                 >
                   &larr; Previous Page
                 </Link>
@@ -141,14 +154,14 @@ export default async function LatestPage({ params, searchParams }: LatestPagePro
                 <div />
               )}
 
-              <span className="text-sm font-medium text-slate-500">
+              <span className={`text-sm font-medium ${theme.textMutedClass}`}>
                 Page {page} {totalArticles > 0 ? `of ${Math.ceil(totalArticles / limit)}` : ''}
               </span>
 
               {hasNextPage ? (
                 <Link
                   href={`${langPrefix}/latest?page=${page + 1}`}
-                  className="px-6 py-3 rounded-lg border border-slate-300 font-semibold hover:bg-slate-100 transition text-sm"
+                  className={`px-6 py-3 rounded-lg border ${theme.borderClass} ${theme.cardBgClass} ${theme.textPrimaryClass} font-semibold hover:opacity-80 transition text-sm`}
                 >
                   Next Page &rarr;
                 </Link>
@@ -158,7 +171,7 @@ export default async function LatestPage({ params, searchParams }: LatestPagePro
             </div>
           </>
         ) : (
-          <div className="py-20 text-center text-slate-500 text-lg bg-white rounded-xl border border-slate-200">
+          <div className={`py-20 text-center ${theme.textMutedClass} text-lg ${theme.cardBgClass} rounded-xl border ${theme.cardBorderClass}`}>
             No published articles found.
           </div>
         )}

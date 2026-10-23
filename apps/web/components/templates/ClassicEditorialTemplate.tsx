@@ -2,6 +2,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { NewsletterForm } from '@/components/NewsletterForm';
 import { SITE_SHORT_NAME } from '@/lib/config';
+import { SiteNavbar } from '@/components/navigation/SiteNavbar';
+import { SiteFooter } from '@/components/navigation/SiteFooter';
+import { PaginationControls } from '@/components/navigation/PaginationControls';
 import { TemplateProps } from './types';
 
 export function ClassicEditorialTemplate({
@@ -9,49 +12,18 @@ export function ClassicEditorialTemplate({
   heroArticle,
   recentArticles,
   trendingArticles,
+  theme,
+  contactSettings,
+  paginationMeta,
 }: TemplateProps) {
-  const currentDate = new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  const lang = langPrefix ? langPrefix.replace('/', '') : 'en';
 
   return (
-    <div className="min-h-screen bg-[#faf8f5] text-slate-900 font-serif pb-20">
-      {/* Broadsheet Topmast */}
-      <header className="border-b-4 border-double border-slate-900 bg-[#fdfbf7] py-6 px-4 md:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex flex-col md:flex-row justify-between items-center border-b border-slate-300 pb-3 text-xs tracking-widest uppercase font-sans text-slate-600">
-            <span>{currentDate}</span>
-            <span className="font-bold text-slate-900 tracking-wider">Jammu & Kashmir Verified Record</span>
-            <span>Independent Journal of Record</span>
-          </div>
+    <div className="min-h-screen bg-[#faf8f5] text-slate-900 font-serif flex flex-col justify-between">
+      <div>
+        {/* Sleek, Compact Modern Broadsheet Navbar */}
+        <SiteNavbar lang={lang} theme={theme} />
 
-          <div className="py-6 text-center">
-            <Link
-              href="/"
-              className="text-4xl md:text-6xl font-black tracking-tight text-slate-950 uppercase hover:text-slate-800 transition"
-              style={{ fontFamily: 'Georgia, serif' }}
-            >
-              {SITE_SHORT_NAME}
-            </Link>
-            <p className="mt-2 text-xs md:text-sm italic text-slate-600 tracking-wide font-serif">
-              Verified Journalism & Public Affairs across Jammu & Kashmir
-            </p>
-          </div>
-
-          <nav className="flex flex-wrap justify-center gap-6 font-sans font-semibold text-xs uppercase tracking-wider text-slate-700 border-t border-slate-300 pt-3">
-            <Link href={`${langPrefix}/category/politics`} className="hover:text-blue-900 transition">Politics</Link>
-            <Link href={`${langPrefix}/category/local`} className="hover:text-blue-900 transition">Local</Link>
-            <Link href={`${langPrefix}/category/economy`} className="hover:text-blue-900 transition">Economy</Link>
-            <Link href={`${langPrefix}/category/culture`} className="hover:text-blue-900 transition">Culture</Link>
-            <Link href={`${langPrefix}/category/investigation`} className="hover:text-blue-900 transition">Investigation</Link>
-            <Link href={`${langPrefix}/district/srinagar`} className="hover:text-emerald-800 transition">Srinagar</Link>
-            <Link href={`${langPrefix}/district/jammu`} className="hover:text-emerald-800 transition">Jammu</Link>
-          </nav>
-        </div>
-      </header>
 
       {/* Main 3-Column Broadsheet Grid */}
       <div className="max-w-7xl mx-auto px-4 md:px-8 mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -108,8 +80,8 @@ export function ClassicEditorialTemplate({
               Regional Dispatches & Analysis
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {recentArticles.slice(0, 4).map((article) => (
-                <article key={article.id} className="border-b md:border-b-0 border-slate-200 pb-6 flex flex-col justify-between">
+              {recentArticles.map((article) => (
+                <article key={article.id} className="border-b border-slate-200 pb-6 flex flex-col justify-between">
                   <Link href={`${langPrefix}/${article.category.toLowerCase()}/${article.slug}`} className="group block">
                     {article.featured_image_url && (
                       <div className="relative w-full h-44 mb-3 border border-slate-200 overflow-hidden bg-slate-100">
@@ -139,6 +111,13 @@ export function ClassicEditorialTemplate({
                 </article>
               ))}
             </div>
+
+            {/* Real Database Pagination Controls */}
+            {paginationMeta && (
+              <div className="mt-8">
+                <PaginationControls meta={paginationMeta} theme={theme} />
+              </div>
+            )}
           </section>
         </div>
 
@@ -186,6 +165,11 @@ export function ClassicEditorialTemplate({
           </section>
         </aside>
       </div>
+      </div>
+
+      {/* Public Footer Controlled via Admin Portal */}
+      <SiteFooter lang={lang} theme={theme} contactSettings={contactSettings} />
     </div>
   );
 }
+

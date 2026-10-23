@@ -90,6 +90,14 @@ type ActionModal =
       nextStatus: 'active' | 'disabled';
     }
   | {
+      type: 'permanent-delete';
+      employee: Employee;
+    }
+  | {
+      type: 'permanent-delete-request';
+      request: DeletionRequest;
+    }
+  | {
       type: 'request-deletion';
       employee: Employee;
     }
@@ -130,20 +138,34 @@ export default function EmployeesPage() {
   const [actionModal, setActionModal] = useState<ActionModal>(null);
   const [modalReason, setModalReason] = useState('');
   const [modalName, setModalName] = useState('');
+  const [confirmDeleteText, setConfirmDeleteText] = useState('');
   const [modalError, setModalError] = useState<string | null>(null);
 
   const openModal = (modal: ActionModal) => {
     setActionModal(modal);
-    setModalReason('');
+    setConfirmDeleteText('');
     setModalError(null);
     if (modal?.type === 'update-name') {
       setModalName(modal.employee.display_name || '');
+      setModalReason('');
+    } else if (modal?.type === 'change-status') {
+      setModalReason(
+        modal.nextStatus === 'disabled'
+          ? 'Revoke employee login access'
+          : 'Restore employee login access'
+      );
+    } else if (modal?.type === 'permanent-delete' || modal?.type === 'permanent-delete-request') {
+      setModalReason('Permanently deprovision and purge employee from database');
+    } else {
+      setModalReason('');
     }
   };
 
   const closeModal = () => {
     setActionModal(null);
     setModalReason('');
+    setModalName('');
+    setConfirmDeleteText('');
     setModalError(null);
   };
 
@@ -393,7 +415,45 @@ export default function EmployeesPage() {
         }
         setFeedback({
           type: 'success',
-          message: `Employee ${actionModal.employee.display_name || actionModal.employee.email} ${actionModal.nextStatus}.`,
+          message: `Employee ${actionModal.employee.display_name || actionModal.employee.email} ${actionModal.nextStatus === 'active' ? 'enabled (login restored)' : 'disabled (login blocked)'}.`,
+        });
+      } else if (actionModal.type === 'permanent-delete' || actionModal.type === 'permanent-delete-request') {
+        if (confirmDeleteText.trim() !== 'DELETE') {
+          setModalError('Please type DELETE in capital letters to confirm permanent deletion.');
+          setIsSubmitting(false);
+          return;
+        }
+        const targetId =
+          actionModal.type === 'permanent-delete'
+            ? actionModal.employee.id
+            : actionModal.request.target_profile_id;
+        const targetName =
+          actionModal.type === 'permanent-delete'
+            ? actionModal.employee.display_name || actionModal.employee.email
+            : actionModal.request.target_name || 'employee';
+
+        const { data: sessionData } = await supabase.auth.getSession();
+        const response = await fetch(`/api/employees/${targetId}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(sessionData?.session?.access_token ? { Authorization: `Bearer ${sessionData.session.access_token}` } : {}),
+          },
+          body: JSON.stringify({ reason }),
+        });
+        const result = (await response.json()) as { error?: string };
+        if (!response.ok) {
+          if (response.status === 403 && (result.error?.includes('Recent authentication') || result.error?.includes('reauth'))) {
+            window.location.href = '/mfa/challenge?reauth=true&next=/employees';
+            return;
+          }
+          setModalError(result.error ?? 'Permanent deletion failed.');
+          setIsSubmitting(false);
+          return;
+        }
+        setFeedback({
+          type: 'success',
+          message: `Employee ${targetName} permanently deleted from database and authentication system.`,
         });
       } else if (actionModal.type === 'request-deletion') {
         const { data: requestResult, error } = await runEmployeeOperation('request-deletion', {
@@ -564,23 +624,19 @@ export default function EmployeesPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 px-5 py-8 text-white md:px-8">
+    <div className="p-6 md:p-8">
       <div className="mx-auto max-w-7xl">
         <header className="mb-8 flex flex-wrap items-end justify-between gap-4 border-b border-slate-800 pb-6">
           <div>
-            <Link href="/" className="text-sm font-medium text-cyan-300 hover:text-cyan-200">KJIN newsroom</Link>
-            <h1 className="mt-2 text-3xl font-bold">Employees</h1>
-            <p className="mt-2 text-sm text-slate-400">Role: {role ?? 'checking access'}</p>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs font-mono uppercase tracking-widest text-cyan-400">Administration</span>
+              <span className="text-slate-600">•</span>
+              <span className="text-xs text-slate-400">Team & Access Controls</span>
+            </div>
+            <h1 className="text-3xl font-bold tracking-tight text-white">Employees & Staff</h1>
+            <p className="mt-1 text-sm text-slate-400">Manage reporters, editors, permissions, login access, and audit events</p>
           </div>
           <div className="flex items-center gap-3">
-            {role && ['owner', 'superadmin', 'admin'].includes(role) ? (
-              <Link
-                href="/templates"
-                className="rounded-lg border border-cyan-500/40 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-200 hover:border-cyan-400 hover:bg-cyan-500/20"
-              >
-                Website Templates
-              </Link>
-            ) : null}
             <button type="button" onClick={() => void loadWorkspace()} className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold hover:border-cyan-500">
               Refresh
             </button>
@@ -775,7 +831,11 @@ export default function EmployeesPage() {
                                   : 'bg-cyan-400'
                               }`}
                             />
-                            {employee.status.replace('_', ' ')}
+                            {employee.status === 'active'
+                              ? 'Active'
+                              : employee.status === 'disabled'
+                              ? 'Disabled'
+                              : 'Invited'}
                           </span>
 
                           {/* Interactive Toggle Switch (Active <-> Disabled) */}
@@ -813,10 +873,53 @@ export default function EmployeesPage() {
                             </button>
                           ) : null}
                         </div>
+                        <p className="mt-1 text-[11px] text-slate-400">
+                          {employee.status === 'active' ? 'Can log in' : employee.status === 'disabled' ? 'Login blocked' : 'Pending activation'}
+                        </p>
                       </td>
                       <td className="whitespace-nowrap px-3 py-4 text-slate-400">{new Date(employee.created_at).toLocaleDateString()}</td>
                       <td className="px-3 py-4">
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          {/* Dedicated Enable/Disable Login Action Button */}
+                          {employee.can_manage &&
+                          (employee.status === 'active' || employee.status === 'disabled') && (
+                            employee.status === 'active' && can('employee.disable') ? (
+                              <button
+                                type="button"
+                                disabled={isSubmitting}
+                                onClick={() =>
+                                  openModal({
+                                    type: 'change-status',
+                                    employee,
+                                    nextStatus: 'disabled',
+                                  })
+                                }
+                                className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-xs font-semibold text-amber-200 hover:bg-amber-500/20 transition flex items-center gap-1.5"
+                                title="Disable employee and block login access"
+                              >
+                                <span className="h-2 w-2 rounded-full bg-amber-400" />
+                                Disable login
+                              </button>
+                            ) : employee.status === 'disabled' && can('employee.enable') ? (
+                              <button
+                                type="button"
+                                disabled={isSubmitting}
+                                onClick={() =>
+                                  openModal({
+                                    type: 'change-status',
+                                    employee,
+                                    nextStatus: 'active',
+                                  })
+                                }
+                                className="rounded-md border border-emerald-500/40 bg-emerald-500/10 px-2.5 py-1.5 text-xs font-semibold text-emerald-200 hover:bg-emerald-500/20 transition flex items-center gap-1.5"
+                                title="Enable employee and restore login access"
+                              >
+                                <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                                Enable login
+                              </button>
+                            ) : null
+                          )}
+
                           {employee.can_manage && can('employee.basic.update') ? (
                             <button
                               type="button"
@@ -858,11 +961,11 @@ export default function EmployeesPage() {
                                     <button
                                       type="button"
                                       disabled={isSubmitting}
-                                      onClick={() => openModal({ type: 'resolve-deletion', request: pendingReq, decision: 'approved' })}
+                                      onClick={() => openModal({ type: 'permanent-delete', employee })}
                                       className="rounded-md bg-red-600 hover:bg-red-500 px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm transition"
-                                      title="Approve deprovisioning and delete employee access"
+                                      title="Permanently delete employee from database"
                                     >
-                                      Delete employee
+                                      Purge from DB
                                     </button>
                                   ) : (
                                     <span className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-xs font-semibold text-amber-300">
@@ -882,6 +985,23 @@ export default function EmployeesPage() {
                               );
                             }
 
+                            if (
+                              employee.can_manage &&
+                              (can('employee.deletion.resolve') || can('employee.permanent_delete') || role === 'owner')
+                            ) {
+                              return (
+                                <button
+                                  type="button"
+                                  disabled={isSubmitting}
+                                  onClick={() => openModal({ type: 'permanent-delete', employee })}
+                                  className="rounded-md border border-red-500/40 bg-red-950/40 hover:bg-red-900/60 text-red-200 px-2.5 py-1.5 text-xs font-semibold transition flex items-center gap-1"
+                                  title="Permanently delete employee from database"
+                                >
+                                  <span>🗑️</span> Delete permanently
+                                </button>
+                              );
+                            }
+
                             if (employee.can_manage && can('employee.deletion.request') && employee.status !== 'disabled') {
                               return (
                                 <button
@@ -889,9 +1009,9 @@ export default function EmployeesPage() {
                                   disabled={isSubmitting}
                                   onClick={() => openModal({ type: 'request-deletion', employee })}
                                   className="rounded-md border border-red-500/40 hover:bg-red-500/10 px-2.5 py-1.5 text-xs font-semibold text-red-200 transition"
-                                  title="Deprovision and delete employee"
+                                  title="Deprovision employee"
                                 >
-                                  Delete employee
+                                  Request deletion
                                 </button>
                               );
                             }
@@ -931,9 +1051,28 @@ export default function EmployeesPage() {
                       <p className="mt-2 text-sm text-slate-200">{request.reason}</p>
                     </div>
                     {can('employee.deletion.resolve') ? (
-                      <div className="flex gap-2">
-                        <button disabled={isSubmitting} onClick={() => openModal({ type: 'resolve-deletion', request, decision: 'approved' })} className="rounded-md bg-red-500 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50">Approve deprovisioning</button>
-                        <button disabled={isSubmitting} onClick={() => openModal({ type: 'resolve-deletion', request, decision: 'rejected' })} className="rounded-md border border-slate-700 px-3 py-2 text-sm hover:border-slate-500 disabled:opacity-50">Reject</button>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          disabled={isSubmitting}
+                          onClick={() => openModal({ type: 'permanent-delete-request', request })}
+                          className="rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white hover:bg-red-500 disabled:opacity-50"
+                        >
+                          Permanently delete from DB
+                        </button>
+                        <button
+                          disabled={isSubmitting}
+                          onClick={() => openModal({ type: 'resolve-deletion', request, decision: 'approved' })}
+                          className="rounded-md border border-amber-500/60 bg-amber-500/10 px-3 py-2 text-sm font-semibold text-amber-200 hover:bg-amber-500/20 disabled:opacity-50"
+                        >
+                          Disable login only
+                        </button>
+                        <button
+                          disabled={isSubmitting}
+                          onClick={() => openModal({ type: 'resolve-deletion', request, decision: 'rejected' })}
+                          className="rounded-md border border-slate-700 px-3 py-2 text-sm hover:border-slate-500 disabled:opacity-50"
+                        >
+                          Reject
+                        </button>
                       </div>
                     ) : null}
                   </li>
@@ -978,9 +1117,11 @@ export default function EmployeesPage() {
                 <h2 className="text-xl font-bold text-white">
                   {actionModal.type === 'change-role' && 'Change Employee Role'}
                   {actionModal.type === 'update-name' && 'Update Employee Name'}
-                  {actionModal.type === 'change-status' && (actionModal.nextStatus === 'disabled' ? 'Disable Employee' : 'Enable Employee')}
-                  {actionModal.type === 'request-deletion' && (can('employee.deletion.resolve') ? 'Delete Employee' : 'Request Deprovisioning')}
-                  {actionModal.type === 'resolve-deletion' && (actionModal.decision === 'approved' ? 'Delete Employee' : 'Cancel Deletion Request')}
+                  {actionModal.type === 'change-status' && (actionModal.nextStatus === 'disabled' ? 'Disable Employee Login' : 'Enable Employee Login')}
+                  {actionModal.type === 'permanent-delete' && 'Permanently Delete Employee from Database'}
+                  {actionModal.type === 'permanent-delete-request' && 'Permanently Delete Employee from Database'}
+                  {actionModal.type === 'request-deletion' && (can('employee.deletion.resolve') ? 'Deprovision Employee' : 'Request Deprovisioning')}
+                  {actionModal.type === 'resolve-deletion' && (actionModal.decision === 'approved' ? 'Disable Employee Login' : 'Cancel Deletion Request')}
                   {actionModal.type === 'approve-invite-request' && 'Approve Invitation Request'}
                   {actionModal.type === 'reject-invite-request' && 'Decline Invitation Request'}
                   {actionModal.type === 'resend-invite' && 'Resend Employee Invitation'}
@@ -992,10 +1133,16 @@ export default function EmployeesPage() {
                   {actionModal.type === 'update-name' && `Updating details for ${actionModal.employee.email}.`}
                   {actionModal.type === 'change-status' && (
                     actionModal.nextStatus === 'disabled' ? (
-                      <>Disabling this account will revoke their sessions and <strong className="text-white">block them from logging in</strong> to KJIN ({actionModal.employee.display_name || actionModal.employee.email}).</>
+                      <>Disabling this account will revoke their sessions and <strong className="text-white">block them from logging in</strong> to KJIN ({actionModal.employee.display_name || actionModal.employee.email}). You can enable them again at any time.</>
                     ) : (
-                      <>Enabling this account will remove the login block and <strong className="text-white">allow them to log in</strong> again ({actionModal.employee.display_name || actionModal.employee.email}).</>
+                      <>Enabling this account will remove the login ban and <strong className="text-white">allow them to log in</strong> to KJIN again ({actionModal.employee.display_name || actionModal.employee.email}).</>
                     )
+                  )}
+                  {actionModal.type === 'permanent-delete' && (
+                    <>Permanently erase <strong className="text-white">{actionModal.employee.display_name || actionModal.employee.email}</strong> from the database and authentication system.</>
+                  )}
+                  {actionModal.type === 'permanent-delete-request' && (
+                    <>Permanently erase <strong className="text-white">{actionModal.request.target_name || 'this employee'}</strong> from the database and authentication system.</>
                   )}
                   {actionModal.type === 'request-deletion' && (
                     can('employee.deletion.resolve')
@@ -1004,7 +1151,7 @@ export default function EmployeesPage() {
                   )}
                   {actionModal.type === 'resolve-deletion' && (
                     actionModal.decision === 'approved'
-                      ? <>Permanently revoke login and disable account for <strong className="text-white">{actionModal.request.target_name || 'this employee'}</strong>.</>
+                      ? <>Revoke login and disable account for <strong className="text-white">{actionModal.request.target_name || 'this employee'}</strong>.</>
                       : <>Cancel and withdraw the pending deletion request for <strong className="text-white">{actionModal.request.target_name || 'this employee'}</strong>.</>
                   )}
                   {actionModal.type === 'approve-invite-request' && `Send invitation to ${actionModal.request.display_name} (${actionModal.request.email}) as ${actionModal.request.requested_role}.`}
@@ -1026,6 +1173,28 @@ export default function EmployeesPage() {
             </div>
 
             <form onSubmit={handleModalConfirm} className="mt-5 space-y-4">
+              {(actionModal.type === 'permanent-delete' || actionModal.type === 'permanent-delete-request') && (
+                <div className="space-y-3 rounded-xl border border-red-500/50 bg-red-950/40 p-4 text-sm text-red-200">
+                  <div className="flex items-center gap-2 font-bold text-red-300">
+                    <span>⚠️</span> PERMANENT DATABASE DELETION (CANNOT BE UNDONE)
+                  </div>
+                  <p className="text-xs text-red-200/90 leading-relaxed">
+                    This will permanently erase this employee from Supabase Authentication and the database. Historical articles they authored will remain published with their display name credit, but their user credentials and profile will be completely purged.
+                  </p>
+                  <label className="block text-xs font-semibold text-red-300 pt-1">
+                    Type <span className="font-mono text-white underline">DELETE</span> to confirm permanent erasure:
+                    <input
+                      type="text"
+                      required
+                      value={confirmDeleteText}
+                      onChange={(e) => setConfirmDeleteText(e.target.value)}
+                      placeholder="DELETE"
+                      className="mt-1 w-full rounded-lg border border-red-500/60 bg-slate-950 px-3 py-2 text-white font-mono placeholder-slate-600 focus:border-red-400 focus:outline-none"
+                    />
+                  </label>
+                </div>
+              )}
+
               {actionModal.type === 'update-name' && (
                 <label className="block text-sm text-slate-300">
                   Display name
@@ -1083,12 +1252,18 @@ export default function EmployeesPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={isSubmitting}
-                  className={`rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50 ${
+                  disabled={
+                    isSubmitting ||
+                    ((actionModal.type === 'permanent-delete' || actionModal.type === 'permanent-delete-request') &&
+                      confirmDeleteText.trim() !== 'DELETE')
+                  }
+                  className={`rounded-lg px-4 py-2 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed ${
+                    actionModal.type === 'permanent-delete' ||
+                    actionModal.type === 'permanent-delete-request' ||
                     actionModal.type === 'request-deletion' ||
                     (actionModal.type === 'resolve-deletion' && actionModal.decision === 'approved') ||
                     (actionModal.type === 'change-status' && actionModal.nextStatus === 'disabled')
-                      ? 'bg-red-500 text-white hover:bg-red-400'
+                      ? 'bg-red-600 text-white hover:bg-red-500'
                       : (actionModal.type === 'change-status' && actionModal.nextStatus === 'active')
                       ? 'bg-emerald-500 text-slate-950 hover:bg-emerald-400'
                       : 'bg-cyan-400 text-slate-950 hover:bg-cyan-300'
@@ -1096,14 +1271,16 @@ export default function EmployeesPage() {
                 >
                   {isSubmitting
                     ? 'Processing...'
+                    : actionModal.type === 'permanent-delete' || actionModal.type === 'permanent-delete-request'
+                    ? 'Permanently Delete from DB'
                     : actionModal.type === 'change-status'
                     ? actionModal.nextStatus === 'disabled'
-                      ? 'Confirm & Disable'
-                      : 'Confirm & Enable'
+                      ? 'Confirm & Disable Login'
+                      : 'Confirm & Enable Login'
                     : actionModal.type === 'request-deletion'
-                    ? (can('employee.deletion.resolve') ? 'Delete employee' : 'Submit request')
+                    ? (can('employee.deletion.resolve') ? 'Deprovision employee' : 'Submit request')
                     : actionModal.type === 'resolve-deletion'
-                    ? (actionModal.decision === 'approved' ? 'Delete employee' : 'Cancel request')
+                    ? (actionModal.decision === 'approved' ? 'Disable login' : 'Cancel request')
                     : 'Confirm'}
                 </button>
               </div>
@@ -1111,6 +1288,6 @@ export default function EmployeesPage() {
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }

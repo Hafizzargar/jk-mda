@@ -27,8 +27,19 @@ export async function POST(
       });
     }
 
+    let reason: string | null = null;
+    try {
+      const body = await request.json();
+      if (body && typeof body === 'object' && 'reason' in body && typeof body.reason === 'string') {
+        reason = body.reason.trim() || null;
+      }
+    } catch {
+      // Body is optional
+    }
+
     const { data, error } = await userClient.rpc('archive_article', {
       p_article_id: id,
+      p_reason: reason,
     });
 
     if (error) {

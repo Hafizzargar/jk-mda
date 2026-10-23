@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { requiresMfa } from '@/lib/mfa';
+import { CATEGORY_OPTIONS, DISTRICT_GROUPS, IMAGE_PRESETS } from '@/lib/taxonomy-options';
+import { ImageUploader } from '@/components/ImageUploader';
 
 export default function NewArticlePage() {
   const router = useRouter();
@@ -13,6 +15,13 @@ export default function NewArticlePage() {
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Image mode state & live preview
+  const [hasFeaturedImage, setHasFeaturedImage] = useState(true);
+  const [imageUrl, setImageUrl] = useState('');
+  const [imageError, setImageError] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('Local');
+  const [selectedDistrict, setSelectedDistrict] = useState('srinagar');
 
   useEffect(() => {
     async function checkAuth() {
@@ -76,16 +85,22 @@ export default function NewArticlePage() {
       slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
     }
 
+    const rawDistrict = form.get('district');
+    const districtValue = rawDistrict && String(rawDistrict).trim() ? String(rawDistrict).trim().toLowerCase() : null;
+
+    const rawImageUrl = form.get('featured_image_url') || imageUrl;
+    const finalImageUrl = hasFeaturedImage && rawImageUrl && String(rawImageUrl).trim() ? String(rawImageUrl).trim() : null;
+
     const payload = {
       title,
       slug,
       content: String(form.get('content') ?? ''),
       excerpt: form.get('excerpt') ? String(form.get('excerpt')) : null,
       category: form.get('category') ? String(form.get('category')) : 'General',
-      district: form.get('district') ? String(form.get('district')) : null,
+      district: districtValue,
       source_name: form.get('source_name') ? String(form.get('source_name')) : null,
       source_url: form.get('source_url') ? String(form.get('source_url')) : null,
-      featured_image_url: form.get('featured_image_url') ? String(form.get('featured_image_url')) : null,
+      featured_image_url: finalImageUrl,
     };
 
     const { data: sessionData } = await supabase.auth.getSession();
@@ -132,7 +147,7 @@ export default function NewArticlePage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 px-5 py-8 text-white md:px-8">
+    <div className="p-6 md:p-8">
       <div className="mx-auto max-w-3xl">
         <header className="mb-8 border-b border-slate-800 pb-6">
           <Link href="/articles" className="text-sm font-medium text-cyan-300 hover:text-cyan-200">
@@ -201,35 +216,127 @@ export default function NewArticlePage() {
             </div>
           </div>
 
+          {/* Visual Presentation: With Image vs Without Image Option */}
+          <div className="rounded-xl border border-slate-800 bg-slate-900 p-6 space-y-5">
+            <div>
+              <h2 className="text-lg font-semibold text-white">Visual Media Option</h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Choose whether this report has a lead photograph or will be published as a text-only editorial dispatch.
+              </p>
+            </div>
+
+            {/* Segmented Switcher */}
+            <div className="grid grid-cols-2 gap-3 p-1.5 rounded-xl bg-slate-950 border border-slate-800">
+              <button
+                type="button"
+                onClick={() => setHasFeaturedImage(true)}
+                className={`py-3 px-4 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2.5 ${
+                  hasFeaturedImage
+                    ? 'bg-cyan-500 text-slate-950 shadow-md font-bold'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                }`}
+              >
+                <span>🖼️</span>
+                <span>Article With Image</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setHasFeaturedImage(false);
+                  setImageUrl('');
+                }}
+                className={`py-3 px-4 rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2.5 ${
+                  !hasFeaturedImage
+                    ? 'bg-cyan-500 text-slate-950 shadow-md font-bold'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                }`}
+              >
+                <span>📄</span>
+                <span>Text-Only Editorial (No Image)</span>
+              </button>
+            </div>
+
+            {/* Option A: With Image Selected */}
+            {hasFeaturedImage ? (
+              <div className="pt-2">
+                <ImageUploader
+                  value={imageUrl}
+                  onChange={setImageUrl}
+                  presets={IMAGE_PRESETS}
+                />
+              </div>
+            ) : (
+              /* Option B: Text-Only Selected */
+              <div className="rounded-xl border border-dashed border-slate-700 bg-slate-950/70 p-6 text-center space-y-2">
+                <input type="hidden" name="featured_image_url" value="" />
+                <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-slate-800 text-slate-300 text-lg">
+                  📰
+                </div>
+                <h4 className="text-sm font-bold text-white">Text-Only Editorial Mode Active</h4>
+                <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
+                  No image will be assigned. On the public site, this dispatch will be rendered in traditional broadsheet typography with prominent headline prominence and drop-caps.
+                </p>
+                <div className="pt-2">
+                  <span className="inline-block text-[11px] font-mono text-cyan-300 bg-cyan-950/60 border border-cyan-800/60 px-3 py-1 rounded-full">
+                    Layout: Broadsheet Typographic Anchor
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Regional Taxonomy & Classification */}
           <div className="rounded-xl border border-slate-800 bg-slate-900 p-6">
-            <h2 className="text-lg font-semibold mb-4">Metadata</h2>
+            <div className="mb-4">
+              <h2 className="text-lg font-semibold">Classification &amp; Area Tagging</h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Accurate category and district tagging ensures your ground report appears in the right regional feeds.
+              </p>
+            </div>
             
             <div className="grid gap-5 md:grid-cols-2">
               <label className="block">
-                <span className="text-sm font-medium text-slate-300">Category</span>
-                <input 
+                <span className="text-sm font-medium text-slate-300">Category <span className="text-red-400">*</span></span>
+                <select 
                   name="category" 
-                  defaultValue="General"
-                  className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-white focus:border-cyan-500 focus:outline-none" 
-                />
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-white focus:border-cyan-500 focus:outline-none"
+                >
+                  {CATEGORY_OPTIONS.map((cat) => (
+                    <option key={cat.value} value={cat.value}>
+                      {cat.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[11px] text-cyan-400/80 mt-1.5">
+                  ⭐ Tip: For local issues, road/water problems, or citizen grievances, select <strong>Local</strong> or <strong>Investigation</strong>.
+                </p>
               </label>
 
               <label className="block">
-                <span className="text-sm font-medium text-slate-300">District</span>
-                <input 
+                <span className="text-sm font-medium text-slate-300">District / Ground Area</span>
+                <select 
                   name="district" 
-                  className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-white focus:border-cyan-500 focus:outline-none" 
-                />
-              </label>
-
-              <label className="block md:col-span-2">
-                <span className="text-sm font-medium text-slate-300">Featured Image URL</span>
-                <input 
-                  name="featured_image_url" 
-                  type="url"
-                  className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-white focus:border-cyan-500 focus:outline-none" 
-                  placeholder="https://..."
-                />
+                  value={selectedDistrict}
+                  onChange={(e) => setSelectedDistrict(e.target.value)}
+                  className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-white focus:border-cyan-500 focus:outline-none"
+                >
+                  <option value="">-- All Jammu &amp; Kashmir (Statewide / Regional) --</option>
+                  {DISTRICT_GROUPS.map((group) => (
+                    <optgroup key={group.region} label={group.region}>
+                      {group.districts.map((d) => (
+                        <option key={d.slug} value={d.slug}>
+                          {d.name} ({group.region})
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+                <p className="text-[11px] text-slate-400 mt-1.5">
+                  Ensures the dispatch matches regional directory tabs and district queries.
+                </p>
               </label>
 
               <label className="block">
@@ -237,6 +344,7 @@ export default function NewArticlePage() {
                 <input 
                   name="source_name" 
                   className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-white focus:border-cyan-500 focus:outline-none" 
+                  placeholder="e.g. Ground Bureau / Field Correspondent"
                 />
               </label>
 
@@ -266,6 +374,6 @@ export default function NewArticlePage() {
           </div>
         </form>
       </div>
-    </main>
+    </div>
   );
 }

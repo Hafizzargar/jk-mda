@@ -6,6 +6,7 @@ import { createServerAnonClient } from '@/lib/supabase-server';
 import { ViewTracker } from '@/components/ViewTracker';
 import { sanitizeArticleHtml, safeJsonLd } from '@/lib/sanitize';
 import { SITE_URL, SITE_NAME, SITE_SHORT_NAME, DEFAULT_LOCALE } from '@/lib/config';
+import { getTemplateTheme, type TemplateId } from '@/lib/templates';
 
 interface ArticlePageProps {
   params: Promise<{
@@ -162,6 +163,16 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     },
   };
 
+  // Fetch Active Template Setting to align theme & background colors
+  const { data: settingRow } = await supabase
+    .from('site_settings')
+    .select('value')
+    .eq('key', 'active_template')
+    .maybeSingle();
+
+  const dbTemplateId = (settingRow?.value as { template_id?: string } | null)?.template_id as TemplateId | undefined;
+  const theme = getTemplateTheme(dbTemplateId);
+
   // Sanitize article HTML using strict allowlist before rendering to prevent stored XSS
   const sanitizedContent = sanitizeArticleHtml(displayArticle.content || '');
 
@@ -174,19 +185,21 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
       />
       <ViewTracker articleId={article.id} />
       
-      <main className="min-h-screen bg-slate-50 text-slate-900 pb-20">
-        <header className="bg-white border-b border-slate-200 py-4 px-4 md:px-8 shadow-sm mb-6">
+      <main className={`min-h-screen ${theme.pageBgClass} ${theme.textPrimaryClass} ${theme.fontFamilyClass} ${theme.selectionClass} pb-20`}>
+        <header className={`${theme.headerBgClass} ${theme.headerBorderClass} py-4 px-4 md:px-8 shadow-sm mb-6`}>
           <div className="max-w-4xl mx-auto flex justify-between items-center">
             <Link
               href={`${resolvedParams.lang === 'en' ? '' : `/${resolvedParams.lang}`}/`}
-              className="text-2xl font-black tracking-tighter text-blue-900 uppercase hover:text-blue-700 transition"
+              className={`text-2xl font-black tracking-tighter uppercase transition ${
+                theme.isDark ? 'text-white hover:text-cyan-400' : 'text-blue-900 hover:text-blue-700'
+              }`}
             >
-              KJIN
+              {SITE_SHORT_NAME}
             </Link>
-            <div className="flex items-center gap-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+            <div className={`flex items-center gap-4 text-xs font-semibold ${theme.textMutedClass} uppercase tracking-wider`}>
               <Link
                 href={`${resolvedParams.lang === 'en' ? '' : `/${resolvedParams.lang}`}/category/${displayArticle.category.toLowerCase()}`}
-                className="hover:text-blue-600 transition"
+                className={`transition ${theme.accentTextClass} hover:opacity-80`}
               >
                 &larr; Back to {displayArticle.category}
               </Link>
@@ -194,12 +207,12 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           </div>
         </header>
 
-        <article className="max-w-4xl mx-auto px-6 py-8 bg-white rounded-2xl border border-slate-200 shadow-sm">
+        <article className={`max-w-4xl mx-auto px-6 py-8 ${theme.cardBgClass} rounded-2xl ${theme.cardBorderClass} shadow-sm`}>
         <header className="mb-8">
-          <div className="flex items-center text-sm text-slate-500 mb-4 gap-4 flex-wrap">
+          <div className={`flex items-center text-sm ${theme.textMutedClass} mb-4 gap-4 flex-wrap`}>
             <Link
               href={`/${resolvedParams.lang === 'en' ? '' : `${resolvedParams.lang}/`}category/${displayArticle.category.toLowerCase()}`}
-              className="uppercase tracking-wider font-semibold text-blue-600 hover:text-blue-800 transition"
+              className={`uppercase tracking-wider font-semibold ${theme.accentTextClass} hover:opacity-80 transition`}
             >
               {displayArticle.category}
             </Link>
@@ -208,7 +221,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                 <span>&bull;</span>
                 <Link
                   href={`/${resolvedParams.lang === 'en' ? '' : `${resolvedParams.lang}/`}district/${displayArticle.district.toLowerCase()}`}
-                  className="font-medium hover:text-slate-800 transition"
+                  className={`font-medium ${theme.textSecondaryClass} hover:opacity-80 transition`}
                 >
                   {displayArticle.district}
                 </Link>
@@ -224,34 +237,34 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             </time>
           </div>
 
-          <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 leading-tight mb-6">
+          <h1 className={`text-4xl md:text-5xl font-extrabold ${theme.textPrimaryClass} leading-tight mb-6`}>
             {displayArticle.title}
           </h1>
 
           {displayArticle.excerpt && (
-            <p className="text-xl text-slate-600 mb-6 leading-relaxed font-light">
+            <p className={`text-xl ${theme.textSecondaryClass} mb-6 leading-relaxed font-light`}>
               {displayArticle.excerpt}
             </p>
           )}
 
-          <div className="flex items-center justify-between border-b border-slate-200 pb-6">
+          <div className={`flex items-center justify-between border-b ${theme.borderClass} pb-6`}>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-slate-200 rounded-full flex items-center justify-center text-slate-600 font-bold text-sm">
+              <div className={`w-10 h-10 ${theme.subtleBgClass} rounded-full flex items-center justify-center ${theme.textSecondaryClass} font-bold text-sm border ${theme.borderMutedClass}`}>
                 {displayArticle.author_display_name ? displayArticle.author_display_name[0]?.toUpperCase() : 'K'}
               </div>
               <div>
-                <div className="font-medium text-slate-900">
+                <div className={`font-medium ${theme.textPrimaryClass}`}>
                   {displayArticle.author_display_name || 'KJIN Desk'}
                 </div>
                 {displayArticle.source_name && (
-                  <div className="text-sm text-slate-500">
+                  <div className={`text-sm ${theme.textMutedClass}`}>
                     Source:{' '}
                     {displayArticle.source_url ? (
                       <a
                         href={displayArticle.source_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="underline hover:text-blue-600"
+                        className={`underline ${theme.accentTextClass}`}
                       >
                         {displayArticle.source_name}
                       </a>
@@ -268,7 +281,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                 href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(articleCanonicalUrl)}&text=${encodeURIComponent(displayArticle.title)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-slate-400 hover:text-blue-500 transition"
+                className={`${theme.textMutedClass} hover:${theme.accentTextClass} transition`}
                 aria-label="Share on Twitter"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -279,7 +292,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                 href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(articleCanonicalUrl)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-slate-400 hover:text-blue-700 transition"
+                className={`${theme.textMutedClass} hover:${theme.accentTextClass} transition`}
                 aria-label="Share on Facebook"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -290,7 +303,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                 href={`https://api.whatsapp.com/send?text=${encodeURIComponent(displayArticle.title + ' ' + articleCanonicalUrl)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-slate-400 hover:text-green-500 transition"
+                className={`${theme.textMutedClass} hover:text-green-500 transition`}
                 aria-label="Share on WhatsApp"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -302,7 +315,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         </header>
 
         {displayArticle.featured_image_url && (
-          <figure className="mb-10 relative w-full h-[320px] md:h-[500px] overflow-hidden rounded-xl shadow-sm bg-slate-100">
+          <figure className={`mb-10 relative w-full h-[320px] md:h-[500px] overflow-hidden rounded-xl shadow-sm ${theme.subtleBgClass}`}>
             <Image
               src={displayArticle.featured_image_url}
               alt={displayArticle.title}
@@ -314,14 +327,14 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           </figure>
         )}
 
-        <div className="prose prose-lg prose-blue max-w-none text-slate-800">
+        <div className={`${theme.proseClass} ${theme.isDark ? 'text-slate-200' : 'text-slate-800'}`}>
           {/* Strictly sanitized HTML rendering */}
           <div dangerouslySetInnerHTML={{ __html: sanitizedContent }} />
         </div>
 
         {relatedArticles && relatedArticles.length > 0 && (
-          <aside className="mt-20 pt-10 border-t border-slate-200">
-            <h2 className="text-2xl font-bold border-b-2 border-slate-900 pb-2 mb-8 inline-block">
+          <aside className={`mt-20 pt-10 border-t ${theme.borderClass}`}>
+            <h2 className={`text-2xl font-bold border-b-2 ${theme.borderClass} pb-2 mb-8 inline-block ${theme.textPrimaryClass}`}>
               Related Stories
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -329,10 +342,10 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                 <Link
                   key={related.id}
                   href={`/${resolvedParams.lang === 'en' ? '' : `${resolvedParams.lang}/`}${related.category.toLowerCase()}/${related.slug}`}
-                  className="group block"
+                  className={`group block p-3.5 rounded-xl ${theme.cardBgClass} ${theme.cardBorderClass} ${theme.cardHoverClass} transition`}
                 >
                   {related.featured_image_url ? (
-                    <div className="relative w-full h-40 mb-3 overflow-hidden rounded-lg bg-slate-200">
+                    <div className={`relative w-full h-40 mb-3 overflow-hidden rounded-lg ${theme.subtleBgClass}`}>
                       <Image
                         src={related.featured_image_url}
                         alt={related.title}
@@ -342,12 +355,12 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                       />
                     </div>
                   ) : (
-                    <div className="w-full h-2 bg-blue-200 group-hover:bg-blue-400 transition mb-3 rounded-full" />
+                    <div className={`w-full h-2 ${theme.accentBgClass} mb-3 rounded-full opacity-60 group-hover:opacity-100 transition`} />
                   )}
-                  <div className="text-[10px] font-bold uppercase tracking-widest text-blue-600 mb-1">
+                  <div className={`text-[10px] font-bold uppercase tracking-widest ${theme.accentTextClass} mb-1`}>
                     {related.category} &bull; {new Date(related.published_at).toLocaleDateString()}
                   </div>
-                  <h3 className="font-bold leading-tight group-hover:text-blue-700 transition">
+                  <h3 className={`font-bold leading-tight ${theme.textPrimaryClass} group-hover:opacity-80 transition line-clamp-2`}>
                     {related.title}
                   </h3>
                 </Link>

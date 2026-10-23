@@ -13,15 +13,20 @@ setHarness(harness);
 const inviteRoute = await import('../app/api/employees/invite/route.ts');
 const operationsRoute = await import('../app/api/employees/operations/route.ts');
 const statusRoute = await import('../app/api/employees/[id]/status/route.ts');
+const employeeDeleteRoute = await import('../app/api/employees/[id]/route.ts');
 const contactRoute = await import('../app/api/employees/[id]/contact/route.ts');
 const publishRoute = await import('../app/api/articles/[id]/publish/route.ts');
 const articlesRoute = await import('../app/api/articles/route.ts');
 const articleIdRoute = await import('../app/api/articles/[id]/route.ts');
 const archiveRoute = await import('../app/api/articles/[id]/archive/route.ts');
+const reactivateRoute = await import('../app/api/articles/[id]/reactivate/route.ts');
 const returnRoute = await import('../app/api/articles/[id]/return/route.ts');
 const submitRoute = await import('../app/api/articles/[id]/submit/route.ts');
 const resendInviteRoute = await import('../app/api/employees/resend-invite/route.ts');
 const templateRoute = await import('../app/api/settings/template/route.ts');
+const footerRoute = await import('../app/api/settings/footer/route.ts');
+const profileRoute = await import('../app/api/profile/route.ts');
+const uploadRoute = await import('../app/api/upload/route.ts');
 
 const VALID_UUID = TARGET_ID;
 
@@ -530,6 +535,82 @@ test('status: happy path disables the employee and bans the auth user', async ()
   assert.equal(body.status, 'disabled');
   assert.ok(harness.calls.some((call) => call.kind === 'rpc' && call.rpc === 'set_employee_status'));
   assert.ok(harness.calls.some((call) => call.kind === 'auth' && call.op === 'updateUserById'));
+});
+
+// ---------------------------------------------------------------------------
+// DELETE /api/employees/[id] (Permanent Employee Deletion)
+// ---------------------------------------------------------------------------
+
+test('employee delete: unauthenticated request returns 401', async () => {
+  const res = await employeeDeleteRoute.DELETE(
+    jsonRequest('http://localhost/api/employees/target', { method: 'DELETE', body: { reason: 'Permanent deletion' } }),
+    params(VALID_UUID)
+  );
+  assert.equal(res.status, 401);
+});
+
+test('employee delete: caller without permanent_delete or deletion.resolve permission gets 403', async () => {
+  configure({ role: 'editor', grants: ['article.review'] });
+  harness.addProfile({ id: VALID_UUID, role_key: 'author', status: 'disabled' });
+  const res = await employeeDeleteRoute.DELETE(
+    jsonRequest('http://localhost/api/employees/target', {
+      method: 'DELETE',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
+      body: { reason: 'Staff departure' },
+    }),
+    params(VALID_UUID)
+  );
+  assert.equal(res.status, 403);
+});
+
+test('employee delete: missing reason returns 400', async () => {
+  configure({ role: 'owner', grants: ['employee.permanent_delete'] });
+  harness.addProfile({ id: VALID_UUID, role_key: 'author', status: 'disabled' });
+  const res = await employeeDeleteRoute.DELETE(
+    jsonRequest('http://localhost/api/employees/target', {
+      method: 'DELETE',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
+      body: { reason: '' },
+    }),
+    params(VALID_UUID)
+  );
+  assert.equal(res.status, 400);
+  const body = (await res.json()) as { error?: string };
+  assert.equal(body.error, 'A reason is required to permanently delete an employee.');
+});
+
+test('employee delete: subordinate attempting to delete owner or equal/higher rank returns 403', async () => {
+  configure({ role: 'admin', grants: ['employee.deletion.resolve'] });
+  harness.addProfile({ id: VALID_UUID, role_key: 'superadmin', status: 'active' });
+  const res = await employeeDeleteRoute.DELETE(
+    jsonRequest('http://localhost/api/employees/target', {
+      method: 'DELETE',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
+      body: { reason: 'Policy test' },
+    }),
+    params(VALID_UUID)
+  );
+  assert.equal(res.status, 403);
+  const body = (await res.json()) as { error?: string };
+  assert.equal(body.error, 'You cannot permanently delete this employee.');
+});
+
+test('employee delete: happy path purges auth user, deletes profile, and writes audit event', async () => {
+  configure({ role: 'owner', grants: ['employee.permanent_delete'] });
+  harness.addProfile({ id: VALID_UUID, role_key: 'author', status: 'disabled', email: 'author@kjin.com', display_name: 'Former Author' });
+  const res = await employeeDeleteRoute.DELETE(
+    jsonRequest('http://localhost/api/employees/target', {
+      method: 'DELETE',
+      token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
+      body: { reason: 'Permanent staff departure request' },
+    }),
+    params(VALID_UUID)
+  );
+  assert.equal(res.status, 200);
+  const body = (await res.json()) as { success?: boolean; message?: string };
+  assert.equal(body.success, true);
+  assert.ok(harness.calls.some((call) => call.kind === 'auth' && call.op === 'deleteUser'));
+  assert.ok(harness.audits.some((row) => row.action === 'employee.permanent_delete'));
 });
 
 // ---------------------------------------------------------------------------
@@ -1378,6 +1459,58 @@ test('articles archive: unexpected database error returns 500', async () => {
   assert.equal(body.error, 'Unable to archive article');
 });
 
+test('articles reactivate: unauthenticated returns 401', async () => {
+  const res = await reactivateRoute.POST(
+    jsonRequest(`http://localhost/api/articles/${VALID_UUID}/reactivate`, { method: 'POST' }),
+    params(VALID_UUID)
+  );
+  assert.equal(res.status, 401);
+});
+
+test('articles reactivate: author without review or publish permission gets 403', async () => {
+  configure({ role: 'author', grants: ['article.create'] });
+  const res = await reactivateRoute.POST(
+    jsonRequest(`http://localhost/api/articles/${VALID_UUID}/reactivate`, {
+      method: 'POST',
+      token: MFA_VALID_TOKEN,
+    }),
+    params(VALID_UUID)
+  );
+  assert.equal(res.status, 403);
+});
+
+test('articles reactivate: status conflict returns 409', async () => {
+  configure({ role: 'editor', grants: ['article.review'] });
+  harness.rpcErrors.reactivate_article = {
+    message: 'Only inactive/archived articles can be reactivated',
+    code: 'P0001',
+  };
+  const res = await reactivateRoute.POST(
+    jsonRequest(`http://localhost/api/articles/${VALID_UUID}/reactivate`, {
+      method: 'POST',
+      token: MFA_VALID_TOKEN,
+    }),
+    params(VALID_UUID)
+  );
+  assert.equal(res.status, 409);
+  const body = (await res.json()) as { error?: string };
+  assert.equal(body.error, 'Only inactive/archived articles can be reactivated');
+});
+
+test('articles reactivate: happy path restores article and returns 200', async () => {
+  configure({ role: 'admin', grants: ['article.publish'] });
+  const res = await reactivateRoute.POST(
+    jsonRequest(`http://localhost/api/articles/${VALID_UUID}/reactivate`, {
+      method: 'POST',
+      token: MFA_VALID_TOKEN,
+      body: { target_status: 'published' },
+    }),
+    params(VALID_UUID)
+  );
+  assert.equal(res.status, 200);
+  assert.ok(harness.calls.some((call) => call.kind === 'rpc' && call.rpc === 'reactivate_article'));
+});
+
 // ---------------------------------------------------------------------------
 // Granular Permission End-to-End Tests
 // ---------------------------------------------------------------------------
@@ -1566,6 +1699,240 @@ test('template: POST superadmin and owner can activate templates (200)', async (
   assert.equal(resOwner.status, 200);
   const bodyOwner = (await resOwner.json()) as { active_template: { template_id: string } };
   assert.equal(bodyOwner.active_template.template_id, 'minimal-focus');
+});
+
+test('footer: GET unauthenticated request returns 401', async () => {
+  configure({ role: 'admin' });
+  const res = await footerRoute.GET(new Request('http://localhost/api/settings/footer'));
+  assert.equal(res.status, 401);
+});
+
+test('footer: GET returns footer contact settings and can_manage', async () => {
+  configure({ role: 'admin' });
+  const req = new Request('http://localhost/api/settings/footer', {
+    headers: { Authorization: `Bearer ${MFA_VALID_TOKEN}` },
+  });
+  const res = await footerRoute.GET(req);
+  assert.equal(res.status, 200);
+  const body = (await res.json()) as { footer_contact: any; can_manage: boolean };
+  assert.ok(body.footer_contact);
+  assert.equal(body.can_manage, true);
+  assert.ok(body.footer_contact.organization_name);
+  assert.ok(body.footer_contact.primary_address);
+});
+
+test('footer: POST unauthenticated request returns 401', async () => {
+  configure({ role: 'admin' });
+  const res = await footerRoute.POST(
+    jsonRequest('http://localhost/api/settings/footer', {
+      body: { phone_primary: '+91 194 999 9999' },
+    })
+  );
+  assert.equal(res.status, 401);
+});
+
+test('footer: POST author returns 403 forbidden', async () => {
+  configure({ role: 'author' });
+  const res = await footerRoute.POST(
+    jsonRequest('http://localhost/api/settings/footer', {
+      token: MFA_VALID_TOKEN,
+      body: { phone_primary: '+91 194 999 9999' },
+    })
+  );
+  assert.equal(res.status, 403);
+});
+
+test('footer: POST admin successfully updates contact info and records audit log (200)', async () => {
+  configure({ role: 'admin' });
+  const res = await footerRoute.POST(
+    jsonRequest('http://localhost/api/settings/footer', {
+      token: MFA_VALID_TOKEN,
+      body: {
+        organization_name: 'KJIN Verified Newsroom',
+        phone_primary: '+91 194 245 7777',
+        email_editorial: 'desk@kjin.org',
+        primary_address: 'Residency Road, Srinagar 190001',
+        reason: 'Updated headquarters contact desk',
+      },
+    })
+  );
+  assert.equal(res.status, 200);
+  const body = (await res.json()) as { success: boolean; footer_contact: any };
+  assert.equal(body.success, true);
+  assert.equal(body.footer_contact.organization_name, 'KJIN Verified Newsroom');
+  assert.equal(body.footer_contact.phone_primary, '+91 194 245 7777');
+  assert.equal(body.footer_contact.email_editorial, 'desk@kjin.org');
+
+  // Verify site_settings was updated
+  const setting = harness.fixtures.site_settings?.find(
+    (s: any) => s.key === 'footer_contact'
+  );
+  assert.ok(setting);
+  assert.equal((setting.value as any).phone_primary, '+91 194 245 7777');
+
+  // Verify audit log
+  const audit = harness.audits.find(
+    (a) => a.action === 'site_settings.footer_contact_updated'
+  );
+  assert.ok(audit, 'Audit log entry must be created on footer contact update');
+  assert.equal(audit.target_type, 'site_settings');
+});
+
+// ---------------------------------------------------------------------------
+// GET & PATCH /api/profile
+// ---------------------------------------------------------------------------
+
+test('profile: GET unauthenticated request returns 401', async () => {
+  const res = await profileRoute.GET(
+    jsonRequest('http://localhost/api/profile', { method: 'GET' })
+  );
+  assert.equal(res.status, 401);
+});
+
+test('profile: GET authenticated returns current profile and stats', async () => {
+  configure({ role: 'superadmin' });
+  const res = await profileRoute.GET(
+    jsonRequest('http://localhost/api/profile', {
+      method: 'GET',
+      token: MFA_VALID_TOKEN,
+    })
+  );
+  assert.equal(res.status, 200);
+  const body = (await res.json()) as { profile: any };
+  assert.ok(body.profile);
+  assert.equal(body.profile.id, ACTOR_ID);
+  assert.equal(body.profile.role_key, 'superadmin');
+  assert.equal(body.profile.display_name, 'Test Actor');
+  assert.equal(typeof body.profile.articles_count, 'number');
+});
+
+test('profile: PATCH unauthenticated request returns 401', async () => {
+  const res = await profileRoute.PATCH(
+    jsonRequest('http://localhost/api/profile', {
+      method: 'PATCH',
+      body: { display_name: 'New Name' },
+    })
+  );
+  assert.equal(res.status, 401);
+});
+
+test('profile: PATCH with empty display_name returns 400', async () => {
+  configure({ role: 'author' });
+  const res = await profileRoute.PATCH(
+    jsonRequest('http://localhost/api/profile', {
+      method: 'PATCH',
+      token: MFA_VALID_TOKEN,
+      body: { display_name: '   ' },
+    })
+  );
+  assert.equal(res.status, 400);
+  const body = (await res.json()) as { error: string };
+  assert.ok(body.error.includes('between 1 and 120 characters'));
+});
+
+test('profile: PATCH with overly long display_name returns 400', async () => {
+  configure({ role: 'author' });
+  const res = await profileRoute.PATCH(
+    jsonRequest('http://localhost/api/profile', {
+      method: 'PATCH',
+      token: MFA_VALID_TOKEN,
+      body: { display_name: 'A'.repeat(125) },
+    })
+  );
+  assert.equal(res.status, 400);
+});
+
+test('profile: PATCH with valid display_name updates profile and returns 200', async () => {
+  configure({ role: 'author' });
+  const res = await profileRoute.PATCH(
+    jsonRequest('http://localhost/api/profile', {
+      method: 'PATCH',
+      token: MFA_VALID_TOKEN,
+      body: { display_name: 'Sarah Jenkins, Bureau Chief', update_articles: true },
+    })
+  );
+  assert.equal(res.status, 200);
+  const body = (await res.json()) as { success: boolean; profile: any };
+  assert.equal(body.success, true);
+  assert.equal(body.profile.display_name, 'Sarah Jenkins, Bureau Chief');
+
+  // Verify RPC was invoked
+  const rpcCall = harness.calls.find(
+    (c) => c.kind === 'rpc' && c.rpc === 'update_my_profile'
+  );
+  assert.ok(rpcCall, 'update_my_profile RPC must be called');
+  assert.deepEqual((rpcCall as any).args, {
+    p_display_name: 'Sarah Jenkins, Bureau Chief',
+    p_update_articles: true,
+  });
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/upload
+// ---------------------------------------------------------------------------
+
+test('upload: unauthenticated request returns 401', async () => {
+  const formData = new FormData();
+  formData.append('file', new File(['dummy'], 'photo.png', { type: 'image/png' }));
+  const req = new Request('http://localhost/api/upload', {
+    method: 'POST',
+    body: formData,
+  });
+  const res = await uploadRoute.POST(req);
+  assert.equal(res.status, 401);
+});
+
+test('upload: missing file returns 400', async () => {
+  configure({ role: 'author' });
+  const formData = new FormData();
+  const req = new Request('http://localhost/api/upload', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${MFA_VALID_TOKEN}` },
+    body: formData,
+  });
+  const res = await uploadRoute.POST(req);
+  assert.equal(res.status, 400);
+  const body = (await res.json()) as { error: string };
+  assert.equal(body.error, 'No image file uploaded');
+});
+
+test('upload: invalid mime type returns 400', async () => {
+  configure({ role: 'author' });
+  const formData = new FormData();
+  formData.append('file', new File(['malicious'], 'script.js', { type: 'text/javascript' }));
+  const req = new Request('http://localhost/api/upload', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${MFA_VALID_TOKEN}` },
+    body: formData,
+  });
+  const res = await uploadRoute.POST(req);
+  assert.equal(res.status, 400);
+  const body = (await res.json()) as { error: string };
+  assert.ok(body.error.includes('Invalid file format'));
+});
+
+test('upload: valid image uploads to storage and returns 200 with URL', async () => {
+  configure({ role: 'author' });
+  const formData = new FormData();
+  formData.append(
+    'file',
+    new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])], 'lead_news.png', { type: 'image/png' })
+  );
+  const req = new Request('http://localhost/api/upload', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${MFA_VALID_TOKEN}` },
+    body: formData,
+  });
+  const res = await uploadRoute.POST(req);
+  assert.equal(res.status, 200);
+  const body = (await res.json()) as { success: boolean; url: string; mime_type: string };
+  assert.equal(body.success, true);
+  assert.ok(body.url.includes('article-images'));
+  assert.equal(body.mime_type, 'image/png');
+
+  // Verify audit log
+  const audit = harness.audits.find((a) => a.action === 'article.image_uploaded');
+  assert.ok(audit, 'Audit log entry must be created when image is uploaded');
 });
 
 

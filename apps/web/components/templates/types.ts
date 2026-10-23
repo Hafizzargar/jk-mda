@@ -1,3 +1,7 @@
+import type { TemplateTheme } from '@/lib/templates';
+import type { FooterContactSettings } from '@/lib/contact';
+import type { PaginationMeta } from '@/lib/pagination';
+
 export interface ArticleItem {
   id: string;
   slug: string;
@@ -18,4 +22,7 @@ export interface TemplateProps {
   recentArticles: ArticleItem[];
   trendingArticles: ArticleItem[];
   allArticles: ArticleItem[];
+  theme?: TemplateTheme;
+  contactSettings?: FooterContactSettings;
+  paginationMeta?: PaginationMeta;
 }

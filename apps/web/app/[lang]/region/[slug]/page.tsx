@@ -7,6 +7,7 @@ import { isValidRegion, getRegion, JK_DISTRICTS } from '@/lib/taxonomy';
 import { parsePageParam, getPaginationRange } from '@/lib/pagination';
 import { applyTranslations } from '@/lib/i18n';
 import { SITE_URL, SITE_SHORT_NAME } from '@/lib/config';
+import { getTemplateTheme, type TemplateId } from '@/lib/templates';
 
 interface RegionPageProps {
   params: Promise<{
@@ -83,25 +84,36 @@ export default async function RegionPage({ params, searchParams }: RegionPagePro
   const articles = applyTranslations(articlesRaw || [], lang);
   const totalArticles = count ?? 0;
   const totalPages = Math.ceil(totalArticles / limit);
+  // Fetch Active Template Setting to align theme & background colors
+  const { data: settingRow } = await supabase
+    .from('site_settings')
+    .select('value')
+    .eq('key', 'active_template')
+    .maybeSingle();
+
+  const dbTemplateId = (settingRow?.value as { template_id?: string } | null)?.template_id as TemplateId | undefined;
+  const theme = getTemplateTheme(dbTemplateId);
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 pb-20 selection:bg-blue-600 selection:text-white">
+    <main className={`min-h-screen ${theme.pageBgClass} ${theme.textPrimaryClass} ${theme.fontFamilyClass} ${theme.selectionClass} pb-20`}>
       {/* Top Header */}
-      <header className="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 py-4 px-4 md:px-8">
+      <header className={`${theme.headerBgClass} ${theme.headerBorderClass} py-4 px-4 md:px-8`}>
         <div className="max-w-7xl mx-auto flex justify-between items-center">
           <Link
             href={`${langPrefix}/`}
-            className="text-2xl md:text-3xl font-black tracking-tighter bg-gradient-to-r from-blue-400 via-indigo-300 to-cyan-400 bg-clip-text text-transparent hover:opacity-90 transition"
+            className={`text-2xl md:text-3xl font-black tracking-tighter uppercase transition ${
+              theme.isDark ? 'text-white hover:text-cyan-400' : 'text-blue-900 hover:text-blue-700'
+            }`}
           >
             {SITE_SHORT_NAME}
           </Link>
           <div className="flex items-center gap-3">
-            <span className="rounded-full bg-cyan-500/10 border border-cyan-500/30 px-3 py-1 text-xs font-mono font-bold text-cyan-300">
+            <span className={`rounded-full px-3 py-1 text-xs font-mono font-bold border ${theme.subtleBgClass} ${theme.borderClass} ${theme.accentTextClass}`}>
               {region.districts.length} Districts Covered
             </span>
             <Link
               href={`${langPrefix}/`}
-              className="text-xs font-semibold text-slate-400 hover:text-white transition"
+              className={`text-xs font-semibold ${theme.textMutedClass} hover:${theme.textPrimaryClass} transition`}
             >
               &larr; Back to Home
             </Link>
@@ -110,24 +122,24 @@ export default async function RegionPage({ params, searchParams }: RegionPagePro
       </header>
 
       {/* Hero Banner for Region */}
-      <div className="border-b border-slate-800 bg-gradient-to-b from-slate-900 to-slate-950 py-10 px-4 md:px-8">
+      <div className={`border-b ${theme.borderClass} ${theme.subtleBgClass} py-10 px-4 md:px-8`}>
         <div className="max-w-7xl mx-auto">
-          <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-semibold text-blue-300 mb-4">
+          <div className={`inline-flex items-center gap-2 rounded-full border ${theme.borderClass} ${theme.cardBgClass} px-3 py-1 text-xs font-semibold ${theme.accentTextClass} mb-4`}>
             <span>KJIN Regional Bureau</span>
             <span>&bull;</span>
             <span className="capitalize">{region.shortName}</span>
           </div>
 
-          <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight text-white mb-3">
+          <h1 className={`text-3xl md:text-5xl font-extrabold tracking-tight ${theme.textPrimaryClass} mb-3`}>
             {region.name}
           </h1>
-          <p className="text-base md:text-lg text-slate-400 max-w-3xl mb-6">
+          <p className={`text-base md:text-lg ${theme.textSecondaryClass} max-w-3xl mb-6`}>
             {region.tagline}. Verified field reporting, investigative analyses, and grassroots coverage from our local correspondents.
           </p>
 
           {/* Constituent District Pills */}
           <div>
-            <div className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">
+            <div className={`text-xs font-bold uppercase tracking-wider ${theme.textMutedClass} mb-2`}>
               Districts in this Region:
             </div>
             <div className="flex flex-wrap gap-2">
@@ -135,7 +147,7 @@ export default async function RegionPage({ params, searchParams }: RegionPagePro
                 <Link
                   key={d}
                   href={`${langPrefix}/district/${d}`}
-                  className="rounded-lg border border-slate-700 bg-slate-900 px-3 py-1.5 text-xs font-medium text-slate-300 hover:border-cyan-400 hover:text-cyan-300 hover:bg-slate-850 transition"
+                  className={`rounded-lg border ${theme.borderClass} ${theme.cardBgClass} px-3 py-1.5 text-xs font-medium ${theme.textSecondaryClass} hover:${theme.accentTextClass} hover:${theme.borderMutedClass} transition`}
                 >
                   {JK_DISTRICTS[d]?.name || d}
                 </Link>
@@ -147,12 +159,12 @@ export default async function RegionPage({ params, searchParams }: RegionPagePro
 
       {/* Articles Grid */}
       <div className="max-w-7xl mx-auto px-4 md:px-8 mt-10">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-8">
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <span className="h-4 w-1 bg-cyan-400 rounded-full"></span>
+        <div className={`flex items-center justify-between border-b ${theme.borderClass} pb-4 mb-8`}>
+          <h2 className={`text-xl font-bold ${theme.textPrimaryClass} flex items-center gap-2`}>
+            <span className={`h-4 w-1 ${theme.accentBgClass} rounded-full`}></span>
             Dispatches from {region.name}
           </h2>
-          <span className="text-xs text-slate-400 font-mono">
+          <span className={`text-xs ${theme.textMutedClass} font-mono`}>
             {totalArticles} verified {totalArticles === 1 ? 'report' : 'reports'}
           </span>
         </div>
@@ -163,10 +175,10 @@ export default async function RegionPage({ params, searchParams }: RegionPagePro
               <Link
                 key={article.id}
                 href={`${langPrefix}/${article.category.toLowerCase()}/${article.slug}`}
-                className="group flex flex-col h-full rounded-2xl border border-slate-800 bg-slate-900/50 p-5 hover:border-slate-700 hover:bg-slate-900 transition shadow-sm"
+                className={`group flex flex-col h-full rounded-2xl border ${theme.cardBorderClass} ${theme.cardBgClass} ${theme.cardHoverClass} p-5 transition shadow-sm`}
               >
                 {article.featured_image_url ? (
-                  <div className="relative w-full h-48 mb-4 overflow-hidden rounded-xl bg-slate-800">
+                  <div className={`relative w-full h-48 mb-4 overflow-hidden rounded-xl ${theme.subtleBgClass}`}>
                     <Image
                       src={article.featured_image_url}
                       alt={article.title}
@@ -175,7 +187,7 @@ export default async function RegionPage({ params, searchParams }: RegionPagePro
                       className="object-cover transition-transform duration-500 group-hover:scale-105"
                     />
                     {article.district && (
-                      <span className="absolute bottom-2 left-2 rounded-md bg-slate-950/80 backdrop-blur-md px-2 py-0.5 text-[10px] font-bold text-cyan-300 uppercase tracking-wider border border-slate-700/50">
+                      <span className={`absolute bottom-2 left-2 rounded-md ${theme.cardBgClass} backdrop-blur-md px-2 py-0.5 text-[10px] font-bold ${theme.accentTextClass} uppercase tracking-wider border ${theme.borderMutedClass}`}>
                         {JK_DISTRICTS[article.district.toLowerCase()]?.name || article.district}
                       </span>
                     )}
@@ -183,25 +195,25 @@ export default async function RegionPage({ params, searchParams }: RegionPagePro
                 ) : null}
 
                 <div className="flex items-center justify-between text-xs mb-2">
-                  <span className="font-bold uppercase tracking-wider text-blue-400">
+                  <span className={`font-bold uppercase tracking-wider ${theme.accentTextClass}`}>
                     {article.category}
                   </span>
-                  <span className="text-slate-500">
+                  <span className={theme.textMutedClass}>
                     {new Date(article.published_at).toLocaleDateString()}
                   </span>
                 </div>
 
-                <h3 className="text-lg font-bold text-white group-hover:text-cyan-300 transition line-clamp-2 mb-2">
+                <h3 className={`text-lg font-bold ${theme.textPrimaryClass} group-hover:opacity-80 transition line-clamp-2 mb-2`}>
                   {article.title}
                 </h3>
 
-                <p className="text-xs text-slate-400 line-clamp-3 leading-relaxed flex-1">
+                <p className={`text-xs ${theme.textSecondaryClass} line-clamp-3 leading-relaxed flex-1`}>
                   {article.excerpt}
                 </p>
 
-                <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-500">
+                <div className={`mt-4 pt-3 border-t ${theme.borderMutedClass} flex items-center justify-between text-xs ${theme.textMutedClass}`}>
                   <span>By {article.author_display_name || 'Correspondent'}</span>
-                  <span className="text-cyan-400 font-semibold group-hover:translate-x-0.5 transition">
+                  <span className={`${theme.accentTextClass} font-semibold group-hover:translate-x-0.5 transition`}>
                     Read &rarr;
                   </span>
                 </div>
@@ -209,8 +221,8 @@ export default async function RegionPage({ params, searchParams }: RegionPagePro
             ))}
           </div>
         ) : (
-          <div className="text-center py-20 rounded-2xl border border-dashed border-slate-800">
-            <p className="text-slate-400 text-sm">No published dispatches found in this region yet.</p>
+          <div className={`text-center py-20 rounded-2xl border border-dashed ${theme.borderClass}`}>
+            <p className={`${theme.textMutedClass} text-sm`}>No published dispatches found in this region yet.</p>
           </div>
         )}
 
@@ -223,8 +235,8 @@ export default async function RegionPage({ params, searchParams }: RegionPagePro
                 href={`${langPrefix}/region/${regionSlug}?page=${p}`}
                 className={`px-4 py-2 rounded-lg text-xs font-bold transition ${
                   p === page
-                    ? 'bg-cyan-500 text-slate-950'
-                    : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
+                    ? `${theme.accentBgClass}`
+                    : `${theme.cardBgClass} ${theme.textSecondaryClass} border ${theme.borderClass} hover:opacity-80`
                 }`}
               >
                 {p}

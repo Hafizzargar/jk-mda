@@ -3,7 +3,9 @@ import Link from 'next/link';
 import { createServerAnonClient } from '@/lib/supabase-server';
 import { SITE_URL, SITE_NAME, DEFAULT_LOCALE } from '@/lib/config';
 import { applyTranslations } from '@/lib/i18n';
-import { type TemplateId, getTemplateDefinition } from '@/lib/templates';
+import { type TemplateId, getTemplateDefinition, getTemplateTheme } from '@/lib/templates';
+import { parsePageParam, parseLimitParam, getPaginationRange, calculatePaginationMeta } from '@/lib/pagination';
+import { getFooterContactSettings } from '@/lib/contact';
 import { ClassicEditorialTemplate } from '@/components/templates/ClassicEditorialTemplate';
 import { ModernMagazineTemplate } from '@/components/templates/ModernMagazineTemplate';
 import { MinimalFocusTemplate } from '@/components/templates/MinimalFocusTemplate';
@@ -14,6 +16,8 @@ import { CleanNordicWhiteTemplate } from '@/components/templates/CleanNordicWhit
 import { VisualStoriesTemplate } from '@/components/templates/VisualStoriesTemplate';
 import { TechTerminalTemplate } from '@/components/templates/TechTerminalTemplate';
 import { HyperlocalCommunityTemplate } from '@/components/templates/HyperlocalCommunityTemplate';
+import { PaginationControls } from '@/components/navigation/PaginationControls';
+import { SiteFooter } from '@/components/navigation/SiteFooter';
 import { ArticleItem } from '@/components/templates/types';
 
 export const revalidate = 60; // Revalidate every 60 seconds
@@ -63,16 +67,31 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
   const previewParam = (resolvedSearchParams.preview || resolvedSearchParams.template) as string | undefined;
   const activeTemplateId: TemplateId = (previewParam as TemplateId) || dbTemplateId || 'classic-editorial';
   const isPreviewMode = Boolean(previewParam && previewParam !== dbTemplateId);
+  const theme = getTemplateTheme(activeTemplateId);
 
-  // 2. Fetch Latest Articles
-  const { data: latestArticlesRaw } = await supabase
+  // 2. Real Backend Pagination: Parse page & limit (10, 15, or 20)
+  const page = parsePageParam(resolvedSearchParams.page);
+  const limit = parseLimitParam(resolvedSearchParams.limit, 10);
+  const { from, to } = getPaginationRange(page, limit);
+
+  // 3. Fetch Paginated Latest Articles with exact database count
+  const { data: latestArticlesRaw, count } = await supabase
     .from('articles')
-    .select('id, slug, title, excerpt, category, district, author_display_name, published_at, featured_image_url, view_count, article_translations(title, excerpt, language_code)')
+    .select(
+      'id, slug, title, excerpt, category, district, author_display_name, published_at, featured_image_url, view_count, article_translations(title, excerpt, language_code)',
+      { count: 'exact' }
+    )
     .eq('status', 'published')
     .order('published_at', { ascending: false, nullsFirst: false })
-    .limit(10);
+    .range(from, to);
 
-  // 3. Fetch Trending Articles (bounded to recent 30-day window)
+  const totalCount = count ?? 0;
+  const paginationMeta = calculatePaginationMeta(totalCount, page, limit);
+
+  // 4. Fetch Footer & Bureau Contact Settings from database
+  const contactSettings = await getFooterContactSettings(supabase);
+
+  // 5. Fetch Trending Articles (bounded to recent 30-day window)
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   let { data: trendingArticlesRaw } = await supabase
     .from('articles')
@@ -105,9 +124,13 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     recentArticles,
     trendingArticles,
     allArticles: latestArticles,
+    theme,
+    contactSettings,
+    paginationMeta,
   };
 
   const currentTemplateDef = getTemplateDefinition(activeTemplateId);
+
 
   return (
     <>

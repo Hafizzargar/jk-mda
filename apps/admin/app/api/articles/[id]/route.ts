@@ -1,4 +1,4 @@
-import { authenticateEmployeeRequest, isEmployeeAuthorization } from '@/lib/employee-server';
+import { authenticateEmployeeRequest, authorizeEmployeeRequest, isEmployeeAuthorization, requireRecentAuthentication } from '@/lib/employee-server';
 import { validateArticleInput, UUID_PATTERN } from '@/lib/article-validation';
 import { readBoundedJson, MAX_ARTICLE_PAYLOAD_BYTES } from '@/lib/request-utils';
 
@@ -116,6 +116,93 @@ export async function PATCH(
     });
   } catch (err: unknown) {
     console.error('Error updating article:', err);
+    return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+}
+
+export async function DELETE(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const authorization = await authorizeEmployeeRequest(request, 'article.delete');
+    if (!isEmployeeAuthorization(authorization)) {
+      return authorization;
+    }
+
+    const reauthResponse = await requireRecentAuthentication(authorization, request);
+    if (reauthResponse) {
+      return reauthResponse;
+    }
+
+    const { userClient } = authorization;
+    const { id } = await context.params;
+
+    if (!id || typeof id !== 'string' || !UUID_PATTERN.test(id)) {
+      return new Response(JSON.stringify({ error: 'Invalid article ID' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    let reason: string | null = null;
+    try {
+      const body = await request.json();
+      if (body && typeof body === 'object' && 'reason' in body && typeof body.reason === 'string') {
+        reason = body.reason.trim() || null;
+      }
+    } catch {
+      // Body is optional
+    }
+
+    const { data, error } = await userClient.rpc('delete_article', {
+      p_article_id: id,
+      p_reason: reason,
+    });
+
+    if (error) {
+      console.error('delete_article RPC failed:', error);
+
+      if (error.code === '22P02') {
+        return new Response(JSON.stringify({ error: 'Invalid article ID' }), {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      if (error.code === 'P0001') {
+        if (error.message === 'Article not found') {
+          return new Response(JSON.stringify({ error: 'Article not found' }), {
+            status: 404,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+        if (
+          error.message === 'Article delete permission required' ||
+          error.message === 'MFA (AAL2) is strictly required to delete articles'
+        ) {
+          return new Response(JSON.stringify({ error: error.message }), {
+            status: 403,
+            headers: { 'Content-Type': 'application/json' },
+          });
+        }
+      }
+
+      return new Response(JSON.stringify({ error: 'Unable to delete article' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    return new Response(JSON.stringify({ success: true, deleted: true }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (err: unknown) {
+    console.error('Error deleting article:', err);
     return new Response(JSON.stringify({ error: 'Internal Server Error' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },

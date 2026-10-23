@@ -165,64 +165,107 @@ export default function DashboardPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 p-8 text-white">
-      <div className="mx-auto max-w-7xl">
-        <header className="mb-10 flex items-center justify-between gap-4 border-b border-slate-800 pb-6">
+    <div className="p-6 md:p-8 space-y-8 max-w-7xl mx-auto">
+      {/* Executive Welcome Hero */}
+      <div className="relative overflow-hidden rounded-3xl border border-slate-800/80 bg-gradient-to-br from-slate-900/90 via-slate-950/90 to-[#030914] p-6 sm:p-8 shadow-2xl">
+        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none" />
+        <div className="absolute -left-20 -bottom-20 h-64 w-64 rounded-full bg-blue-600/10 blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
-            <p className="text-sm uppercase tracking-[0.2em] text-cyan-300">Admin Portal</p>
-            <h1 className="mt-2 text-3xl font-bold">KJIN newsroom dashboard</h1>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="flex h-2 w-2 rounded-full bg-emerald-400" />
+              <span className="text-xs font-mono uppercase tracking-widest text-emerald-400">
+                Editorial Control Center
+              </span>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+              KJIN Newsroom Dashboard
+            </h1>
+            <p className="mt-2 text-sm text-slate-400 max-w-xl">
+              Kashmir Journalist Information Network editorial desk. Real-time verification, district coverage, and civic grievances dispatch.
+            </p>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-xs font-medium text-cyan-200">
-              {userRole ?? 'editor'}
-            </span>
-            <button
-              type="button"
-              onClick={handleSignOut}
-              className="rounded-full border border-slate-700 px-5 py-2.5 font-semibold text-white hover:border-slate-500 hover:bg-slate-900"
-            >
-              Sign out
-            </button>
-          </div>
-        </header>
 
-        <div className="mb-8 rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-4 text-cyan-100">
-          <strong>Supabase auth:</strong> {status}
-        </div>
-
-        <div className="mb-8 flex justify-end">
-          <div className="flex flex-wrap gap-3">
-            {userRole && ['owner', 'superadmin', 'admin'].includes(userRole) ? (
-              <Link
-                href="/templates"
-                className="rounded-full border border-cyan-500/40 bg-cyan-500/10 px-5 py-2.5 font-semibold text-cyan-200 hover:border-cyan-400 hover:bg-cyan-500/20"
-              >
-                Website Templates
-              </Link>
-            ) : null}
+          <div className="flex flex-wrap items-center gap-3">
             <Link
-              href="/employees"
-              className="rounded-full border border-slate-700 px-5 py-2.5 font-semibold text-white hover:border-cyan-500"
+              href="/articles?category=Local"
+              className="inline-flex items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 text-xs font-semibold text-amber-200 hover:border-amber-400 hover:bg-amber-500/20 transition-all shadow-sm"
             >
-              Employees
+              <span>🏛️</span>
+              <span>Area Problems</span>
+            </Link>
+            <Link
+              href="/articles"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/80 px-4 py-2.5 text-xs font-semibold text-slate-200 hover:border-cyan-500/40 hover:bg-slate-800 transition-all shadow-sm"
+            >
+              <span>📰</span>
+              <span>Manage Stories</span>
             </Link>
             <Link
               href="/articles/new"
-              className="rounded-full bg-cyan-500 px-5 py-2.5 font-semibold text-slate-950 hover:bg-cyan-400"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-sky-400 px-5 py-2.5 text-xs font-bold text-slate-950 hover:from-cyan-300 hover:to-sky-300 shadow-md shadow-cyan-950/40 transition-all active:scale-95"
             >
-              New article
+              <span>✍️</span>
+              <span>New Story</span>
             </Link>
           </div>
         </div>
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {stats.map((item) => (
-            <div key={item.label} className="rounded-2xl border border-slate-800 bg-slate-900 p-5">
-              <p className="text-sm text-slate-400">{item.label}</p>
-              <p className="mt-4 text-3xl font-bold text-white">{item.value}</p>
+        {/* Auth Status Capsule */}
+        <div className="mt-6 flex items-center justify-between border-t border-slate-800/80 pt-4 text-xs text-slate-400">
+          <div className="flex items-center gap-2">
+            <span className="font-semibold text-cyan-300">Session Status:</span>
+            <span className="font-mono text-slate-300">{status}</span>
+          </div>
+          <div className="hidden sm:flex items-center gap-2">
+            <span className="text-slate-500">Active Role:</span>
+            <span className="rounded-full bg-cyan-500/10 border border-cyan-500/30 px-2.5 py-0.5 font-mono text-[11px] text-cyan-300 capitalize">
+              {userRole ?? 'editor'}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Metrics Overview Cards */}
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {stats.map((item) => {
+          const icon =
+            item.label === 'Drafts'
+              ? '📝'
+              : item.label === 'Pending review'
+                ? '⏳'
+                : item.label === 'Published today'
+                  ? '🟢'
+                  : '🚨';
+
+          const accentColor =
+            item.label === 'Drafts'
+              ? 'border-cyan-500/30 bg-cyan-500/5 hover:border-cyan-500/50'
+              : item.label === 'Pending review'
+                ? 'border-amber-500/30 bg-amber-500/5 hover:border-amber-500/50'
+                : item.label === 'Published today'
+                  ? 'border-emerald-500/30 bg-emerald-500/5 hover:border-emerald-500/50'
+                  : 'border-red-500/30 bg-red-500/5 hover:border-red-500/50';
+
+          return (
+            <div
+              key={item.label}
+              className={`group relative overflow-hidden rounded-2xl border p-5 transition-all shadow-lg ${accentColor}`}
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{item.label}</p>
+                <span className="text-xl opacity-80 group-hover:scale-110 transition-transform">{icon}</span>
+              </div>
+              <p className="mt-4 text-3xl font-black text-white">{item.value}</p>
+              <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500">
+                <span>Real-time count</span>
+                <span className="text-cyan-400 group-hover:translate-x-0.5 transition-transform">View →</span>
+              </div>
             </div>
-          ))}
-        </section>
+          );
+        })}
+      </section>
 
         <section className="mt-10 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
           <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
@@ -274,6 +317,5 @@ export default function DashboardPage() {
           </div>
         </section>
       </div>
-    </main>
   );
 }

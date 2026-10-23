@@ -19,6 +19,15 @@ const TEMPLATE_META: Record<
     typography: string;
     borderAccent: string;
     taglineColor: string;
+    isLight: boolean;
+    titleColor: string;
+    descColor: string;
+    featureTextColor: string;
+    featureCheckColor: string;
+    headerBg: string;
+    headerBorder: string;
+    previewBtnClass: string;
+    activateBtnClass: string;
   }
 > = {
   'classic-editorial': {
@@ -26,80 +35,170 @@ const TEMPLATE_META: Record<
     canvasBg: '#FAF8F5',
     canvasName: 'Broadsheet Cream',
     typography: 'Editorial Serif',
-    borderAccent: 'border-amber-700/50 hover:border-amber-500',
-    taglineColor: 'text-amber-200',
+    borderAccent: 'border-amber-900/30 hover:border-amber-900/60 shadow-md',
+    taglineColor: 'text-amber-900 font-serif italic',
+    isLight: true,
+    titleColor: 'text-slate-950 font-serif',
+    descColor: 'text-slate-700 font-serif',
+    featureTextColor: 'text-slate-800 font-serif',
+    featureCheckColor: 'text-red-800',
+    headerBg: 'bg-[#f4efe8]/90',
+    headerBorder: 'border-b-2 border-slate-900',
+    previewBtnClass: 'bg-white border border-slate-300 text-slate-900 hover:bg-slate-100 hover:text-black shadow-sm',
+    activateBtnClass: 'bg-slate-950 text-white hover:bg-slate-800 font-serif shadow-sm',
   },
   'clean-nordic-white': {
     category: 'light',
     canvasBg: '#FFFFFF',
     canvasName: '100% Pure White',
     typography: 'Nordic Sans',
-    borderAccent: 'border-slate-300 hover:border-white',
-    taglineColor: 'text-slate-300',
+    borderAccent: 'border-neutral-200 hover:border-neutral-400 shadow-md',
+    taglineColor: 'text-neutral-500 font-sans',
+    isLight: true,
+    titleColor: 'text-neutral-900 font-sans',
+    descColor: 'text-neutral-700 font-sans',
+    featureTextColor: 'text-neutral-800 font-sans',
+    featureCheckColor: 'text-neutral-900',
+    headerBg: 'bg-neutral-50',
+    headerBorder: 'border-b border-neutral-200',
+    previewBtnClass: 'bg-white border border-neutral-200 text-neutral-900 hover:bg-neutral-100 hover:text-black shadow-sm',
+    activateBtnClass: 'bg-neutral-900 text-white hover:bg-neutral-800 shadow-sm',
   },
   'minimal-focus': {
     category: 'light',
     canvasBg: '#FAFAF9',
     canvasName: 'Warm Stone Paper',
     typography: 'Substack Longform',
-    borderAccent: 'border-stone-600/60 hover:border-stone-400',
-    taglineColor: 'text-stone-300',
+    borderAccent: 'border-stone-300 hover:border-stone-500 shadow-md',
+    taglineColor: 'text-stone-500 font-sans',
+    isLight: true,
+    titleColor: 'text-stone-900 font-sans',
+    descColor: 'text-stone-700 font-sans',
+    featureTextColor: 'text-stone-800 font-sans',
+    featureCheckColor: 'text-stone-900',
+    headerBg: 'bg-stone-100/80',
+    headerBorder: 'border-b border-stone-200',
+    previewBtnClass: 'bg-white border border-stone-200 text-stone-900 hover:bg-stone-100 shadow-sm',
+    activateBtnClass: 'bg-stone-900 text-white hover:bg-stone-800 shadow-sm',
   },
   'genz-neo-brutalist': {
     category: 'light',
     canvasBg: '#FEF08A',
     canvasName: 'Acid Pop Yellow',
     typography: 'Neo-Brutalist',
-    borderAccent: 'border-yellow-400/80 hover:border-lime-400',
-    taglineColor: 'text-yellow-300',
+    borderAccent: 'border-2 border-black shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] hover:shadow-[7px_7px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-2px] hover:translate-y-[-2px]',
+    taglineColor: 'text-black font-black uppercase text-[11px]',
+    isLight: true,
+    titleColor: 'text-black font-black uppercase',
+    descColor: 'text-neutral-900 font-bold',
+    featureTextColor: 'text-black font-bold',
+    featureCheckColor: 'text-black font-black',
+    headerBg: 'bg-lime-300',
+    headerBorder: 'border-b-2 border-black',
+    previewBtnClass: 'bg-white border-2 border-black text-black font-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-neutral-100',
+    activateBtnClass: 'bg-black text-lime-300 font-black border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-neutral-900',
   },
   'modern-magazine': {
     category: 'dark',
     canvasBg: '#020617',
     canvasName: 'Deep Navy Slate',
     typography: 'Dynamic Visual',
-    borderAccent: 'border-blue-500/50 hover:border-blue-400',
-    taglineColor: 'text-blue-300',
+    borderAccent: 'border-blue-500/40 hover:border-blue-400 shadow-md',
+    taglineColor: 'text-blue-300 font-medium',
+    isLight: false,
+    titleColor: 'text-white font-sans',
+    descColor: 'text-slate-300 font-sans',
+    featureTextColor: 'text-slate-300 font-sans',
+    featureCheckColor: 'text-blue-400',
+    headerBg: 'bg-slate-900/80',
+    headerBorder: 'border-b border-slate-800',
+    previewBtnClass: 'bg-slate-800/80 border border-slate-700 text-slate-200 hover:bg-slate-700 hover:text-white',
+    activateBtnClass: 'bg-blue-600 text-white font-bold hover:bg-blue-500 shadow-lg shadow-blue-600/30',
   },
   'bento-grid': {
     category: 'dark',
     canvasBg: '#0F172A',
     canvasName: 'Modular Slate',
     typography: 'Modern Bento',
-    borderAccent: 'border-cyan-500/50 hover:border-cyan-400',
-    taglineColor: 'text-cyan-300',
+    borderAccent: 'border-cyan-500/40 hover:border-cyan-400 shadow-md',
+    taglineColor: 'text-cyan-300 font-medium',
+    isLight: false,
+    titleColor: 'text-white font-sans',
+    descColor: 'text-slate-300 font-sans',
+    featureTextColor: 'text-slate-300 font-sans',
+    featureCheckColor: 'text-cyan-400',
+    headerBg: 'bg-slate-950/70',
+    headerBorder: 'border-b border-slate-800',
+    previewBtnClass: 'bg-slate-800/80 border border-slate-700 text-slate-200 hover:bg-slate-700 hover:text-white',
+    activateBtnClass: 'bg-cyan-500 text-slate-950 font-bold hover:bg-cyan-400 shadow-lg shadow-cyan-500/30',
   },
   'breaking-wire': {
     category: 'dark',
     canvasBg: '#171717',
     canvasName: 'Newsroom Charcoal',
     typography: 'Wire Dispatch',
-    borderAccent: 'border-red-500/50 hover:border-red-400',
-    taglineColor: 'text-red-300',
+    borderAccent: 'border-red-500/40 hover:border-red-400 shadow-md',
+    taglineColor: 'text-red-300 font-medium',
+    isLight: false,
+    titleColor: 'text-white font-sans',
+    descColor: 'text-neutral-300 font-sans',
+    featureTextColor: 'text-neutral-300 font-sans',
+    featureCheckColor: 'text-red-400',
+    headerBg: 'bg-neutral-950/80',
+    headerBorder: 'border-b border-neutral-800',
+    previewBtnClass: 'bg-neutral-800 border border-neutral-700 text-neutral-200 hover:bg-neutral-700 hover:text-white',
+    activateBtnClass: 'bg-red-600 text-white font-bold hover:bg-red-500 shadow-lg shadow-red-600/30',
   },
   'visual-stories-deck': {
     category: 'dark',
     canvasBg: '#0C0A09',
     canvasName: 'Darkroom Stone',
     typography: 'Reels & Stories',
-    borderAccent: 'border-rose-500/50 hover:border-rose-400',
-    taglineColor: 'text-rose-300',
+    borderAccent: 'border-rose-500/40 hover:border-rose-400 shadow-md',
+    taglineColor: 'text-rose-300 font-medium',
+    isLight: false,
+    titleColor: 'text-white font-sans',
+    descColor: 'text-stone-300 font-sans',
+    featureTextColor: 'text-stone-300 font-sans',
+    featureCheckColor: 'text-rose-400',
+    headerBg: 'bg-stone-950/80',
+    headerBorder: 'border-b border-stone-800',
+    previewBtnClass: 'bg-stone-800/80 border border-stone-700 text-stone-200 hover:bg-stone-700 hover:text-white',
+    activateBtnClass: 'bg-rose-600 text-white font-bold hover:bg-rose-500 shadow-lg shadow-rose-600/30',
   },
   'tech-terminal-wire': {
     category: 'special',
     canvasBg: '#050805',
     canvasName: 'CRT Green Pitch',
     typography: 'CLI Monospace',
-    borderAccent: 'border-emerald-500/50 hover:border-emerald-400',
-    taglineColor: 'text-emerald-300',
+    borderAccent: 'border-[#14532d] hover:border-[#22c55e] shadow-md',
+    taglineColor: 'text-[#4ade80] font-mono',
+    isLight: false,
+    titleColor: 'text-[#22c55e] font-mono',
+    descColor: 'text-[#86efac]/90 font-mono text-xs',
+    featureTextColor: 'text-[#86efac] font-mono',
+    featureCheckColor: 'text-[#22c55e]',
+    headerBg: 'bg-[#020402]',
+    headerBorder: 'border-b border-[#14532d]',
+    previewBtnClass: 'bg-[#0a140a] border border-[#14532d] text-[#4ade80] hover:bg-[#14532d] hover:text-[#22c55e] font-mono',
+    activateBtnClass: 'bg-[#22c55e] text-black font-black font-mono hover:bg-[#4ade80] shadow-lg shadow-[#22c55e]/20',
   },
   'hyperlocal-community': {
     category: 'special',
     canvasBg: '#F8FAFC',
     canvasName: 'Civic Soft Slate',
     typography: 'Community Sans',
-    borderAccent: 'border-emerald-600/50 hover:border-emerald-400',
-    taglineColor: 'text-teal-300',
+    borderAccent: 'border-emerald-300 hover:border-emerald-500 shadow-md',
+    taglineColor: 'text-emerald-700 font-sans',
+    isLight: true,
+    titleColor: 'text-slate-900 font-sans',
+    descColor: 'text-slate-700 font-sans',
+    featureTextColor: 'text-slate-800 font-sans',
+    featureCheckColor: 'text-emerald-700',
+    headerBg: 'bg-emerald-50/80',
+    headerBorder: 'border-b border-emerald-200',
+    previewBtnClass: 'bg-white border border-slate-300 text-slate-800 hover:bg-slate-100 shadow-sm',
+    activateBtnClass: 'bg-emerald-700 text-white font-bold hover:bg-emerald-600 shadow-sm',
   },
 };
 
@@ -231,41 +330,30 @@ export default function TemplatesManagementPage() {
   const canManage = role && ALLOWED_ROLES.includes(role);
 
   return (
-    <main className="min-h-screen bg-slate-950 px-5 py-8 text-white md:px-8">
+    <div className="p-6 md:p-8">
       <div className="mx-auto max-w-7xl">
         {/* Header Breadcrumb & Actions */}
         <header className="mb-8 flex flex-wrap items-end justify-between gap-4 border-b border-slate-800 pb-6">
           <div>
-            <div className="flex items-center gap-2 text-sm text-slate-400">
-              <Link href="/" className="text-cyan-400 hover:underline">Dashboard</Link>
-              <span>/</span>
-              <span className="text-slate-200">Site Settings</span>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs font-mono uppercase tracking-widest text-cyan-400">Design System</span>
+              <span className="text-slate-600">•</span>
+              <span className="text-xs text-slate-400">Public Presentation</span>
             </div>
-            <h1 className="mt-2 text-3xl font-bold">Website Presentation Templates</h1>
+            <h1 className="text-3xl font-bold tracking-tight text-white">Website Presentation Templates</h1>
             <p className="mt-1 text-sm text-slate-400">
               Control the layout, typography, and visual design of the public website in real time.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 text-xs font-semibold capitalize text-cyan-300">
-              Role: {role}
-            </span>
-            <Link
-              href="/employees"
-              className="rounded-full border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-300 hover:border-slate-500 hover:bg-slate-900"
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold hover:border-cyan-500"
             >
-              Employees
-            </Link>
-            <Link
-              href="http://localhost:3000"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-full bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-cyan-400 flex items-center gap-1.5"
-            >
-              <span>View Live Website</span>
-              <span>↗</span>
-            </Link>
+              Refresh
+            </button>
           </div>
         </header>
 
@@ -366,32 +454,45 @@ export default function TemplatesManagementPage() {
             return (
               <div
                 key={tmpl.id}
-                className={`rounded-2xl border transition-all duration-300 flex flex-col justify-between overflow-hidden ${
+                style={{ backgroundColor: meta.canvasBg }}
+                className={`rounded-2xl transition-all duration-300 flex flex-col justify-between overflow-hidden ${
                   isActive
-                    ? 'border-cyan-400 bg-slate-900 shadow-2xl shadow-cyan-500/10 ring-2 ring-cyan-400/40'
-                    : `border-slate-800/80 bg-slate-900/60 ${meta?.borderAccent || ''} hover:bg-slate-900/90 hover:shadow-xl`
+                    ? 'border-2 border-cyan-400 shadow-2xl ring-4 ring-cyan-400/40'
+                    : `${meta.borderAccent}`
                 }`}
               >
                 <div>
-                  {/* Card Visual Header Bar */}
-                  <div className="p-4 border-b border-slate-800 bg-slate-950/70 space-y-3">
+                  {/* Card Visual Header Bar with template's authentic styling */}
+                  <div className={`p-4 ${meta.headerBg} ${meta.headerBorder} space-y-3`}>
                     <div className="flex items-center justify-between gap-2">
-                      <span className="rounded-full bg-slate-800/90 border border-slate-700/70 px-2.5 py-0.5 text-[11px] font-bold text-slate-200">
+                      <span
+                        className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                          meta.isLight
+                            ? 'bg-slate-900/10 text-slate-900 border border-slate-900/20'
+                            : 'bg-white/10 text-white border border-white/20'
+                        }`}
+                      >
                         {tmpl.badge}
                       </span>
 
                       {/* Canvas Color Pill */}
-                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-[10px] font-mono text-slate-300">
+                      <div
+                        className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-mono border ${
+                          meta.isLight
+                            ? 'bg-white/90 border-slate-300 text-slate-800'
+                            : 'bg-slate-900 border-slate-800 text-slate-300'
+                        }`}
+                      >
                         <span
-                          className="w-2.5 h-2.5 rounded-full border border-slate-700 shrink-0"
-                          style={{ backgroundColor: meta?.canvasBg || '#0f172a' }}
+                          className="w-2.5 h-2.5 rounded-full border border-slate-400 shrink-0"
+                          style={{ backgroundColor: meta.canvasBg }}
                         />
-                        <span className="truncate">{meta?.canvasName || 'Custom'}</span>
+                        <span className="truncate font-semibold">{meta.canvasName}</span>
                       </div>
 
                       {isActive ? (
-                        <span className="rounded-full bg-emerald-500/20 border border-emerald-400/40 px-2.5 py-0.5 text-[11px] font-bold text-emerald-300 flex items-center gap-1 shrink-0">
-                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>
+                        <span className="rounded-full bg-emerald-500/20 border border-emerald-500/40 px-2.5 py-0.5 text-[11px] font-bold text-emerald-400 flex items-center gap-1 shrink-0">
+                          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                           ACTIVE
                         </span>
                       ) : null}
@@ -399,55 +500,80 @@ export default function TemplatesManagementPage() {
 
                     <div>
                       <div className="flex items-center justify-between">
-                        <h3 className="text-base font-extrabold text-white tracking-tight">{tmpl.name}</h3>
-                        <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-slate-800/80 text-cyan-300 border border-slate-700/60">
-                          {meta?.typography || 'Typography'}
+                        <h3 className={`text-base font-extrabold tracking-tight ${meta.titleColor}`}>
+                          {tmpl.name}
+                        </h3>
+                        <span
+                          className={`text-[10px] uppercase font-mono px-1.5 py-0.5 rounded border ${
+                            meta.isLight
+                              ? 'bg-white/80 border-slate-300 text-slate-800'
+                              : 'bg-slate-900/80 border-slate-700 text-cyan-300'
+                          }`}
+                        >
+                          {meta.typography}
                         </span>
                       </div>
-                      <p className={`text-xs font-medium mt-0.5 ${meta?.taglineColor || 'text-slate-400'}`}>
+                      <p className={`text-xs mt-0.5 ${meta.taglineColor}`}>
                         {tmpl.tagline}
                       </p>
                     </div>
                   </div>
 
                   {/* Visual Blueprint Wireframe Mockup Preview */}
-                  <div className="p-3.5 bg-slate-950/40 border-b border-slate-800/80">
+                  <div className="p-3.5 border-b border-black/10">
                     <TemplateMockupPreview templateId={tmpl.id} />
                   </div>
 
                   {/* Card Description & Details */}
                   <div className="p-5 space-y-4">
-                    <p className="text-xs text-slate-300 leading-relaxed">
+                    <p className={`text-xs leading-relaxed ${meta.descColor}`}>
                       {tmpl.description}
                     </p>
 
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2">
+                      <p
+                        className={`text-[10px] font-bold uppercase tracking-wider mb-2 ${
+                          meta.isLight ? 'text-slate-600' : 'text-slate-400'
+                        }`}
+                      >
                         Key Features:
                       </p>
-                      <ul className="space-y-1 text-xs text-slate-400">
+                      <ul className="space-y-1 text-xs">
                         {tmpl.features.map((feat, i) => (
-                          <li key={i} className="flex items-start gap-2">
-                            <span className="text-cyan-400 font-bold text-xs shrink-0">✓</span>
+                          <li key={i} className={`flex items-start gap-2 ${meta.featureTextColor}`}>
+                            <span className={`font-bold text-xs shrink-0 ${meta.featureCheckColor}`}>✓</span>
                             <span>{feat}</span>
                           </li>
                         ))}
                       </ul>
                     </div>
 
-                    <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-2.5 text-[11px] text-slate-400">
-                      <strong className="text-slate-200">Layout style:</strong> {tmpl.layoutStyle}
+                    <div
+                      className={`rounded-xl border p-2.5 text-[11px] ${
+                        meta.isLight
+                          ? 'bg-white/70 border-slate-200/80 text-slate-700'
+                          : 'bg-slate-950/80 border-slate-800 text-slate-400'
+                      }`}
+                    >
+                      <strong className={meta.isLight ? 'text-slate-950' : 'text-slate-200'}>
+                        Layout style:
+                      </strong>{' '}
+                      {tmpl.layoutStyle}
                     </div>
                   </div>
                 </div>
 
                 {/* Card Action Footer */}
-                <div className="p-4 pt-0 border-t border-slate-800/60 mt-2 flex items-center gap-3">
+                <div
+                  className={`p-4 pt-3 border-t mt-2 flex items-center gap-3 ${
+                    meta.isLight ? 'border-slate-200/80 bg-white/40' : 'border-slate-800/60 bg-black/20'
+                  }`}
+                >
                   <Link
                     href={`http://localhost:3000/?preview=${tmpl.id}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex-1 text-center rounded-xl border border-slate-700 bg-slate-800/60 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-700 hover:text-white transition"
+                    className={`flex-1 text-center rounded-xl py-2 text-xs font-semibold transition ${meta.previewBtnClass}`}
                   >
                     Live Preview ↗
                   </Link>
@@ -461,12 +587,18 @@ export default function TemplatesManagementPage() {
                         setActivationReason(`Switching site layout to ${tmpl.name}`);
                         setModalError(null);
                       }}
-                      className="flex-1 rounded-xl bg-cyan-500 py-2 text-xs font-bold text-slate-950 hover:bg-cyan-400 transition disabled:opacity-50"
+                      className={`flex-1 rounded-xl py-2 text-xs font-bold transition disabled:opacity-50 ${meta.activateBtnClass}`}
                     >
                       Activate
                     </button>
                   ) : isActive ? (
-                    <div className="flex-1 py-2 text-center text-xs font-bold text-emerald-400 bg-emerald-950/30 rounded-xl border border-emerald-800/40">
+                    <div
+                      className={`flex-1 py-2 text-center text-xs font-bold rounded-xl border ${
+                        meta.isLight
+                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                          : 'bg-emerald-950/30 text-emerald-400 border-emerald-800/40'
+                      }`}
+                    >
                       Live on Web
                     </div>
                   ) : null}
@@ -548,6 +680,6 @@ export default function TemplatesManagementPage() {
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }

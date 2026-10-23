@@ -4,7 +4,7 @@
 type QueryFilter = { col: string; op: 'eq' | 'in' | 'lt' | 'gt'; val: unknown };
 type QueryState = {
   table: string;
-  action: 'select' | 'insert' | 'update';
+  action: 'select' | 'insert' | 'update' | 'delete';
   payload: Record<string, unknown> | null;
   filters: QueryFilter[];
   terminal: 'single' | 'maybe' | null;
@@ -101,7 +101,16 @@ export class Harness {
   syncActor() {
     const profiles = this.fixtures.profiles ?? [];
     const existing = profiles.findIndex((row) => row.id === this.actor.id);
-    const actorRow = { id: this.actor.id, role_key: this.actor.role_key, status: this.actor.status, display_name: 'Test Actor' };
+    const actorRow = {
+      id: this.actor.id,
+      role_key: this.actor.role_key,
+      role: this.actor.role_key,
+      status: this.actor.status,
+      display_name: 'Test Actor',
+      email: 'actor@example.com',
+      created_at: '2026-01-01T00:00:00.000Z',
+      updated_at: '2026-01-01T00:00:00.000Z',
+    };
     if (existing >= 0) profiles[existing] = actorRow;
     else profiles.push(actorRow);
     this.fixtures.role_permissions = this.grants.map((permission_key) => ({ role_key: this.actor.role_key, permission_key }));
@@ -120,6 +129,15 @@ export class Harness {
       if (name === 'has_permission') {
         const key = (args as { p_permission_key: string }).p_permission_key;
         return ok(this.grants.includes(key));
+      }
+      if (name === 'update_my_profile') {
+        const payload = args as { p_display_name: string; p_update_articles: boolean };
+        const profiles = this.fixtures.profiles ?? [];
+        const actorRow = profiles.find((r) => r.id === this.actor.id);
+        if (actorRow) {
+          actorRow.display_name = payload.p_display_name;
+        }
+        return ok(actorRow || { id: this.actor.id, display_name: payload.p_display_name });
       }
       return ok(null);
     };
@@ -151,6 +169,9 @@ export class Harness {
           this.updates.push({ table, payload: state.payload ?? {}, filters: [...state.filters] });
           return ok(null);
         }
+        if (state.action === 'delete') {
+          return ok(null);
+        }
         if (table === 'profiles' && this.profileError) return fail('Profile lookup failed');
         let rows = (this.fixtures[table] ?? []).filter((row) => state.filters.every((filter) => matches(row, filter)));
         const totalCount = rows.length;
@@ -179,6 +200,10 @@ export class Harness {
         update(payload: Record<string, unknown>) {
           state.action = 'update';
           state.payload = payload;
+          return builder;
+        },
+        delete() {
+          state.action = 'delete';
           return builder;
         },
         eq(col: string, val: unknown) {
@@ -262,6 +287,17 @@ export class Harness {
       },
       from,
       rpc: async (name: string, args: unknown) => runRpc(name, args),
+      storage: {
+        from: (bucket: string) => ({
+          upload: async (path: string, _body: unknown, _options?: unknown) => {
+            this.calls.push({ kind: 'from', table: `storage:${bucket}`, action: 'upload', filters: [] });
+            return ok({ path });
+          },
+          getPublicUrl: (path: string) => ({
+            data: { publicUrl: `http://localhost:54321/storage/v1/object/public/${bucket}/${path}` },
+          }),
+        }),
+      },
     };
   }
 }
