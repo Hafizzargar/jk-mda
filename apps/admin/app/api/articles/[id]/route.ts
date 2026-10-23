@@ -158,7 +158,7 @@ export async function DELETE(
       // Body is optional
     }
 
-    const { data, error } = await userClient.rpc('delete_article', {
+    const { error } = await userClient.rpc('delete_article', {
       p_article_id: id,
       p_reason: reason,
     });

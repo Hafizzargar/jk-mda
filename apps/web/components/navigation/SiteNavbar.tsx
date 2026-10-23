@@ -19,7 +19,6 @@ export function SiteNavbar({
   lang = 'en',
   theme,
   activeCategory,
-  activeDistrict,
   activeRegion,
 }: SiteNavbarProps) {
   const pathname = usePathname();

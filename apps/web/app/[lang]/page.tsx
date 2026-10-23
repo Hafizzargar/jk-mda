@@ -6,6 +6,7 @@ import { applyTranslations } from '@/lib/i18n';
 import { type TemplateId, getTemplateDefinition, getTemplateTheme } from '@/lib/templates';
 import { parsePageParam, parseLimitParam, getPaginationRange, calculatePaginationMeta } from '@/lib/pagination';
 import { getFooterContactSettings } from '@/lib/contact';
+import { getCustomAdsSettings } from '@/lib/ads';
 import { ClassicEditorialTemplate } from '@/components/templates/ClassicEditorialTemplate';
 import { ModernMagazineTemplate } from '@/components/templates/ModernMagazineTemplate';
 import { MinimalFocusTemplate } from '@/components/templates/MinimalFocusTemplate';
@@ -16,8 +17,6 @@ import { CleanNordicWhiteTemplate } from '@/components/templates/CleanNordicWhit
 import { VisualStoriesTemplate } from '@/components/templates/VisualStoriesTemplate';
 import { TechTerminalTemplate } from '@/components/templates/TechTerminalTemplate';
 import { HyperlocalCommunityTemplate } from '@/components/templates/HyperlocalCommunityTemplate';
-import { PaginationControls } from '@/components/navigation/PaginationControls';
-import { SiteFooter } from '@/components/navigation/SiteFooter';
 import { ArticleItem } from '@/components/templates/types';
 
 export const revalidate = 60; // Revalidate every 60 seconds
@@ -90,6 +89,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
 
   // 4. Fetch Footer & Bureau Contact Settings from database
   const contactSettings = await getFooterContactSettings(supabase);
+  const adsSettings = await getCustomAdsSettings(supabase);
 
   // 5. Fetch Trending Articles (bounded to recent 30-day window)
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -127,6 +127,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     theme,
     contactSettings,
     paginationMeta,
+    adsSettings,
   };
 
   const currentTemplateDef = getTemplateDefinition(activeTemplateId);

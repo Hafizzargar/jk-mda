@@ -7,7 +7,7 @@ export async function GET(request: Request) {
       return auth;
     }
 
-    const { user, profile, userClient, service, aal } = auth;
+    const { user, service, aal } = auth;
 
     // Fetch full profile info
     const { data: profileData, error: profileError } = await service

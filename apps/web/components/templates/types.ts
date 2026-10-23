@@ -1,6 +1,7 @@
 import type { TemplateTheme } from '@/lib/templates';
 import type { FooterContactSettings } from '@/lib/contact';
 import type { PaginationMeta } from '@/lib/pagination';
+import type { CustomAdsSettings } from '@/lib/ads';
 
 export interface ArticleItem {
   id: string;
@@ -25,4 +26,5 @@ export interface TemplateProps {
   theme?: TemplateTheme;
   contactSettings?: FooterContactSettings;
   paginationMeta?: PaginationMeta;
+  adsSettings?: CustomAdsSettings;
 }

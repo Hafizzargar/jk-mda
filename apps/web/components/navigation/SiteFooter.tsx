@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { SITE_SHORT_NAME } from '@/lib/config';
-import { REGIONAL_DIVISIONS, NEWS_CATEGORIES } from '@/lib/taxonomy';
+import { REGIONAL_DIVISIONS } from '@/lib/taxonomy';
 import { DEFAULT_FOOTER_CONTACT, sanitizeContactSettings, type FooterContactSettings } from '@/lib/contact';
 import { type TemplateTheme } from '@/lib/templates';
 

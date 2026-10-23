@@ -8,6 +8,10 @@ import { parsePageParam, getPaginationRange } from '@/lib/pagination';
 import { applyTranslations } from '@/lib/i18n';
 import { SITE_URL, SITE_SHORT_NAME } from '@/lib/config';
 import { getTemplateTheme, type TemplateId } from '@/lib/templates';
+import { SiteNavbar } from '@/components/navigation/SiteNavbar';
+import { SiteFooter } from '@/components/navigation/SiteFooter';
+import { Breadcrumbs } from '@/components/navigation/Breadcrumbs';
+import { getFooterContactSettings } from '@/lib/contact';
 
 interface CategoryPageProps {
   params: Promise<{
@@ -98,26 +102,27 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
 
   const dbTemplateId = (settingRow?.value as { template_id?: string } | null)?.template_id as TemplateId | undefined;
   const theme = getTemplateTheme(dbTemplateId);
+  const contactSettings = await getFooterContactSettings(supabase);
+
+  const breadcrumbs = [
+    { label: 'Categories', href: `${langPrefix}/` },
+    { label: categoryName, current: true },
+  ];
 
   return (
-    <main className={`min-h-screen ${theme.pageBgClass} ${theme.textPrimaryClass} ${theme.fontFamilyClass} ${theme.selectionClass} pb-20`}>
-      <header className={`${theme.headerBgClass} ${theme.headerBorderClass} py-6 px-4 md:px-8 shadow-sm mb-10`}>
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <Link
-            href={`${langPrefix}/`}
-            className={`text-3xl font-black tracking-tighter uppercase transition ${
-              theme.isDark ? 'text-white hover:text-cyan-400' : 'text-blue-900 hover:text-blue-700'
-            }`}
-          >
-            {SITE_SHORT_NAME}
-          </Link>
-          <div className={`text-sm font-bold uppercase tracking-widest ${theme.textMutedClass}`}>
-            {categoryName} Feed
-          </div>
-        </div>
-      </header>
+    <main className={`min-h-screen ${theme.pageBgClass} ${theme.textPrimaryClass} ${theme.fontFamilyClass} ${theme.selectionClass} flex flex-col justify-between`}>
+      <div>
+        <SiteNavbar
+          lang={lang}
+          theme={theme}
+          activeCategory={categorySlug}
+        />
 
-      <div className="max-w-7xl mx-auto px-4 md:px-8">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 pt-4 pb-2">
+          <Breadcrumbs items={breadcrumbs} lang={lang} theme={theme} />
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 md:px-8 py-6">
         <div className={`mb-8 border-b-4 ${theme.accentBorderClass} inline-block pb-2`}>
           <h1 className={`text-4xl md:text-5xl font-extrabold tracking-tight ${theme.textPrimaryClass}`}>
             {categoryName}
@@ -203,6 +208,9 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
           </div>
         )}
       </div>
-    </main>
-  );
+    </div>
+
+    <SiteFooter lang={lang} theme={theme} contactSettings={contactSettings} />
+  </main>
+);
 }

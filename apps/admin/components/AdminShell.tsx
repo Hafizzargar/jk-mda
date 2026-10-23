@@ -21,11 +21,9 @@ export function AdminShell({ children }: AdminShellProps) {
 
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
 
   // Read collapsed state from localStorage on client mount
   useEffect(() => {
-    setMounted(true);
     const saved = localStorage.getItem('kjin_admin_sidebar_collapsed');
     if (saved === 'true') {
       setIsCollapsed(true);

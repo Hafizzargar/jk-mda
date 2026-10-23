@@ -479,7 +479,7 @@ export default function ArticlesPage() {
                     No articles found matching filters.
                     {categoryFilter === 'Local' ? (
                       <p className="mt-2 text-xs text-amber-300">
-                        No articles under "Local — Civic Issues & Ground Reporting" found. You can create one with the New Article button above.
+                        No articles under &quot;Local — Civic Issues &amp; Ground Reporting&quot; found. You can create one with the New Article button above.
                       </p>
                     ) : null}
                   </td>

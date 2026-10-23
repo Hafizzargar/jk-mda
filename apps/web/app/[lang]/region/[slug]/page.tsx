@@ -8,6 +8,10 @@ import { parsePageParam, getPaginationRange } from '@/lib/pagination';
 import { applyTranslations } from '@/lib/i18n';
 import { SITE_URL, SITE_SHORT_NAME } from '@/lib/config';
 import { getTemplateTheme, type TemplateId } from '@/lib/templates';
+import { SiteNavbar } from '@/components/navigation/SiteNavbar';
+import { SiteFooter } from '@/components/navigation/SiteFooter';
+import { Breadcrumbs } from '@/components/navigation/Breadcrumbs';
+import { getFooterContactSettings } from '@/lib/contact';
 
 interface RegionPageProps {
   params: Promise<{
@@ -93,36 +97,28 @@ export default async function RegionPage({ params, searchParams }: RegionPagePro
 
   const dbTemplateId = (settingRow?.value as { template_id?: string } | null)?.template_id as TemplateId | undefined;
   const theme = getTemplateTheme(dbTemplateId);
+  const contactSettings = await getFooterContactSettings(supabase);
+
+  const breadcrumbs = [
+    { label: 'Regions', href: `${langPrefix}/` },
+    { label: region.name, current: true },
+  ];
 
   return (
-    <main className={`min-h-screen ${theme.pageBgClass} ${theme.textPrimaryClass} ${theme.fontFamilyClass} ${theme.selectionClass} pb-20`}>
-      {/* Top Header */}
-      <header className={`${theme.headerBgClass} ${theme.headerBorderClass} py-4 px-4 md:px-8`}>
-        <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <Link
-            href={`${langPrefix}/`}
-            className={`text-2xl md:text-3xl font-black tracking-tighter uppercase transition ${
-              theme.isDark ? 'text-white hover:text-cyan-400' : 'text-blue-900 hover:text-blue-700'
-            }`}
-          >
-            {SITE_SHORT_NAME}
-          </Link>
-          <div className="flex items-center gap-3">
-            <span className={`rounded-full px-3 py-1 text-xs font-mono font-bold border ${theme.subtleBgClass} ${theme.borderClass} ${theme.accentTextClass}`}>
-              {region.districts.length} Districts Covered
-            </span>
-            <Link
-              href={`${langPrefix}/`}
-              className={`text-xs font-semibold ${theme.textMutedClass} hover:${theme.textPrimaryClass} transition`}
-            >
-              &larr; Back to Home
-            </Link>
-          </div>
-        </div>
-      </header>
+    <main className={`min-h-screen ${theme.pageBgClass} ${theme.textPrimaryClass} ${theme.fontFamilyClass} ${theme.selectionClass} flex flex-col justify-between`}>
+      <div>
+        <SiteNavbar
+          lang={lang}
+          theme={theme}
+          activeRegion={regionSlug}
+        />
 
-      {/* Hero Banner for Region */}
-      <div className={`border-b ${theme.borderClass} ${theme.subtleBgClass} py-10 px-4 md:px-8`}>
+        <div className="max-w-7xl mx-auto px-4 md:px-8 pt-4 pb-2">
+          <Breadcrumbs items={breadcrumbs} lang={lang} theme={theme} />
+        </div>
+
+        {/* Hero Banner for Region */}
+        <div className={`border-b ${theme.borderClass} ${theme.subtleBgClass} py-8 px-4 md:px-8`}>
         <div className="max-w-7xl mx-auto">
           <div className={`inline-flex items-center gap-2 rounded-full border ${theme.borderClass} ${theme.cardBgClass} px-3 py-1 text-xs font-semibold ${theme.accentTextClass} mb-4`}>
             <span>KJIN Regional Bureau</span>
@@ -245,6 +241,9 @@ export default async function RegionPage({ params, searchParams }: RegionPagePro
           </div>
         )}
       </div>
-    </main>
-  );
+    </div>
+
+    <SiteFooter lang={lang} theme={theme} contactSettings={contactSettings} />
+  </main>
+);
 }

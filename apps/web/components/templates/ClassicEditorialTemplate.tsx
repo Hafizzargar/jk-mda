@@ -1,10 +1,12 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { NewsletterForm } from '@/components/NewsletterForm';
-import { SITE_SHORT_NAME } from '@/lib/config';
 import { SiteNavbar } from '@/components/navigation/SiteNavbar';
 import { SiteFooter } from '@/components/navigation/SiteFooter';
+import { Breadcrumbs } from '@/components/navigation/Breadcrumbs';
 import { PaginationControls } from '@/components/navigation/PaginationControls';
+import { LeaderboardAd } from '@/components/ads/LeaderboardAd';
+import { SidebarAd } from '@/components/ads/SidebarAd';
 import { TemplateProps } from './types';
 
 export function ClassicEditorialTemplate({
@@ -15,8 +17,15 @@ export function ClassicEditorialTemplate({
   theme,
   contactSettings,
   paginationMeta,
+  adsSettings,
 }: TemplateProps) {
   const lang = langPrefix ? langPrefix.replace('/', '') : 'en';
+  const leaderboardAd = adsSettings?.monetization_enabled
+    ? adsSettings.placements.find((p) => p.id === 'leaderboard_top' && p.enabled)
+    : null;
+  const sidebarAd = adsSettings?.monetization_enabled
+    ? adsSettings.placements.find((p) => p.id === 'sidebar_banner' && p.enabled)
+    : null;
 
   return (
     <div className="min-h-screen bg-[#faf8f5] text-slate-900 font-serif flex flex-col justify-between">
@@ -24,6 +33,17 @@ export function ClassicEditorialTemplate({
         {/* Sleek, Compact Modern Broadsheet Navbar */}
         <SiteNavbar lang={lang} theme={theme} />
 
+        {/* Unified Breadcrumbs on All Pages */}
+        <div className="max-w-7xl mx-auto px-4 md:px-8 pt-4 pb-2">
+          <Breadcrumbs items={[{ label: 'Verified News Wire', current: true }]} lang={lang} theme={theme} />
+        </div>
+
+        {/* Top Leaderboard Custom Monetization Ad */}
+        {leaderboardAd && (
+          <div className="max-w-7xl mx-auto px-4 md:px-8 mt-4">
+            <LeaderboardAd ad={leaderboardAd} />
+          </div>
+        )}
 
       {/* Main 3-Column Broadsheet Grid */}
       <div className="max-w-7xl mx-auto px-4 md:px-8 mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -154,6 +174,13 @@ export function ClassicEditorialTemplate({
               ))}
             </ol>
           </section>
+
+          {/* Right Rail Custom Sponsor Ad */}
+          {sidebarAd && (
+            <section>
+              <SidebarAd ad={sidebarAd} />
+            </section>
+          )}
 
           <section className="bg-[#f2efe9] border border-slate-300 p-6 rounded-none font-sans">
             <div className="text-xs font-bold uppercase tracking-widest text-slate-700 mb-1">KJIN Broadsheet Edition</div>

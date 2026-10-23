@@ -7,6 +7,16 @@ import { ViewTracker } from '@/components/ViewTracker';
 import { sanitizeArticleHtml, safeJsonLd } from '@/lib/sanitize';
 import { SITE_URL, SITE_NAME, SITE_SHORT_NAME, DEFAULT_LOCALE } from '@/lib/config';
 import { getTemplateTheme, type TemplateId } from '@/lib/templates';
+import { SiteNavbar } from '@/components/navigation/SiteNavbar';
+import { SiteFooter } from '@/components/navigation/SiteFooter';
+import { Breadcrumbs } from '@/components/navigation/Breadcrumbs';
+import { getFooterContactSettings } from '@/lib/contact';
+import { getCustomAdsSettings } from '@/lib/ads';
+import { InArticleAd } from '@/components/ads/InArticleAd';
+import { LeaderboardAd } from '@/components/ads/LeaderboardAd';
+import { SidebarAd } from '@/components/ads/SidebarAd';
+import { NewsletterForm } from '@/components/NewsletterForm';
+import { applyTranslations } from '@/lib/i18n';
 
 interface ArticlePageProps {
   params: Promise<{
@@ -172,9 +182,44 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
   const dbTemplateId = (settingRow?.value as { template_id?: string } | null)?.template_id as TemplateId | undefined;
   const theme = getTemplateTheme(dbTemplateId);
+  const contactSettings = await getFooterContactSettings(supabase);
+  const adsSettings = await getCustomAdsSettings(supabase);
+  const nativeAd = adsSettings.monetization_enabled ? adsSettings.placements.find(p => p.id === 'in_article_native' && p.enabled) : null;
+  const bottomAd = adsSettings.monetization_enabled ? adsSettings.placements.find(p => p.id === 'leaderboard_top' && p.enabled) : null;
+  const sidebarAd = adsSettings.monetization_enabled ? adsSettings.placements.find(p => p.id === 'sidebar_banner' && p.enabled) : null;
+
+  // Fetch Trending / Most Read Articles for Sidebar
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  let { data: trendingArticlesRaw } = await supabase
+    .from('articles')
+    .select('id, slug, title, category, published_at, view_count, article_translations(title, language_code)')
+    .eq('status', 'published')
+    .gte('published_at', thirtyDaysAgo)
+    .order('view_count', { ascending: false })
+    .limit(5);
+
+  if (!trendingArticlesRaw || trendingArticlesRaw.length === 0) {
+    const { data: fallbackTrending } = await supabase
+      .from('articles')
+      .select('id, slug, title, category, published_at, view_count, article_translations(title, language_code)')
+      .eq('status', 'published')
+      .order('view_count', { ascending: false })
+      .limit(5);
+    trendingArticlesRaw = fallbackTrending || [];
+  }
+  const trendingArticles = applyTranslations(trendingArticlesRaw || [], resolvedParams.lang);
 
   // Sanitize article HTML using strict allowlist before rendering to prevent stored XSS
   const sanitizedContent = sanitizeArticleHtml(displayArticle.content || '');
+
+  const langPrefix = resolvedParams.lang === 'en' ? '' : `/${resolvedParams.lang}`;
+  const breadcrumbs = [
+    { label: displayArticle.category, href: `${langPrefix}/category/${displayArticle.category.toLowerCase()}` },
+    ...(displayArticle.district
+      ? [{ label: displayArticle.district.charAt(0).toUpperCase() + displayArticle.district.slice(1), href: `${langPrefix}/district/${displayArticle.district.toLowerCase()}` }]
+      : []),
+    { label: displayArticle.title, current: true },
+  ];
 
   return (
     <>
@@ -185,29 +230,20 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
       />
       <ViewTracker articleId={article.id} />
       
-      <main className={`min-h-screen ${theme.pageBgClass} ${theme.textPrimaryClass} ${theme.fontFamilyClass} ${theme.selectionClass} pb-20`}>
-        <header className={`${theme.headerBgClass} ${theme.headerBorderClass} py-4 px-4 md:px-8 shadow-sm mb-6`}>
-          <div className="max-w-4xl mx-auto flex justify-between items-center">
-            <Link
-              href={`${resolvedParams.lang === 'en' ? '' : `/${resolvedParams.lang}`}/`}
-              className={`text-2xl font-black tracking-tighter uppercase transition ${
-                theme.isDark ? 'text-white hover:text-cyan-400' : 'text-blue-900 hover:text-blue-700'
-              }`}
-            >
-              {SITE_SHORT_NAME}
-            </Link>
-            <div className={`flex items-center gap-4 text-xs font-semibold ${theme.textMutedClass} uppercase tracking-wider`}>
-              <Link
-                href={`${resolvedParams.lang === 'en' ? '' : `/${resolvedParams.lang}`}/category/${displayArticle.category.toLowerCase()}`}
-                className={`transition ${theme.accentTextClass} hover:opacity-80`}
-              >
-                &larr; Back to {displayArticle.category}
-              </Link>
-            </div>
-          </div>
-        </header>
+      <main className={`min-h-screen ${theme.pageBgClass} ${theme.textPrimaryClass} ${theme.fontFamilyClass} ${theme.selectionClass} flex flex-col justify-between`}>
+        <div>
+          <SiteNavbar
+            lang={resolvedParams.lang}
+            theme={theme}
+            activeCategory={displayArticle.category.toLowerCase()}
+          />
 
-        <article className={`max-w-4xl mx-auto px-6 py-8 ${theme.cardBgClass} rounded-2xl ${theme.cardBorderClass} shadow-sm`}>
+          <div className="max-w-7xl mx-auto px-4 md:px-8 pt-4 pb-2">
+            <Breadcrumbs items={breadcrumbs} lang={resolvedParams.lang} theme={theme} />
+          </div>
+
+          <div className="max-w-7xl mx-auto px-4 md:px-8 py-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <article className={`lg:col-span-8 ${theme.cardBgClass} rounded-2xl ${theme.cardBorderClass} shadow-sm p-6 sm:p-8 h-fit`}>
         <header className="mb-8">
           <div className={`flex items-center text-sm ${theme.textMutedClass} mb-4 gap-4 flex-wrap`}>
             <Link
@@ -332,6 +368,18 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           <div dangerouslySetInnerHTML={{ __html: sanitizedContent }} />
         </div>
 
+        {nativeAd && (
+          <div className="mt-8">
+            <InArticleAd ad={nativeAd} />
+          </div>
+        )}
+
+        {bottomAd && (
+          <div className="mt-10">
+            <LeaderboardAd ad={bottomAd} />
+          </div>
+        )}
+
         {relatedArticles && relatedArticles.length > 0 && (
           <aside className={`mt-20 pt-10 border-t ${theme.borderClass}`}>
             <h2 className={`text-2xl font-bold border-b-2 ${theme.borderClass} pb-2 mb-8 inline-block ${theme.textPrimaryClass}`}>
@@ -369,7 +417,71 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           </aside>
         )}
       </article>
-      </main>
+
+      {/* Right 4-column Rail: The Ledger (Most Read) + Custom Ads + Newsletter */}
+      <aside className="lg:col-span-4 space-y-8">
+        {/* The Ledger / Trending */}
+        <div className={`p-6 rounded-2xl ${theme.cardBgClass} ${theme.cardBorderClass} shadow-sm`}>
+          <h3 className="text-sm font-sans font-bold uppercase tracking-widest text-slate-900 dark:text-white border-b-2 border-slate-900 dark:border-white pb-2 mb-6 flex items-center justify-between">
+            <span>The Ledger</span>
+            <span className={`text-xs font-normal ${theme.textMutedClass}`}>Most Read</span>
+          </h3>
+
+          <ol className={`divide-y ${theme.borderClass}`}>
+            {trendingArticles.map((tArticle: { id: string; slug: string; category: string; title: string; view_count?: number }, idx: number) => (
+              <li key={tArticle.id} className="py-4 first:pt-0">
+                <Link
+                  href={`/${resolvedParams.lang === 'en' ? '' : `${resolvedParams.lang}/`}${tArticle.category.toLowerCase()}/${tArticle.slug}`}
+                  className="group flex gap-4 items-baseline"
+                >
+                  <span className="text-2xl font-sans font-bold text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition">
+                    {idx + 1}.
+                  </span>
+                  <div>
+                    <span className={`text-[10px] font-sans font-bold uppercase tracking-widest ${theme.textMutedClass}`}>
+                      {tArticle.category}
+                    </span>
+                    <h4 className={`text-base font-bold leading-snug ${theme.textPrimaryClass} group-hover:opacity-80 transition line-clamp-2`}>
+                      {tArticle.title}
+                    </h4>
+                    {tArticle.view_count ? (
+                      <p className="text-[11px] font-sans text-slate-400 mt-1">
+                        {tArticle.view_count.toLocaleString()} readers
+                      </p>
+                    ) : null}
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        {/* Sidebar Custom Sponsor Ad */}
+        {sidebarAd && (
+          <div>
+            <SidebarAd ad={sidebarAd} />
+          </div>
+        )}
+
+        {/* Morning Intelligence Brief */}
+        <div className={`p-6 rounded-2xl ${theme.subtleBgClass} ${theme.borderClass} border`}>
+          <div className={`text-xs font-bold uppercase tracking-widest ${theme.accentTextClass} mb-1`}>
+            KJIN Broadsheet Edition
+          </div>
+          <h4 className={`text-lg font-bold font-serif ${theme.textPrimaryClass} mb-2`}>
+            Morning Intelligence Brief
+          </h4>
+          <p className={`text-xs ${theme.textMutedClass} mb-4 leading-relaxed`}>
+            Delivered daily to public servants, civil engineers, and citizens across Jammu and Kashmir.
+          </p>
+          <NewsletterForm />
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <SiteFooter lang={resolvedParams.lang} theme={theme} contactSettings={contactSettings} />
+</main>
     </>
   );
 }

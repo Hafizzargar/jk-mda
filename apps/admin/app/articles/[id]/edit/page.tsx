@@ -37,7 +37,6 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
   // Image mode state & live preview
   const [hasFeaturedImage, setHasFeaturedImage] = useState(true);
   const [imageUrl, setImageUrl] = useState('');
-  const [imageError, setImageError] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('Local');
   const [selectedDistrict, setSelectedDistrict] = useState('');
 

@@ -2,7 +2,6 @@
 
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { authRoles, type AuthRole } from '@kjin/auth';
 import { supabase } from '@/lib/supabase';
 import { requiresMfa } from '@/lib/mfa';
@@ -121,7 +120,6 @@ type ActionModal =
   | null;
 
 export default function EmployeesPage() {
-  const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabId>('all');
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [inviteRequests, setInviteRequests] = useState<InviteRequest[]>([]);

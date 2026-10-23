@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { buildCspHeader } from './lib/csp';
 
-const LOCALES = ['en', 'ur', 'hi'];
+const LOCALES = ['en', 'ur', 'ks', 'hi'];
 const DEFAULT_LOCALE = 'en';
 
 export function middleware(request: NextRequest) {

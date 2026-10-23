@@ -15,8 +15,6 @@ export function Navbar({
   onOpenMobile,
   onOpenSearch,
   userRole,
-  userEmail,
-  onSignOut,
 }: NavbarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -38,6 +36,7 @@ export function Navbar({
     if (pathname === '/employees') return { title: 'Employees & Staff', section: 'Team Directory' };
     if (pathname === '/templates') return { title: 'Website Templates', section: 'Themes & Layouts' };
     if (pathname === '/settings/footer') return { title: 'Footer & Bureaus', section: 'Site Settings' };
+    if (pathname === '/settings/ads') return { title: 'Custom Ads & Monetization', section: 'Revenue & Sponsors' };
     return { title: 'KJIN Admin', section: 'Editorial' };
   };
 

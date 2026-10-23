@@ -109,6 +109,14 @@ export function Sidebar({
           icon: '📑',
           roles: ['owner', 'superadmin', 'admin', 'editor'],
         },
+        {
+          name: 'Custom Ads & Monetization',
+          href: '/settings/ads',
+          icon: '💰',
+          roles: ['owner', 'superadmin', 'admin'],
+          badge: 'Earn',
+          badgeColor: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300',
+        },
       ],
     },
   ];

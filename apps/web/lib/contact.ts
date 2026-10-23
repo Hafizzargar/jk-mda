@@ -1,3 +1,5 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
+
 export interface FooterContactSettings {
   organization_name: string;
   tagline: string;
@@ -75,7 +77,7 @@ export function sanitizeContactSettings(input: Partial<FooterContactSettings>): 
   };
 }
 
-export async function getFooterContactSettings(supabase: any): Promise<FooterContactSettings> {
+export async function getFooterContactSettings(supabase: SupabaseClient): Promise<FooterContactSettings> {
   try {
     const { data } = await supabase
       .from('site_settings')

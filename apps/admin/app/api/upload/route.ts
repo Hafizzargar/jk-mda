@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     const storagePath = `articles/${Date.now()}-${crypto.randomUUID().slice(0, 8)}.${ext}`;
 
     // Upload to Supabase Storage bucket 'article-images'
-    const { data: uploadData, error: uploadError } = await service.storage
+    const { error: uploadError } = await service.storage
       .from('article-images')
       .upload(storagePath, buffer, {
         contentType: file.type,

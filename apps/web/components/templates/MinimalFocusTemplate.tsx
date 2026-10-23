@@ -8,7 +8,6 @@ export function MinimalFocusTemplate({
   langPrefix,
   heroArticle,
   recentArticles,
-  trendingArticles,
 }: TemplateProps) {
   return (
     <div className="min-h-screen bg-[#fafaf9] text-stone-900 font-sans pb-28 antialiased">

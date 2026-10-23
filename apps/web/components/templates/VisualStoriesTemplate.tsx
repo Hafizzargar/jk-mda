@@ -7,7 +7,6 @@ export function VisualStoriesTemplate({
   langPrefix,
   heroArticle,
   recentArticles,
-  trendingArticles,
 }: TemplateProps) {
   const storyBubbles = [
     { label: 'Srinagar', icon: '🏔️', color: 'from-amber-400 to-rose-500' },
