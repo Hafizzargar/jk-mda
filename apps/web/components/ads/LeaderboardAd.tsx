@@ -24,6 +24,7 @@ export function LeaderboardAd({ ad }: LeaderboardAdProps) {
                 fill
                 sizes="120px"
                 className="object-cover group-hover:scale-105 transition-transform duration-500"
+                unoptimized={true}
               />
             </div>
           )}

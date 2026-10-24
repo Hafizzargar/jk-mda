@@ -23,6 +23,7 @@ export function InArticleAd({ ad }: InArticleAdProps) {
               fill
               sizes="(max-width: 640px) 100vw, 150px"
               className="object-cover group-hover:scale-105 transition-transform duration-500"
+              unoptimized={true}
             />
           </div>
         )}

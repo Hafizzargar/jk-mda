@@ -49,7 +49,7 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Apply to all paths except Next.js internals, API routes, admin, and files with extensions
-    '/((?!_next|api|admin|.*\\.).*)',
+    // Apply to all paths except Next.js internals, API routes, admin, monitoring, and files with extensions
+    '/((?!_next|api|admin|monitoring|.*\\.).*)',
   ],
 };

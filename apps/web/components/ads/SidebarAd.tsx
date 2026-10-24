@@ -30,6 +30,7 @@ export function SidebarAd({ ad }: SidebarAdProps) {
             fill
             sizes="(max-width: 768px) 100vw, 320px"
             className="object-cover group-hover:scale-105 transition-transform duration-500"
+            unoptimized={true}
           />
         </div>
       )}
