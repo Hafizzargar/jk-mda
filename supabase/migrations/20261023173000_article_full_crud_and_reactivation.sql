@@ -39,7 +39,7 @@ begin
   -- Authors can update their own drafts
   if not (
     (has_review_permission and article_row.status in ('draft', 'review', 'published', 'archived')) or
-    (article_row.author_id = actor_uid and article_row.status in ('draft', 'review') and public.has_permission('article.create'))
+    (article_row.author_id = actor_uid and article_row.status = 'draft' and public.has_permission('article.create'))
   ) then
     raise exception 'Unauthorized to edit this article in its current state';
   end if;

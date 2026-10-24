@@ -171,8 +171,8 @@ select extensions.is(
 -----------------------------------------------------------------------------
 select extensions.is(
   (select count(*)::int from public.districts),
-  20,
-  'Assertion 3: All 20 Jammu & Kashmir districts seeded from taxonomy.ts exist'
+  22,
+  'Assertion 3: All 22 Jammu, Kashmir & Ladakh districts seeded from taxonomy.ts exist'
 );
 
 select extensions.is(
@@ -183,8 +183,8 @@ select extensions.is(
 
 select extensions.is(
   (select count(*)::int from public.districts where division = 'Jammu'),
-  10,
-  'Assertion 5: Jammu division has exactly 10 districts'
+  5,
+  'Assertion 5: Jammu division has exactly 5 districts'
 );
 
 -----------------------------------------------------------------------------

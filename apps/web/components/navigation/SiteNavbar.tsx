@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { SITE_SHORT_NAME } from '@/lib/config';
 import { REGIONAL_DIVISIONS, NEWS_CATEGORIES } from '@/lib/taxonomy';
@@ -121,19 +122,38 @@ export function SiteNavbar({
         </div>
       </div>
 
-      {/* 2. Compact Main Navigation Bar (~48px) */}
-      <div className="max-w-7xl mx-auto px-4 md:px-6 h-12 flex items-center justify-between gap-4">
-        {/* Brand Mark */}
-        <div className="flex items-center gap-3 shrink-0">
+      {/* 2. Main Navigation Bar */}
+      <div className="max-w-7xl mx-auto px-4 md:px-6 h-14 flex items-center justify-between gap-4">
+        {/* Brand Mark — large emblem like Gmail / GitHub */}
+        <div className="flex items-center shrink-0">
           <Link
             href={`${langPrefix}/`}
-            className={`text-2xl font-black tracking-tight uppercase hover:opacity-85 transition flex items-center gap-2 ${textPrimary}`}
-            style={{ fontFamily: theme?.id === 'classic-editorial' ? 'Georgia, serif' : 'inherit' }}
+            className="flex items-center gap-3 group hover:opacity-90 transition-opacity duration-200"
           >
-            <span>{SITE_SHORT_NAME}</span>
-            <span className={`text-[10px] font-mono tracking-widest px-1.5 py-0.2 rounded font-bold uppercase hidden sm:inline-block ${isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-100 text-slate-700 border border-slate-300'}`}>
-              J&K
-            </span>
+            {/* The big emblem icon — 48px tall, crisp */}
+            <div className="relative h-12 w-12 shrink-0 drop-shadow-md">
+              <Image
+                src="/kjin-emblem.png"
+                alt="KJIN — Kashmir Journalist Information Network"
+                fill
+                className="object-contain"
+                priority
+                sizes="48px"
+              />
+            </div>
+
+            {/* Wordmark next to emblem */}
+            <div className="flex flex-col leading-none">
+              <span
+                className={`text-2xl font-black tracking-tight uppercase ${textPrimary} group-hover:opacity-90 transition`}
+                style={{ fontFamily: theme?.id === 'classic-editorial' ? 'Georgia, serif' : 'inherit' }}
+              >
+                {SITE_SHORT_NAME}
+              </span>
+              <span className={`text-[9px] font-mono tracking-widest uppercase font-semibold ${textMuted} hidden sm:block`}>
+                J&amp;K Journal of Record
+              </span>
+            </div>
           </Link>
         </div>
 

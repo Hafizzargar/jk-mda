@@ -40,7 +40,7 @@ export const DEFAULT_ADS_SETTINGS: CustomAdsSettings = {
       description: 'Geographical Indication (GI) certified crafts delivered worldwide directly from valley master craftsmen.',
       cta_text: 'Shop Verified Collection',
       destination_url: 'https://kashmircrafts.org',
-      image_url: 'https://images.unsplash.com/photo-1606744888344-493238955de0?auto=format&fit=crop&w=600&q=80',
+      image_url: 'https://images.unsplash.com/photo-1600121848594-d8644e57abab?auto=format&fit=crop&w=600&q=80',
       theme_accent: 'gold',
     },
     {
