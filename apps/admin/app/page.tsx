@@ -73,7 +73,7 @@ export default function DashboardPage() {
           if (aalData?.currentLevel !== 'aal2') {
             if (aalData?.nextLevel === 'aal2') {
               setStatus('MFA is required. Redirecting to verification...');
-              router.push('/mfa/challenge'); // We will build this later
+              router.push('/mfa/challenge');
               return;
             } else {
               setStatus('MFA setup is required. Redirecting to enrollment...');
@@ -137,17 +137,17 @@ export default function DashboardPage() {
 
   if (isAuthorized === false) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-950 p-8 text-white">
-        <div className="w-full max-w-lg rounded-2xl border border-slate-800 bg-slate-900 p-8 text-center">
-          <p className="text-sm uppercase tracking-[0.2em] text-cyan-300">Access required</p>
-          <h1 className="mt-4 text-3xl font-bold">Signed in, but not authorized.</h1>
-          <p className="mt-4 text-slate-300">
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 p-8 text-slate-900 dark:bg-slate-950 dark:text-white">
+        <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-lg dark:border-slate-800 dark:bg-slate-900">
+          <p className="text-xs uppercase tracking-[0.2em] text-cyan-600 font-bold dark:text-cyan-300">Access required</p>
+          <h1 className="mt-4 text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">Signed in, but not authorized.</h1>
+          <p className="mt-4 text-slate-600 dark:text-slate-300 text-sm">
             {userRole ? `Current role: ${userRole}.` : 'No valid editor role is associated with this account.'}
           </p>
           <button
             type="button"
             onClick={handleSignOut}
-            className="mt-6 rounded-full bg-cyan-500 px-5 py-2.5 font-semibold text-slate-950 hover:bg-cyan-400"
+            className="mt-6 rounded-full bg-cyan-600 px-6 py-2.5 font-bold text-white hover:bg-cyan-500 shadow-sm"
           >
             Sign out
           </button>
@@ -158,31 +158,33 @@ export default function DashboardPage() {
 
   if (isAuthorized !== true) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-slate-950 p-8 text-white">
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6 text-slate-200">{status}</div>
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 p-8 text-slate-900 dark:bg-slate-950 dark:text-white">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 text-slate-700 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
+          {status}
+        </div>
       </main>
     );
   }
 
   return (
-    <div className="p-6 md:p-8 space-y-8 max-w-7xl mx-auto">
-      {/* Executive Welcome Hero */}
-      <div className="relative overflow-hidden rounded-3xl border border-slate-800/80 bg-gradient-to-br from-slate-900/90 via-slate-950/90 to-[#030914] p-6 sm:p-8 shadow-2xl">
+    <div className="p-4 sm:p-6 md:p-8 space-y-8 max-w-7xl mx-auto">
+      {/* Executive Welcome Hero with Light Aesthetics */}
+      <div className="relative overflow-hidden rounded-3xl border border-slate-200/90 bg-gradient-to-br from-white via-slate-50 to-cyan-50/40 p-6 sm:p-8 shadow-sm dark:border-slate-800/80 dark:bg-gradient-to-br dark:from-slate-900/90 dark:via-slate-950/90 dark:to-[#030914] dark:shadow-2xl">
         <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none" />
-        <div className="absolute -left-20 -bottom-20 h-64 w-64 rounded-full bg-blue-600/10 blur-3xl pointer-events-none" />
+        <div className="absolute -left-20 -bottom-20 h-64 w-64 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="flex h-2 w-2 rounded-full bg-emerald-400" />
-              <span className="text-xs font-mono uppercase tracking-widest text-emerald-400">
+              <span className="flex h-2 w-2 rounded-full bg-emerald-500" />
+              <span className="text-xs font-mono font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-400">
                 Editorial Control Center
               </span>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
               KJIN Newsroom Dashboard
             </h1>
-            <p className="mt-2 text-sm text-slate-400 max-w-xl">
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 max-w-xl">
               Kashmir Journalist Information Network editorial desk. Real-time verification, district coverage, and civic grievances dispatch.
             </p>
           </div>
@@ -190,21 +192,21 @@ export default function DashboardPage() {
           <div className="flex flex-wrap items-center gap-3">
             <Link
               href="/articles?category=Local"
-              className="inline-flex items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 text-xs font-semibold text-amber-200 hover:border-amber-400 hover:bg-amber-500/20 transition-all shadow-sm"
+              className="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-xs font-bold text-amber-900 hover:bg-amber-100 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200 dark:hover:bg-amber-500/20 transition-all shadow-2xs"
             >
               <span>🏛️</span>
               <span>Area Problems</span>
             </Link>
             <Link
               href="/articles"
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-900/80 px-4 py-2.5 text-xs font-semibold text-slate-200 hover:border-cyan-500/40 hover:bg-slate-800 transition-all shadow-sm"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-800 hover:bg-slate-100 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-200 transition-all shadow-2xs"
             >
               <span>📰</span>
               <span>Manage Stories</span>
             </Link>
             <Link
               href="/articles/new"
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-sky-400 px-5 py-2.5 text-xs font-bold text-slate-950 hover:from-cyan-300 hover:to-sky-300 shadow-md shadow-cyan-950/40 transition-all active:scale-95"
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 to-sky-600 px-5 py-2.5 text-xs font-bold text-white hover:from-cyan-500 hover:to-sky-500 shadow-sm shadow-cyan-950/20 transition-all active:scale-95"
             >
               <span>✍️</span>
               <span>New Story</span>
@@ -213,21 +215,21 @@ export default function DashboardPage() {
         </div>
 
         {/* Auth Status Capsule */}
-        <div className="mt-6 flex items-center justify-between border-t border-slate-800/80 pt-4 text-xs text-slate-400">
+        <div className="mt-6 flex flex-wrap items-center justify-between border-t border-slate-200/90 pt-4 text-xs text-slate-500 dark:border-slate-800/80 dark:text-slate-400 gap-2">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-cyan-300">Session Status:</span>
-            <span className="font-mono text-slate-300">{status}</span>
+            <span className="font-bold text-cyan-800 dark:text-cyan-300">Session Status:</span>
+            <span className="font-mono text-slate-700 dark:text-slate-300">{status}</span>
           </div>
-          <div className="hidden sm:flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <span className="text-slate-500">Active Role:</span>
-            <span className="rounded-full bg-cyan-500/10 border border-cyan-500/30 px-2.5 py-0.5 font-mono text-[11px] text-cyan-300 capitalize">
+            <span className="rounded-full bg-cyan-100 border border-cyan-200 px-2.5 py-0.5 font-mono text-[11px] font-bold text-cyan-800 capitalize dark:bg-cyan-500/10 dark:border-cyan-500/30 dark:text-cyan-300">
               {userRole ?? 'editor'}
             </span>
           </div>
         </div>
       </div>
 
-      {/* Metrics Overview Cards */}
+      {/* Metrics Overview Cards with Light Styling */}
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((item) => {
           const icon =
@@ -241,81 +243,106 @@ export default function DashboardPage() {
 
           const accentColor =
             item.label === 'Drafts'
-              ? 'border-cyan-500/30 bg-cyan-500/5 hover:border-cyan-500/50'
+              ? 'border-slate-200 hover:border-cyan-500/60 bg-white'
               : item.label === 'Pending review'
-                ? 'border-amber-500/30 bg-amber-500/5 hover:border-amber-500/50'
+                ? 'border-slate-200 hover:border-amber-500/60 bg-white'
                 : item.label === 'Published today'
-                  ? 'border-emerald-500/30 bg-emerald-500/5 hover:border-emerald-500/50'
-                  : 'border-red-500/30 bg-red-500/5 hover:border-red-500/50';
+                  ? 'border-slate-200 hover:border-emerald-500/60 bg-white'
+                  : 'border-slate-200 hover:border-red-500/60 bg-white';
 
           return (
             <div
               key={item.label}
-              className={`group relative overflow-hidden rounded-2xl border p-5 transition-all shadow-lg ${accentColor}`}
+              className={`group relative overflow-hidden rounded-2xl border p-5 transition-all shadow-xs hover:shadow-md ${accentColor}`}
             >
               <div className="flex items-center justify-between">
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">{item.label}</p>
-                <span className="text-xl opacity-80 group-hover:scale-110 transition-transform">{icon}</span>
+                <p className="text-xs font-bold uppercase tracking-wider text-slate-500">{item.label}</p>
+                <span className="text-xl opacity-90 group-hover:scale-110 transition-transform">{icon}</span>
               </div>
-              <p className="mt-4 text-3xl font-black text-white">{item.value}</p>
+              <p className="mt-4 text-3xl font-black text-slate-900">{item.value}</p>
               <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500">
                 <span>Real-time count</span>
-                <span className="text-cyan-400 group-hover:translate-x-0.5 transition-transform">View →</span>
+                <span className="text-cyan-700 font-bold group-hover:translate-x-0.5 transition-transform">View →</span>
               </div>
             </div>
           );
         })}
       </section>
 
-        <section className="mt-10 grid gap-6 lg:grid-cols-[1.5fr_1fr]">
-          <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
-            <h2 className="text-xl font-semibold">Editorial queue</h2>
-            <ul className="mt-6 space-y-4 text-slate-300">
-              {queue.map((item) => {
-                const tagClass =
-                  item.status === 'review'
-                    ? 'bg-amber-500/15 text-amber-300'
-                    : item.status === 'published'
-                      ? 'bg-emerald-500/15 text-emerald-300'
-                      : 'bg-cyan-500/15 text-cyan-300';
-
-                return (
-                  <li key={`${item.id ?? item.title}-${item.status}`} className="rounded-xl border border-slate-800 bg-slate-950 p-4">
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
-                        <Link href={item.id ? `/articles/${item.id}/review` : '#'} className="font-medium text-white hover:text-cyan-300">
-                          {item.title}
-                        </Link>
-                        <p className="mt-1 text-sm text-slate-400">{item.summary}</p>
-                      </div>
-                      <span className={`rounded-full px-2 py-1 text-xs font-medium ${tagClass}`}>
-                        {item.status}
-                      </span>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
+      {/* Editorial Queue & Operational Checks */}
+      <section className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg sm:text-xl font-bold text-slate-900">Editorial queue</h2>
+            <span className="text-xs text-slate-500 font-medium">{queue.length} articles in queue</span>
           </div>
+          <ul className="mt-6 space-y-3">
+            {queue.map((item) => {
+              const tagClass =
+                item.status === 'review'
+                  ? 'bg-amber-100 text-amber-900 border border-amber-200'
+                  : item.status === 'published'
+                    ? 'bg-emerald-100 text-emerald-900 border border-emerald-200'
+                    : 'bg-cyan-100 text-cyan-900 border border-cyan-200';
 
-          <div className="rounded-2xl border border-slate-800 bg-slate-900 p-6">
-            <h2 className="text-xl font-semibold">Operational checks</h2>
-            <div className="mt-6 space-y-4">
-              <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
-                <p className="text-sm text-slate-400">Fact verification</p>
-                <p className="mt-2 text-lg font-semibold">92% complete</p>
+              return (
+                <li
+                  key={`${item.id ?? item.title}-${item.status}`}
+                  className="rounded-xl border border-slate-200 bg-slate-50/80 p-4 hover:bg-slate-100/70 transition-colors"
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0">
+                      <Link
+                        href={item.id ? `/articles/${item.id}/review` : '#'}
+                        className="font-bold text-slate-900 hover:text-cyan-700 transition-colors truncate block"
+                      >
+                        {item.title}
+                      </Link>
+                      <p className="mt-1 text-xs text-slate-600 truncate">{item.summary}</p>
+                    </div>
+                    <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-bold capitalize ${tagClass}`}>
+                      {item.status}
+                    </span>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+          <h2 className="text-lg sm:text-xl font-bold text-slate-900">Operational checks</h2>
+          <div className="mt-6 space-y-3.5">
+            <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+              <p className="text-xs font-semibold text-slate-500">Fact verification</p>
+              <div className="flex items-center justify-between mt-1">
+                <p className="text-lg font-bold text-slate-900">92% complete</p>
+                <span className="rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[10px] font-bold">
+                  On Track
+                </span>
               </div>
-              <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
-                <p className="text-sm text-slate-400">AI source monitor</p>
-                <p className="mt-2 text-lg font-semibold">3 active jobs</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+              <p className="text-xs font-semibold text-slate-500">AI source monitor</p>
+              <div className="flex items-center justify-between mt-1">
+                <p className="text-lg font-bold text-slate-900">3 active jobs</p>
+                <span className="rounded-full bg-cyan-100 text-cyan-800 px-2 py-0.5 text-[10px] font-bold">
+                  Running
+                </span>
               </div>
-              <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
-                <p className="text-sm text-slate-400">Verification queue</p>
-                <p className="mt-2 text-lg font-semibold">6 awaiting sign-off</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-4">
+              <p className="text-xs font-semibold text-slate-500">Verification queue</p>
+              <div className="flex items-center justify-between mt-1">
+                <p className="text-lg font-bold text-slate-900">6 awaiting sign-off</p>
+                <span className="rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-[10px] font-bold">
+                  Pending
+                </span>
               </div>
             </div>
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
+    </div>
   );
 }

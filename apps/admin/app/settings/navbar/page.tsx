@@ -16,7 +16,7 @@ export default function NavbarSettingsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const [_userRole, setUserRole] = useState<string | null>(null);
   const [canManage, setCanManage] = useState(false);
   const [form, setForm] = useState<NavbarSettings>(DEFAULT_NAVBAR_SETTINGS);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -598,7 +598,7 @@ export default function NavbarSettingsPage() {
               {/* Regions Dropdown */}
               <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/60 flex items-center justify-between">
                 <div>
-                  <div className="font-semibold text-sm text-white">Show "Regions" 5-Division Dropdown</div>
+                  <div className="font-semibold text-sm text-white">Show &quot;Regions&quot; 5-Division Dropdown</div>
                   <div className="text-xs text-slate-400">Kashmir, Jammu, Chenab Valley, Pir Panjal, Ladakh</div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -620,7 +620,7 @@ export default function NavbarSettingsPage() {
               {/* Latest Wire Badge */}
               <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/60 flex items-center justify-between">
                 <div>
-                  <div className="font-semibold text-sm text-white">Show "Latest Wire" Pulse Pill</div>
+                  <div className="font-semibold text-sm text-white">Show &quot;Latest Wire&quot; Pulse Pill</div>
                   <div className="text-xs text-slate-400">Pulsing red live dispatch badge on navbar right</div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
@@ -769,7 +769,7 @@ export default function NavbarSettingsPage() {
                 <span>⚡</span> Top Strip &amp; Submit Tip Button
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                Configure the thin top dateline strip, "Submit Tip" dispatch button, and publication text.
+                Configure the thin top dateline strip, &quot;Submit Tip&quot; dispatch button, and publication text.
               </p>
             </div>
 
@@ -821,7 +821,7 @@ export default function NavbarSettingsPage() {
               {/* Submit Tip Button Toggle */}
               <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/60 flex items-center justify-between">
                 <div>
-                  <div className="font-semibold text-sm text-white">Show "Submit Tip" Button</div>
+                  <div className="font-semibold text-sm text-white">Show &quot;Submit Tip&quot; Button</div>
                   <div className="text-xs text-slate-400">Allows whistleblowers/readers to send dispatches</div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">

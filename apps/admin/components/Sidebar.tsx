@@ -13,10 +13,12 @@ interface SidebarProps {
   userRole?: string | null;
   userEmail?: string | null;
   onSignOut: () => void;
+  theme?: 'light' | 'dark';
 }
 
 interface NavItem {
   name: string;
+  description: string;
   href: string;
   icon: string;
   badge?: string;
@@ -44,74 +46,96 @@ export function Sidebar({
 
   const navSections: NavSection[] = [
     {
-      title: 'Editorial Desk',
+      title: 'Editorial Operations',
       items: [
         {
           name: 'Dashboard',
+          description: 'Live metrics, drafts & review queue',
           href: '/',
           icon: '📊',
           exact: true,
         },
         {
           name: 'Articles & Stories',
+          description: 'Browse, edit & filter published news',
           href: '/articles',
           icon: '📰',
           exact: false,
         },
         {
           name: 'New Story',
+          description: 'Compose news report or civic dispatch',
           href: '/articles/new',
           icon: '✍️',
           badge: 'Draft',
-          badgeColor: 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300',
+          badgeColor: 'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/40',
+        },
+        {
+          name: 'Area Problems',
+          description: 'Civic grievances & valley ground issues',
+          href: '/articles?category=Local',
+          icon: '🏛️',
+          badge: 'Civic',
+          badgeColor: 'bg-amber-100 text-amber-900 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40',
         },
       ],
     },
     {
-      title: 'Workspace',
+      title: 'Team & Workspace',
       items: [
         {
           name: 'Employees & Access',
+          description: 'Staff directory, RBAC roles & permissions',
           href: '/employees',
           icon: '👥',
         },
         {
           name: 'My Profile & Author',
+          description: 'Author bio, credentials & security MFA',
           href: '/profile',
           icon: '👤',
         },
       ],
     },
     {
-      title: 'Display & Configuration',
+      title: 'Site Design & Navigation',
       items: [
         {
-          name: 'Website Templates',
-          href: '/templates',
-          icon: '🎨',
-          roles: ['owner', 'superadmin', 'admin'],
-        },
-        {
           name: 'Header & Navigation',
+          description: 'Brand logo, navbar menus, topics & tools',
           href: '/settings/navbar',
           icon: '🧭',
           roles: ['owner', 'superadmin', 'admin', 'editor'],
           badge: 'Live',
-          badgeColor: 'bg-cyan-500/20 border-cyan-500/40 text-cyan-300 font-semibold',
+          badgeColor: 'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/40 font-bold',
         },
         {
           name: 'Footer & Bureaus',
+          description: 'Footer columns, bureau contacts & links',
           href: '/settings/footer',
           icon: '📑',
           roles: ['owner', 'superadmin', 'admin', 'editor'],
         },
         {
+          name: 'Website Templates',
+          description: 'Reader themes, typography & layout presets',
+          href: '/templates',
+          icon: '🎨',
+          roles: ['owner', 'superadmin', 'admin'],
+        },
+      ],
+    },
+    {
+      title: 'Revenue & Monetization',
+      items: [
+        {
           name: 'Custom Ads & Monetization',
+          description: 'Sponsors, native ad slots & earnings',
           href: '/settings/ads',
           icon: '💰',
           roles: ['owner', 'superadmin', 'admin', 'editor'],
           badge: '✨ Earn',
-          badgeColor: 'bg-gradient-to-r from-amber-500/25 to-emerald-500/25 border-amber-400/50 text-amber-300 font-bold shadow-sm shadow-amber-950/40',
+          badgeColor: 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-500/25 dark:text-amber-200 dark:border-amber-400/50 font-bold',
         },
       ],
     },
@@ -126,7 +150,11 @@ export function Sidebar({
     if (item.exact) {
       return pathname === item.href;
     }
-    return pathname.startsWith(item.href);
+    // Specific match for category=Local
+    if (item.href === '/articles?category=Local') {
+      return pathname === '/articles' && typeof window !== 'undefined' && window.location.search.includes('category=Local');
+    }
+    return pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href) && !item.href.includes('?'));
   };
 
   const userInitials = userEmail
@@ -136,16 +164,16 @@ export function Sidebar({
       : 'KJ';
 
   const sidebarContent = (
-    <div className="flex h-full flex-col bg-slate-950/95 border-r border-slate-800/80 backdrop-blur-2xl text-slate-200 overflow-hidden">
+    <div className="flex h-full flex-col bg-white border-r border-slate-200 text-slate-800 overflow-hidden shadow-xs dark:bg-slate-950/95 dark:border-slate-800/80 dark:text-slate-200">
       {/* Top Branding Section (Fixed) */}
       <div className="shrink-0">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800/80">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/40">
           <Link
             href="/"
             onClick={onCloseMobile}
             className="flex items-center gap-2.5 transition-opacity hover:opacity-90"
           >
-            <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-600/30 border border-cyan-500/40 p-1 shadow-md shadow-cyan-950/50">
+            <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-600/30 border border-cyan-500/40 p-1 shadow-sm">
               <Image
                 src="/kcpjln-symbol.webp"
                 alt="KJIN Symbol"
@@ -158,12 +186,12 @@ export function Sidebar({
             {!isCollapsed && (
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-black text-base tracking-wider text-white">KJIN</span>
-                  <span className="rounded bg-cyan-500/20 px-1.5 py-0.2 text-[9px] font-mono font-bold uppercase tracking-widest text-cyan-300 border border-cyan-500/40">
+                  <span className="font-black text-base tracking-wider text-slate-900 dark:text-white">KJIN</span>
+                  <span className="rounded bg-cyan-100 text-cyan-800 border border-cyan-300 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/40 px-1.5 py-0.2 text-[9px] font-mono font-bold uppercase tracking-widest">
                     OS
                   </span>
                 </div>
-                <p className="text-[9px] font-medium tracking-widest text-slate-400 uppercase">
+                <p className="text-[9px] font-bold tracking-widest text-slate-500 uppercase dark:text-slate-400">
                   Newsroom Admin
                 </p>
               </div>
@@ -175,7 +203,7 @@ export function Sidebar({
             type="button"
             onClick={onToggleCollapse}
             aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className="hidden lg:flex h-6 w-6 items-center justify-center rounded-lg border border-slate-700/80 bg-slate-900 text-slate-400 hover:text-white hover:border-slate-500 transition-colors"
+            className="hidden lg:flex h-6 w-6 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-slate-900 hover:border-slate-300 dark:border-slate-700/80 dark:bg-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
           >
             <span className="text-[10px]">{isCollapsed ? '▶' : '◀'}</span>
           </button>
@@ -183,21 +211,24 @@ export function Sidebar({
 
         {/* Live Engine Status Mini Banner */}
         {!isCollapsed && (
-          <div className="mx-3 mt-2 flex items-center justify-between rounded-lg border border-emerald-500/30 bg-emerald-950/20 px-2.5 py-1 text-xs">
+          <div className="mx-3 mt-2.5 flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50/80 px-2.5 py-1.5 text-xs dark:border-emerald-500/30 dark:bg-emerald-950/20">
             <div className="flex items-center gap-1.5">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
               </span>
-              <span className="font-semibold text-emerald-300 text-[11px]">Newsdesk Online</span>
+              <span className="font-bold text-emerald-800 dark:text-emerald-300 text-[11px]">Newsdesk Active</span>
             </div>
-            <span className="text-[9px] font-mono text-emerald-400/80 uppercase">v2.4</span>
+            <span className="text-[9px] font-mono font-bold text-emerald-700 dark:text-emerald-400/80 uppercase">v2.4</span>
           </div>
         )}
       </div>
 
-      {/* Navigation Sections (Scrollable flex-1) */}
-      <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-3.5">
+      {/* Navigation Sections with Explicit Component Descriptions */}
+      <nav
+        data-sidebar-nav
+        className="flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden no-scrollbar px-3 py-2 space-y-2"
+      >
         {navSections.map((section) => {
           const filteredItems = section.items.filter((item) => {
             if (!item.roles || !userRole) return true;
@@ -209,44 +240,47 @@ export function Sidebar({
           return (
             <div key={section.title} className="space-y-1">
               {!isCollapsed && (
-                <p className="px-2.5 text-[9px] font-bold uppercase tracking-widest text-slate-400">
+                <p className="px-2.5 text-[9px] font-extrabold uppercase tracking-widest text-slate-400 font-mono">
                   {section.title}
                 </p>
               )}
-              <div className="space-y-0.5">
+              <div className="space-y-1">
                 {filteredItems.map((item) => {
                   const active = isLinkActive(item);
-                  const isAdsItem = item.href === '/settings/ads';
 
                   return (
                     <Link
                       key={item.name}
                       href={item.href}
                       onClick={onCloseMobile}
-                      title={isCollapsed ? item.name : undefined}
-                      className={`group flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-xs font-medium transition-all ${
+                      title={isCollapsed ? `${item.name} — ${item.description}` : undefined}
+                      className={`group flex items-start gap-2.5 rounded-xl px-2.5 py-1.5 text-xs transition-all ${
                         active
-                          ? 'bg-gradient-to-r from-cyan-500/20 via-cyan-500/10 to-transparent text-white border-l-4 border-cyan-400 font-semibold shadow-sm shadow-cyan-950/40'
-                          : isAdsItem
-                            ? 'bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent text-amber-200 hover:bg-amber-500/20 hover:text-white border-l-4 border-amber-400/60 shadow-sm'
-                            : 'text-slate-300 hover:bg-slate-900/80 hover:text-white border-l-4 border-transparent'
+                          ? 'bg-cyan-50/90 text-cyan-950 border-l-4 border-cyan-600 font-bold shadow-2xs dark:bg-cyan-500/20 dark:text-white dark:border-cyan-400'
+                          : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 border-l-4 border-transparent dark:text-slate-300 dark:hover:bg-slate-900/80 dark:hover:text-white'
                       }`}
                     >
-                      <span className={`text-sm transition-transform group-hover:scale-110 ${active ? 'scale-110' : ''}`}>
+                      <span className={`text-base shrink-0 mt-0.5 transition-transform group-hover:scale-110 ${active ? 'scale-110' : ''}`}>
                         {item.icon}
                       </span>
                       {!isCollapsed && (
-                        <div className="flex flex-1 items-center justify-between overflow-hidden">
-                          <span className="truncate">{item.name}</span>
-                          {item.badge && (
-                            <span
-                              className={`ml-1.5 shrink-0 rounded-full border px-2 py-0.5 text-[9px] font-semibold tracking-wide ${
-                                item.badgeColor || 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300'
-                              }`}
-                            >
-                              {item.badge}
+                        <div className="flex flex-1 flex-col overflow-hidden min-w-0">
+                          <div className="flex items-center justify-between">
+                            <span className="truncate font-semibold text-slate-900 dark:text-white">
+                              {item.name}
                             </span>
-                          )}
+                            {item.badge && (
+                              <span
+                                className={`ml-1.5 shrink-0 rounded-full border px-1.5 py-0.2 text-[9px] font-bold tracking-wide ${item.badgeColor}`}
+                              >
+                                {item.badge}
+                              </span>
+                            )}
+                          </div>
+                          {/* Component explanation subtitle */}
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5 font-normal">
+                            {item.description}
+                          </p>
                         </div>
                       )}
                     </Link>
@@ -257,10 +291,10 @@ export function Sidebar({
           );
         })}
 
-        {/* Quick Reader Portal Link */}
-        <div className="pt-1">
+        {/* Quick Reader Portal Link with Description */}
+        <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
           {!isCollapsed && (
-            <p className="px-2.5 text-[9px] font-bold uppercase tracking-widest text-slate-400">
+            <p className="px-2.5 text-[9px] font-extrabold uppercase tracking-widest text-slate-400 font-mono">
               Reader Website
             </p>
           )}
@@ -268,14 +302,19 @@ export function Sidebar({
             href="http://localhost:3000"
             target="_blank"
             rel="noopener noreferrer"
-            title={isCollapsed ? 'View Live Public Site' : undefined}
-            className="group mt-0.5 flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 text-xs font-medium text-slate-400 hover:bg-slate-900/80 hover:text-cyan-300 transition-all border-l-4 border-transparent"
+            title={isCollapsed ? 'View Live Public Site (localhost:3000)' : undefined}
+            className="group mt-1 flex items-start gap-2.5 rounded-xl px-2.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-cyan-800 dark:text-slate-300 dark:hover:bg-slate-900/80 dark:hover:text-cyan-300 transition-all border-l-4 border-transparent"
           >
-            <span className="text-sm group-hover:scale-110 transition-transform">🌐</span>
+            <span className="text-base shrink-0 mt-0.5 group-hover:scale-110 transition-transform">🌐</span>
             {!isCollapsed && (
-              <div className="flex flex-1 items-center justify-between">
-                <span className="truncate">Public Site</span>
-                <span className="text-[10px] text-slate-400 group-hover:text-cyan-300">↗</span>
+              <div className="flex flex-1 flex-col overflow-hidden min-w-0">
+                <div className="flex items-center justify-between">
+                  <span className="truncate font-semibold text-slate-900 dark:text-white">Public Site</span>
+                  <span className="text-[11px] text-slate-400 group-hover:text-cyan-600 dark:group-hover:text-cyan-300">↗</span>
+                </div>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                  Open live reader site (port 3000)
+                </p>
               </div>
             )}
           </a>
@@ -283,9 +322,9 @@ export function Sidebar({
       </nav>
 
       {/* Bottom User Profile Section */}
-      <div className="shrink-0 border-t border-slate-800/80 p-2.5 bg-slate-950/90">
+      <div className="shrink-0 border-t border-slate-100 dark:border-slate-800/80 p-2.5 bg-slate-50/70 dark:bg-slate-950/90">
         <div
-          className={`flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/60 p-2 transition-all ${
+          className={`flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-2xs dark:border-slate-800 dark:bg-slate-900/60 transition-all ${
             isCollapsed ? 'justify-center p-2' : ''
           }`}
         >
@@ -294,7 +333,7 @@ export function Sidebar({
             href="/profile"
             onClick={onCloseMobile}
             title="My Profile & Author Settings"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 text-xs font-bold text-slate-950 shadow-md shadow-cyan-950/50 hover:scale-105 transition-transform"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-600 to-blue-700 text-xs font-bold text-white shadow-sm hover:scale-105 transition-transform"
           >
             {userInitials}
           </Link>
@@ -306,12 +345,12 @@ export function Sidebar({
               title="My Profile & Author Settings"
               className="flex-1 min-w-0 group"
             >
-              <p className="truncate text-xs font-semibold text-white group-hover:text-cyan-300 transition-colors">
+              <p className="truncate text-xs font-bold text-slate-900 dark:text-white group-hover:text-cyan-700 dark:group-hover:text-cyan-300 transition-colors">
                 {userEmail || 'Editor Session'}
               </p>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
-                <span className="truncate text-[10px] font-mono text-cyan-300 capitalize group-hover:underline">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                <span className="truncate text-[10px] font-mono font-semibold text-cyan-800 dark:text-cyan-300 capitalize group-hover:underline">
                   {userRole || 'Editor'} • Edit
                 </span>
               </div>
@@ -324,7 +363,7 @@ export function Sidebar({
               href="/profile"
               onClick={onCloseMobile}
               title="Edit Profile & Author Name"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-700/80 text-slate-400 hover:border-cyan-500/50 hover:bg-cyan-500/10 hover:text-cyan-300 transition-colors"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:border-cyan-400 hover:bg-cyan-50 hover:text-cyan-800 dark:border-slate-700 dark:text-slate-400 dark:hover:border-cyan-500/50 dark:hover:bg-cyan-500/10 dark:hover:text-cyan-300 transition-colors"
             >
               <span className="text-xs">⚙️</span>
             </Link>
@@ -337,7 +376,7 @@ export function Sidebar({
             disabled={loggingOut}
             title="Sign out of newsroom"
             aria-label="Sign out"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-700/80 text-slate-400 hover:border-red-500/50 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:border-red-400 hover:bg-red-50 hover:text-red-700 dark:border-slate-700 dark:text-slate-400 dark:hover:border-red-500/50 dark:hover:bg-red-500/10 dark:hover:text-red-400 transition-colors"
           >
             <span className="text-sm">{loggingOut ? '⏳' : '🚪'}</span>
           </button>
@@ -351,10 +390,10 @@ export function Sidebar({
       {/* Desktop Sticky Sidebar */}
       <aside
         className={`hidden lg:block shrink-0 transition-all duration-300 ease-in-out ${
-          isCollapsed ? 'w-20' : 'w-64'
+          isCollapsed ? 'w-20' : 'w-68'
         }`}
       >
-        <div className={`fixed top-0 bottom-0 z-40 transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-64'}`}>
+        <div className={`fixed top-0 bottom-0 z-40 transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-68'}`}>
           {sidebarContent}
         </div>
       </aside>
@@ -364,11 +403,11 @@ export function Sidebar({
         <div className="fixed inset-0 z-50 lg:hidden">
           {/* Backdrop */}
           <div
-            className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm transition-opacity"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
             onClick={onCloseMobile}
           />
           {/* Sliding drawer */}
-          <div className="fixed inset-y-0 left-0 w-72 max-w-[85vw] shadow-2xl animate-in slide-in-from-left duration-200">
+          <div className="fixed inset-y-0 left-0 w-76 max-w-[85vw] shadow-2xl animate-in slide-in-from-left duration-200">
             {sidebarContent}
           </div>
         </div>
