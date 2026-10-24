@@ -2,6 +2,7 @@ import type { TemplateTheme } from '@/lib/templates';
 import type { FooterContactSettings } from '@/lib/contact';
 import type { PaginationMeta } from '@/lib/pagination';
 import type { CustomAdsSettings } from '@/lib/ads';
+import type { NavbarSettings } from '@/lib/navbar';
 
 export interface ArticleItem {
   id: string;
@@ -27,4 +28,5 @@ export interface TemplateProps {
   contactSettings?: FooterContactSettings;
   paginationMeta?: PaginationMeta;
   adsSettings?: CustomAdsSettings;
+  navbarSettings?: NavbarSettings;
 }

@@ -18,6 +18,7 @@ export function ClassicEditorialTemplate({
   contactSettings,
   paginationMeta,
   adsSettings,
+  navbarSettings,
 }: TemplateProps) {
   const lang = langPrefix ? langPrefix.replace('/', '') : 'en';
   const leaderboardAd = adsSettings?.monetization_enabled
@@ -31,7 +32,7 @@ export function ClassicEditorialTemplate({
     <div className="min-h-screen bg-[#faf8f5] text-slate-900 font-serif flex flex-col justify-between">
       <div>
         {/* Sleek, Compact Modern Broadsheet Navbar */}
-        <SiteNavbar lang={lang} theme={theme} />
+        <SiteNavbar lang={lang} theme={theme} navbarSettings={navbarSettings} />
 
         {/* Unified Breadcrumbs on All Pages */}
         <div className="max-w-7xl mx-auto px-4 md:px-8 pt-4 pb-2">

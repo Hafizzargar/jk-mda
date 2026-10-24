@@ -7,6 +7,7 @@ import { type TemplateId, getTemplateDefinition, getTemplateTheme } from '@/lib/
 import { parsePageParam, parseLimitParam, getPaginationRange, calculatePaginationMeta } from '@/lib/pagination';
 import { getFooterContactSettings } from '@/lib/contact';
 import { getCustomAdsSettings } from '@/lib/ads';
+import { getNavbarSettings } from '@/lib/navbar';
 import { ClassicEditorialTemplate } from '@/components/templates/ClassicEditorialTemplate';
 import { ModernMagazineTemplate } from '@/components/templates/ModernMagazineTemplate';
 import { MinimalFocusTemplate } from '@/components/templates/MinimalFocusTemplate';
@@ -90,6 +91,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
   // 4. Fetch Footer & Bureau Contact Settings from database
   const contactSettings = await getFooterContactSettings(supabase);
   const adsSettings = await getCustomAdsSettings(supabase);
+  const navbarSettings = await getNavbarSettings(supabase);
 
   // 5. Fetch Trending Articles (bounded to recent 30-day window)
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -128,6 +130,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     contactSettings,
     paginationMeta,
     adsSettings,
+    navbarSettings,
   };
 
   const currentTemplateDef = getTemplateDefinition(activeTemplateId);

@@ -92,6 +92,14 @@ export function Sidebar({
           roles: ['owner', 'superadmin', 'admin'],
         },
         {
+          name: 'Header & Navigation',
+          href: '/settings/navbar',
+          icon: '🧭',
+          roles: ['owner', 'superadmin', 'admin', 'editor'],
+          badge: 'Live',
+          badgeColor: 'bg-cyan-500/20 border-cyan-500/40 text-cyan-300 font-semibold',
+        },
+        {
           name: 'Footer & Bureaus',
           href: '/settings/footer',
           icon: '📑',
