@@ -119,6 +119,10 @@ export const NEWS_CATEGORIES: Record<string, { name: string; description: string
   investigation: { name: 'Investigation', description: 'In-depth investigative journalism and accountability reporting.' },
   opinion: { name: 'Opinion', description: 'Editorials, columns, and analytical perspectives.' },
   general: { name: 'General', description: 'General regional news and public interest bulletins.' },
+  international: { name: 'International', description: 'Global developments, diaspora connections, trade diplomacy, and cross-border relations.' },
+  national: { name: 'National', description: 'National affairs, inter-state trade, and pan-India developments.' },
+  health: { name: 'Health & Science', description: 'Public healthcare, medical research, clinical care, and scientific innovation.' },
+  environment: { name: 'Environment', description: 'Ecology, climate, glaciers, rivers, and environmental conservation across J&K.' },
 };
 
 export function isValidCategory(slug: string): boolean {
@@ -138,7 +142,13 @@ export function isValidRegion(slug: string): boolean {
 
 export function getCategoryDisplayName(slug: string): string {
   const normalized = slug.toLowerCase().trim();
-  return NEWS_CATEGORIES[normalized]?.name || slug.charAt(0).toUpperCase() + slug.slice(1);
+  if (NEWS_CATEGORIES[normalized]?.name) {
+    return NEWS_CATEGORIES[normalized].name;
+  }
+  return normalized
+    .split('-')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 }
 
 export function getDistrictDisplayName(slug: string): string {

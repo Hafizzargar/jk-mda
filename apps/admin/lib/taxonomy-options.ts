@@ -13,6 +13,7 @@ export const CATEGORY_OPTIONS: CategoryOption[] = [
   { value: 'Sports', label: 'Sports — Athletics & Youth Affairs', description: 'Tournaments, mountain marathons, cricket, and youth sports' },
   { value: 'Education', label: 'Education — Universities & Schools', description: 'Colleges, research patents, literacy, and student affairs' },
   { value: 'Opinion', label: 'Opinion — Columns & Editorials', description: 'Guest essays, expert analysis, and editorial board stances' },
+  { value: 'International', label: 'International — Global & Diaspora Relations', description: 'Global developments, diaspora connections, trade diplomacy, and cross-border relations' },
   { value: 'General', label: 'General — Regional News Bulletins', description: 'General interest dispatches and public announcements' },
 ];
 
