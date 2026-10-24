@@ -164,16 +164,16 @@ export function Sidebar({
       : 'KJ';
 
   const sidebarContent = (
-    <div className="flex h-full flex-col bg-white border-r border-slate-200 text-slate-800 overflow-hidden shadow-xs dark:bg-slate-950/95 dark:border-slate-800/80 dark:text-slate-200">
+    <div className="flex h-full flex-col bg-white border-r border-slate-200 text-slate-800 overflow-hidden shadow-xs dark:bg-slate-950 dark:border-slate-800 dark:text-slate-200">
       {/* Top Branding Section (Fixed) */}
       <div className="shrink-0">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800/80 bg-slate-50/50 dark:bg-slate-900/40">
+        <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-900/60">
           <Link
             href="/"
             onClick={onCloseMobile}
             className="flex items-center gap-2.5 transition-opacity hover:opacity-90"
           >
-            <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-600/30 border border-cyan-500/40 p-1 shadow-sm">
+            <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white border border-slate-200 p-1 shadow-xs dark:bg-slate-900 dark:border-slate-700">
               <Image
                 src="/kcpjln-symbol.webp"
                 alt="KJIN Symbol"
@@ -186,12 +186,12 @@ export function Sidebar({
             {!isCollapsed && (
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-black text-base tracking-wider text-slate-900 dark:text-white">KJIN</span>
-                  <span className="rounded bg-cyan-100 text-cyan-800 border border-cyan-300 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/40 px-1.5 py-0.2 text-[9px] font-mono font-bold uppercase tracking-widest">
+                  <span className="font-extrabold text-base tracking-wider text-slate-900 dark:text-white">KJIN</span>
+                  <span className="rounded bg-cyan-100 text-cyan-900 border border-cyan-300 dark:bg-cyan-900/50 dark:text-cyan-200 dark:border-cyan-700 px-1.5 py-0.2 text-[9px] font-mono font-bold uppercase tracking-widest">
                     OS
                   </span>
                 </div>
-                <p className="text-[9px] font-bold tracking-widest text-slate-500 uppercase dark:text-slate-400">
+                <p className="text-[10px] font-bold tracking-widest text-slate-600 uppercase dark:text-slate-400">
                   Newsroom Admin
                 </p>
               </div>
@@ -203,23 +203,23 @@ export function Sidebar({
             type="button"
             onClick={onToggleCollapse}
             aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className="hidden lg:flex h-6 w-6 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 hover:text-slate-900 hover:border-slate-300 dark:border-slate-700/80 dark:bg-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
+            className="hidden lg:flex h-6 w-6 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 hover:text-slate-900 hover:border-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors"
           >
-            <span className="text-[10px]">{isCollapsed ? '▶' : '◀'}</span>
+            <span className="text-[10px] font-bold">{isCollapsed ? '▶' : '◀'}</span>
           </button>
         </div>
 
         {/* Live Engine Status Mini Banner */}
         {!isCollapsed && (
-          <div className="mx-3 mt-2.5 flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50/80 px-2.5 py-1.5 text-xs dark:border-emerald-500/30 dark:bg-emerald-950/20">
-            <div className="flex items-center gap-1.5">
+          <div className="mx-3 mt-3 flex items-center justify-between rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs dark:border-emerald-600/40 dark:bg-emerald-950/30">
+            <div className="flex items-center gap-2">
               <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-600" />
               </span>
-              <span className="font-bold text-emerald-800 dark:text-emerald-300 text-[11px]">Newsdesk Active</span>
+              <span className="font-extrabold text-emerald-950 dark:text-emerald-200 text-xs">Newsdesk Active</span>
             </div>
-            <span className="text-[9px] font-mono font-bold text-emerald-700 dark:text-emerald-400/80 uppercase">v2.4</span>
+            <span className="text-[10px] font-mono font-black text-emerald-800 dark:text-emerald-300 uppercase">v2.4</span>
           </div>
         )}
       </div>
@@ -227,7 +227,7 @@ export function Sidebar({
       {/* Navigation Sections with Explicit Component Descriptions */}
       <nav
         data-sidebar-nav
-        className="flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden no-scrollbar px-3 py-2 space-y-2"
+        className="flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden no-scrollbar px-3 py-2 space-y-3"
       >
         {navSections.map((section) => {
           const filteredItems = section.items.filter((item) => {
@@ -240,7 +240,7 @@ export function Sidebar({
           return (
             <div key={section.title} className="space-y-1">
               {!isCollapsed && (
-                <p className="px-2.5 text-[9px] font-extrabold uppercase tracking-widest text-slate-400 font-mono">
+                <p className="px-2.5 pt-2 text-[11px] font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono">
                   {section.title}
                 </p>
               )}
@@ -254,31 +254,31 @@ export function Sidebar({
                       href={item.href}
                       onClick={onCloseMobile}
                       title={isCollapsed ? `${item.name} — ${item.description}` : undefined}
-                      className={`group flex items-start gap-2.5 rounded-xl px-2.5 py-1.5 text-xs transition-all ${
+                      className={`group flex items-start gap-2.5 rounded-xl px-2.5 py-2 text-xs transition-all ${
                         active
-                          ? 'bg-cyan-50/90 text-cyan-950 border-l-4 border-cyan-600 font-bold shadow-2xs dark:bg-cyan-500/20 dark:text-white dark:border-cyan-400'
-                          : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 border-l-4 border-transparent dark:text-slate-300 dark:hover:bg-slate-900/80 dark:hover:text-white'
+                          ? 'bg-cyan-100/80 text-cyan-950 border-l-4 border-cyan-600 font-extrabold shadow-xs ring-1 ring-cyan-200/60 dark:bg-cyan-950/60 dark:text-cyan-100 dark:border-cyan-400 dark:ring-cyan-600/30'
+                          : 'text-slate-800 hover:bg-slate-100 hover:text-slate-950 border-l-4 border-transparent dark:text-slate-300 dark:hover:bg-slate-900/90 dark:hover:text-white'
                       }`}
                     >
-                      <span className={`text-base shrink-0 mt-0.5 transition-transform group-hover:scale-110 ${active ? 'scale-110' : ''}`}>
+                      <span className={`text-lg shrink-0 mt-0.5 transition-transform group-hover:scale-110 ${active ? 'scale-110' : ''}`}>
                         {item.icon}
                       </span>
                       {!isCollapsed && (
                         <div className="flex flex-1 flex-col overflow-hidden min-w-0">
                           <div className="flex items-center justify-between">
-                            <span className="truncate font-semibold text-slate-900 dark:text-white">
+                            <span className={`truncate font-bold ${active ? 'text-cyan-950 dark:text-cyan-100' : 'text-slate-900 dark:text-white'}`}>
                               {item.name}
                             </span>
                             {item.badge && (
                               <span
-                                className={`ml-1.5 shrink-0 rounded-full border px-1.5 py-0.2 text-[9px] font-bold tracking-wide ${item.badgeColor}`}
+                                className={`ml-1.5 shrink-0 rounded-md border px-1.5 py-0.2 text-[9px] font-bold tracking-wide ${item.badgeColor}`}
                               >
                                 {item.badge}
                               </span>
                             )}
                           </div>
                           {/* Component explanation subtitle */}
-                          <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5 font-normal">
+                          <p className={`text-[11px] truncate mt-0.5 font-medium leading-tight ${active ? 'text-cyan-900/80 dark:text-cyan-300/80' : 'text-slate-600 dark:text-slate-400'}`}>
                             {item.description}
                           </p>
                         </div>
@@ -292,9 +292,9 @@ export function Sidebar({
         })}
 
         {/* Quick Reader Portal Link with Description */}
-        <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80">
+        <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
           {!isCollapsed && (
-            <p className="px-2.5 text-[9px] font-extrabold uppercase tracking-widest text-slate-400 font-mono">
+            <p className="px-2.5 text-[11px] font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono">
               Reader Website
             </p>
           )}
@@ -303,16 +303,16 @@ export function Sidebar({
             target="_blank"
             rel="noopener noreferrer"
             title={isCollapsed ? 'View Live Public Site (localhost:3000)' : undefined}
-            className="group mt-1 flex items-start gap-2.5 rounded-xl px-2.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 hover:text-cyan-800 dark:text-slate-300 dark:hover:bg-slate-900/80 dark:hover:text-cyan-300 transition-all border-l-4 border-transparent"
+            className="group mt-1 flex items-start gap-2.5 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-800 hover:bg-slate-100 hover:text-cyan-900 dark:text-slate-300 dark:hover:bg-slate-900/80 dark:hover:text-cyan-300 transition-all border-l-4 border-transparent"
           >
-            <span className="text-base shrink-0 mt-0.5 group-hover:scale-110 transition-transform">🌐</span>
+            <span className="text-lg shrink-0 mt-0.5 group-hover:scale-110 transition-transform">🌐</span>
             {!isCollapsed && (
               <div className="flex flex-1 flex-col overflow-hidden min-w-0">
                 <div className="flex items-center justify-between">
-                  <span className="truncate font-semibold text-slate-900 dark:text-white">Public Site</span>
-                  <span className="text-[11px] text-slate-400 group-hover:text-cyan-600 dark:group-hover:text-cyan-300">↗</span>
+                  <span className="truncate font-bold text-slate-900 dark:text-white">Public Site</span>
+                  <span className="text-xs text-slate-500 group-hover:text-cyan-700 dark:group-hover:text-cyan-300 font-bold">↗</span>
                 </div>
-                <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 truncate mt-0.5 font-medium">
                   Open live reader site (port 3000)
                 </p>
               </div>
@@ -322,9 +322,9 @@ export function Sidebar({
       </nav>
 
       {/* Bottom User Profile Section */}
-      <div className="shrink-0 border-t border-slate-100 dark:border-slate-800/80 p-2.5 bg-slate-50/70 dark:bg-slate-950/90">
+      <div className="shrink-0 border-t border-slate-200 dark:border-slate-800 p-2.5 bg-slate-50/80 dark:bg-slate-900/60">
         <div
-          className={`flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-2xs dark:border-slate-800 dark:bg-slate-900/60 transition-all ${
+          className={`flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-xs dark:border-slate-800 dark:bg-slate-900 transition-all ${
             isCollapsed ? 'justify-center p-2' : ''
           }`}
         >
@@ -333,7 +333,7 @@ export function Sidebar({
             href="/profile"
             onClick={onCloseMobile}
             title="My Profile & Author Settings"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-600 to-blue-700 text-xs font-bold text-white shadow-sm hover:scale-105 transition-transform"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-600 to-blue-700 text-xs font-black text-white shadow-xs hover:scale-105 transition-transform"
           >
             {userInitials}
           </Link>
@@ -349,8 +349,8 @@ export function Sidebar({
                 {userEmail || 'Editor Session'}
               </p>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                <span className="truncate text-[10px] font-mono font-semibold text-cyan-800 dark:text-cyan-300 capitalize group-hover:underline">
+                <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-emerald-200 dark:ring-emerald-900" />
+                <span className="truncate text-[11px] font-mono font-bold text-cyan-800 dark:text-cyan-300 capitalize group-hover:underline">
                   {userRole || 'Editor'} • Edit
                 </span>
               </div>
@@ -363,7 +363,7 @@ export function Sidebar({
               href="/profile"
               onClick={onCloseMobile}
               title="Edit Profile & Author Name"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:border-cyan-400 hover:bg-cyan-50 hover:text-cyan-800 dark:border-slate-700 dark:text-slate-400 dark:hover:border-cyan-500/50 dark:hover:bg-cyan-500/10 dark:hover:text-cyan-300 transition-colors"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-slate-50 text-slate-700 hover:border-cyan-500 hover:bg-cyan-50 hover:text-cyan-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-cyan-500/50 dark:hover:bg-cyan-500/10 dark:hover:text-cyan-300 transition-colors"
             >
               <span className="text-xs">⚙️</span>
             </Link>
@@ -376,7 +376,7 @@ export function Sidebar({
             disabled={loggingOut}
             title="Sign out of newsroom"
             aria-label="Sign out"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-200 text-slate-500 hover:border-red-400 hover:bg-red-50 hover:text-red-700 dark:border-slate-700 dark:text-slate-400 dark:hover:border-red-500/50 dark:hover:bg-red-500/10 dark:hover:text-red-400 transition-colors"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-slate-50 text-slate-700 hover:border-red-400 hover:bg-red-50 hover:text-red-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-red-500/50 dark:hover:bg-red-500/10 dark:hover:text-red-400 transition-colors"
           >
             <span className="text-sm">{loggingOut ? '⏳' : '🚪'}</span>
           </button>

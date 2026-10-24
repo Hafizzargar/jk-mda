@@ -48,6 +48,11 @@ export function AdminShell({ children }: AdminShellProps) {
     const initialTheme = savedTheme === 'dark' ? 'dark' : 'light';
     setTheme(initialTheme);
     document.documentElement.setAttribute('data-theme', initialTheme);
+    if (initialTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
 
     const savedBlocker = localStorage.getItem('kjin_admin_blocker_active');
     if (savedBlocker === 'true') {
@@ -66,6 +71,11 @@ export function AdminShell({ children }: AdminShellProps) {
       const next = prev === 'light' ? 'dark' : 'light';
       localStorage.setItem('kjin_admin_theme', next);
       document.documentElement.setAttribute('data-theme', next);
+      if (next === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
       return next;
     });
   };

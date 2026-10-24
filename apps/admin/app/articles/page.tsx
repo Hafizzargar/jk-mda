@@ -286,26 +286,26 @@ function ArticlesPageContent() {
   return (
     <div className="p-6 md:p-8">
       <div className="mx-auto max-w-7xl">
-        <header className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-slate-800 pb-5">
+        <header className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-mono uppercase tracking-widest text-cyan-400">Editorial Desk</span>
-              <span className="text-slate-600">•</span>
-              <span className="text-xs text-slate-400">Topic Architecture</span>
+              <span className="text-xs font-mono font-bold uppercase tracking-widest text-cyan-800 dark:text-cyan-400">Editorial Desk</span>
+              <span className="text-slate-400 dark:text-slate-600 font-bold">•</span>
+              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Topic Architecture</span>
             </div>
-            <h1 className="text-3xl font-bold tracking-tight text-white">Articles &amp; Newsroom Desks</h1>
-            <p className="mt-1 text-sm text-slate-400">Full editorial CRUD management with dedicated News, Civic Area Problems, and Investigative Desks</p>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">Articles &amp; Newsroom Desks</h1>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400 font-medium">Full editorial CRUD management with dedicated News, Civic Area Problems, and Investigative Desks</p>
           </div>
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => void loadArticles()}
-              className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold hover:border-cyan-500"
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800 hover:border-cyan-500 hover:bg-slate-50 shadow-xs dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
             >
               Refresh
             </button>
             {can('article.create') ? (
-              <Link href="/articles/new" className="rounded-lg bg-cyan-400 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-cyan-300 shadow-md shadow-cyan-950/40">
+              <Link href="/articles/new" className="rounded-xl bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-sm font-extrabold text-white hover:from-cyan-500 hover:to-sky-500 shadow-xs">
                 + New story
               </Link>
             ) : null}
@@ -313,7 +313,7 @@ function ArticlesPageContent() {
         </header>
 
         {/* Primary Newsroom Topic Tabs */}
-        <div className="mb-6 rounded-2xl border border-slate-800 bg-slate-900/70 p-2 shadow-xl backdrop-blur-md">
+        <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-2 shadow-xs dark:border-slate-800 dark:bg-slate-900/70">
           <div className="flex flex-wrap items-center gap-2">
             <button
               type="button"
@@ -324,14 +324,14 @@ function ArticlesPageContent() {
               }}
               className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all ${
                 topicFilter === 'news'
-                  ? 'bg-gradient-to-r from-cyan-500/25 via-sky-500/20 to-transparent text-white border border-cyan-400/50 shadow-md shadow-cyan-950/60'
-                  : 'border border-transparent text-slate-400 hover:bg-slate-800 hover:text-white'
+                  ? 'bg-cyan-100 text-cyan-950 border border-cyan-300 font-black shadow-xs dark:bg-cyan-950/60 dark:text-cyan-200 dark:border-cyan-600'
+                  : 'border border-transparent text-slate-700 hover:bg-slate-100 hover:text-slate-950 font-bold dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white'
               }`}
             >
               <span className="text-base">📰</span>
               <span>News &amp; Reports</span>
-              <span className={`ml-1 rounded-full px-2 py-0.5 text-[10px] font-mono ${
-                topicFilter === 'news' ? 'bg-cyan-400 text-slate-950 font-black' : 'bg-slate-800 text-slate-400'
+              <span className={`ml-1 rounded-full px-2 py-0.5 text-[10px] font-mono font-bold ${
+                topicFilter === 'news' ? 'bg-cyan-700 text-white' : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
               }`}>
                 Default Topic
               </span>
@@ -346,14 +346,14 @@ function ArticlesPageContent() {
               }}
               className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all ${
                 topicFilter === 'civic'
-                  ? 'bg-gradient-to-r from-amber-500/25 via-orange-500/20 to-transparent text-amber-200 border border-amber-400/50 shadow-md shadow-amber-950/60'
-                  : 'border border-transparent text-slate-400 hover:bg-slate-800 hover:text-white'
+                  ? 'bg-amber-100 text-amber-950 border border-amber-300 font-black shadow-xs dark:bg-amber-950/60 dark:text-amber-200 dark:border-amber-600'
+                  : 'border border-transparent text-slate-700 hover:bg-slate-100 hover:text-slate-950 font-bold dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white'
               }`}
             >
               <span className="text-base">🏛️</span>
               <span>Civic &amp; Area Problems</span>
-              <span className={`ml-1 rounded-full px-2 py-0.5 text-[10px] font-mono ${
-                topicFilter === 'civic' ? 'bg-amber-400 text-slate-950 font-black' : 'bg-slate-800 text-slate-400'
+              <span className={`ml-1 rounded-full px-2 py-0.5 text-[10px] font-mono font-bold ${
+                topicFilter === 'civic' ? 'bg-amber-700 text-white' : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
               }`}>
                 Ground Issues
               </span>
@@ -368,14 +368,14 @@ function ArticlesPageContent() {
               }}
               className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all ${
                 topicFilter === 'all'
-                  ? 'bg-gradient-to-r from-slate-700/50 to-slate-800/50 text-white border border-slate-600/70 shadow-md'
-                  : 'border border-transparent text-slate-400 hover:bg-slate-800 hover:text-white'
+                  ? 'bg-slate-100 text-slate-950 border border-slate-300 font-black shadow-xs dark:bg-slate-800 dark:text-white'
+                  : 'border border-transparent text-slate-700 hover:bg-slate-100 hover:text-slate-950 font-bold dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white'
               }`}
             >
               <span className="text-base">📂</span>
               <span>All Articles &amp; Desks</span>
-              <span className={`ml-1 rounded-full px-2 py-0.5 text-[10px] font-mono ${
-                topicFilter === 'all' ? 'bg-slate-200 text-slate-950 font-black' : 'bg-slate-800 text-slate-400'
+              <span className={`ml-1 rounded-full px-2 py-0.5 text-[10px] font-mono font-bold ${
+                topicFilter === 'all' ? 'bg-slate-800 text-white' : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
               }`}>
                 Archive ({totalCount})
               </span>
@@ -387,24 +387,24 @@ function ArticlesPageContent() {
         {feedback && (
           <div
             role="status"
-            className={`mb-6 flex items-center justify-between rounded-xl border p-4 shadow-lg ${
+            className={`mb-6 flex items-center justify-between rounded-xl border p-4 shadow-sm ${
               feedback.type === 'success'
-                ? 'border-emerald-500/50 bg-emerald-950/60 text-emerald-200'
-                : 'border-red-500/50 bg-red-950/60 text-red-200'
+                ? 'border-emerald-300 bg-emerald-50 text-emerald-950 dark:border-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-200'
+                : 'border-red-300 bg-red-50 text-red-950 dark:border-red-700 dark:bg-red-950/60 dark:text-red-200'
             }`}
           >
             <div className="flex items-center gap-3">
               <span className={`flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold ${
-                feedback.type === 'success' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-300'
+                feedback.type === 'success' ? 'bg-emerald-200 text-emerald-900' : 'bg-red-200 text-red-900'
               }`}>
                 {feedback.type === 'success' ? '✓' : '!'}
               </span>
-              <p className="font-medium text-sm">{feedback.message}</p>
+              <p className="font-bold text-sm">{feedback.message}</p>
             </div>
             <button
               type="button"
               onClick={() => setFeedback(null)}
-              className="rounded px-2 py-1 text-xs font-semibold uppercase tracking-wider text-slate-400 hover:text-white"
+              className="rounded px-2 py-1 text-xs font-bold uppercase tracking-wider text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
             >
               Dismiss
             </button>
@@ -413,17 +413,17 @@ function ArticlesPageContent() {
 
         {/* Quick Filter Presets */}
         <div className="mb-4 flex flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 mr-1">Quick Status:</span>
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mr-1">Quick Status:</span>
           <button
             type="button"
             onClick={() => {
               setStatusFilter('all');
               setPage(1);
             }}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition ${
+            className={`rounded-full px-3.5 py-1 text-xs font-bold transition shadow-2xs ${
               statusFilter === 'all'
-                ? 'bg-cyan-500 text-slate-950 font-bold'
-                : 'border border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-500'
+                ? 'bg-slate-900 text-white'
+                : 'border border-slate-300 bg-white text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300'
             }`}
           >
             All Statuses
@@ -434,13 +434,13 @@ function ArticlesPageContent() {
               setStatusFilter('published');
               setPage(1);
             }}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition flex items-center gap-1.5 ${
+            className={`rounded-full px-3.5 py-1 text-xs font-bold transition flex items-center gap-1.5 shadow-2xs ${
               statusFilter === 'published'
-                ? 'bg-emerald-400 text-slate-950 font-bold'
-                : 'border border-emerald-500/40 bg-emerald-500/10 text-emerald-200 hover:bg-emerald-500/20'
+                ? 'bg-emerald-600 text-white'
+                : 'border border-emerald-300 bg-emerald-50 text-emerald-950 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300'
             }`}
           >
-            <span className="h-2 w-2 rounded-full bg-emerald-400" />
+            <span className="h-2 w-2 rounded-full bg-emerald-500" />
             Live Published
           </button>
           <button
@@ -449,10 +449,10 @@ function ArticlesPageContent() {
               setStatusFilter('review');
               setPage(1);
             }}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition flex items-center gap-1.5 ${
+            className={`rounded-full px-3.5 py-1 text-xs font-bold transition flex items-center gap-1.5 shadow-2xs ${
               statusFilter === 'review'
-                ? 'bg-amber-400 text-slate-950 font-bold'
-                : 'border border-amber-500/40 bg-amber-500/10 text-amber-200 hover:bg-amber-500/20'
+                ? 'bg-amber-500 text-white'
+                : 'border border-amber-300 bg-amber-50 text-amber-950 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-300'
             }`}
           >
             <span>⏳</span>
@@ -464,10 +464,10 @@ function ArticlesPageContent() {
               setStatusFilter('archived');
               setPage(1);
             }}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition flex items-center gap-1.5 ${
+            className={`rounded-full px-3.5 py-1 text-xs font-bold transition flex items-center gap-1.5 shadow-2xs ${
               statusFilter === 'archived'
-                ? 'bg-red-500 text-white font-bold'
-                : 'border border-red-500/40 bg-red-500/10 text-red-200 hover:bg-red-500/20'
+                ? 'bg-red-600 text-white'
+                : 'border border-red-300 bg-red-50 text-red-950 hover:bg-red-100 dark:border-red-700 dark:bg-red-950/30 dark:text-red-300'
             }`}
           >
             <span>🚫</span>
@@ -476,24 +476,24 @@ function ArticlesPageContent() {
         </div>
 
         {/* Detailed Search & Filters */}
-        <section className="mb-6 rounded-xl border border-slate-800 bg-slate-900 p-5">
+        <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <label className="block text-xs font-medium uppercase text-slate-400">Search</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Search</label>
               <input 
                 type="text" 
                 placeholder="Title or slug keywords..." 
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none"
+                className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 font-medium placeholder-slate-400 focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium uppercase text-slate-400">Status</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Status</label>
               <select 
                 value={statusFilter}
                 onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-cyan-500 focus:outline-none"
+                className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 font-semibold focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               >
                 <option value="all">All Statuses</option>
                 <option value="draft">Draft</option>
@@ -503,13 +503,13 @@ function ArticlesPageContent() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium uppercase text-slate-400">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                 {topicFilter === 'news' ? 'News Beat / Category' : topicFilter === 'civic' ? 'Civic Category' : 'Category / Desk'}
               </label>
               <select 
                 value={categoryFilter}
                 onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
-                className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-cyan-500 focus:outline-none"
+                className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 font-semibold focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               >
                 {topicFilter === 'civic' ? (
                   <option value="Local">Local — Civic Issues &amp; Ground Reporting</option>
@@ -528,11 +528,11 @@ function ArticlesPageContent() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium uppercase text-slate-400">District / Coverage Area</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">District / Coverage Area</label>
               <select 
                 value={districtFilter}
                 onChange={(e) => { setDistrictFilter(e.target.value); setPage(1); }}
-                className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-cyan-500 focus:outline-none"
+                className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 font-semibold focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               >
                 <option value="all">All Districts</option>
                 {DISTRICT_GROUPS.map((group) => (
@@ -550,32 +550,32 @@ function ArticlesPageContent() {
         </section>
 
         {/* Table Area */}
-        <section className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900 shadow-xl">
+        <section className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900">
           {error ? (
-            <div className="m-4 rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">
+            <div className="m-4 rounded-xl border border-red-300 bg-red-50 p-4 text-sm font-bold text-red-900 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200">
               Error loading articles: {error}
             </div>
           ) : null}
 
           <table className="w-full min-w-[860px] border-collapse text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-800 text-xs uppercase text-slate-400 bg-slate-950/40">
-                <th className="px-5 py-4 font-semibold">Article</th>
-                <th className="px-5 py-4 font-semibold">Status / Public State</th>
-                <th className="px-5 py-4 font-semibold">Author</th>
-                <th className="px-5 py-4 font-semibold">Last updated</th>
-                <th className="px-5 py-4 font-semibold">Actions</th>
+              <tr className="border-b border-slate-200 bg-slate-100 text-xs uppercase text-slate-700 dark:border-slate-800 dark:bg-slate-800/80 dark:text-slate-300">
+                <th className="px-5 py-4 font-extrabold tracking-wider">Article</th>
+                <th className="px-5 py-4 font-extrabold tracking-wider">Status / Public State</th>
+                <th className="px-5 py-4 font-extrabold tracking-wider">Author</th>
+                <th className="px-5 py-4 font-extrabold tracking-wider">Last updated</th>
+                <th className="px-5 py-4 font-extrabold tracking-wider">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800">
+            <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
               {isLoading ? (
-                <tr><td colSpan={5} className="px-5 py-12 text-center text-slate-400">Loading articles...</td></tr>
+                <tr><td colSpan={5} className="px-5 py-12 text-center text-slate-600 font-bold dark:text-slate-400">Loading articles...</td></tr>
               ) : articles.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-5 py-12 text-center text-slate-400">
+                  <td colSpan={5} className="px-5 py-12 text-center text-slate-600 font-bold dark:text-slate-400">
                     No articles found matching filters.
                     {categoryFilter === 'Local' ? (
-                      <p className="mt-2 text-xs text-amber-300">
+                      <p className="mt-2 text-xs text-amber-700 dark:text-amber-300 font-bold">
                         No articles under &quot;Local — Civic Issues &amp; Ground Reporting&quot; found. You can create one with the New Article button above.
                       </p>
                     ) : null}
@@ -584,10 +584,10 @@ function ArticlesPageContent() {
               ) : (
                 articles.map((article) => {
                   const tagClass =
-                    article.status === 'review' ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-                    : article.status === 'published' ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-                    : article.status === 'archived' ? 'bg-red-500/15 text-red-300 border-red-500/40 font-semibold'
-                    : 'bg-slate-800 text-slate-300 border-slate-700';
+                    article.status === 'review' ? 'bg-amber-50 text-amber-950 border-amber-300 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-700'
+                    : article.status === 'published' ? 'bg-emerald-50 text-emerald-950 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-200 dark:border-emerald-700'
+                    : article.status === 'archived' ? 'bg-red-50 text-red-950 border-red-300 font-bold dark:bg-red-950/40 dark:text-red-200 dark:border-red-700'
+                    : 'bg-slate-100 text-slate-900 border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700';
 
                   const isOwnDraft = article.author_id === userId && ['draft', 'review'].includes(article.status);
                   const canEdit =
@@ -598,49 +598,49 @@ function ArticlesPageContent() {
                   const canDelete = can('article.delete') || can('article.archive');
 
                   return (
-                    <tr key={article.id} className="align-top hover:bg-slate-800/20 transition-colors">
+                    <tr key={article.id} className="align-top hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
                       <td className="px-5 py-5">
-                        <Link href={`/articles/${article.id}`} className="font-medium text-white hover:text-cyan-400">
+                        <Link href={`/articles/${article.id}`} className="font-bold text-slate-900 hover:text-cyan-700 text-base leading-snug dark:text-white dark:hover:text-cyan-300 transition-colors">
                           {article.title}
                         </Link>
-                        <p className="mt-1 text-xs text-slate-500 font-mono truncate max-w-sm">{article.slug}</p>
-                        <div className="mt-2 flex items-center gap-2 text-xs text-slate-400">
+                        <p className="mt-1 text-xs text-slate-600 font-mono font-medium truncate max-w-sm dark:text-slate-400">{article.slug}</p>
+                        <div className="mt-2 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
                           {article.category ? (
-                            <span className="rounded bg-slate-800 px-2 py-0.5 font-medium text-slate-300">
+                            <span className="rounded-md bg-slate-100 border border-slate-300 px-2 py-0.5 font-bold text-slate-800 text-xs dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200">
                               {article.category}
                             </span>
                           ) : null}
                           {article.district ? (
-                            <span className="capitalize text-slate-400">📍 {article.district}</span>
+                            <span className="capitalize font-semibold text-slate-700 dark:text-slate-300">📍 {article.district}</span>
                           ) : null}
                         </div>
                       </td>
                       <td className="px-5 py-5">
-                        <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium capitalize ${tagClass}`}>
-                          <span className={`h-1.5 w-1.5 rounded-full ${
-                            article.status === 'published' ? 'bg-emerald-400' :
-                            article.status === 'archived' ? 'bg-red-400' :
-                            article.status === 'review' ? 'bg-amber-400' : 'bg-slate-400'
+                        <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold capitalize ${tagClass}`}>
+                          <span className={`h-2 w-2 rounded-full ${
+                            article.status === 'published' ? 'bg-emerald-500' :
+                            article.status === 'archived' ? 'bg-red-500' :
+                            article.status === 'review' ? 'bg-amber-500' : 'bg-slate-500'
                           }`} />
                           {article.status === 'archived' ? 'Inactive / Retracted' :
                            article.status === 'published' ? 'Live Published' :
                            article.status === 'review' ? 'In Review' : 'Draft'}
                         </span>
                         {article.status === 'archived' && article.archive_reason ? (
-                          <p className="mt-1.5 max-w-xs text-[11px] text-red-300/80 italic line-clamp-2" title={article.archive_reason}>
+                          <p className="mt-1.5 max-w-xs text-[11px] text-red-700 dark:text-red-300 italic line-clamp-2 font-medium" title={article.archive_reason}>
                             Reason: {article.archive_reason}
                           </p>
                         ) : null}
                       </td>
-                      <td className="px-5 py-5 text-slate-300">{article.author_display_name}</td>
-                      <td className="whitespace-nowrap px-5 py-5 text-slate-400">
+                      <td className="px-5 py-5 text-slate-900 font-bold text-sm dark:text-slate-200">{article.author_display_name}</td>
+                      <td className="whitespace-nowrap px-5 py-5 text-slate-700 font-semibold text-xs dark:text-slate-300">
                         {new Date(article.updated_at).toLocaleDateString()}
                       </td>
                       <td className="px-5 py-5">
                         <div className="flex flex-wrap items-center gap-2">
                           <Link 
                             href={`/articles/${article.id}`} 
-                            className="rounded-md border border-slate-700 px-2.5 py-1 text-xs font-semibold hover:border-slate-500 hover:text-white transition"
+                            className="rounded-lg border border-slate-300 bg-white px-3 py-1 text-xs font-bold text-slate-800 hover:border-slate-400 hover:bg-slate-100 shadow-2xs dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 transition"
                           >
                             View
                           </Link>
@@ -649,7 +649,7 @@ function ArticlesPageContent() {
                           {canEdit ? (
                             <Link 
                               href={`/articles/${article.id}/edit`} 
-                              className="rounded-md border border-cyan-500/40 bg-cyan-500/10 px-2.5 py-1 text-xs font-semibold text-cyan-200 hover:bg-cyan-500/20 transition"
+                              className="rounded-lg border border-cyan-400 bg-cyan-50 px-3 py-1 text-xs font-bold text-cyan-950 hover:bg-cyan-100 shadow-2xs dark:border-cyan-600 dark:bg-cyan-950/40 dark:text-cyan-200 transition"
                             >
                               Edit
                             </Link>
@@ -664,7 +664,7 @@ function ArticlesPageContent() {
                                 setRetractionPreset(RETRACTION_REASON_PRESETS[0]);
                                 setRetractionNotes('');
                               }}
-                              className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1 text-xs font-semibold text-amber-200 hover:bg-amber-500/20 transition flex items-center gap-1"
+                              className="rounded-lg border border-amber-400 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-950 hover:bg-amber-100 shadow-2xs dark:border-amber-600 dark:bg-amber-950/40 dark:text-amber-200 transition flex items-center gap-1"
                               title="Immediately pull this article offline from the website"
                             >
                               <span>🚫</span> Inactivate
@@ -677,7 +677,7 @@ function ArticlesPageContent() {
                               type="button"
                               disabled={isSubmitting}
                               onClick={() => handleReactivate(article)}
-                              className="rounded-md bg-emerald-500 px-2.5 py-1 text-xs font-semibold text-slate-950 hover:bg-emerald-400 transition flex items-center gap-1 shadow-sm"
+                              className="rounded-lg border border-emerald-400 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-950 hover:bg-emerald-100 transition flex items-center gap-1 shadow-2xs dark:border-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-200"
                               title="Reactivate this article and publish it live on the site"
                             >
                               <span>✨</span> Reactivate
@@ -688,7 +688,7 @@ function ArticlesPageContent() {
                           {article.status === 'review' && can('article.review') ? (
                             <Link 
                               href={`/articles/${article.id}/review`} 
-                              className="rounded-md bg-amber-500/20 px-2.5 py-1 text-xs font-semibold text-amber-300 hover:bg-amber-500/30 transition"
+                              className="rounded-lg border border-amber-400 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-950 hover:bg-amber-100 transition shadow-2xs dark:border-amber-600 dark:bg-amber-950/40 dark:text-amber-200"
                             >
                               Review
                             </Link>
@@ -702,7 +702,7 @@ function ArticlesPageContent() {
                                 setDeleteArticle(article);
                                 setConfirmDeleteInput('');
                               }}
-                              className="rounded-md border border-red-500/40 bg-red-950/30 px-2.5 py-1 text-xs font-semibold text-red-300 hover:bg-red-900/50 hover:text-white transition flex items-center gap-1"
+                              className="rounded-lg border border-red-300 bg-red-50 px-3 py-1 text-xs font-bold text-red-800 hover:bg-red-100 transition flex items-center gap-1 shadow-2xs dark:border-red-600 dark:bg-red-950/40 dark:text-red-300"
                               title="Permanently purge article from database"
                             >
                               <span>🗑️</span> Delete
@@ -719,22 +719,22 @@ function ArticlesPageContent() {
           
           {/* Pagination */}
           {!isLoading && totalCount > 0 ? (
-            <div className="flex items-center justify-between border-t border-slate-800 bg-slate-950/40 px-5 py-4">
-              <p className="text-sm text-slate-400">
-                Showing <span className="font-medium text-slate-200">{(page - 1) * PAGE_SIZE + 1}</span> to <span className="font-medium text-slate-200">{Math.min(page * PAGE_SIZE, totalCount)}</span> of <span className="font-medium text-slate-200">{totalCount}</span>
+            <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50/80 px-5 py-4 dark:border-slate-800 dark:bg-slate-950/40">
+              <p className="text-sm font-medium text-slate-700 dark:text-slate-400">
+                Showing <span className="font-bold text-slate-900 dark:text-slate-200">{(page - 1) * PAGE_SIZE + 1}</span> to <span className="font-bold text-slate-900 dark:text-slate-200">{Math.min(page * PAGE_SIZE, totalCount)}</span> of <span className="font-bold text-slate-900 dark:text-slate-200">{totalCount}</span>
               </p>
               <div className="flex gap-2">
                 <button 
                   disabled={page === 1}
                   onClick={() => setPage(p => p - 1)}
-                  className="rounded-md border border-slate-700 px-3 py-1.5 text-sm hover:border-slate-500 hover:text-white disabled:opacity-50 disabled:hover:border-slate-700 disabled:hover:text-slate-400 transition"
+                  className="rounded-lg border border-slate-300 bg-white px-3.5 py-1.5 text-sm font-bold text-slate-800 hover:border-slate-400 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 transition"
                 >
                   Previous
                 </button>
                 <button 
                   disabled={page * PAGE_SIZE >= totalCount}
                   onClick={() => setPage(p => p + 1)}
-                  className="rounded-md border border-slate-700 px-3 py-1.5 text-sm hover:border-slate-500 hover:text-white disabled:opacity-50 disabled:hover:border-slate-700 disabled:hover:text-slate-400 transition"
+                  className="rounded-lg border border-slate-300 bg-white px-3.5 py-1.5 text-sm font-bold text-slate-800 hover:border-slate-400 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 transition"
                 >
                   Next
                 </button>
