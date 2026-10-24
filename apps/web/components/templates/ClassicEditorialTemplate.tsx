@@ -39,13 +39,6 @@ export function ClassicEditorialTemplate({
           <Breadcrumbs items={[{ label: 'Verified News Wire', current: true }]} lang={lang} theme={theme} />
         </div>
 
-        {/* Top Leaderboard Custom Monetization Ad */}
-        {leaderboardAd && (
-          <div className="max-w-7xl mx-auto px-4 md:px-8 mt-4">
-            <LeaderboardAd ad={leaderboardAd} />
-          </div>
-        )}
-
       {/* Main 3-Column Broadsheet Grid */}
       <div className="max-w-7xl mx-auto px-4 md:px-8 mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left / Center Column: Lead Editorial Story + Grid */}
@@ -176,12 +169,16 @@ export function ClassicEditorialTemplate({
             </ol>
           </section>
 
-          {/* Right Rail Custom Sponsor Ad */}
-          {sidebarAd && (
-            <section>
+          {/* Right Rail Sticky Custom Sponsor Ad */}
+          {sidebarAd ? (
+            <section className="sticky top-20 z-10">
               <SidebarAd ad={sidebarAd} />
             </section>
-          )}
+          ) : leaderboardAd ? (
+            <section className="sticky top-20 z-10">
+              <SidebarAd ad={leaderboardAd} />
+            </section>
+          ) : null}
 
           <section className="bg-[#f2efe9] border border-slate-300 p-6 rounded-none font-sans">
             <div className="text-xs font-bold uppercase tracking-widest text-slate-700 mb-1">KJIN Broadsheet Edition</div>

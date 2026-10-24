@@ -100,6 +100,54 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
   };
 }
 
+function markdownToHtml(raw: string): string {
+  if (!raw) return '';
+  if (/<(p|h[1-6]|div|article|section)/i.test(raw)) {
+    return raw;
+  }
+  const blocks = raw.split(/\n\s*\n/);
+  const htmlBlocks = blocks.map((block) => {
+    const trimmed = block.trim();
+    if (!trimmed) return '';
+    if (trimmed.startsWith('### ')) {
+      return `<h3>${trimmed.slice(4).trim()}</h3>`;
+    }
+    if (trimmed.startsWith('## ')) {
+      return `<h2>${trimmed.slice(3).trim()}</h2>`;
+    }
+    if (trimmed.startsWith('# ')) {
+      return `<h1>${trimmed.slice(2).trim()}</h1>`;
+    }
+    if (trimmed.startsWith('> ')) {
+      return `<blockquote>${trimmed.slice(2).trim()}</blockquote>`;
+    }
+    return `<p>${trimmed.replace(/\n/g, '<br/>')}</p>`;
+  });
+  return htmlBlocks.filter(Boolean).join('\n\n');
+}
+
+function splitContentForMidArticleAd(html: string): { before: string; after: string | null } {
+  if (!html) return { before: '', after: null };
+  const closingTag = '</p>';
+  const rawParts = html.split(closingTag);
+  const trimmedParts = rawParts.map((p) => p.trim()).filter(Boolean);
+
+  if (trimmedParts.length >= 3) {
+    const splitIdx = Math.min(2, Math.floor(trimmedParts.length / 2));
+    const before = trimmedParts.slice(0, splitIdx).map((p) => p + closingTag).join('\n\n');
+    const after = trimmedParts.slice(splitIdx).map((p) => p + closingTag).join('\n\n');
+    return { before, after };
+  }
+
+  if (trimmedParts.length === 2) {
+    const before = trimmedParts[0] + closingTag;
+    const after = trimmedParts[1] + closingTag;
+    return { before, after };
+  }
+
+  return { before: html, after: null };
+}
+
 export default async function ArticlePage({ params }: ArticlePageProps) {
   const resolvedParams = await params;
   const supabase = createServerAnonClient();
@@ -209,8 +257,9 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   }
   const trendingArticles = applyTranslations(trendingArticlesRaw || [], resolvedParams.lang);
 
-  // Sanitize article HTML using strict allowlist before rendering to prevent stored XSS
-  const sanitizedContent = sanitizeArticleHtml(displayArticle.content || '');
+  // Convert markdown blocks and sanitize article HTML using strict allowlist before rendering to prevent stored XSS
+  const rawHtml = markdownToHtml(displayArticle.content || '');
+  const sanitizedContent = sanitizeArticleHtml(rawHtml);
 
   const langPrefix = resolvedParams.lang === 'en' ? '' : `/${resolvedParams.lang}`;
   const breadcrumbs = [
@@ -363,22 +412,25 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           </figure>
         )}
 
-        <div className={`${theme.proseClass} ${theme.isDark ? 'text-slate-200' : 'text-slate-800'}`}>
-          {/* Strictly sanitized HTML rendering */}
-          <div dangerouslySetInnerHTML={{ __html: sanitizedContent }} />
-        </div>
+        {(() => {
+          const { before, after } = splitContentForMidArticleAd(sanitizedContent);
+          return (
+            <div className={`${theme.proseClass} ${theme.isDark ? 'text-slate-200' : 'text-slate-800'}`}>
+              {/* First Part of Article Content */}
+              <div dangerouslySetInnerHTML={{ __html: before }} />
 
-        {nativeAd && (
-          <div className="mt-8">
-            <InArticleAd ad={nativeAd} />
-          </div>
-        )}
+              {/* In-Article Mid-Reading Native Sponsored Dispatch */}
+              {nativeAd && (
+                <div className="my-8 not-prose">
+                  <InArticleAd ad={nativeAd} />
+                </div>
+              )}
 
-        {bottomAd && (
-          <div className="mt-10">
-            <LeaderboardAd ad={bottomAd} />
-          </div>
-        )}
+              {/* Second Part of Article Content */}
+              {after && <div dangerouslySetInnerHTML={{ __html: after }} />}
+            </div>
+          );
+        })()}
 
         {relatedArticles && relatedArticles.length > 0 && (
           <aside className={`mt-20 pt-10 border-t ${theme.borderClass}`}>
@@ -456,10 +508,10 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           </ol>
         </div>
 
-        {/* Sidebar Custom Sponsor Ad */}
-        {sidebarAd && (
-          <div>
-            <SidebarAd ad={sidebarAd} />
+        {/* Sticky Right Rail Custom Sponsor Ad - Always visible on right side */}
+        {(sidebarAd || bottomAd) && (
+          <div className="sticky top-24 z-10">
+            <SidebarAd ad={sidebarAd || bottomAd!} />
           </div>
         )}
 
