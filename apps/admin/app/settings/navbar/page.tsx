@@ -386,21 +386,140 @@ export default function NavbarSettingsPage() {
         {/* Tab 1: Brand & Logo Identity */}
         {activeTab === 'brand' && (
           <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 space-y-6">
-            <div>
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <span>🎨</span> Brand &amp; Logo Display
-              </h3>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Configure your organization name, logo visibility, and subtitle tagline.
-              </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-800">
+              <div>
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <span>🎨</span> Central Brand &amp; Identity Control Hub
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Control your brand acronym, legal company full form, official emblem, and animated loader from one unified location.
+                </p>
+              </div>
+              <span className="px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-cyan-950/60 text-cyan-300 border border-cyan-800/60 shrink-0 self-start">
+                One-Place Unified Control
+              </span>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Brand Short Name Input */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-mono uppercase text-slate-300 font-semibold flex items-center justify-between">
+                  <span>Brand / Logo Name (Acronym)</span>
+                  <span className="text-[10px] text-cyan-400 font-normal">Navbar &amp; Loader Wordmark</span>
+                </label>
+                <input
+                  type="text"
+                  value={form.brand.name}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      brand: { ...form.brand, name: e.target.value },
+                    })
+                  }
+                  placeholder="e.g. KCPL, KJIN"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white font-medium focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
+                />
+                <p className="text-[11px] text-slate-500">
+                  Short brand acronym shown in bold across the Navbar, mobile drawer, and animated page loader (e.g. KCPL).
+                </p>
+              </div>
+
+              {/* Full Organization Name Input */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-mono uppercase text-slate-300 font-semibold flex items-center justify-between">
+                  <span>Full Organization Name (Company Full Form)</span>
+                  <span className="text-[10px] text-emerald-400 font-normal">Footer &amp; Legal Only</span>
+                </label>
+                <input
+                  type="text"
+                  value={form.brand.full_name || ''}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      brand: { ...form.brand, full_name: e.target.value },
+                    })
+                  }
+                  placeholder="e.g. Kashmir Central Press & Journalistic Leadership Network"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white font-medium focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
+                />
+                <p className="text-[11px] text-slate-500">
+                  Full form displayed cleanly in the Footer and Legal Copyright — automatically excluded from crowding the Navbar.
+                </p>
+              </div>
+
+              {/* Subtitle / Tagline Input */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-mono uppercase text-slate-300 font-semibold">
+                  Subtitle / Tagline
+                </label>
+                <input
+                  type="text"
+                  value={form.brand.tagline}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      brand: { ...form.brand, tagline: e.target.value },
+                    })
+                  }
+                  placeholder="e.g. J&K Journal of Record"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white font-medium focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
+                />
+                <p className="text-[11px] text-slate-500">
+                  Brand motto underneath the logo wordmark and in the footer mission statement.
+                </p>
+              </div>
+
+              {/* Official Logo Emblem URL */}
+              <div className="space-y-1.5">
+                <label className="block text-xs font-mono uppercase text-slate-300 font-semibold flex items-center justify-between">
+                  <span>Official Logo Emblem Image Path</span>
+                  <span className="text-[10px] text-slate-400 font-normal">Navbar &amp; Loader Emblem</span>
+                </label>
+                <input
+                  type="text"
+                  value={form.brand.logo_url}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      brand: { ...form.brand, logo_url: e.target.value },
+                    })
+                  }
+                  placeholder="/kjin-emblem.png"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white font-mono text-xs focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
+                />
+                <p className="text-[11px] text-slate-500">
+                  Official circular emblem displayed in the Navbar and inside the animated page loader.
+                </p>
+              </div>
+
+              {/* Page Loader Subtitle Input */}
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="block text-xs font-mono uppercase text-slate-300 font-semibold flex items-center justify-between">
+                  <span>Page Loader Subtitle / Status Message</span>
+                  <span className="text-[10px] text-amber-400 font-normal">Animated Loader</span>
+                </label>
+                <input
+                  type="text"
+                  value={form.brand.loader_text || ''}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      brand: { ...form.brand, loader_text: e.target.value },
+                    })
+                  }
+                  placeholder="Leave blank to use Subtitle / Tagline"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white font-medium focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
+                />
+                <p className="text-[11px] text-slate-500">
+                  Custom descriptor shown beneath the spinning emblem while visitors load articles (defaults to Subtitle / Tagline).
+                </p>
+              </div>
+
               {/* Logo Emblem Switch */}
               <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/60 flex items-center justify-between">
                 <div>
                   <div className="font-semibold text-sm text-white">Show Logo Emblem Image</div>
-                  <div className="text-xs text-slate-400">Display the official circular heritage emblem icon</div>
+                  <div className="text-xs text-slate-400">Display the official circular emblem in header and loader</div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -440,46 +559,6 @@ export default function NavbarSettingsPage() {
                 </label>
               </div>
 
-              {/* Brand Name Input */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-mono uppercase text-slate-300 font-semibold">
-                  Brand / Logo Name
-                </label>
-                <input
-                  type="text"
-                  value={form.brand.name}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      brand: { ...form.brand, name: e.target.value },
-                    })
-                  }
-                  placeholder="KJIN"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white font-medium focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
-                />
-                <p className="text-[11px] text-slate-500">Displayed in bold prominent letters (e.g. KJIN)</p>
-              </div>
-
-              {/* Tagline Subtitle Input */}
-              <div className="space-y-1.5">
-                <label className="block text-xs font-mono uppercase text-slate-300 font-semibold">
-                  Subtitle / Tagline
-                </label>
-                <input
-                  type="text"
-                  value={form.brand.tagline}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      brand: { ...form.brand, tagline: e.target.value },
-                    })
-                  }
-                  placeholder="J&K Journal of Record"
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white font-medium focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
-                />
-                <p className="text-[11px] text-slate-500">Small uppercase descriptor underneath the brand name</p>
-              </div>
-
               {/* Show Tagline Switch */}
               <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/60 flex items-center justify-between md:col-span-2">
                 <div>
@@ -500,6 +579,125 @@ export default function NavbarSettingsPage() {
                   />
                   <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
                 </label>
+              </div>
+            </div>
+
+            {/* Side-by-Side Real-time Verification Preview: Navbar vs Footer vs Loader */}
+            <div className="pt-4 border-t border-slate-800">
+              <h4 className="text-xs font-mono uppercase tracking-wider text-slate-400 font-bold mb-3 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                <span>Live Synchronized Identity Previews</span>
+              </h4>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                {/* 1. Navbar View Preview */}
+                <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-4 space-y-2">
+                  <div className="flex items-center justify-between text-[11px] font-mono text-cyan-400 font-semibold">
+                    <span>1. Navbar Brand View</span>
+                    <span className="text-[10px] text-slate-500">Short Wordmark Only</span>
+                  </div>
+                  <div className="p-3 rounded-lg border border-slate-200 bg-white text-slate-900 flex items-center gap-2.5">
+                    {form.brand.show_logo_image && (
+                      <div className="relative w-8 h-8 shrink-0">
+                        <Image
+                          src={form.brand.logo_url || '/kjin-emblem.png'}
+                          alt="Brand Logo"
+                          fill
+                          className="object-contain"
+                        />
+                      </div>
+                    )}
+                    <div>
+                      {form.brand.show_name && (
+                        <div className="text-lg font-black font-serif tracking-tight leading-none text-slate-900">
+                          {form.brand.name || 'KJIN'}
+                        </div>
+                      )}
+                      {form.brand.show_tagline && (
+                        <div className="text-[8px] font-mono tracking-widest uppercase font-semibold text-slate-500 leading-tight mt-0.5">
+                          {form.brand.tagline || 'J&K Journal of Record'}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-400">
+                    &bull; Kept compact so category navigation has maximum space.
+                  </p>
+                </div>
+
+                {/* 2. Footer Identity View Preview */}
+                <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-4 space-y-2">
+                  <div className="flex items-center justify-between text-[11px] font-mono text-emerald-400 font-semibold">
+                    <span>2. Footer Identity &amp; Legal View</span>
+                    <span className="text-[10px] text-slate-500">Brand + Full Form</span>
+                  </div>
+                  <div className="p-3 rounded-lg border border-slate-200 bg-[#f4efe8] text-slate-900 space-y-1">
+                    <div className="text-lg font-black uppercase font-serif tracking-tight leading-tight text-slate-900">
+                      {form.brand.name || 'KJIN'}
+                    </div>
+                    {form.brand.full_name && (
+                      <div className="text-[10px] font-semibold text-slate-600 leading-tight">
+                        {form.brand.full_name}
+                      </div>
+                    )}
+                    <div className="text-[9px] font-mono text-slate-500 pt-1 border-t border-slate-300">
+                      &copy; 2026 {form.brand.name || 'KJIN'}{form.brand.full_name ? ` (${form.brand.full_name})` : ''}. All rights reserved.
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-400">
+                    &bull; Automatically rendered in footer — no duplicate retyping needed.
+                  </p>
+                </div>
+
+                {/* 3. Animated Loader View Preview */}
+                <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-4 space-y-2">
+                  <div className="flex items-center justify-between text-[11px] font-mono text-amber-400 font-semibold">
+                    <span>3. Page Loader View</span>
+                    <span className="text-[10px] text-slate-500">Live Spinner</span>
+                  </div>
+                  <div className="p-3 rounded-lg border border-slate-200 bg-white text-slate-900 flex flex-col items-center justify-center text-center">
+                    {/* Mini Animated Spinner */}
+                    <div className="relative w-12 h-12 flex items-center justify-center mb-1.5">
+                      <div
+                        className="absolute inset-0 rounded-full border border-red-200/60"
+                        style={{ animation: 'spin 18s linear infinite' }}
+                      />
+                      <div
+                        className="absolute inset-0.5 rounded-full border border-dashed border-amber-300/50"
+                        style={{ animation: 'spin 10s linear infinite reverse' }}
+                      />
+                      <div
+                        className="absolute inset-1 rounded-full"
+                        style={{
+                          background: 'conic-gradient(from 0deg, #dc2626 0%, #f59e0b 45%, transparent 65%)',
+                          animation: 'spin 1.4s linear infinite',
+                          borderRadius: '9999px',
+                          mask: 'radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(100% - 1px))',
+                          WebkitMask: 'radial-gradient(farthest-side, transparent calc(100% - 2px), white calc(100% - 1px))',
+                        }}
+                      />
+                      {form.brand.show_logo_image && (
+                        <div className="relative w-7 h-7 rounded-full overflow-hidden bg-white shadow-sm ring-1 ring-slate-100 flex items-center justify-center">
+                          <Image
+                            src={form.brand.logo_url || '/kjin-emblem.png'}
+                            alt="Emblem"
+                            fill
+                            className="object-contain p-0.5"
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <div className="text-xs font-black uppercase tracking-wider text-slate-800 font-serif">
+                      {form.brand.name || 'KJIN'}
+                    </div>
+                    <div className="text-[8px] font-mono text-slate-400 uppercase tracking-widest mt-0.5 truncate max-w-[200px]">
+                      {form.brand.loader_text || form.brand.tagline || 'Jammu & Kashmir Journal of Record'}
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-slate-400">
+                    &bull; Instantly reflects your brand name, emblem, and loader text.
+                  </p>
+                </div>
               </div>
             </div>
           </div>

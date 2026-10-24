@@ -63,6 +63,26 @@ export default function FooterSettingsPage() {
           setForm({ ...DEFAULT_FOOTER_CONTACT, ...(settingRow.value as Partial<FooterContactSettings>) });
         }
 
+        // Also fetch brand from navbar_settings to keep organization_name synced
+        try {
+          const { data: navRow } = await supabase
+            .from('site_settings')
+            .select('value')
+            .eq('key', 'navbar_settings')
+            .maybeSingle();
+
+          const navBrand = (navRow?.value as { brand?: { name?: string; full_name?: string } } | null)?.brand;
+          if (navBrand?.name && navBrand?.full_name) {
+            const syncedName = `${navBrand.name} (${navBrand.full_name})`;
+            setForm((prev) => ({
+              ...prev,
+              organization_name: prev.organization_name === DEFAULT_FOOTER_CONTACT.organization_name ? syncedName : (prev.organization_name || syncedName),
+            }));
+          }
+        } catch {
+          // fallback
+        }
+
         const res = await fetch('/api/settings/footer', {
           headers: {
             'Content-Type': 'application/json',
@@ -247,16 +267,28 @@ export default function FooterSettingsPage() {
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-                      Organization Display Name
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-300">
+                        Organization Display Name
+                      </label>
+                      <Link
+                        href="/settings/navbar"
+                        className="text-[11px] font-mono text-cyan-400 hover:text-cyan-300 hover:underline flex items-center gap-1"
+                      >
+                        <span>🔗 Synced with Brand Settings</span>
+                        <span>&rarr;</span>
+                      </Link>
+                    </div>
                     <input
                       type="text"
                       value={form.organization_name}
                       onChange={(e) => handleChange('organization_name', e.target.value)}
                       className="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:border-cyan-500 focus:outline-none"
-                      placeholder="e.g. KJIN (Kashmir & Jammu Information Network)"
+                      placeholder="e.g. KCPL (Kashmir Central Press & Journalistic Leadership Network)"
                     />
+                    <p className="text-[11px] text-slate-500 mt-1 flex items-center justify-between">
+                      <span>Full entity name shown in footer identity &amp; legal copyright. Controlled centrally from <Link href="/settings/navbar" className="text-cyan-400 underline">Brand &amp; Logo Settings</Link>.</span>
+                    </p>
                   </div>
 
                   <div>

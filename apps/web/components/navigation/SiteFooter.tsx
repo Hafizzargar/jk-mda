@@ -3,21 +3,34 @@ import { SITE_SHORT_NAME } from '@/lib/config';
 import { REGIONAL_DIVISIONS } from '@/lib/taxonomy';
 import { DEFAULT_FOOTER_CONTACT, sanitizeContactSettings, type FooterContactSettings } from '@/lib/contact';
 import { type TemplateTheme } from '@/lib/templates';
+import type { NavbarBrandConfig } from '@/lib/navbar';
 
 interface SiteFooterProps {
   lang?: string;
   theme?: TemplateTheme;
   contactSettings?: Partial<FooterContactSettings> | null;
+  brandSettings?: Partial<NavbarBrandConfig> | null;
 }
 
 export function SiteFooter({
   lang = 'en',
   theme,
   contactSettings,
+  brandSettings,
 }: SiteFooterProps) {
   const contact: FooterContactSettings = sanitizeContactSettings(contactSettings || DEFAULT_FOOTER_CONTACT);
   const langPrefix = lang === 'en' ? '' : `/${lang}`;
   const isDark = theme?.isDark ?? false;
+
+  // Unified brand resolution: Brand name (e.g. KCPL), full form (e.g. Kashmir Central Press...)
+  const brandName = brandSettings?.name?.trim() ||
+    (contact.organization_name?.includes('(') ? contact.organization_name.split('(')[0].trim() : contact.organization_name?.trim()) ||
+    SITE_SHORT_NAME;
+
+  const brandFullName = brandSettings?.full_name?.trim() ||
+    (contact.organization_name?.includes('(')
+      ? contact.organization_name.match(/\((.*?)\)/)?.[1]?.trim()
+      : '');
 
   const footerBg = isDark ? 'bg-[#05070a]' : 'bg-[#f4efe8]';
   const footerBorder = isDark ? 'border-t border-slate-800' : 'border-t-2 border-slate-300';
@@ -35,16 +48,23 @@ export function SiteFooter({
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10">
           {/* Col 1: Identity & Editorial Mission (4 cols) */}
           <div className="lg:col-span-4 space-y-4">
-            <Link
-              href={`${langPrefix}/`}
-              className={`text-3xl font-black tracking-tight uppercase ${textPrimary} hover:opacity-85 transition`}
-              style={{ fontFamily: theme?.id === 'classic-editorial' ? 'Georgia, serif' : 'inherit' }}
-            >
-              {SITE_SHORT_NAME}
-            </Link>
+            <div>
+              <Link
+                href={`${langPrefix}/`}
+                className={`text-3xl font-black tracking-tight uppercase ${textPrimary} hover:opacity-85 transition inline-block`}
+                style={{ fontFamily: theme?.id === 'classic-editorial' ? 'Georgia, serif' : 'inherit' }}
+              >
+                {brandName}
+              </Link>
+              {brandFullName && (
+                <div className={`text-xs font-semibold ${textMuted} tracking-wide mt-1`}>
+                  {brandFullName}
+                </div>
+              )}
+            </div>
 
             <div className={`text-xs font-semibold ${accentText} tracking-wide`}>
-              {contact.tagline}
+              {brandSettings?.tagline || contact.tagline}
             </div>
 
             <p className={`text-xs ${textSecondary} leading-relaxed`}>
@@ -195,7 +215,7 @@ export function SiteFooter({
 
             <div className="pt-4 border-t border-slate-200/60 dark:border-slate-800/80">
               <h4 className={`text-[10px] font-bold uppercase tracking-wider ${textMuted} mb-2`}>
-                Follow KJIN
+                Follow {brandName}
               </h4>
               <div className="flex flex-wrap gap-2 text-xs">
                 {contact.social_twitter && (
@@ -258,7 +278,7 @@ export function SiteFooter({
       <div className={`border-t ${isDark ? 'border-slate-900 bg-black/60' : 'border-slate-300 bg-stone-200/40'} py-6 px-4 md:px-8`}>
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
           <div className={textMuted}>
-            &copy; {new Date().getFullYear()} {contact.organization_name}. All editorial rights reserved.
+            &copy; {new Date().getFullYear()} {brandName}{brandFullName ? ` (${brandFullName})` : ''}. All editorial rights reserved.
           </div>
 
           <div className="flex items-center gap-4 text-xs font-semibold">

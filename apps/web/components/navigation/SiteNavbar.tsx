@@ -68,6 +68,17 @@ export function SiteNavbar({
     }
   }, [navbarSettings]);
 
+  // Cache brand settings in localStorage for instantaneous loader display
+  useEffect(() => {
+    if (navSettings?.brand && typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('kjin_brand_config', JSON.stringify(navSettings.brand));
+      } catch {
+        // ignore storage errors
+      }
+    }
+  }, [navSettings?.brand]);
+
   const langPrefix = lang === 'en' ? '' : `/${lang}`;
   const currentDate = new Date().toLocaleDateString('en-US', {
     weekday: 'short',

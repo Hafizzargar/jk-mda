@@ -193,7 +193,7 @@ export function ClassicEditorialTemplate({
       </div>
 
       {/* Public Footer Controlled via Admin Portal */}
-      <SiteFooter lang={lang} theme={theme} contactSettings={contactSettings} />
+      <SiteFooter lang={lang} theme={theme} contactSettings={contactSettings} brandSettings={navbarSettings?.brand} />
     </div>
   );
 }

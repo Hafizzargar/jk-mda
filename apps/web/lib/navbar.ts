@@ -19,9 +19,12 @@ export interface NavbarBrandConfig {
   logo_url: string;
   show_logo_image: boolean;
   name: string;
+  full_name?: string;
   show_name: boolean;
   tagline: string;
   show_tagline: boolean;
+  loader_text?: string;
+  show_loader_emblem?: boolean;
 }
 
 export interface NavbarTopStripConfig {
@@ -55,9 +58,12 @@ export const DEFAULT_NAVBAR_SETTINGS: NavbarSettings = {
     logo_url: '/kjin-emblem.png',
     show_logo_image: true,
     name: 'KJIN',
+    full_name: 'Kashmir & Jammu Information Network',
     show_name: true,
     tagline: 'J&K Journal of Record',
     show_tagline: true,
+    loader_text: 'Jammu & Kashmir Journal of Record',
+    show_loader_emblem: true,
   },
   nav_items: [
     { id: 'politics', label: 'Politics', slug: 'politics', enabled: true },
@@ -108,9 +114,12 @@ export function sanitizeNavbarSettings(raw: unknown): NavbarSettings {
     logo_url: typeof rawBrand.logo_url === 'string' && rawBrand.logo_url.trim() ? rawBrand.logo_url.trim() : DEFAULT_NAVBAR_SETTINGS.brand.logo_url,
     show_logo_image: typeof rawBrand.show_logo_image === 'boolean' ? rawBrand.show_logo_image : true,
     name: typeof rawBrand.name === 'string' && rawBrand.name.trim() ? rawBrand.name.trim().slice(0, 50) : DEFAULT_NAVBAR_SETTINGS.brand.name,
+    full_name: typeof rawBrand.full_name === 'string' ? rawBrand.full_name.trim().slice(0, 150) : (DEFAULT_NAVBAR_SETTINGS.brand.full_name || ''),
     show_name: typeof rawBrand.show_name === 'boolean' ? rawBrand.show_name : true,
     tagline: typeof rawBrand.tagline === 'string' ? rawBrand.tagline.trim().slice(0, 100) : DEFAULT_NAVBAR_SETTINGS.brand.tagline,
     show_tagline: typeof rawBrand.show_tagline === 'boolean' ? rawBrand.show_tagline : true,
+    loader_text: typeof rawBrand.loader_text === 'string' ? rawBrand.loader_text.trim().slice(0, 150) : (DEFAULT_NAVBAR_SETTINGS.brand.loader_text || ''),
+    show_loader_emblem: typeof rawBrand.show_loader_emblem === 'boolean' ? rawBrand.show_loader_emblem : true,
   };
 
   const defaultItemMap = new Map(DEFAULT_NAVBAR_SETTINGS.nav_items.map((i) => [i.id, i]));

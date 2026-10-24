@@ -1,10 +1,69 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import { supabase } from '@/lib/supabase';
+import { DEFAULT_NAVBAR_SETTINGS, type NavbarBrandConfig, sanitizeNavbarSettings } from '@/lib/navbar';
 
 export default function Loading() {
+  const [brand, setBrand] = useState<NavbarBrandConfig>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('kjin_brand_config');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && typeof parsed === 'object' && parsed.name) {
+            return {
+              ...DEFAULT_NAVBAR_SETTINGS.brand,
+              ...parsed,
+            };
+          }
+        }
+      } catch {
+        // ignore JSON parse error
+      }
+    }
+    return DEFAULT_NAVBAR_SETTINGS.brand;
+  });
+
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchBrandSettings() {
+      try {
+        const { data } = await supabase
+          .from('site_settings')
+          .select('value')
+          .eq('key', 'navbar_settings')
+          .maybeSingle();
+
+        if (isMounted && data?.value) {
+          const sanitized = sanitizeNavbarSettings(data.value);
+          if (sanitized.brand) {
+            setBrand(sanitized.brand);
+            try {
+              localStorage.setItem('kjin_brand_config', JSON.stringify(sanitized.brand));
+            } catch {
+              // ignore
+            }
+          }
+        }
+      } catch (err) {
+        console.error('[Loading] Error loading brand:', err);
+      }
+    }
+
+    fetchBrandSettings();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const logoSrc = brand.logo_url || '/kjin-emblem.png';
+  const brandName = brand.name || 'KJIN';
+  const subtitle = brand.loader_text || brand.tagline || 'Jammu & Kashmir Journal of Record';
+
   return (
-    <div className="min-h-[85vh] flex flex-col items-center justify-center bg-white select-none px-4">
+    <div className="min-h-[85vh] flex flex-col items-center justify-center bg-white select-none px-4 transition-colors duration-200">
 
       {/* Logo Stack with Company Emblem */}
       <div className="relative flex items-center justify-center w-32 h-32 mb-8">
@@ -37,22 +96,24 @@ export default function Loading() {
         <div className="absolute inset-6 rounded-full bg-red-100/50 blur-md pointer-events-none" />
 
         {/* Company Emblem Center Badge */}
-        <div className="relative w-20 h-20 rounded-full overflow-hidden bg-white shadow-xl shadow-slate-300/60 ring-4 ring-white flex items-center justify-center shrink-0">
-          <Image
-            src="/kjin-emblem.png"
-            alt="KJIN Official Emblem"
-            width={80}
-            height={80}
-            priority
-            className="w-full h-full object-contain p-0.5"
-          />
-        </div>
+        {brand.show_logo_image !== false && (
+          <div className="relative w-20 h-20 rounded-full overflow-hidden bg-white shadow-xl shadow-slate-300/60 ring-4 ring-white flex items-center justify-center shrink-0">
+            <Image
+              src={logoSrc}
+              alt={`${brandName} Emblem`}
+              width={80}
+              height={80}
+              priority
+              className="w-full h-full object-contain p-0.5"
+            />
+          </div>
+        )}
       </div>
 
       {/* Brand Name */}
       <div className="flex items-center gap-2 mb-2">
         <span className="text-xl font-black tracking-[0.18em] text-slate-800 uppercase font-serif">
-          KJIN
+          {brandName}
         </span>
         <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-red-600 border border-red-200 bg-red-50 px-1.5 py-0.5 rounded">
           Live
@@ -60,8 +121,8 @@ export default function Loading() {
       </div>
 
       {/* Subtitle */}
-      <p className="text-xs font-mono text-slate-400 tracking-widest uppercase mb-7">
-        Jammu &amp; Kashmir Journal of Record
+      <p className="text-xs font-mono text-slate-400 tracking-widest uppercase mb-7 text-center max-w-sm px-2">
+        {subtitle}
       </p>
 
       {/* Staggered Dot Wave */}

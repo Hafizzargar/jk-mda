@@ -66,6 +66,35 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Database update failed.' }, { status: 500 });
   }
 
+  // Automatically keep footer organization name synchronized from unified brand config
+  try {
+    const { data: footerRow } = await authorization.service
+      .from('site_settings')
+      .select('value')
+      .eq('key', 'footer_contact')
+      .maybeSingle();
+
+    const currentFooter = (footerRow?.value || {}) as Record<string, unknown>;
+    const combinedOrgName = sanitized.brand.full_name
+      ? `${sanitized.brand.name} (${sanitized.brand.full_name})`
+      : sanitized.brand.name;
+
+    await authorization.service
+      .from('site_settings')
+      .upsert({
+        key: 'footer_contact',
+        value: {
+          ...currentFooter,
+          organization_name: combinedOrgName,
+        },
+        description: 'Public website footer contact info, bureau addresses, emails, and hotlines',
+        updated_at: new Date().toISOString(),
+        updated_by: authorization.user.id,
+      });
+  } catch (syncErr) {
+    console.warn('[Navbar Settings API] Footer contact sync warning:', syncErr);
+  }
+
   await authorization.service.from('audit_logs').insert({
     actor_profile_id: authorization.user.id,
     action: 'site_settings.navbar_updated',
