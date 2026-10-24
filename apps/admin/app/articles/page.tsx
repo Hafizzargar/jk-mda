@@ -286,35 +286,37 @@ function ArticlesPageContent() {
   return (
     <div className="p-6 md:p-8">
       <div className="mx-auto max-w-7xl">
-        <header className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
+        {/* Streamlined Header */}
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4 dark:border-slate-800">
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-mono font-bold uppercase tracking-widest text-cyan-800 dark:text-cyan-400">Editorial Desk</span>
-              <span className="text-slate-400 dark:text-slate-600 font-bold">•</span>
-              <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">Topic Architecture</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">Articles &amp; Newsroom Desks</h1>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400 font-medium">Full editorial CRUD management with dedicated News, Civic Area Problems, and Investigative Desks</p>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Articles</h1>
+            <p className="mt-0.5 text-xs font-medium text-slate-500 dark:text-slate-400">
+              Newsroom stories, ground civic grievances, and editorial drafts
+            </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => void loadArticles()}
-              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800 hover:border-cyan-500 hover:bg-slate-50 shadow-xs dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-slate-900 shadow-2xs dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 transition"
             >
-              Refresh
+              🔄 Refresh
             </button>
             {can('article.create') ? (
-              <Link href="/articles/new" className="rounded-xl bg-gradient-to-r from-cyan-600 to-sky-600 px-4 py-2 text-sm font-extrabold text-white hover:from-cyan-500 hover:to-sky-500 shadow-xs">
-                + New story
+              <Link
+                href="/articles/new"
+                className="rounded-lg bg-cyan-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-cyan-500 shadow-2xs transition"
+              >
+                + New Story
               </Link>
             ) : null}
           </div>
-        </header>
+        </div>
 
-        {/* Primary Newsroom Topic Tabs */}
-        <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-2 shadow-xs dark:border-slate-800 dark:bg-slate-900/70">
-          <div className="flex flex-wrap items-center gap-2">
+        {/* Clean Topic Navigation & Status Filters Bar */}
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          {/* Topic Segmented Control */}
+          <div className="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200 dark:bg-slate-900 dark:border-slate-800">
             <button
               type="button"
               onClick={() => {
@@ -322,19 +324,14 @@ function ArticlesPageContent() {
                 setCategoryFilter('all');
                 setPage(1);
               }}
-              className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all ${
+              className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold transition ${
                 topicFilter === 'news'
-                  ? 'bg-cyan-100 text-cyan-950 border border-cyan-300 font-black shadow-xs dark:bg-cyan-950/60 dark:text-cyan-200 dark:border-cyan-600'
-                  : 'border border-transparent text-slate-700 hover:bg-slate-100 hover:text-slate-950 font-bold dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white'
+                  ? 'bg-white text-slate-900 shadow-xs dark:bg-slate-800 dark:text-white'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400'
               }`}
             >
-              <span className="text-base">📰</span>
-              <span>News &amp; Reports</span>
-              <span className={`ml-1 rounded-full px-2 py-0.5 text-[10px] font-mono font-bold ${
-                topicFilter === 'news' ? 'bg-cyan-700 text-white' : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-              }`}>
-                Default Topic
-              </span>
+              <span>📰</span>
+              <span>News Reports</span>
             </button>
 
             <button
@@ -344,19 +341,14 @@ function ArticlesPageContent() {
                 setCategoryFilter('Local');
                 setPage(1);
               }}
-              className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all ${
+              className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold transition ${
                 topicFilter === 'civic'
-                  ? 'bg-amber-100 text-amber-950 border border-amber-300 font-black shadow-xs dark:bg-amber-950/60 dark:text-amber-200 dark:border-amber-600'
-                  : 'border border-transparent text-slate-700 hover:bg-slate-100 hover:text-slate-950 font-bold dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white'
+                  ? 'bg-white text-slate-900 shadow-xs dark:bg-slate-800 dark:text-white'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400'
               }`}
             >
-              <span className="text-base">🏛️</span>
-              <span>Civic &amp; Area Problems</span>
-              <span className={`ml-1 rounded-full px-2 py-0.5 text-[10px] font-mono font-bold ${
-                topicFilter === 'civic' ? 'bg-amber-700 text-white' : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-              }`}>
-                Ground Issues
-              </span>
+              <span>🏛️</span>
+              <span>Civic Problems</span>
             </button>
 
             <button
@@ -366,19 +358,77 @@ function ArticlesPageContent() {
                 setCategoryFilter('all');
                 setPage(1);
               }}
-              className={`flex items-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold transition-all ${
+              className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold transition ${
                 topicFilter === 'all'
-                  ? 'bg-slate-100 text-slate-950 border border-slate-300 font-black shadow-xs dark:bg-slate-800 dark:text-white'
-                  : 'border border-transparent text-slate-700 hover:bg-slate-100 hover:text-slate-950 font-bold dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white'
+                  ? 'bg-white text-slate-900 shadow-xs dark:bg-slate-800 dark:text-white'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400'
               }`}
             >
-              <span className="text-base">📂</span>
-              <span>All Articles &amp; Desks</span>
-              <span className={`ml-1 rounded-full px-2 py-0.5 text-[10px] font-mono font-bold ${
-                topicFilter === 'all' ? 'bg-slate-800 text-white' : 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-              }`}>
-                Archive ({totalCount})
-              </span>
+              <span>📂</span>
+              <span>All ({totalCount})</span>
+            </button>
+          </div>
+
+          {/* Quick Status Filter Tabs with High Contrast */}
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                setStatusFilter('all');
+                setPage(1);
+              }}
+              className={`rounded-lg px-2.5 py-1 text-xs font-bold transition ${
+                statusFilter === 'all'
+                  ? 'bg-slate-900 text-white'
+                  : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
+              }`}
+            >
+              All Statuses
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setStatusFilter('published');
+                setPage(1);
+              }}
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition ${
+                statusFilter === 'published'
+                  ? 'bg-emerald-700 text-white'
+                  : 'bg-emerald-50 text-emerald-950 border border-emerald-300 hover:bg-emerald-100'
+              }`}
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              Live Published
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setStatusFilter('review');
+                setPage(1);
+              }}
+              className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold transition ${
+                statusFilter === 'review'
+                  ? 'bg-amber-600 text-white'
+                  : 'bg-amber-50 text-amber-950 border border-amber-300 hover:bg-amber-100'
+              }`}
+            >
+              <span>⏳</span>
+              In Review
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setStatusFilter('archived');
+                setPage(1);
+              }}
+              className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold transition ${
+                statusFilter === 'archived'
+                  ? 'bg-red-700 text-white'
+                  : 'bg-red-50 text-red-950 border border-red-300 hover:bg-red-100'
+              }`}
+            >
+              <span>🚫</span>
+              Inactive
             </button>
           </div>
         </div>
@@ -387,136 +437,72 @@ function ArticlesPageContent() {
         {feedback && (
           <div
             role="status"
-            className={`mb-6 flex items-center justify-between rounded-xl border p-4 shadow-sm ${
+            className={`mb-4 flex items-center justify-between rounded-xl border p-3.5 shadow-2xs ${
               feedback.type === 'success'
                 ? 'border-emerald-300 bg-emerald-50 text-emerald-950 dark:border-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-200'
                 : 'border-red-300 bg-red-50 text-red-950 dark:border-red-700 dark:bg-red-950/60 dark:text-red-200'
             }`}
           >
-            <div className="flex items-center gap-3">
-              <span className={`flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold ${
+            <div className="flex items-center gap-2.5">
+              <span className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
                 feedback.type === 'success' ? 'bg-emerald-200 text-emerald-900' : 'bg-red-200 text-red-900'
               }`}>
                 {feedback.type === 'success' ? '✓' : '!'}
               </span>
-              <p className="font-bold text-sm">{feedback.message}</p>
+              <p className="font-semibold text-xs">{feedback.message}</p>
             </div>
             <button
               type="button"
               onClick={() => setFeedback(null)}
-              className="rounded px-2 py-1 text-xs font-bold uppercase tracking-wider text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+              className="text-xs font-bold uppercase text-slate-500 hover:text-slate-800"
             >
               Dismiss
             </button>
           </div>
         )}
 
-        {/* Quick Filter Presets */}
-        <div className="mb-4 flex flex-wrap items-center gap-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 mr-1">Quick Status:</span>
-          <button
-            type="button"
-            onClick={() => {
-              setStatusFilter('all');
-              setPage(1);
-            }}
-            className={`rounded-full px-3.5 py-1 text-xs font-bold transition shadow-2xs ${
-              statusFilter === 'all'
-                ? 'bg-slate-900 text-white'
-                : 'border border-slate-300 bg-white text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300'
-            }`}
-          >
-            All Statuses
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setStatusFilter('published');
-              setPage(1);
-            }}
-            className={`rounded-full px-3.5 py-1 text-xs font-bold transition flex items-center gap-1.5 shadow-2xs ${
-              statusFilter === 'published'
-                ? 'bg-emerald-600 text-white'
-                : 'border border-emerald-300 bg-emerald-50 text-emerald-950 hover:bg-emerald-100 dark:border-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-300'
-            }`}
-          >
-            <span className="h-2 w-2 rounded-full bg-emerald-500" />
-            Live Published
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setStatusFilter('review');
-              setPage(1);
-            }}
-            className={`rounded-full px-3.5 py-1 text-xs font-bold transition flex items-center gap-1.5 shadow-2xs ${
-              statusFilter === 'review'
-                ? 'bg-amber-500 text-white'
-                : 'border border-amber-300 bg-amber-50 text-amber-950 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950/30 dark:text-amber-300'
-            }`}
-          >
-            <span>⏳</span>
-            In Review
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setStatusFilter('archived');
-              setPage(1);
-            }}
-            className={`rounded-full px-3.5 py-1 text-xs font-bold transition flex items-center gap-1.5 shadow-2xs ${
-              statusFilter === 'archived'
-                ? 'bg-red-600 text-white'
-                : 'border border-red-300 bg-red-50 text-red-950 hover:bg-red-100 dark:border-red-700 dark:bg-red-950/30 dark:text-red-300'
-            }`}
-          >
-            <span>🚫</span>
-            Inactive / Retracted
-          </button>
-        </div>
-
-        {/* Detailed Search & Filters */}
-        <section className="mb-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-slate-900">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {/* Search & Filter Controls */}
+        <section className="mb-5 rounded-xl border border-slate-200 bg-white p-3.5 shadow-2xs dark:border-slate-800 dark:bg-slate-900">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Search</label>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Search</label>
               <input 
                 type="text" 
                 placeholder="Title or slug keywords..." 
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-                className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 font-medium placeholder-slate-400 focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:border-cyan-600 focus:outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               />
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">Status</label>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Status</label>
               <select 
                 value={statusFilter}
                 onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-                className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 font-semibold focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-900 font-semibold focus:border-cyan-600 focus:outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               >
                 <option value="all">All Statuses</option>
                 <option value="draft">Draft</option>
                 <option value="review">Review</option>
-                <option value="published">Published (Active on site)</option>
-                <option value="archived">Inactive / Retracted (Offline)</option>
+                <option value="published">Published</option>
+                <option value="archived">Inactive / Retracted</option>
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                {topicFilter === 'news' ? 'News Beat / Category' : topicFilter === 'civic' ? 'Civic Category' : 'Category / Desk'}
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                {topicFilter === 'civic' ? 'Civic Category' : 'News Desk'}
               </label>
               <select 
                 value={categoryFilter}
                 onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
-                className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 font-semibold focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-900 font-semibold focus:border-cyan-600 focus:outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               >
                 {topicFilter === 'civic' ? (
                   <option value="Local">Local — Civic Issues &amp; Ground Reporting</option>
                 ) : (
                   <>
                     <option value="all">
-                      {topicFilter === 'news' ? 'All News Desks (General, Politics, Economy, etc.)' : 'All Categories'}
+                      {topicFilter === 'news' ? 'All News Desks' : 'All Categories'}
                     </option>
                     {CATEGORY_OPTIONS.filter((opt) => topicFilter !== 'news' || opt.value !== 'Local').map((opt) => (
                       <option key={opt.value} value={opt.value}>
@@ -528,11 +514,11 @@ function ArticlesPageContent() {
               </select>
             </div>
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">District / Coverage Area</label>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Coverage District</label>
               <select 
                 value={districtFilter}
                 onChange={(e) => { setDistrictFilter(e.target.value); setPage(1); }}
-                className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2 text-sm text-slate-900 font-semibold focus:border-cyan-600 focus:ring-1 focus:ring-cyan-600 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs text-slate-900 font-semibold focus:border-cyan-600 focus:outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
               >
                 <option value="all">All Districts</option>
                 {DISTRICT_GROUPS.map((group) => (
@@ -549,25 +535,25 @@ function ArticlesPageContent() {
           </div>
         </section>
 
-        {/* Table Area */}
-        <section className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900">
+        {/* Clean Table Area */}
+        <section className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-2xs dark:border-slate-800 dark:bg-slate-900">
           {error ? (
-            <div className="m-4 rounded-xl border border-red-300 bg-red-50 p-4 text-sm font-bold text-red-900 dark:border-red-800 dark:bg-red-950/40 dark:text-red-200">
-              Error loading articles: {error}
+            <div className="m-4 rounded-xl border border-red-300 bg-red-50 p-3.5 text-xs font-bold text-red-900">
+              Error: {error}
             </div>
           ) : null}
 
-          <table className="w-full min-w-[860px] border-collapse text-left text-sm">
+          <table className="w-full min-w-[800px] border-collapse text-left text-xs">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-100 text-xs uppercase text-slate-700 dark:border-slate-800 dark:bg-slate-800/80 dark:text-slate-300">
-                <th className="px-5 py-4 font-extrabold tracking-wider">Article</th>
-                <th className="px-5 py-4 font-extrabold tracking-wider">Status / Public State</th>
-                <th className="px-5 py-4 font-extrabold tracking-wider">Author</th>
-                <th className="px-5 py-4 font-extrabold tracking-wider">Last updated</th>
-                <th className="px-5 py-4 font-extrabold tracking-wider">Actions</th>
+              <tr className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase font-bold text-slate-600 dark:border-slate-800 dark:bg-slate-800/80 dark:text-slate-300">
+                <th className="px-4 py-3">Article</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Author</th>
+                <th className="px-4 py-3">Last Updated</th>
+                <th className="px-4 py-3">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
               {isLoading ? (
                 <tr><td colSpan={5} className="px-5 py-12 text-center text-slate-600 font-bold dark:text-slate-400">Loading articles...</td></tr>
               ) : articles.length === 0 ? (

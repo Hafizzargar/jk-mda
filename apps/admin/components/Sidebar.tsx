@@ -224,10 +224,10 @@ export function Sidebar({
         )}
       </div>
 
-      {/* Navigation Sections with Explicit Component Descriptions */}
+      {/* Navigation Sections */}
       <nav
         data-sidebar-nav
-        className="flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden no-scrollbar px-3 py-2 space-y-3"
+        className="flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden no-scrollbar px-3 py-2 space-y-2"
       >
         {navSections.map((section) => {
           const filteredItems = section.items.filter((item) => {
@@ -238,13 +238,13 @@ export function Sidebar({
           if (filteredItems.length === 0) return null;
 
           return (
-            <div key={section.title} className="space-y-1">
+            <div key={section.title} className="space-y-0.5">
               {!isCollapsed && (
-                <p className="px-2.5 pt-2 text-[11px] font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono">
+                <p className="px-3 pt-1.5 pb-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono">
                   {section.title}
                 </p>
               )}
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {filteredItems.map((item) => {
                   const active = isLinkActive(item);
 
@@ -253,35 +253,29 @@ export function Sidebar({
                       key={item.name}
                       href={item.href}
                       onClick={onCloseMobile}
-                      title={isCollapsed ? `${item.name} — ${item.description}` : undefined}
-                      className={`group flex items-start gap-2.5 rounded-xl px-2.5 py-2 text-xs transition-all ${
+                      title={item.name}
+                      className={`group flex items-center gap-2.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all ${
                         active
-                          ? 'bg-cyan-100/80 text-cyan-950 border-l-4 border-cyan-600 font-extrabold shadow-xs ring-1 ring-cyan-200/60 dark:bg-cyan-950/60 dark:text-cyan-100 dark:border-cyan-400 dark:ring-cyan-600/30'
-                          : 'text-slate-800 hover:bg-slate-100 hover:text-slate-950 border-l-4 border-transparent dark:text-slate-300 dark:hover:bg-slate-900/90 dark:hover:text-white'
+                          ? 'bg-cyan-50 text-cyan-950 font-bold border-l-4 border-cyan-600 shadow-2xs dark:bg-cyan-950/50 dark:text-cyan-200 dark:border-cyan-400'
+                          : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 border-l-4 border-transparent dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white'
                       }`}
                     >
-                      <span className={`text-lg shrink-0 mt-0.5 transition-transform group-hover:scale-110 ${active ? 'scale-110' : ''}`}>
+                      <span className="text-base shrink-0 transition-transform group-hover:scale-110">
                         {item.icon}
                       </span>
                       {!isCollapsed && (
-                        <div className="flex flex-1 flex-col overflow-hidden min-w-0">
-                          <div className="flex items-center justify-between">
-                            <span className={`truncate font-bold ${active ? 'text-cyan-950 dark:text-cyan-100' : 'text-slate-900 dark:text-white'}`}>
-                              {item.name}
+                        <>
+                          <span className="truncate flex-1">
+                            {item.name}
+                          </span>
+                          {item.badge && (
+                            <span
+                              className={`ml-auto shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold tracking-wide ${item.badgeColor}`}
+                            >
+                              {item.badge}
                             </span>
-                            {item.badge && (
-                              <span
-                                className={`ml-1.5 shrink-0 rounded-md border px-1.5 py-0.2 text-[9px] font-bold tracking-wide ${item.badgeColor}`}
-                              >
-                                {item.badge}
-                              </span>
-                            )}
-                          </div>
-                          {/* Component explanation subtitle */}
-                          <p className={`text-[11px] truncate mt-0.5 font-medium leading-tight ${active ? 'text-cyan-900/80 dark:text-cyan-300/80' : 'text-slate-600 dark:text-slate-400'}`}>
-                            {item.description}
-                          </p>
-                        </div>
+                          )}
+                        </>
                       )}
                     </Link>
                   );
@@ -291,31 +285,26 @@ export function Sidebar({
           );
         })}
 
-        {/* Quick Reader Portal Link with Description */}
+        {/* Quick Reader Portal Link */}
         <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
           {!isCollapsed && (
-            <p className="px-2.5 text-[11px] font-extrabold uppercase tracking-wider text-slate-700 dark:text-slate-300 font-mono">
-              Reader Website
+            <p className="px-3 pb-1 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono">
+              Live Reader Site
             </p>
           )}
           <a
             href="http://localhost:3000"
             target="_blank"
             rel="noopener noreferrer"
-            title={isCollapsed ? 'View Live Public Site (localhost:3000)' : undefined}
-            className="group mt-1 flex items-start gap-2.5 rounded-xl px-2.5 py-2 text-xs font-semibold text-slate-800 hover:bg-slate-100 hover:text-cyan-900 dark:text-slate-300 dark:hover:bg-slate-900/80 dark:hover:text-cyan-300 transition-all border-l-4 border-transparent"
+            title="Open Live Public Site"
+            className="group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-cyan-900 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-cyan-300 transition-all border-l-4 border-transparent"
           >
-            <span className="text-lg shrink-0 mt-0.5 group-hover:scale-110 transition-transform">🌐</span>
+            <span className="text-lg shrink-0 group-hover:scale-110 transition-transform">🌐</span>
             {!isCollapsed && (
-              <div className="flex flex-1 flex-col overflow-hidden min-w-0">
-                <div className="flex items-center justify-between">
-                  <span className="truncate font-bold text-slate-900 dark:text-white">Public Site</span>
-                  <span className="text-xs text-slate-500 group-hover:text-cyan-700 dark:group-hover:text-cyan-300 font-bold">↗</span>
-                </div>
-                <p className="text-[11px] text-slate-600 dark:text-slate-400 truncate mt-0.5 font-medium">
-                  Open live reader site (port 3000)
-                </p>
-              </div>
+              <>
+                <span className="truncate flex-1">Public Site</span>
+                <span className="text-xs text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 font-bold">↗</span>
+              </>
             )}
           </a>
         </div>
