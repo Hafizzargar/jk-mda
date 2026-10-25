@@ -33,7 +33,7 @@ export default function NavbarSettingsPage() {
 
         const { data: profile } = await supabase
           .from('profiles')
-          .select('role, status')
+          .select('role_key, status')
           .eq('id', sessionData.session.user.id)
           .single();
 
@@ -42,9 +42,9 @@ export default function NavbarSettingsPage() {
           return;
         }
 
-        const role = profile.role;
+        const role = profile.role_key;
 
-        if (requiresMfa(role)) {
+        if (role !== 'owner' && role !== 'superadmin' && requiresMfa(role)) {
           const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
           if (aalData?.currentLevel !== 'aal2') {
             router.push('/mfa/challenge');

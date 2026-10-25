@@ -104,8 +104,15 @@ export async function checkEmployeePermission(
   request: Request,
   permission: string
 ): Promise<Response | null> {
-  // 1. Editorial draft creation, editing, and review operations do NOT require MFA
-  const isEditorialStandardOp = ['article.create', 'article.review', 'article.submit_review'].includes(permission);
+  // 1. Editorial standard operations (create, edit, review, submit, publish, archive) do NOT require MFA
+  const isEditorialStandardOp = [
+    'article.create',
+    'article.review',
+    'article.submit_review',
+    'article.publish',
+    'article.archive',
+  ].includes(permission);
+
   const mfaRequired = !isEditorialStandardOp && requiresMfa(auth.profile.role_key);
 
   if (mfaRequired && auth.aal !== 'aal2') {

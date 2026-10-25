@@ -58,8 +58,8 @@ export const DEFAULT_ADS_SETTINGS: CustomAdsSettings = {
     },
     {
       id: 'leaderboard_top',
-      name: 'Right Rail Secondary Sponsor (Right Side)',
-      enabled: false,
+      name: 'Homepage Top Leaderboard (Front Page Header)',
+      enabled: true,
       sponsor_name: 'Kashmir Artisans & Heritage Guild',
       badge_label: 'Official Partner',
       title: 'Authentic Hand-Knotted Silk Carpets & Pashmina Shawls',

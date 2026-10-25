@@ -63,13 +63,19 @@ Note: This requires verification before attributing as a direct response to this
     }
   }
 
+  const isJKStory = Boolean(
+    input.districtName ||
+    (input.locationName && /jammu|kashmir|srinagar|ladakh|leh|kargil|anantnag|baramulla|budgam|pulwama|shopian|kulgam|kupwara|bandipora|ganderbal|doda|ramban|kishtwar|udhampur|reasi|kathua|samba|rajouri|poonch/i.test(input.locationName)) ||
+    /jammu|kashmir|srinagar/i.test(input.headline)
+  );
+
   const prompt = `You are a senior investigative editor for Kashmir Jammu Independent News (KJIN).
 Prepare an objective, sourced news article draft based ONLY on the following confirmed facts:
 
 EVENT REPORT:
 Headline: ${input.headline}
 Summary: ${input.summary}
-District: ${input.districtName || 'Jammu and Kashmir'}
+District: ${input.districtName || (isJKStory ? 'Jammu & Kashmir' : 'N/A (International / Non-Regional Story)')}
 Specific Location: ${input.locationName || 'N/A'}
 Category: ${input.eventCategory}
 Date: ${input.eventDate}
@@ -81,12 +87,13 @@ OFFICIAL GOVERNMENT STATUS:
 ${officialResponseContext}
 
 STRICT EDITORIAL RULES:
-1. 'title': Factual headline without sensationalism.
+1. 'title': Factual headline without sensationalism. Do NOT append '— Jammu and Kashmir' unless the story specifically pertains to Jammu and Kashmir.
 2. 'excerpt': 1-2 sentence lead paragraph.
 3. 'content': Clean HTML body paragraphs (<p>, <h2>, <ul>, <li>). Include source attributions and links as anchors (<a href="...">source</a>).
-4. CRITICAL: If no matching official government order or response was confirmed, explicitly state: "As of this reporting, no official advisory or order has been confirmed by local administration." NEVER fabricate an order or quote an unverified official.
-5. 'claimsToVerify': List 2-4 factual claims that an editor must independently confirm before publication (e.g. casualty counts, road reopening timings, exact FIR details).
-6. 'missingInformationWarning': If vital details are missing or conflicting between sources, state them clearly.`;
+4. CRITICAL: If no matching official government order or response was confirmed, explicitly state: "As of this reporting, no official advisory or order has been confirmed by relevant administrative authorities in the portals checked." NEVER fabricate an order or quote an unverified official.
+5. GEOGRAPHIC INTEGRITY: If the story is an international or national report (e.g. Yemen, Sudan, UN, WHO), use the actual foreign country or Global Desk dateline. NEVER label foreign international stories with a Jammu & Kashmir dateline.
+6. 'claimsToVerify': List 2-4 factual claims that an editor must independently confirm before publication (e.g. casualty counts, road reopening timings, exact FIR details).
+7. 'missingInformationWarning': If vital details are missing or conflicting between sources, state them clearly.`;
 
   // If running in development without an active Gemini API key, provide an intelligent deterministic fallback
   if (!apiKey) {
@@ -108,24 +115,61 @@ STRICT EDITORIAL RULES:
 }
 
 function generateFallbackDraft(input: DraftEventInput): GeneratedDraftResult {
-  const district = input.districtName || 'Jammu and Kashmir';
+  const isJKStory = Boolean(
+    input.districtName ||
+    (input.locationName && /jammu|kashmir|srinagar|ladakh|leh|kargil|anantnag|baramulla|budgam|pulwama|shopian|kulgam|kupwara|bandipora|ganderbal|doda|ramban|kishtwar|udhampur|reasi|kathua|samba|rajouri|poonch/i.test(input.locationName)) ||
+    /jammu|kashmir|srinagar/i.test(input.headline)
+  );
+
+  const dateline = input.districtName
+    ? input.districtName.toUpperCase()
+    : input.locationName
+    ? input.locationName.toUpperCase()
+    : isJKStory
+    ? 'JAMMU AND KASHMIR'
+    : 'INTERNATIONAL DESK';
+
+  const locationLabel = input.districtName
+    ? `the ${input.districtName} district`
+    : input.locationName
+    ? `${input.locationName}`
+    : isJKStory
+    ? 'the Jammu and Kashmir region'
+    : 'the monitored region';
+
   const cleanTitle = input.headline.replace(/["']/g, '');
+  const title = input.districtName
+    ? `${cleanTitle} — ${input.districtName}`
+    : cleanTitle;
 
   const hasConfirmedGovOrder = input.officialResponse?.matchStatus === 'confirmed_relevant';
 
   const govSection = hasConfirmedGovOrder
     ? `<p>In an official response, <strong>${input.officialResponse?.authorityName}</strong> issued a ${input.officialResponse?.responseType} titled <em>"${input.officialResponse?.documentTitle}"</em> (<a href="${input.officialResponse?.documentUrl}" target="_blank" rel="noopener noreferrer">view official notice</a>).</p>`
-    : `<p><strong>Official Status:</strong> At the time of this dispatch, no matching official directive or advisory has been confirmed by district authorities in the portals checked.</p>`;
+    : `<p><strong>Official Status:</strong> At the time of this dispatch, no matching official directive or advisory has been confirmed by relevant administrative authorities in the portals checked.</p>`;
 
   const sourcesListHtml = input.sources
-    .map((s) => `<li><a href="${s.url}" target="_blank" rel="noopener noreferrer">${s.sourceName}</a>: ${s.title}</li>`)
+    .map((s) => {
+      let label = s.sourceName?.trim();
+      if (!label || label === 'undefined' || label === 'null') {
+        try {
+          const host = s.url ? new URL(s.url).hostname.replace(/^www\./, '') : '';
+          if (host.includes('un.org')) label = 'UN News';
+          else if (host.includes('who.int')) label = 'WHO Dispatch';
+          else label = host || 'Reporting Dispatch';
+        } catch {
+          label = 'Reporting Dispatch';
+        }
+      }
+      return `<li><a href="${s.url}" target="_blank" rel="noopener noreferrer">${label}</a>: ${s.title}</li>`;
+    })
     .join('');
 
   const bodyHtml = `
-<p><strong>${district.toUpperCase()}</strong> — ${input.summary}</p>
+<p><strong>${dateline}</strong> — ${input.summary}</p>
 
 <h2>Ground Developments</h2>
-<p>Reports from regional sources indicate developments regarding ${input.eventCategory.replace(/_/g, ' ')} in the ${input.locationName || district} area on ${new Date(input.eventDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}.</p>
+<p>Reports from regional sources indicate developments regarding ${input.eventCategory.replace(/_/g, ' ')} in ${locationLabel} on ${new Date(input.eventDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}.</p>
 
 ${govSection}
 
@@ -137,17 +181,17 @@ ${govSection}
 `.trim();
 
   return {
-    title: `${cleanTitle} — ${district}`,
+    title,
     excerpt: input.summary.slice(0, 300),
     content: bodyHtml,
     suggestedDistrict: input.districtName || null,
     suggestedCategory: input.eventCategory === 'road_closures' ? 'Local' : 'General',
     claimsToVerify: [
-      `Confirm the exact time and sequence of events in ${input.locationName || district}.`,
+      `Confirm the exact time and sequence of events in ${input.locationName || input.districtName || 'the reported area'}.`,
       hasConfirmedGovOrder
         ? `Verify the authenticity and reference number of the notice from ${input.officialResponse?.authorityName}.`
-        : `Check with district emergency control room for any unreleased administrative advisory.`,
-      `Verify whether any public transport or school disruptions have taken effect.`,
+        : `Check with local emergency control or accredited wire services for unreleased advisories.`,
+      `Verify independent humanitarian, casualty, or service metrics with accredited field reporters.`,
     ],
     missingInformationWarning: hasConfirmedGovOrder
       ? null

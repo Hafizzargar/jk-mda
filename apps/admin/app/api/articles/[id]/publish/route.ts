@@ -58,7 +58,8 @@ export async function POST(
 
         if (
           msg === 'Only articles in review can be published' ||
-          msg === 'Article must be in review status before publishing'
+          msg === 'Article must be in review status before publishing' ||
+          msg === 'Only articles in review or draft can be published'
         ) {
           return new Response(JSON.stringify({ error: msg }), {
             status: 409,

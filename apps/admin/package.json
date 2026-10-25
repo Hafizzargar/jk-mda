@@ -19,12 +19,18 @@
     "@kjin/types": "workspace:*",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.56.1",
+    "@tiptap/extension-link": "^3.32.0",
+    "@tiptap/pm": "^3.32.0",
+    "@tiptap/react": "^3.32.0",
+    "@tiptap/starter-kit": "^3.32.0",
+    "@types/sanitize-html": "^2.16.2",
     "ai": "^7.0.136",
     "next": "^15.3.5",
     "nodemailer": "^10.1.7",
     "qrcode.react": "^4.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "sanitize-html": "^2.18.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {

@@ -40,6 +40,13 @@ export function ClassicEditorialTemplate({
           <Breadcrumbs items={[{ label: 'Verified News Wire', current: true }]} lang={lang} theme={theme} />
         </div>
 
+        {/* Front Page Top Header Leaderboard Ad */}
+        {leaderboardAd && (
+          <div className="max-w-7xl mx-auto px-4 md:px-8 mt-2 mb-4">
+            <LeaderboardAd ad={leaderboardAd} />
+          </div>
+        )}
+
       {/* Main 3-Column Broadsheet Grid */}
       <div className="max-w-7xl mx-auto px-4 md:px-8 mt-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left / Center Column: Lead Editorial Story + Grid */}
@@ -186,15 +193,11 @@ export function ClassicEditorialTemplate({
           </section>
 
           {/* Right Rail Sticky Custom Sponsor Ad - Pinned last so nothing scrolls behind it */}
-          {sidebarAd ? (
+          {sidebarAd && (
             <section className="sticky top-28 z-10 self-start">
               <SidebarAd ad={sidebarAd} />
             </section>
-          ) : leaderboardAd ? (
-            <section className="sticky top-28 z-10 self-start">
-              <SidebarAd ad={leaderboardAd} />
-            </section>
-          ) : null}
+          )}
         </aside>
       </div>
       </div>

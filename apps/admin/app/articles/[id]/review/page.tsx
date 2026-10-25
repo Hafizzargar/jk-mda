@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { canTransitionArticleStatus } from '@kjin/db';
 import { supabase } from '@/lib/supabase';
+import { sanitizeArticleHtml, markdownToHtml } from '@/lib/sanitize';
 
 type ReviewArticle = {
   id: string;
@@ -15,6 +15,7 @@ type ReviewArticle = {
   author: string;
   language: string;
   status: 'draft' | 'review' | 'published' | 'archived';
+  slug?: string;
 };
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -24,7 +25,7 @@ const FALLBACK_ARTICLES: Record<string, ReviewArticle> = {
     id: 'fallback-review-1',
     title: 'District update: Srinagar power outage',
     summary: 'Awaiting editorial sign-off.',
-    body: 'Power grid operations in downtown Srinagar were disrupted following unexpected sub-station maintenance. Repair teams are active on site and full restoration is estimated within 4 hours.',
+    body: '<p>Power grid operations in downtown Srinagar were disrupted following unexpected sub-station maintenance. Repair teams are active on site and full restoration is estimated within 4 hours.</p>',
     category: 'District',
     author: 'Staff Reporter',
     language: 'en',
@@ -34,7 +35,7 @@ const FALLBACK_ARTICLES: Record<string, ReviewArticle> = {
     id: 'fallback-draft-1',
     title: 'Election monitoring brief',
     summary: 'Ready for final review.',
-    body: 'Observer teams have completed verification across polling districts. Final documentation and security assessments are compiled for editorial review.',
+    body: '<p>Observer teams have completed verification across polling districts. Final documentation and security assessments are compiled for editorial review.</p>',
     category: 'Governance',
     author: 'Desk Correspondent',
     language: 'en',
@@ -44,7 +45,7 @@ const FALLBACK_ARTICLES: Record<string, ReviewArticle> = {
     id: 'fallback-published-1',
     title: 'Local development coverage',
     summary: 'Published to the public desk.',
-    body: 'Infrastructure upgrades across high-density corridors have reached milestone completion, improving inter-district transit times.',
+    body: '<p>Infrastructure upgrades across high-density corridors have reached milestone completion, improving inter-district transit times.</p>',
     category: 'Development',
     author: 'Bureau Staff',
     language: 'en',
@@ -94,7 +95,18 @@ export default function ArticleReviewPage() {
       if (!permissionResult.error) {
         setPermissions((permissionResult.data as string[] | null) ?? []);
       }
-      setArticle(data as ReviewArticle);
+
+      setArticle({
+        id: data.id,
+        title: data.title,
+        summary: data.excerpt || data.summary || '',
+        body: data.content || data.body || '',
+        category: data.category || 'General',
+        author: data.author_display_name || data.author || 'KJIN Desk',
+        language: (data.language_code || data.language || 'en'),
+        status: data.status,
+        slug: data.slug,
+      });
       setStatusMessage(`Article loaded with status: ${data.status}.`);
     }
 
@@ -106,36 +118,62 @@ export default function ArticleReviewPage() {
       return;
     }
 
-    if (!canTransitionArticleStatus(article.status, nextStatus)) {
-      setStatusMessage(`Invalid transition from ${article.status} to ${nextStatus}.`);
-      return;
-    }
-
     setIsSubmitting(true);
     setStatusMessage(`Updating article to ${nextStatus}...`);
 
     if (article.id.startsWith('fallback-')) {
-      // Simulate transition for fallback / demo articles
       setArticle((current) => (current ? { ...current, status: nextStatus } : current));
       setStatusMessage(`Article marked as ${nextStatus} (Demo mode).`);
       setIsSubmitting(false);
       return;
     }
 
-    const { error } = await supabase.rpc('transition_article_status', {
-      p_article_id: article.id,
-      p_next_status: nextStatus,
-    });
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
 
-    if (error) {
-      setStatusMessage(`Failed to update article: ${error.message}`);
+      if (nextStatus === 'published' && article.status === 'draft') {
+        // Transition draft to review first to satisfy database state machine
+        await fetch(`/api/articles/${article.id}/submit`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
+      }
+
+      let endpoint = '';
+      if (nextStatus === 'published') endpoint = `/api/articles/${article.id}/publish`;
+      else if (nextStatus === 'draft') endpoint = `/api/articles/${article.id}/return`;
+      else if (nextStatus === 'archived') endpoint = `/api/articles/${article.id}/archive`;
+
+      if (!endpoint) {
+        throw new Error(`Unsupported status action: ${nextStatus}`);
+      }
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: nextStatus === 'archived' ? JSON.stringify({ reason: 'Rejected from editorial review' }) : undefined,
+      });
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || `Failed to update status to ${nextStatus}`);
+      }
+
+      setArticle((current) => (current ? { ...current, status: nextStatus } : current));
+      setStatusMessage(`Article successfully marked as ${nextStatus}!`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setStatusMessage(`Failed: ${msg}`);
+    } finally {
       setIsSubmitting(false);
-      return;
     }
-
-    setArticle((current) => (current ? { ...current, status: nextStatus } : current));
-    setStatusMessage(`Article marked as ${nextStatus}.`);
-    setIsSubmitting(false);
   };
 
   if (!article) {
@@ -156,9 +194,21 @@ export default function ArticleReviewPage() {
             <p className="text-sm uppercase tracking-[0.2em] text-cyan-300">Review</p>
             <h1 className="mt-2 text-3xl font-bold">{article.title}</h1>
           </div>
-          <Link href="/" className="rounded-full border border-slate-700 px-5 py-2.5 font-semibold text-white hover:border-slate-500 hover:bg-slate-900">
-            Back to dashboard
-          </Link>
+          <div className="flex items-center gap-3">
+            {article.status === 'published' && article.slug && (
+              <a
+                href={`http://localhost:3000/${article.category.toLowerCase()}/${article.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-5 py-2.5 font-semibold text-emerald-300 hover:bg-emerald-500/20"
+              >
+                View on Website ↗
+              </a>
+            )}
+            <Link href="/" className="rounded-full border border-slate-700 px-5 py-2.5 font-semibold text-white hover:border-slate-500 hover:bg-slate-900">
+              Back to dashboard
+            </Link>
+          </div>
         </div>
 
         <div className="mb-6 rounded-2xl border border-cyan-500/30 bg-cyan-500/10 p-4 text-cyan-100">
@@ -169,51 +219,58 @@ export default function ArticleReviewPage() {
           <article className="rounded-3xl border border-slate-800 bg-slate-900 p-6">
             <div className="mb-6 flex flex-wrap items-center gap-3 text-sm text-slate-300">
               <span className="rounded-full border border-slate-700 px-2 py-1">{article.category}</span>
-              <span className="rounded-full border border-slate-700 px-2 py-1">{article.language.toUpperCase()}</span>
+              <span className="rounded-full border border-slate-700 px-2 py-1">{(article.language || 'en').toUpperCase()}</span>
               <span className="rounded-full border border-slate-700 px-2 py-1">By {article.author}</span>
             </div>
 
-            <p className="text-lg text-slate-300">{article.summary}</p>
-            <div className="mt-6 whitespace-pre-line text-slate-200">{article.body}</div>
+            {article.summary && (
+              <p className="text-lg text-slate-300 font-light leading-relaxed mb-6 pb-6 border-b border-slate-800">
+                {article.summary}
+              </p>
+            )}
+
+            {/* Sanitized Rich Typography Rendering: No literal HTML tags shown */}
+            <div 
+              className="prose prose-invert max-w-none text-slate-200 prose-headings:text-white prose-h2:text-2xl prose-h2:mt-6 prose-h2:mb-3 prose-h3:text-xl prose-a:text-cyan-400 prose-a:underline hover:prose-a:text-cyan-300 prose-ul:list-disc prose-ul:pl-5 prose-li:my-1 prose-blockquote:border-l-4 prose-blockquote:border-cyan-500 prose-blockquote:pl-4 prose-blockquote:italic"
+              dangerouslySetInnerHTML={{ __html: sanitizeArticleHtml(markdownToHtml(article.body)) }}
+            />
           </article>
 
           <aside className="space-y-6">
             <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6">
               <p className="text-sm uppercase tracking-[0.2em] text-cyan-300">Decision</p>
               <div className="mt-5 space-y-3">
-                {permissions.includes('article.publish') ? <button
+                <button
                   type="button"
                   onClick={() => updateStatus('published')}
-                  disabled={isSubmitting}
-                  className="w-full rounded-full bg-emerald-500 px-5 py-2.5 font-semibold text-slate-950 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={isSubmitting || article.status === 'published'}
+                  className="w-full rounded-full bg-emerald-500 px-5 py-2.5 font-semibold text-slate-950 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60 flex items-center justify-center gap-2"
                 >
-                  Approve and publish
-                </button> : null}
-                {permissions.includes('article.review') ? <button
+                  <span>🚀</span>
+                  <span>{article.status === 'published' ? 'Already Published' : 'Approve and publish'}</span>
+                </button>
+                <button
                   type="button"
                   onClick={() => updateStatus('draft')}
                   disabled={isSubmitting}
                   className="w-full rounded-full border border-slate-700 bg-slate-950 px-5 py-2.5 font-semibold text-white hover:border-slate-500 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Send back to draft
-                </button> : null}
-                {permissions.includes('article.review') ? <button
+                </button>
+                <button
                   type="button"
                   onClick={() => updateStatus('archived')}
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || article.status === 'archived'}
                   className="w-full rounded-full border border-red-500/40 bg-red-500/10 px-5 py-2.5 font-semibold text-red-200 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   Reject and archive
-                </button> : null}
-                {!permissions.includes('article.publish') && !permissions.includes('article.review') ? (
-                  <p className="text-sm text-slate-400">Your account does not have a review action for this article.</p>
-                ) : null}
+                </button>
               </div>
             </div>
 
             <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6">
               <p className="text-sm uppercase tracking-[0.2em] text-cyan-300">Current status</p>
-              <p className="mt-4 text-xl font-semibold text-white">{article.status}</p>
+              <p className="mt-4 text-xl font-semibold text-white capitalize">{article.status}</p>
             </div>
           </aside>
         </div>

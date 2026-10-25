@@ -47,7 +47,7 @@ export default function DashboardPage() {
 
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('role, status')
+          .select('role_key, status')
           .eq('id', data.session.user.id)
           .single();
 
@@ -57,7 +57,7 @@ export default function DashboardPage() {
           return;
         }
 
-        const sessionUserRole = profile.role;
+        const sessionUserRole = profile.role_key;
         setUserRole(sessionUserRole);
 
         if (!sessionUserRole) {

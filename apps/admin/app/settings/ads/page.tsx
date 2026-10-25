@@ -36,8 +36,21 @@ const DEFAULT_ADS_SETTINGS: CustomAdsSettings = {
   pricing_badge: 'Reach 50,000+ J&K Readers Daily',
   placements: [
     {
+      id: 'leaderboard_top',
+      name: 'Homepage Top Leaderboard (Front Page Header)',
+      enabled: true,
+      sponsor_name: 'Kashmir Artisans & Heritage Guild',
+      badge_label: 'Official Partner',
+      title: 'Authentic Hand-Knotted Silk Carpets & Pashmina Shawls',
+      description: 'Geographical Indication (GI) certified crafts delivered worldwide directly from valley master craftsmen.',
+      cta_text: 'Shop Verified Collection',
+      destination_url: 'https://kashmircrafts.org',
+      image_url: 'https://images.unsplash.com/photo-1600121848594-d8644e57abab?auto=format&fit=crop&w=600&q=80',
+      theme_accent: 'gold',
+    },
+    {
       id: 'sidebar_banner',
-      name: 'Right Rail Sidebar Sponsor (Always on Right Side)',
+      name: 'Right Rail Sidebar Sponsor (Right Side of Page)',
       enabled: true,
       sponsor_name: 'Valley MedX Diagnostic Laboratories',
       badge_label: 'Health Sponsor',
@@ -50,7 +63,7 @@ const DEFAULT_ADS_SETTINGS: CustomAdsSettings = {
     },
     {
       id: 'in_article_native',
-      name: 'In-Article Mid-Reading Sponsor (Between Paragraphs)',
+      name: 'In-Article Mid-Reading Sponsor (In Between Paragraphs)',
       enabled: true,
       sponsor_name: 'Gulmarg Alpine Eco-Resorts',
       badge_label: 'Winter Season 2026',
@@ -60,19 +73,6 @@ const DEFAULT_ADS_SETTINGS: CustomAdsSettings = {
       destination_url: 'https://gulmargresorts.com',
       image_url: 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=600&q=80',
       theme_accent: 'cyan',
-    },
-    {
-      id: 'leaderboard_top',
-      name: 'Right Rail Secondary Sponsor (Right Side)',
-      enabled: false,
-      sponsor_name: 'Kashmir Artisans & Heritage Guild',
-      badge_label: 'Official Partner',
-      title: 'Authentic Hand-Knotted Silk Carpets & Pashmina Shawls',
-      description: 'Geographical Indication (GI) certified crafts delivered worldwide directly from valley master craftsmen.',
-      cta_text: 'Shop Verified Collection',
-      destination_url: 'https://kashmircrafts.org',
-      image_url: 'https://images.unsplash.com/photo-1600121848594-d8644e57abab?auto=format&fit=crop&w=600&q=80',
-      theme_accent: 'gold',
     },
   ],
 };
@@ -99,7 +99,7 @@ export default function AdsSettingsPage() {
 
         const { data: profile } = await supabase
           .from('profiles')
-          .select('role, status')
+          .select('role_key, status')
           .eq('id', sessionData.session.user.id)
           .single();
 
@@ -108,10 +108,10 @@ export default function AdsSettingsPage() {
           return;
         }
 
-        const role = profile.role;
+        const role = (profile as { role_key?: string }).role_key || 'staff';
         setUserRole(role);
 
-        if (requiresMfa(role)) {
+        if (role !== 'owner' && requiresMfa(role)) {
           const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
           if (aalData?.currentLevel !== 'aal2') {
             router.push('/mfa/challenge');

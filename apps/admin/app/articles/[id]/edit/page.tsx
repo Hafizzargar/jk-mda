@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { CATEGORY_OPTIONS, DISTRICT_GROUPS, IMAGE_PRESETS } from '@/lib/taxonomy-options';
 import { ImageUploader } from '@/components/ImageUploader';
+import { RichTextEditor } from '@/components/RichTextEditor';
 
 type Article = {
   id: string;
@@ -288,16 +289,16 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
                 />
               </label>
 
-              <label className="block">
-                <span className="text-sm font-medium text-slate-300">Body Content <span className="text-red-400">*</span></span>
-                <textarea 
+              <div className="block">
+                <span className="block mb-2 text-sm font-medium text-slate-300">
+                  Body Content <span className="text-red-400">*</span>
+                </span>
+                <RichTextEditor 
                   name="content" 
                   defaultValue={article.content}
                   required 
-                  rows={15}
-                  className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-white font-mono text-sm leading-relaxed focus:border-cyan-500 focus:outline-none" 
                 />
-              </label>
+              </div>
             </div>
           </div>
 

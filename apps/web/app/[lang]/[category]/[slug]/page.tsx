@@ -433,6 +433,13 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           );
         })()}
 
+        {/* Bottom Leaderboard Sponsor Ad */}
+        {bottomAd && (
+          <div className="mt-12 not-prose">
+            <LeaderboardAd ad={bottomAd} />
+          </div>
+        )}
+
         {relatedArticles && relatedArticles.length > 0 && (
           <aside className={`mt-20 pt-10 border-t ${theme.borderClass}`}>
             <h2 className={`text-2xl font-bold border-b-2 ${theme.borderClass} pb-2 mb-8 inline-block ${theme.textPrimaryClass}`}>

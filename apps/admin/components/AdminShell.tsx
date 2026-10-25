@@ -92,12 +92,12 @@ export function AdminShell({ children }: AdminShellProps) {
           setUserEmail(data.session.user.email ?? null);
           const { data: profile } = await supabase
             .from('profiles')
-            .select('role')
+            .select('role_key')
             .eq('id', data.session.user.id)
             .maybeSingle();
 
-          if (profile?.role) {
-            setUserRole(profile.role);
+          if (profile?.role_key) {
+            setUserRole(profile.role_key);
           }
         }
       } catch {

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { CATEGORY_OPTIONS, DISTRICT_GROUPS, IMAGE_PRESETS } from '@/lib/taxonomy-options';
 import { ImageUploader } from '@/components/ImageUploader';
+import { RichTextEditor } from '@/components/RichTextEditor';
 
 export default function NewArticlePage() {
   const router = useRouter();
@@ -219,16 +220,16 @@ export default function NewArticlePage() {
                 />
               </label>
 
-              <label className="block">
-                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Body Content <span className="text-red-500">*</span></span>
-                <textarea 
+              <div className="block">
+                <span className="block mb-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                  Body Content <span className="text-red-500">*</span>
+                </span>
+                <RichTextEditor 
                   name="content" 
                   required 
-                  rows={15}
-                  className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 font-mono text-sm leading-relaxed text-slate-900 focus:border-cyan-500 focus:outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white shadow-2xs" 
                   placeholder="Write the full article content here..."
                 />
-              </label>
+              </div>
             </div>
           </div>
 

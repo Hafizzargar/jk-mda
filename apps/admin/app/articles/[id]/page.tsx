@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
+import { sanitizeArticleHtml, markdownToHtml } from '@/lib/sanitize';
 
 type Article = {
   id: string;
@@ -261,6 +262,18 @@ export default function ArticleViewPage({ params }: { params: Promise<{ id: stri
             </Link>
           )}
 
+          {article.status === 'draft' && (can('article.publish') || ['owner', 'superadmin', 'admin', 'editor'].includes(userRole || '')) && (
+            <button 
+              onClick={() => handleAction('publish')}
+              disabled={isActionLoading}
+              className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-400 disabled:opacity-50 flex items-center gap-1.5 shadow-md shadow-emerald-950/40"
+              title="Publish this draft immediately to the live public website"
+            >
+              <span>🚀</span>
+              <span>Publish Now</span>
+            </button>
+          )}
+
           {article.status === 'draft' && can('article.submit_review') && (
             <button 
               onClick={() => handleAction('submit')}
@@ -271,7 +284,7 @@ export default function ArticleViewPage({ params }: { params: Promise<{ id: stri
             </button>
           )}
 
-          {article.status === 'review' && can('article.review') && (
+          {article.status === 'review' && can('article.return') && (
             <button 
               onClick={() => handleAction('return')}
               disabled={isActionLoading}
@@ -285,10 +298,23 @@ export default function ArticleViewPage({ params }: { params: Promise<{ id: stri
             <button 
               onClick={() => handleAction('publish')}
               disabled={isActionLoading}
-              className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-400 disabled:opacity-50"
+              className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-400 disabled:opacity-50 flex items-center gap-1.5 shadow-md shadow-emerald-950/40"
             >
-              Publish Article
+              <span>🚀</span>
+              <span>Publish Article</span>
             </button>
+          )}
+
+          {article.status === 'published' && (
+            <a
+              href={`http://localhost:3000/${article.category.toLowerCase()}/${article.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-300 hover:bg-cyan-500/20 flex items-center gap-1.5"
+            >
+              <span>🌐</span>
+              <span>View on Website ↗</span>
+            </a>
           )}
 
           {/* Action 1: Reactivate (Restores an inactive/archived article back to published) */}
@@ -414,11 +440,10 @@ export default function ArticleViewPage({ params }: { params: Promise<{ id: stri
             </div>
           </header>
 
-          <div className="prose prose-invert max-w-none prose-p:text-slate-300 prose-headings:text-white prose-a:text-cyan-400">
-            {article.content.split('\n').map((paragraph: string, idx: number) => (
-              paragraph.trim() ? <p key={idx} className="mb-4">{paragraph}</p> : <br key={idx} />
-            ))}
-          </div>
+          <div 
+            className="prose prose-invert max-w-none prose-p:text-slate-300 prose-p:leading-relaxed prose-headings:text-white prose-headings:font-bold prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h2:border-b prose-h2:border-slate-800 prose-h2:pb-2 prose-h3:text-xl prose-h3:mt-6 prose-a:text-cyan-400 prose-a:underline hover:prose-a:text-cyan-300 prose-ul:list-disc prose-ul:pl-6 prose-ul:my-4 prose-li:text-slate-300 prose-li:my-1 prose-blockquote:border-l-4 prose-blockquote:border-cyan-500 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-slate-400 prose-strong:text-white"
+            dangerouslySetInnerHTML={{ __html: sanitizeArticleHtml(markdownToHtml(article.content)) }}
+          />
         </div>
       </article>
 

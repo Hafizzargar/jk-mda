@@ -32,7 +32,7 @@ export const DEFAULT_ADS_SETTINGS: CustomAdsSettings = {
   placements: [
     {
       id: 'leaderboard_top',
-      name: 'Homepage Top Leaderboard',
+      name: 'Homepage Top Leaderboard (Front Page Header)',
       enabled: true,
       sponsor_name: 'Kashmir Artisans & Heritage Guild',
       badge_label: 'Official Partner',
@@ -45,7 +45,7 @@ export const DEFAULT_ADS_SETTINGS: CustomAdsSettings = {
     },
     {
       id: 'sidebar_banner',
-      name: 'Sidebar Right Rail Banner',
+      name: 'Right Rail Sidebar Sponsor (Right Side of Page)',
       enabled: true,
       sponsor_name: 'Valley MedX Diagnostic Laboratories',
       badge_label: 'Health Sponsor',
@@ -58,7 +58,7 @@ export const DEFAULT_ADS_SETTINGS: CustomAdsSettings = {
     },
     {
       id: 'in_article_native',
-      name: 'In-Article Native Sponsored Dispatch',
+      name: 'In-Article Mid-Reading Sponsor (In Between Paragraphs)',
       enabled: true,
       sponsor_name: 'Gulmarg Alpine Eco-Resorts',
       badge_label: 'Winter Season 2026',
