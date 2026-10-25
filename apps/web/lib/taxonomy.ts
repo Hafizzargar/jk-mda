@@ -120,7 +120,8 @@ export const NEWS_CATEGORIES: Record<string, { name: string; description: string
   opinion: { name: 'Opinion', description: 'Editorials, columns, and analytical perspectives.' },
   general: { name: 'General', description: 'General regional news and public interest bulletins.' },
   international: { name: 'International', description: 'Global developments, diaspora connections, trade diplomacy, and cross-border relations.' },
-  national: { name: 'National', description: 'National affairs, inter-state trade, and pan-India developments.' },
+  national: { name: 'National', description: 'National affairs, union governance, Supreme Court rulings, and pan-India developments.' },
+  india: { name: 'National', description: 'National affairs, union governance, Supreme Court rulings, and pan-India developments.' },
   health: { name: 'Health & Science', description: 'Public healthcare, medical research, clinical care, and scientific innovation.' },
   environment: { name: 'Environment', description: 'Ecology, climate, glaciers, rivers, and environmental conservation across J&K.' },
 };

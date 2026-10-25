@@ -116,6 +116,29 @@ export function SiteNavbar({
 
   const visibleNavItems = navSettings.nav_items.filter((item) => item.enabled);
 
+  const getNavItemHref = (item: { id: string; slug: string }) => {
+    if (item.slug === 'india' || item.id === 'national') return `${langPrefix}/india`;
+    if (item.slug === 'international' || item.id === 'international') return `${langPrefix}/international`;
+    return `${langPrefix}/category/${item.slug}`;
+  };
+
+  const isNavItemActive = (item: { id: string; slug: string }) => {
+    if (activeCategory === item.id || activeCategory === item.slug) return true;
+    if (
+      (item.slug === 'india' || item.id === 'national') &&
+      (pathname === `${langPrefix}/india` || pathname.startsWith(`${langPrefix}/india/`))
+    ) {
+      return true;
+    }
+    if (
+      (item.slug === 'international' || item.id === 'international') &&
+      (pathname === `${langPrefix}/international` || pathname.startsWith(`${langPrefix}/international/`))
+    ) {
+      return true;
+    }
+    return false;
+  };
+
   return (
     <header className={`sticky top-0 z-50 backdrop-blur-md ${navBg} ${navBorder} transition-colors duration-200`}>
       {/* 1. Slim Top Utility Strip */}
@@ -271,11 +294,11 @@ export function SiteNavbar({
         {/* Desktop Navigation Links */}
         <nav className="hidden md:flex items-center gap-1 lg:gap-2 text-xs font-bold uppercase tracking-wider">
           {visibleNavItems.map((item) => {
-            const isActive = activeCategory === item.id || activeCategory === item.slug;
+            const isActive = isNavItemActive(item);
             return (
               <Link
                 key={item.id}
-                href={`${langPrefix}/category/${item.slug}`}
+                href={getNavItemHref(item)}
                 className={`px-2.5 py-1.5 rounded-lg transition-colors duration-150 ${
                   isActive
                     ? `${accentText} font-extrabold ${subtleBg}`
@@ -459,20 +482,23 @@ export function SiteNavbar({
               News Categories
             </div>
             <div className="grid grid-cols-2 gap-2">
-              {visibleNavItems.map((item) => (
-                <Link
-                  key={item.id}
-                  href={`${langPrefix}/category/${item.slug}`}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className={`p-2 rounded-lg text-xs font-semibold border ${
-                    activeCategory === item.id || activeCategory === item.slug
-                      ? `${accentText} font-bold ${subtleBg} border-cyan-500/50`
-                      : `${isDark ? 'border-slate-800 bg-slate-900/60' : 'border-slate-200 bg-slate-50'} text-slate-300 hover:${textPrimary}`
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              ))}
+              {visibleNavItems.map((item) => {
+                const isActive = isNavItemActive(item);
+                return (
+                  <Link
+                    key={item.id}
+                    href={getNavItemHref(item)}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`p-2 rounded-lg text-xs font-semibold border ${
+                      isActive
+                        ? `${accentText} font-bold ${subtleBg} border-cyan-500/50`
+                        : `${isDark ? 'border-slate-800 bg-slate-900/60' : 'border-slate-200 bg-slate-50'} text-slate-300 hover:${textPrimary}`
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                );
+              })}
             </div>
           </div>
 

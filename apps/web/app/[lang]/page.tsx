@@ -75,6 +75,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
   const { from, to } = getPaginationRange(page, limit);
 
   // 3. Fetch Paginated Latest Articles with exact database count
+  // Strictly scoped to Jammu & Kashmir reporting (excludes International and National news)
   const { data: latestArticlesRaw, count } = await supabase
     .from('articles')
     .select(
@@ -82,6 +83,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
       { count: 'exact' }
     )
     .eq('status', 'published')
+    .not('category', 'in', '("International","international","National","national")')
     .order('published_at', { ascending: false, nullsFirst: false })
     .range(from, to);
 
@@ -93,12 +95,13 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
   const adsSettings = await getCustomAdsSettings(supabase);
   const navbarSettings = await getNavbarSettings(supabase);
 
-  // 5. Fetch Trending Articles (bounded to recent 30-day window)
+  // 5. Fetch Trending Articles (bounded to recent 30-day window, J&K news only)
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   let { data: trendingArticlesRaw } = await supabase
     .from('articles')
     .select('id, slug, title, category, published_at, view_count, article_translations(title, language_code)')
     .eq('status', 'published')
+    .not('category', 'in', '("International","international","National","national")')
     .gte('published_at', thirtyDaysAgo)
     .order('view_count', { ascending: false })
     .limit(5);
@@ -108,6 +111,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
       .from('articles')
       .select('id, slug, title, category, published_at, view_count, article_translations(title, language_code)')
       .eq('status', 'published')
+      .not('category', 'in', '("International","international","National","national")')
       .order('view_count', { ascending: false })
       .limit(5);
     trendingArticlesRaw = fallbackTrending || [];
@@ -179,3 +183,4 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     </>
   );
 }
+ 

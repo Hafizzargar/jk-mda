@@ -748,7 +748,7 @@ export default function NavbarSettingsPage() {
                           className="bg-transparent font-bold text-sm text-white focus:outline-none focus:border-b border-cyan-500"
                         />
                         <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">
-                          /category/{item.slug}
+                          {item.slug === 'india' || item.id === 'national' ? '/india' : item.slug === 'international' || item.id === 'international' ? '/international' : `/category/${item.slug}`}
                         </span>
                       </div>
                       <div className="text-[11px] text-slate-500 mt-0.5">

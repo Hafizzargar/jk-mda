@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Metadata } from 'next';
@@ -65,6 +65,15 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
   const resolvedSearchParams = await searchParams;
   const categorySlug = name.toLowerCase().trim();
   const langPrefix = lang === 'en' ? '' : `/${lang}`;
+
+  // Dedicated section routing for International and National desks
+  const pageQuery = resolvedSearchParams.page ? `?page=${resolvedSearchParams.page}` : '';
+  if (categorySlug === 'international') {
+    redirect(`${langPrefix}/international${pageQuery}`);
+  }
+  if (categorySlug === 'india' || categorySlug === 'national') {
+    redirect(`${langPrefix}/india${pageQuery}`);
+  }
 
   // 1. Strict category validation against controlled taxonomy
   if (!isValidCategory(categorySlug)) {
