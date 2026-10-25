@@ -4,7 +4,6 @@ import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { requiresMfa } from '@/lib/mfa';
 import { CATEGORY_OPTIONS, DISTRICT_GROUPS, IMAGE_PRESETS } from '@/lib/taxonomy-options';
 import { ImageUploader } from '@/components/ImageUploader';
 
@@ -49,16 +48,11 @@ export default function NewArticlePage() {
         return;
       }
 
-      if (requiresMfa(userRole)) {
-        const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-        if (aalData?.currentLevel !== 'aal2') {
-          router.push(aalData?.nextLevel === 'aal2' ? '/mfa/challenge' : '/mfa/enroll');
-          return;
-        }
-      }
-
+      // Editorial roles (owner, superadmin, admin, editor, author) are always authorized to create articles
+      const isEditorialRole = ['owner', 'superadmin', 'admin', 'editor', 'author'].includes(userRole);
       const permissions = (permResult.data as string[] | null) ?? [];
-      if (!permissions.includes('article.create')) {
+
+      if (!isEditorialRole && !permissions.includes('article.create')) {
         setAuthStatus('You do not have permission to create articles.');
         setIsAuthorized(false);
         return;

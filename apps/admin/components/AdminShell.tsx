@@ -10,8 +10,6 @@ import { CommandPalette } from './CommandPalette';
 export interface AdminContextType {
   theme: 'light' | 'dark';
   toggleTheme: () => void;
-  isBlockerActive: boolean;
-  toggleBlocker: () => void;
   brandName: string;
   brandLogo: string;
 }
@@ -19,10 +17,8 @@ export interface AdminContextType {
 export const AdminContext = createContext<AdminContextType>({
   theme: 'light',
   toggleTheme: () => {},
-  isBlockerActive: false,
-  toggleBlocker: () => {},
   brandName: 'KJIN',
-  brandLogo: '/kcpjln-symbol.webp',
+  brandLogo: '/kjin-emblem.png',
 });
 
 export const useAdmin = () => useContext(AdminContext);
@@ -36,8 +32,6 @@ export function AdminShell({ children }: AdminShellProps) {
   const router = useRouter();
 
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
-  const [isBlockerActive, setIsBlockerActive] = useState(false);
-  const [blockerToast, setBlockerToast] = useState<string | null>(null);
 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -47,9 +41,9 @@ export function AdminShell({ children }: AdminShellProps) {
   const [userRole, setUserRole] = useState<string | null>(null);
 
   const [brandName, setBrandName] = useState('KJIN');
-  const [brandLogo, setBrandLogo] = useState('/kcpjln-symbol.webp');
+  const [brandLogo, setBrandLogo] = useState('/kjin-emblem.png');
 
-  // Initialize theme & blocker states from localStorage on client mount
+  // Initialize theme state from localStorage on client mount
   useEffect(() => {
     const savedTheme = localStorage.getItem('kjin_admin_theme') as 'light' | 'dark' | null;
     const initialTheme = savedTheme === 'dark' ? 'dark' : 'light';
@@ -59,12 +53,6 @@ export function AdminShell({ children }: AdminShellProps) {
       document.documentElement.classList.add('dark');
     } else {
       document.documentElement.classList.remove('dark');
-    }
-
-    const savedBlocker = localStorage.getItem('kjin_admin_blocker_active');
-    if (savedBlocker === 'true') {
-      setIsBlockerActive(true);
-      document.documentElement.setAttribute('data-blocker', 'active');
     }
 
     const savedCollapsed = localStorage.getItem('kjin_admin_sidebar_collapsed');
@@ -83,23 +71,6 @@ export function AdminShell({ children }: AdminShellProps) {
       } else {
         document.documentElement.classList.remove('dark');
       }
-      return next;
-    });
-  };
-
-  const handleToggleBlocker = () => {
-    setIsBlockerActive((prev) => {
-      const next = !prev;
-      localStorage.setItem('kjin_admin_blocker_active', String(next));
-      document.documentElement.setAttribute('data-blocker', next ? 'active' : 'inactive');
-      
-      const msg = next
-        ? '🛡️ Blocker Activated: Native Ads, Trackers & Simulation Overlays are now blocked.'
-        : '🛡️ Blocker Disabled: Real-time ads and live services restored.';
-      setBlockerToast(msg);
-      setTimeout(() => setBlockerToast(null), 4500);
-
-      window.dispatchEvent(new CustomEvent('kjin-blocker-changed', { detail: { active: next } }));
       return next;
     });
   };
@@ -213,8 +184,6 @@ export function AdminShell({ children }: AdminShellProps) {
       value={{
         theme,
         toggleTheme: handleToggleTheme,
-        isBlockerActive,
-        toggleBlocker: handleToggleBlocker,
         brandName,
         brandLogo,
       }}
@@ -224,24 +193,6 @@ export function AdminShell({ children }: AdminShellProps) {
           theme === 'dark' ? 'bg-[#020817] text-slate-100' : 'bg-slate-50 text-slate-900'
         }`}
       >
-        {/* Blocker Alert Toast Notification */}
-        {blockerToast && (
-          <div className="fixed top-4 right-4 z-50 flex items-center gap-3 rounded-2xl border border-cyan-500/40 bg-white/95 px-4 py-3 shadow-xl backdrop-blur-md dark:bg-slate-900/95 dark:border-cyan-500/50 animate-in fade-in slide-in-from-top-3 duration-300">
-            <span className="text-xl">🛡️</span>
-            <div className="text-xs">
-              <p className="font-bold text-slate-900 dark:text-white">Admin Blocker Shield</p>
-              <p className="text-slate-600 dark:text-slate-300">{blockerToast}</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setBlockerToast(null)}
-              className="ml-2 text-slate-400 hover:text-slate-700 dark:hover:text-white text-sm"
-            >
-              ✕
-            </button>
-          </div>
-        )}
-
         {/* Sidebar (Desktop sticky + Mobile sliding drawer) */}
         <Sidebar
           isCollapsed={isCollapsed}
@@ -266,8 +217,6 @@ export function AdminShell({ children }: AdminShellProps) {
             onSignOut={handleSignOut}
             theme={theme}
             onToggleTheme={handleToggleTheme}
-            isBlockerActive={isBlockerActive}
-            onToggleBlocker={handleToggleBlocker}
             brandName={brandName}
           />
 

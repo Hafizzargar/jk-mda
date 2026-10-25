@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 
 interface NavbarProps {
@@ -11,8 +10,6 @@ interface NavbarProps {
   onSignOut: () => void;
   theme?: 'light' | 'dark';
   onToggleTheme?: () => void;
-  isBlockerActive?: boolean;
-  onToggleBlocker?: () => void;
   brandName?: string;
 }
 
@@ -22,10 +19,7 @@ export function Navbar({
   userRole,
   theme = 'light',
   onToggleTheme,
-  isBlockerActive = false,
-  onToggleBlocker,
 }: NavbarProps) {
-  const [showBlockerMenu, setShowBlockerMenu] = useState(false);
 
   return (
     <header className="sticky top-0 z-30 flex h-10 sm:h-11 w-full items-center justify-between border-b border-slate-200 bg-white/95 px-3 sm:px-4 md:px-6 shadow-2xs backdrop-blur-sm dark:bg-slate-950/95 dark:border-slate-800 transition-all">
@@ -69,75 +63,7 @@ export function Navbar({
           <span className="text-xs">🔍</span>
         </button>
 
-        {/* Compact Blocker Button */}
-        <div className="relative">
-          <button
-            type="button"
-            onClick={onToggleBlocker}
-            onContextMenu={(e) => {
-              e.preventDefault();
-              setShowBlockerMenu((prev) => !prev);
-            }}
-            title={
-              isBlockerActive
-                ? 'Admin Blocker is ACTIVE: Native Ads & Trackers are suppressed. Click to turn off.'
-                : 'Admin Blocker is OFF: Click to block ads, telemetry and popup overlays.'
-            }
-            className={`inline-flex items-center gap-1.5 rounded-lg border px-2 py-0.5 text-xs font-bold transition shadow-2xs ${
-              isBlockerActive
-                ? 'border-rose-400 bg-rose-50 text-rose-900 hover:bg-rose-100 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-200'
-                : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
-            }`}
-          >
-            <span className="text-xs">🛡️</span>
-            <span className="hidden md:inline text-[11px]">Blocker</span>
-            <span
-              className={`rounded-full px-1.5 py-0.2 text-[9px] font-mono uppercase font-black ${
-                isBlockerActive
-                  ? 'bg-rose-600 text-white'
-                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-              }`}
-            >
-              {isBlockerActive ? 'On' : 'Off'}
-            </span>
-          </button>
 
-          {/* Mini info menu */}
-          {showBlockerMenu && (
-            <div className="absolute right-0 mt-2 w-64 rounded-xl border border-slate-200 bg-white p-3.5 shadow-xl dark:border-slate-800 dark:bg-slate-900 z-50 animate-in fade-in slide-in-from-top-2">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-xs font-bold text-slate-900 dark:text-white">🛡️ Blocker Controls</span>
-                <button
-                  type="button"
-                  onClick={() => setShowBlockerMenu(false)}
-                  className="text-xs font-bold text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="mt-2 space-y-2 text-[11px] text-slate-600 dark:text-slate-300 font-medium">
-                <div className="flex items-center justify-between">
-                  <span>Ad &amp; Sponsor Banner Suppression</span>
-                  <span className="font-mono text-emerald-700 dark:text-emerald-400 font-bold">Enabled</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Analytics &amp; Telemetry Shield</span>
-                  <span className="font-mono text-emerald-700 dark:text-emerald-400 font-bold">Protected</span>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  onToggleBlocker?.();
-                  setShowBlockerMenu(false);
-                }}
-                className="mt-3 w-full rounded-lg bg-slate-900 py-1.5 text-xs font-bold text-white hover:bg-slate-800 transition dark:bg-slate-800 dark:hover:bg-slate-700"
-              >
-                {isBlockerActive ? 'Turn Off Blocker' : 'Activate Blocker'}
-              </button>
-            </div>
-          )}
-        </div>
 
         {/* Theme Switcher Toggle */}
         {onToggleTheme && (

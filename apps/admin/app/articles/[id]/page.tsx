@@ -19,6 +19,7 @@ type Article = {
   source_url: string | null;
   featured_image_url: string | null;
   author_display_name: string | null;
+  author_id?: string | null;
   view_count: number;
   created_at: string;
   updated_at: string;
@@ -56,6 +57,9 @@ export default function ArticleViewPage({ params }: { params: Promise<{ id: stri
   const [deleteConfirmationInput, setDeleteConfirmationInput] = useState('');
   const [deleteReason, setDeleteReason] = useState('Editorial purge / fake article removal');
 
+  const [userRole, setUserRole] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
   useEffect(() => {
     async function loadData() {
       setIsLoading(true);
@@ -67,11 +71,21 @@ export default function ArticleViewPage({ params }: { params: Promise<{ id: stri
         return;
       }
       
-      const [articleRes, permRes, versionsRes] = await Promise.all([
+      const [sessionRes, articleRes, roleRes, permRes, versionsRes] = await Promise.all([
+        supabase.auth.getSession(),
         supabase.from('articles').select('*').eq('id', id).single(),
+        supabase.rpc('current_user_role'),
         supabase.rpc('current_user_permissions'),
         supabase.from('article_versions').select('version_number, created_at, edited_by, title, profiles!edited_by(display_name)').eq('article_id', id).order('version_number', { ascending: false })
       ]);
+
+      if (sessionRes.data?.session?.user) {
+        setCurrentUserId(sessionRes.data.session.user.id);
+      }
+      
+      if (!roleRes.error && roleRes.data) {
+        setUserRole(roleRes.data as string);
+      }
       
       if (articleRes.error || !articleRes.data) {
         setError('Could not load article');
@@ -235,8 +249,9 @@ export default function ArticleViewPage({ params }: { params: Promise<{ id: stri
         </div>
         
         <div className="flex flex-wrap items-center gap-3">
-          {/* Edit Content: Allowed for drafts/review, and for published/archived when having review permission */}
-          {((['draft', 'review'].includes(article.status) && (can('article.create') || can('article.review'))) ||
+          {/* Edit Content: Allowed for owner, superadmin, admin, editor across all states, and authors on their drafts */}
+          {((['owner', 'superadmin', 'admin', 'editor'].includes(userRole || '')) ||
+            (['draft', 'review'].includes(article.status) && (can('article.create') || can('article.review') || article.author_id === currentUserId)) ||
             (['published', 'archived'].includes(article.status) && can('article.review'))) && (
             <Link 
               href={`/articles/${id}/edit`}

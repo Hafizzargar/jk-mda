@@ -12,17 +12,20 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@ai-sdk/google": "^4.0.93",
     "@kjin/auth": "workspace:*",
     "@kjin/config": "workspace:*",
     "@kjin/db": "workspace:*",
     "@kjin/types": "workspace:*",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.56.1",
+    "ai": "^7.0.136",
     "next": "^15.3.5",
     "nodemailer": "^10.1.7",
     "qrcode.react": "^4.2.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.11",

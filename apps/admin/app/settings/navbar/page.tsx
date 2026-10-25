@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, FormEvent } from 'react';
-import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
@@ -16,7 +15,6 @@ export default function NavbarSettingsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [_userRole, setUserRole] = useState<string | null>(null);
   const [canManage, setCanManage] = useState(false);
   const [form, setForm] = useState<NavbarSettings>(DEFAULT_NAVBAR_SETTINGS);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -45,7 +43,6 @@ export default function NavbarSettingsPage() {
         }
 
         const role = profile.role;
-        setUserRole(role);
 
         if (requiresMfa(role)) {
           const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();

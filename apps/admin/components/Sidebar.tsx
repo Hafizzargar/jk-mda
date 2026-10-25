@@ -53,13 +53,14 @@ export function Sidebar({
   userEmail,
   onSignOut,
   brandName = 'KJIN',
-  brandLogo = '/kcpjln-symbol.webp',
+  brandLogo = '/kjin-emblem.png',
 }: SidebarProps) {
   const pathname = usePathname();
   const [loggingOut, setLoggingOut] = useState(false);
   const [currentSearch, setCurrentSearch] = useState('');
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
     'Articles & Stories': true,
+    'Event & Gov Monitor': true,
   });
 
   useEffect(() => {
@@ -116,6 +117,43 @@ export function Sidebar({
               icon: '🏛️',
               badge: 'Civic',
               badgeColor: 'bg-amber-100 text-amber-900 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40',
+            },
+          ],
+        },
+      ],
+    },
+    {
+      title: 'AI Newsroom',
+      items: [
+        {
+          name: 'Event & Gov Monitor',
+          description: 'District events & official government response monitor',
+          href: '/newsroom',
+          icon: '📡',
+          badge: 'Radar',
+          badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 font-bold',
+          roles: ['owner', 'superadmin', 'admin', 'editor'],
+          children: [
+            {
+              name: 'Live Monitor',
+              href: '/newsroom',
+              icon: '📡',
+              exact: true,
+            },
+            {
+              name: 'Source Registry',
+              href: '/newsroom/sources',
+              icon: '🔗',
+            },
+            {
+              name: 'Drafts & Fact-Check',
+              href: '/newsroom/drafts',
+              icon: '📋',
+            },
+            {
+              name: 'AI Quota & Usage',
+              href: '/newsroom/usage',
+              icon: '⚡',
             },
           ],
         },
@@ -239,7 +277,7 @@ export function Sidebar({
           >
             <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white border border-slate-200 p-1 shadow-xs dark:bg-slate-900 dark:border-slate-700">
               <Image
-                src={brandLogo || '/kcpjln-symbol.webp'}
+                src={brandLogo || '/kjin-emblem.png'}
                 alt={`${brandName} Symbol`}
                 width={26}
                 height={26}

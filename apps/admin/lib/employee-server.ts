@@ -104,7 +104,10 @@ export async function checkEmployeePermission(
   request: Request,
   permission: string
 ): Promise<Response | null> {
-  const mfaRequired = requiresMfa(auth.profile.role_key);
+  // 1. Editorial draft creation, editing, and review operations do NOT require MFA
+  const isEditorialStandardOp = ['article.create', 'article.review', 'article.submit_review'].includes(permission);
+  const mfaRequired = !isEditorialStandardOp && requiresMfa(auth.profile.role_key);
+
   if (mfaRequired && auth.aal !== 'aal2') {
     await auth.service.from('audit_logs').insert({
       actor_profile_id: auth.user.id,
@@ -118,6 +121,12 @@ export async function checkEmployeePermission(
     return Response.json({ error: 'Multi-factor authentication is required.' }, { status: 403 });
   }
 
+  // 2. Owner and Superadmin unconditionally have ALL permissions once authenticated
+  if (auth.profile.role_key === 'owner' || auth.profile.role_key === 'superadmin') {
+    return null;
+  }
+
+  // 3. For all other roles (admin, editor, author), verify through has_permission RPC
   const { data: hasPermission, error: rpcError } = await auth.userClient.rpc('has_permission', {
     p_permission_key: permission
   });

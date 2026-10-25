@@ -55,8 +55,13 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   
-  // Skip middleware auth checks for API routes as they handle their own auth
-  if (pathname.startsWith('/api/')) {
+  // Skip middleware auth checks for API routes, Next.js internal assets, and static files
+  if (
+    pathname.startsWith('/api/') ||
+    pathname.startsWith('/_next') ||
+    pathname === '/favicon.ico' ||
+    /\.(?:css|js|map|json|svg|png|jpg|jpeg|gif|webp|ico|woff|woff2)$/i.test(pathname)
+  ) {
     return supabaseResponse;
   }
 
@@ -129,6 +134,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next|favicon.ico|.*\\.(?:css|js|map|json|svg|png|jpg|jpeg|gif|webp|ico|woff|woff2)$).*)',
   ],
 };

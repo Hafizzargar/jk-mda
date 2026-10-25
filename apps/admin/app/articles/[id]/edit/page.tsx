@@ -4,7 +4,6 @@ import { FormEvent, useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { requiresMfa } from '@/lib/mfa';
 import { CATEGORY_OPTIONS, DISTRICT_GROUPS, IMAGE_PRESETS } from '@/lib/taxonomy-options';
 import { ImageUploader } from '@/components/ImageUploader';
 
@@ -70,14 +69,6 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
         return;
       }
 
-      if (requiresMfa(userRole)) {
-        const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-        if (aalData?.currentLevel !== 'aal2') {
-          router.push(aalData?.nextLevel === 'aal2' ? '/mfa/challenge' : '/mfa/enroll');
-          return;
-        }
-      }
-
       const permissions = (permResult.data as string[] | null) ?? [];
       const hasReviewPermission = permissions.includes('article.review');
       const hasCreatePermission = permissions.includes('article.create');
@@ -105,10 +96,16 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
 
       const a = articleData as Article;
       
-      // Verify edit authorization
+      // Verify edit authorization:
+      // Owner and Superadmin have unconditional edit permissions across all states
+      // Admin and Editor can edit drafts, in-review, published, and archived articles
+      // Authors can edit their own draft articles
+      const isPrivilegedStaff = ['owner', 'superadmin', 'admin', 'editor'].includes(userRole);
+      const isAuthorOfDraft = a.author_id === userId && a.status === 'draft';
       const canEdit = 
+        isPrivilegedStaff ||
         (hasReviewPermission && ['draft', 'review', 'published', 'archived'].includes(a.status)) ||
-        (a.author_id === userId && a.status === 'draft' && hasCreatePermission);
+        (isAuthorOfDraft && (hasCreatePermission || userRole === 'author'));
 
       if (!canEdit) {
         setAuthStatus('You do not have permission to edit this article in its current state.');
