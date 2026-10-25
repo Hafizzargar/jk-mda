@@ -136,6 +136,9 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
     const form = new FormData(event.currentTarget);
     
     let slug = String(form.get('slug') ?? '').trim();
+    if (!slug && article) {
+      slug = article.slug;
+    }
     const title = String(form.get('title') ?? '').trim();
     
     if (!slug && title) {
@@ -205,61 +208,86 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
   return (
     <div className="p-6 md:p-8">
       <div className="mx-auto max-w-3xl">
-        <header className="mb-8 border-b border-slate-800 pb-6">
-          <Link href={`/articles/${id}`} className="text-sm font-medium text-cyan-300 hover:text-cyan-200">
-            &larr; Back to article
-          </Link>
-          <h1 className="mt-4 text-3xl font-bold">Edit article</h1>
-          <p className="mt-2 text-sm text-slate-400">Update the article content and metadata.</p>
+        <header className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
+          <div className="flex items-center gap-3">
+            <Link
+              href={`/articles/${id}`}
+              className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 transition-colors shadow-2xs"
+              title="Back to article"
+            >
+              ←
+            </Link>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Edit Story</h1>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <Link
+              href={`/articles/${id}`}
+              className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 transition-colors shadow-2xs"
+            >
+              Cancel
+            </Link>
+            <button
+              type="submit"
+              form="edit-article-form"
+              disabled={isSubmitting}
+              className="flex items-center gap-2 rounded-xl bg-cyan-600 px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-cyan-500 disabled:opacity-50 transition-colors"
+            >
+              <span>💾</span>
+              <span>{isSubmitting ? 'Saving...' : 'Save Changes'}</span>
+            </button>
+          </div>
         </header>
 
         {error && (
-          <div className="mb-6 rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-red-200">
-            {error}
+          <div className="mb-6 rounded-xl border border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-950/40 p-4 text-red-700 dark:text-red-200 font-medium text-sm flex items-center gap-3 shadow-xs">
+            <span className="text-xl">⚠️</span>
+            <div className="flex-1">{error}</div>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="rounded-xl border border-slate-800 bg-slate-900 p-6">
-            <h2 className="text-lg font-semibold mb-4">Core Content</h2>
+        <form id="edit-article-form" onSubmit={handleSubmit} className="space-y-6">
+          <div className="rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900 shadow-2xs">
+            <h2 className="text-base font-bold text-slate-900 dark:text-white mb-4">Core Content</h2>
             
-            <div className="space-y-5">
+            <div className="space-y-4">
               <label className="block">
-                <span className="text-sm font-medium text-slate-300">Title <span className="text-red-400">*</span></span>
+                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Title <span className="text-red-500">*</span></span>
                 <input 
                   name="title" 
                   defaultValue={article.title}
                   required 
                   maxLength={255} 
-                  className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-white focus:border-cyan-500 focus:outline-none" 
+                  className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 focus:border-cyan-500 focus:outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white shadow-2xs" 
                 />
               </label>
 
               <label className="block">
-                <span className="text-sm font-medium text-slate-300">Slug</span>
-                <p className="text-xs text-slate-500 mb-2">Only alphanumeric and hyphens allowed.</p>
+                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Slug</span>
                 <input 
                   name="slug" 
                   defaultValue={article.slug}
                   maxLength={255}
                   pattern="^[a-z0-9-]+$"
                   title="Only lowercase letters, numbers, and hyphens are allowed"
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-white font-mono text-sm focus:border-cyan-500 focus:outline-none disabled:opacity-50" 
+                  className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 font-mono text-sm text-slate-900 focus:border-cyan-500 focus:outline-none disabled:opacity-50 dark:border-slate-700 dark:bg-slate-950 dark:text-white shadow-2xs" 
                   disabled={article.status === 'published' || article.status === 'archived'}
                 />
                 {(article.status === 'published' || article.status === 'archived') && (
-                  <p className="text-xs text-amber-400 mt-1">Slug cannot be changed after publication.</p>
+                  <p className="text-[11px] font-medium text-amber-600 dark:text-amber-400 mt-1">Slug locked after publication to protect live URLs.</p>
                 )}
               </label>
 
               <label className="block">
-                <span className="text-sm font-medium text-slate-300">Excerpt</span>
+                <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Excerpt</span>
                 <textarea 
                   name="excerpt" 
                   defaultValue={article.excerpt ?? ''}
                   maxLength={1000} 
-                  rows={3}
-                  className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-2.5 text-white focus:border-cyan-500 focus:outline-none" 
+                  rows={2}
+                  className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-900 focus:border-cyan-500 focus:outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white shadow-2xs" 
                 />
               </label>
 

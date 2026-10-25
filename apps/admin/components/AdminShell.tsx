@@ -12,6 +12,8 @@ export interface AdminContextType {
   toggleTheme: () => void;
   isBlockerActive: boolean;
   toggleBlocker: () => void;
+  brandName: string;
+  brandLogo: string;
 }
 
 export const AdminContext = createContext<AdminContextType>({
@@ -19,6 +21,8 @@ export const AdminContext = createContext<AdminContextType>({
   toggleTheme: () => {},
   isBlockerActive: false,
   toggleBlocker: () => {},
+  brandName: 'KJIN',
+  brandLogo: '/kcpjln-symbol.webp',
 });
 
 export const useAdmin = () => useContext(AdminContext);
@@ -41,6 +45,9 @@ export function AdminShell({ children }: AdminShellProps) {
 
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
+
+  const [brandName, setBrandName] = useState('KJIN');
+  const [brandLogo, setBrandLogo] = useState('/kcpjln-symbol.webp');
 
   // Initialize theme & blocker states from localStorage on client mount
   useEffect(() => {
@@ -148,6 +155,45 @@ export function AdminShell({ children }: AdminShellProps) {
     };
   }, []);
 
+  // Fetch dynamic brand configuration from site_settings
+  useEffect(() => {
+    async function loadBrandSettings() {
+      try {
+        const { data } = await supabase
+          .from('site_settings')
+          .select('value')
+          .eq('key', 'navbar_settings')
+          .maybeSingle();
+
+        const rawVal = data?.value as Record<string, unknown> | undefined;
+        const brand = rawVal?.brand as Record<string, unknown> | undefined;
+        if (brand?.name && typeof brand.name === 'string' && brand.name.trim()) {
+          setBrandName(brand.name.trim());
+        }
+        if (brand?.logo_url && typeof brand.logo_url === 'string' && brand.logo_url.trim()) {
+          setBrandLogo(brand.logo_url.trim());
+        }
+      } catch {
+        // Fallback to default
+      }
+    }
+
+    loadBrandSettings();
+
+    const handleBrandUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<{ name?: string; logo_url?: string }>;
+      if (customEvent.detail?.name) {
+        setBrandName(customEvent.detail.name);
+      }
+      if (customEvent.detail?.logo_url) {
+        setBrandLogo(customEvent.detail.logo_url);
+      }
+    };
+
+    window.addEventListener('kjin-brand-updated', handleBrandUpdate);
+    return () => window.removeEventListener('kjin-brand-updated', handleBrandUpdate);
+  }, []);
+
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut();
@@ -169,6 +215,8 @@ export function AdminShell({ children }: AdminShellProps) {
         toggleTheme: handleToggleTheme,
         isBlockerActive,
         toggleBlocker: handleToggleBlocker,
+        brandName,
+        brandLogo,
       }}
     >
       <div
@@ -204,6 +252,8 @@ export function AdminShell({ children }: AdminShellProps) {
           userEmail={userEmail}
           onSignOut={handleSignOut}
           theme={theme}
+          brandName={brandName}
+          brandLogo={brandLogo}
         />
 
         {/* Main Body */}
@@ -218,6 +268,7 @@ export function AdminShell({ children }: AdminShellProps) {
             onToggleTheme={handleToggleTheme}
             isBlockerActive={isBlockerActive}
             onToggleBlocker={handleToggleBlocker}
+            brandName={brandName}
           />
 
           <main className="flex-1 min-w-0">{children}</main>

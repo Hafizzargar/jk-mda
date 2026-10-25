@@ -167,65 +167,45 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 space-y-8 max-w-7xl mx-auto">
-      {/* Executive Welcome Hero with Light Aesthetics */}
-      <div className="relative overflow-hidden rounded-3xl border border-slate-200/90 bg-gradient-to-br from-white via-slate-50 to-cyan-50/40 p-6 sm:p-8 shadow-sm dark:border-slate-800/80 dark:bg-gradient-to-br dark:from-slate-900/90 dark:via-slate-950/90 dark:to-[#030914] dark:shadow-2xl">
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none" />
-        <div className="absolute -left-20 -bottom-20 h-64 w-64 rounded-full bg-blue-500/10 blur-3xl pointer-events-none" />
-
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <span className="flex h-2 w-2 rounded-full bg-emerald-500" />
-              <span className="text-xs font-mono font-bold uppercase tracking-widest text-emerald-700 dark:text-emerald-400">
-                Editorial Control Center
-              </span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-              KJIN Newsroom Dashboard
-            </h1>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 max-w-xl">
-              Kashmir Journalist Information Network editorial desk. Real-time verification, district coverage, and civic grievances dispatch.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <Link
-              href="/articles?category=Local"
-              className="inline-flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-xs font-bold text-amber-900 hover:bg-amber-100 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200 dark:hover:bg-amber-500/20 transition-all shadow-2xs"
-            >
-              <span>🏛️</span>
-              <span>Area Problems</span>
-            </Link>
-            <Link
-              href="/articles"
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-800 hover:bg-slate-100 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-200 transition-all shadow-2xs"
-            >
-              <span>📰</span>
-              <span>Manage Stories</span>
-            </Link>
-            <Link
-              href="/articles/new"
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-600 to-sky-600 px-5 py-2.5 text-xs font-bold text-white hover:from-cyan-500 hover:to-sky-500 shadow-sm shadow-cyan-950/20 transition-all active:scale-95"
-            >
-              <span>✍️</span>
-              <span>New Story</span>
-            </Link>
-          </div>
-        </div>
-
-        {/* Auth Status Capsule */}
-        <div className="mt-6 flex flex-wrap items-center justify-between border-t border-slate-200/90 pt-4 text-xs text-slate-500 dark:border-slate-800/80 dark:text-slate-400 gap-2">
+    <div className="p-4 sm:p-6 space-y-6 max-w-7xl mx-auto">
+      {/* Compact Action & Status Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
+        <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-cyan-800 dark:text-cyan-300">Session Status:</span>
-            <span className="font-mono text-slate-700 dark:text-slate-300">{status}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-slate-500">Active Role:</span>
-            <span className="rounded-full bg-cyan-100 border border-cyan-200 px-2.5 py-0.5 font-mono text-[11px] font-bold text-cyan-800 capitalize dark:bg-cyan-500/10 dark:border-cyan-500/30 dark:text-cyan-300">
-              {userRole ?? 'editor'}
+            <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+              Newsdesk Live
             </span>
           </div>
+          {userRole && (
+            <span className="rounded-full bg-cyan-50 border border-cyan-200 px-2.5 py-0.5 font-mono text-[10px] font-bold text-cyan-800 uppercase dark:bg-cyan-500/10 dark:border-cyan-500/30 dark:text-cyan-300">
+              Role: {userRole}
+            </span>
+          )}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/articles?category=Local"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-900 hover:bg-amber-100 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200 dark:hover:bg-amber-500/20 transition-all shadow-2xs"
+          >
+            <span>🏛️</span>
+            <span>Area Problems</span>
+          </Link>
+          <Link
+            href="/articles"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 transition-all shadow-2xs"
+          >
+            <span>📰</span>
+            <span>Manage Stories</span>
+          </Link>
+          <Link
+            href="/articles/new"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-cyan-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-cyan-500 shadow-2xs transition-all active:scale-95"
+          >
+            <span>✍️</span>
+            <span>New Story</span>
+          </Link>
         </div>
       </div>
 

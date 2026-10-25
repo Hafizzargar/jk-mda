@@ -180,61 +180,38 @@ export default function ProfilePage() {
       : 'ED';
 
   return (
-    <div className="mx-auto max-w-4xl p-6 md:p-8 space-y-8">
-      {/* Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl border border-slate-800/80 bg-gradient-to-br from-slate-900/90 via-slate-950 to-[#020617] p-6 sm:p-8 shadow-2xl">
-        <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none" />
-
-        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-600 text-xl font-black text-slate-950 shadow-xl shadow-cyan-950/60 ring-2 ring-cyan-400/30">
+    <div className="mx-auto max-w-4xl p-4 sm:p-6 space-y-6">
+      {/* Compact Profile Header Card */}
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/80 p-4 sm:p-5 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 text-base font-black text-slate-950 shadow-xs ring-1 ring-cyan-400/30">
               {initials}
             </div>
             <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="h-2 w-2 rounded-full bg-emerald-400" />
-                <span className="text-[11px] font-mono uppercase tracking-widest text-emerald-400">
-                  {profile?.status} Profile
-                </span>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-bold text-slate-900 dark:text-white">
+                  {profile?.display_name || profile?.email}
+                </h1>
+                <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
               </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-                {profile?.display_name || profile?.email}
-              </h1>
-              <p className="text-xs text-slate-400 font-mono mt-0.5">{profile?.email}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">{profile?.email}</p>
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3 py-1 font-mono text-xs font-semibold uppercase tracking-wider text-cyan-300">
+            <span className="rounded-full border border-cyan-500/30 bg-cyan-50 dark:bg-cyan-500/10 px-2.5 py-0.5 font-mono text-[11px] font-bold uppercase tracking-wider text-cyan-800 dark:text-cyan-300">
               Role: {profile?.role_key || profile?.role}
             </span>
-            <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 font-mono text-xs font-semibold uppercase tracking-wider text-emerald-300">
-              {profile?.aal === 'aal2' ? '🛡️ AAL2 Verified' : '🔒 AAL1 Standard'}
+            <span className="rounded-full border border-emerald-500/30 bg-emerald-50 dark:bg-emerald-500/10 px-2.5 py-0.5 font-mono text-[11px] font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300">
+              {profile?.aal === 'aal2' ? '🛡️ AAL2' : '🔒 AAL1'}
             </span>
-          </div>
-        </div>
-
-        {/* Quick Stats Grid */}
-        <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-4 border-t border-slate-800/80 pt-5 text-xs">
-          <div>
-            <p className="text-slate-500 uppercase tracking-wider text-[10px] font-mono">Articles Authored</p>
-            <p className="mt-1 text-lg font-bold text-white">
-              <Link href="/articles" className="hover:text-cyan-300 hover:underline">
-                {profile?.articles_count} stories →
-              </Link>
-            </p>
-          </div>
-          <div>
-            <p className="text-slate-500 uppercase tracking-wider text-[10px] font-mono">Staff Since</p>
-            <p className="mt-1 text-sm font-semibold text-slate-300">
-              {profile?.created_at ? new Date(profile.created_at).toLocaleDateString() : 'Active'}
-            </p>
-          </div>
-          <div className="col-span-2 sm:col-span-1">
-            <p className="text-slate-500 uppercase tracking-wider text-[10px] font-mono">Last Session</p>
-            <p className="mt-1 text-sm font-semibold text-slate-300">
-              {profile?.last_sign_in ? new Date(profile.last_sign_in).toLocaleDateString() : 'Current Session'}
-            </p>
+            <Link
+              href="/articles"
+              className="rounded-full border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-2.5 py-0.5 font-mono text-[11px] font-bold text-slate-700 dark:text-slate-300 hover:text-cyan-600 transition"
+            >
+              {profile?.articles_count ?? 0} stories
+            </Link>
           </div>
         </div>
       </div>

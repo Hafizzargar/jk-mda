@@ -17,6 +17,7 @@ import { LeaderboardAd } from '@/components/ads/LeaderboardAd';
 import { SidebarAd } from '@/components/ads/SidebarAd';
 import { NewsletterForm } from '@/components/NewsletterForm';
 import { applyTranslations } from '@/lib/i18n';
+import { getDistrictDisplayName } from '@/lib/taxonomy';
 
 interface ArticlePageProps {
   params: Promise<{
@@ -265,7 +266,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   const breadcrumbs = [
     { label: displayArticle.category, href: `${langPrefix}/category/${displayArticle.category.toLowerCase()}` },
     ...(displayArticle.district
-      ? [{ label: displayArticle.district.charAt(0).toUpperCase() + displayArticle.district.slice(1), href: `${langPrefix}/district/${displayArticle.district.toLowerCase()}` }]
+      ? [{ label: getDistrictDisplayName(displayArticle.district), href: `${langPrefix}/district/${displayArticle.district.toLowerCase()}` }]
       : []),
     { label: displayArticle.title, current: true },
   ];
@@ -306,9 +307,9 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
                 <span>&bull;</span>
                 <Link
                   href={`/${resolvedParams.lang === 'en' ? '' : `${resolvedParams.lang}/`}district/${displayArticle.district.toLowerCase()}`}
-                  className={`font-medium ${theme.textSecondaryClass} hover:opacity-80 transition`}
+                  className={`uppercase tracking-wider font-semibold ${theme.accentTextClass} hover:opacity-80 transition`}
                 >
-                  {displayArticle.district}
+                  {getDistrictDisplayName(displayArticle.district).toUpperCase()}
                 </Link>
               </>
             )}
@@ -508,13 +509,6 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           </ol>
         </div>
 
-        {/* Sticky Right Rail Custom Sponsor Ad - Always visible on right side */}
-        {(sidebarAd || bottomAd) && (
-          <div className="sticky top-24 z-10">
-            <SidebarAd ad={sidebarAd || bottomAd!} />
-          </div>
-        )}
-
         {/* Morning Intelligence Brief */}
         <div className={`p-6 rounded-2xl ${theme.subtleBgClass} ${theme.borderClass} border`}>
           <div className={`text-xs font-bold uppercase tracking-widest ${theme.accentTextClass} mb-1`}>
@@ -528,6 +522,13 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           </p>
           <NewsletterForm />
         </div>
+
+        {/* Sticky Right Rail Custom Sponsor Ad - Pinned last so nothing scrolls behind it */}
+        {(sidebarAd || bottomAd) && (
+          <div className="sticky top-28 z-10 self-start">
+            <SidebarAd ad={sidebarAd || bottomAd!} />
+          </div>
+        )}
       </aside>
     </div>
   </div>

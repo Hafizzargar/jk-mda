@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
@@ -14,6 +14,17 @@ interface SidebarProps {
   userEmail?: string | null;
   onSignOut: () => void;
   theme?: 'light' | 'dark';
+  brandName?: string;
+  brandLogo?: string;
+}
+
+interface SubNavItem {
+  name: string;
+  href: string;
+  icon?: string;
+  badge?: string;
+  badgeColor?: string;
+  exact?: boolean;
 }
 
 interface NavItem {
@@ -25,6 +36,7 @@ interface NavItem {
   badgeColor?: string;
   roles?: string[];
   exact?: boolean;
+  children?: SubNavItem[];
 }
 
 interface NavSection {
@@ -40,9 +52,33 @@ export function Sidebar({
   userRole,
   userEmail,
   onSignOut,
+  brandName = 'KJIN',
+  brandLogo = '/kcpjln-symbol.webp',
 }: SidebarProps) {
   const pathname = usePathname();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [currentSearch, setCurrentSearch] = useState('');
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
+    'Articles & Stories': true,
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setCurrentSearch(window.location.search);
+      const handleLocation = () => setCurrentSearch(window.location.search);
+      window.addEventListener('popstate', handleLocation);
+      return () => window.removeEventListener('popstate', handleLocation);
+    }
+  }, [pathname]);
+
+  const toggleMenu = (name: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setOpenMenus((prev) => ({
+      ...prev,
+      [name]: !prev[name],
+    }));
+  };
 
   const navSections: NavSection[] = [
     {
@@ -57,26 +93,31 @@ export function Sidebar({
         },
         {
           name: 'Articles & Stories',
-          description: 'Browse, edit & filter published news',
+          description: 'News reports, new story drafts & civic problems',
           href: '/articles',
           icon: '📰',
           exact: false,
-        },
-        {
-          name: 'New Story',
-          description: 'Compose news report or civic dispatch',
-          href: '/articles/new',
-          icon: '✍️',
-          badge: 'Draft',
-          badgeColor: 'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/40',
-        },
-        {
-          name: 'Area Problems',
-          description: 'Civic grievances & valley ground issues',
-          href: '/articles?category=Local',
-          icon: '🏛️',
-          badge: 'Civic',
-          badgeColor: 'bg-amber-100 text-amber-900 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40',
+          children: [
+            {
+              name: 'All Stories',
+              href: '/articles',
+              icon: '📄',
+            },
+            {
+              name: 'New Story',
+              href: '/articles/new',
+              icon: '✍️',
+              badge: 'Draft',
+              badgeColor: 'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/40',
+            },
+            {
+              name: 'Area Problems',
+              href: '/articles?category=Local',
+              icon: '🏛️',
+              badge: 'Civic',
+              badgeColor: 'bg-amber-100 text-amber-900 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40',
+            },
+          ],
         },
       ],
     },
@@ -88,6 +129,7 @@ export function Sidebar({
           description: 'Staff directory, RBAC roles & permissions',
           href: '/employees',
           icon: '👥',
+          roles: ['owner', 'superadmin', 'admin'],
         },
         {
           name: 'My Profile & Author',
@@ -105,7 +147,7 @@ export function Sidebar({
           description: 'Brand logo, navbar menus, topics & tools',
           href: '/settings/navbar',
           icon: '🧭',
-          roles: ['owner', 'superadmin', 'admin', 'editor'],
+          roles: ['owner', 'superadmin', 'admin'],
           badge: 'Live',
           badgeColor: 'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/40 font-bold',
         },
@@ -114,7 +156,7 @@ export function Sidebar({
           description: 'Footer columns, bureau contacts & links',
           href: '/settings/footer',
           icon: '📑',
-          roles: ['owner', 'superadmin', 'admin', 'editor'],
+          roles: ['owner', 'superadmin', 'admin'],
         },
         {
           name: 'Website Templates',
@@ -133,7 +175,7 @@ export function Sidebar({
           description: 'Sponsors, native ad slots & earnings',
           href: '/settings/ads',
           icon: '💰',
-          roles: ['owner', 'superadmin', 'admin', 'editor'],
+          roles: ['owner', 'superadmin', 'admin'],
           badge: '✨ Earn',
           badgeColor: 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-500/25 dark:text-amber-200 dark:border-amber-400/50 font-bold',
         },
@@ -146,13 +188,26 @@ export function Sidebar({
     await onSignOut();
   };
 
+  const isSubItemActive = (sub: SubNavItem) => {
+    if (sub.href === '/articles?category=Local') {
+      return pathname === '/articles' && currentSearch.includes('category=Local');
+    }
+    if (sub.href === '/articles') {
+      return pathname === '/articles' && !currentSearch.includes('category=Local');
+    }
+    return pathname === sub.href;
+  };
+
   const isLinkActive = (item: NavItem) => {
     if (item.exact) {
       return pathname === item.href;
     }
+    if (item.children) {
+      return pathname.startsWith(item.href);
+    }
     // Specific match for category=Local
     if (item.href === '/articles?category=Local') {
-      return pathname === '/articles' && typeof window !== 'undefined' && window.location.search.includes('category=Local');
+      return pathname === '/articles' && currentSearch.includes('category=Local');
     }
     return pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href) && !item.href.includes('?'));
   };
@@ -161,22 +216,31 @@ export function Sidebar({
     ? userEmail.slice(0, 2).toUpperCase()
     : userRole
       ? userRole.slice(0, 2).toUpperCase()
-      : 'KJ';
+      : brandName
+        ? brandName.slice(0, 2).toUpperCase()
+        : 'KJ';
 
   const sidebarContent = (
     <div className="flex h-full flex-col bg-white border-r border-slate-200 text-slate-800 overflow-hidden shadow-xs dark:bg-slate-950 dark:border-slate-800 dark:text-slate-200">
       {/* Top Branding Section (Fixed) */}
       <div className="shrink-0">
-        <div className="flex items-center justify-between px-4 py-3.5 border-b border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-900/60">
+        <div
+          className={`border-b border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-900/60 transition-all ${
+            isCollapsed
+              ? 'py-3.5 px-2 flex items-center justify-center'
+              : 'px-4 py-3.5 flex items-center justify-between'
+          }`}
+        >
           <Link
             href="/"
             onClick={onCloseMobile}
-            className="flex items-center gap-2.5 transition-opacity hover:opacity-90"
+            title={`${brandName} Newsroom Admin`}
+            className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-2.5'} transition-opacity hover:opacity-90`}
           >
             <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white border border-slate-200 p-1 shadow-xs dark:bg-slate-900 dark:border-slate-700">
               <Image
-                src="/kcpjln-symbol.webp"
-                alt="KJIN Symbol"
+                src={brandLogo || '/kcpjln-symbol.webp'}
+                alt={`${brandName} Symbol`}
                 width={26}
                 height={26}
                 className="object-contain"
@@ -186,7 +250,9 @@ export function Sidebar({
             {!isCollapsed && (
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-extrabold text-base tracking-wider text-slate-900 dark:text-white">KJIN</span>
+                  <span className="font-extrabold text-base tracking-wider text-slate-900 dark:text-white uppercase">
+                    {brandName}
+                  </span>
                   <span className="rounded bg-cyan-100 text-cyan-900 border border-cyan-300 dark:bg-cyan-900/50 dark:text-cyan-200 dark:border-cyan-700 px-1.5 py-0.2 text-[9px] font-mono font-bold uppercase tracking-widest">
                     OS
                   </span>
@@ -198,28 +264,46 @@ export function Sidebar({
             )}
           </Link>
 
-          {/* Desktop collapse toggle */}
+          {/* Desktop collapse toggle (when expanded) */}
+          {!isCollapsed && (
+            <button
+              type="button"
+              onClick={onToggleCollapse}
+              title="Collapse sidebar"
+              aria-label="Collapse sidebar"
+              className="hidden lg:flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 shadow-2xs hover:border-cyan-500 hover:bg-cyan-50 hover:text-cyan-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-cyan-500/50 dark:hover:bg-cyan-950/40 dark:hover:text-cyan-300 transition-all active:scale-95"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          )}
+
+          {/* Mobile drawer close button (only visible on mobile drawer) */}
           <button
             type="button"
-            onClick={onToggleCollapse}
-            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className="hidden lg:flex h-6 w-6 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 hover:text-slate-900 hover:border-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:text-white transition-colors"
+            onClick={onCloseMobile}
+            aria-label="Close sidebar"
+            className="lg:hidden flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
           >
-            <span className="text-[10px] font-bold">{isCollapsed ? '▶' : '◀'}</span>
+            <span className="text-xs">✕</span>
           </button>
         </div>
 
-        {/* Live Engine Status Mini Banner */}
-        {!isCollapsed && (
-          <div className="mx-3 mt-3 flex items-center justify-between rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-1.5 text-xs dark:border-emerald-600/40 dark:bg-emerald-950/30">
-            <div className="flex items-center gap-2">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-600" />
-              </span>
-              <span className="font-extrabold text-emerald-950 dark:text-emerald-200 text-xs">Newsdesk Active</span>
-            </div>
-            <span className="text-[10px] font-mono font-black text-emerald-800 dark:text-emerald-300 uppercase">v2.4</span>
+        {/* Collapsed state: Dedicated expand button centered right below header */}
+        {isCollapsed && (
+          <div className="px-2 pt-2.5 pb-0.5 flex justify-center">
+            <button
+              type="button"
+              onClick={onToggleCollapse}
+              title="Expand sidebar"
+              aria-label="Expand sidebar"
+              className="hidden lg:flex h-8 w-8 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 shadow-2xs hover:border-cyan-500 hover:bg-cyan-50 hover:text-cyan-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-cyan-500/50 dark:hover:bg-cyan-950/40 dark:hover:text-cyan-300 transition-all active:scale-95"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
           </div>
         )}
       </div>
@@ -247,6 +331,93 @@ export function Sidebar({
               <div className="space-y-0.5">
                 {filteredItems.map((item) => {
                   const active = isLinkActive(item);
+                  const hasChildren = item.children && item.children.length > 0;
+                  const isOpen = openMenus[item.name] ?? true;
+
+                  if (hasChildren) {
+                    return (
+                      <div key={item.name} className="space-y-0.5">
+                        <div
+                          className={`group flex items-center justify-between rounded-xl px-3 py-1.5 text-xs font-semibold transition-all ${
+                            active
+                              ? 'bg-cyan-50/80 text-cyan-950 font-bold border-l-4 border-cyan-600 shadow-2xs dark:bg-cyan-950/50 dark:text-cyan-200 dark:border-cyan-400'
+                              : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 border-l-4 border-transparent dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white'
+                          }`}
+                        >
+                          <Link
+                            href={item.href}
+                            onClick={onCloseMobile}
+                            title={item.name}
+                            className="flex items-center gap-2.5 flex-1 min-w-0"
+                          >
+                            <span className="text-base shrink-0 transition-transform group-hover:scale-110">
+                              {item.icon}
+                            </span>
+                            {!isCollapsed && (
+                              <span className="truncate flex-1">
+                                {item.name}
+                              </span>
+                            )}
+                          </Link>
+
+                          {!isCollapsed && (
+                            <button
+                              type="button"
+                              onClick={(e) => toggleMenu(item.name, e)}
+                              aria-label={isOpen ? 'Collapse submenu' : 'Expand submenu'}
+                              className="ml-1 flex h-5 w-5 items-center justify-center rounded-md text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors"
+                            >
+                              <span
+                                className={`inline-block text-[9px] transition-transform duration-200 ${
+                                  isOpen ? 'rotate-180' : ''
+                                }`}
+                              >
+                                ▼
+                              </span>
+                            </button>
+                          )}
+                        </div>
+
+                        {!isCollapsed && isOpen && (
+                          <div className="ml-5 mt-0.5 space-y-0.5 border-l-2 border-slate-200 dark:border-slate-800 pl-2.5 py-0.5">
+                            {item.children!.map((sub) => {
+                              const subActive = isSubItemActive(sub);
+
+                              return (
+                                <Link
+                                  key={sub.name}
+                                  href={sub.href}
+                                  onClick={onCloseMobile}
+                                  title={sub.name}
+                                  className={`group flex items-center gap-2 rounded-lg px-2 py-1 text-xs font-medium transition-all ${
+                                    subActive
+                                      ? 'bg-cyan-100/90 text-cyan-950 font-bold dark:bg-cyan-900/50 dark:text-cyan-200 shadow-2xs'
+                                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-white'
+                                  }`}
+                                >
+                                  {sub.icon && (
+                                    <span className="text-xs shrink-0 transition-transform group-hover:scale-110">
+                                      {sub.icon}
+                                    </span>
+                                  )}
+                                  <span className="truncate flex-1">
+                                    {sub.name}
+                                  </span>
+                                  {sub.badge && (
+                                    <span
+                                      className={`ml-auto shrink-0 rounded-full border px-1.5 py-0.2 text-[9px] font-bold tracking-wide ${sub.badgeColor}`}
+                                    >
+                                      {sub.badge}
+                                    </span>
+                                  )}
+                                </Link>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
 
                   return (
                     <Link

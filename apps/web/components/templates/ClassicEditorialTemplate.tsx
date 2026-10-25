@@ -8,6 +8,7 @@ import { PaginationControls } from '@/components/navigation/PaginationControls';
 import { LeaderboardAd } from '@/components/ads/LeaderboardAd';
 import { SidebarAd } from '@/components/ads/SidebarAd';
 import { TemplateProps } from './types';
+import { getDistrictDisplayName } from '@/lib/taxonomy';
 
 export function ClassicEditorialTemplate({
   langPrefix,
@@ -51,7 +52,7 @@ export function ClassicEditorialTemplate({
                   {heroArticle.district && (
                     <>
                       <span>&bull;</span>
-                      <span className="text-slate-800 font-medium">{heroArticle.district}</span>
+                      <span className="text-red-700 font-bold uppercase tracking-wider">{getDistrictDisplayName(heroArticle.district).toUpperCase()}</span>
                     </>
                   )}
                   <span>&bull;</span>
@@ -108,9 +109,14 @@ export function ClassicEditorialTemplate({
                         />
                       </div>
                     )}
-                    <div className="text-[11px] font-sans font-bold uppercase tracking-wider text-slate-500 mb-1">
+                    <div className="text-[11px] font-sans font-bold uppercase tracking-wider text-slate-500 mb-1 flex items-center gap-1.5">
                       <span className="text-blue-900 font-bold">{article.category}</span>
-                      {article.district ? ` · ${article.district}` : ''}
+                      {article.district && (
+                        <>
+                          <span>&bull;</span>
+                          <span className="text-red-700 font-bold">{getDistrictDisplayName(article.district).toUpperCase()}</span>
+                        </>
+                      )}
                     </div>
                     <h3 className="text-xl font-bold leading-snug text-slate-950 group-hover:text-blue-900 transition mb-2">
                       {article.title}
@@ -169,17 +175,7 @@ export function ClassicEditorialTemplate({
             </ol>
           </section>
 
-          {/* Right Rail Sticky Custom Sponsor Ad */}
-          {sidebarAd ? (
-            <section className="sticky top-20 z-10">
-              <SidebarAd ad={sidebarAd} />
-            </section>
-          ) : leaderboardAd ? (
-            <section className="sticky top-20 z-10">
-              <SidebarAd ad={leaderboardAd} />
-            </section>
-          ) : null}
-
+          {/* Morning Intelligence Brief */}
           <section className="bg-[#f2efe9] border border-slate-300 p-6 rounded-none font-sans">
             <div className="text-xs font-bold uppercase tracking-widest text-slate-700 mb-1">KJIN Broadsheet Edition</div>
             <h3 className="text-xl font-bold font-serif text-slate-900 mb-2">Morning Intelligence Brief</h3>
@@ -188,6 +184,17 @@ export function ClassicEditorialTemplate({
             </p>
             <NewsletterForm />
           </section>
+
+          {/* Right Rail Sticky Custom Sponsor Ad - Pinned last so nothing scrolls behind it */}
+          {sidebarAd ? (
+            <section className="sticky top-28 z-10 self-start">
+              <SidebarAd ad={sidebarAd} />
+            </section>
+          ) : leaderboardAd ? (
+            <section className="sticky top-28 z-10 self-start">
+              <SidebarAd ad={leaderboardAd} />
+            </section>
+          ) : null}
         </aside>
       </div>
       </div>

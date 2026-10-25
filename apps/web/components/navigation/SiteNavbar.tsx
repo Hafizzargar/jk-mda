@@ -209,37 +209,59 @@ export function SiteNavbar({
         <div className="flex items-center shrink-0">
           <Link
             href={`${langPrefix}/`}
-            className="flex items-center gap-3 group hover:opacity-90 transition-opacity duration-200"
+            className="flex items-center gap-3 group transition-all duration-300"
           >
-            {/* The emblem icon */}
+            {/* The emblem icon with ambient glowing ring & micro-zoom */}
             {navSettings.brand.show_logo_image && (
-              <div className="relative h-12 w-12 shrink-0 drop-shadow-md">
+              <div className="relative flex items-center justify-center h-12 w-12 shrink-0 rounded-2xl bg-gradient-to-br from-white/95 via-slate-50/80 to-slate-100/60 dark:from-slate-800/80 dark:via-slate-900/90 dark:to-slate-950 p-1.5 shadow-xs border border-slate-200/90 dark:border-slate-700/60 transition-all duration-300 ease-out group-hover:scale-105 group-hover:shadow-md group-hover:shadow-cyan-500/25 group-hover:border-cyan-500/50">
+                {/* Radiant background aura on hover */}
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-cyan-500/15 via-blue-500/10 to-amber-500/15 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                 <Image
                   src={navSettings.brand.logo_url || '/kjin-emblem.png'}
                   alt={navSettings.brand.name || 'KJIN'}
                   fill
-                  className="object-contain"
+                  className="object-contain p-1 transition-transform duration-300 ease-out group-hover:rotate-1 group-hover:scale-105"
                   priority
                   sizes="48px"
                 />
               </div>
             )}
 
-            {/* Wordmark next to emblem */}
+            {/* Wordmark next to emblem with dynamic color transition & animated underline */}
             {(navSettings.brand.show_name || navSettings.brand.show_tagline) && (
-              <div className="flex flex-col leading-none">
+              <div className="flex flex-col justify-center">
                 {navSettings.brand.show_name && (
                   <span
-                    className={`text-2xl font-black tracking-tight uppercase ${textPrimary} group-hover:opacity-90 transition`}
+                    className={`relative inline-block text-2xl font-black tracking-tight uppercase transition-all duration-300 ${
+                      isDark
+                        ? 'text-white group-hover:text-cyan-300 group-hover:drop-shadow-[0_0_12px_rgba(34,211,238,0.4)]'
+                        : 'text-slate-950 group-hover:text-blue-900 group-hover:drop-shadow-[0_1px_3px_rgba(30,58,138,0.25)]'
+                    }`}
                     style={{ fontFamily: theme?.id === 'classic-editorial' ? 'Georgia, serif' : 'inherit' }}
                   >
-                    {navSettings.brand.name || SITE_SHORT_NAME}
+                    <span className="transition-all duration-300 group-hover:tracking-wide">
+                      {navSettings.brand.name || SITE_SHORT_NAME}
+                    </span>
+                    {/* Animated gradient accent bar beneath the brand name */}
+                    <span className="absolute -bottom-0.5 left-0 h-0.5 w-0 rounded-full bg-gradient-to-r from-blue-700 via-cyan-500 to-amber-500 transition-all duration-300 ease-out group-hover:w-full" />
                   </span>
                 )}
                 {navSettings.brand.show_tagline && (
-                  <span className={`text-[9px] font-mono tracking-widest uppercase font-semibold ${textMuted} hidden sm:block`}>
-                    {navSettings.brand.tagline}
-                  </span>
+                  <div className="flex items-center gap-1.5 mt-0.5 hidden sm:flex">
+                    <span className="relative flex h-1.5 w-1.5 shrink-0">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-75" />
+                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-cyan-500" />
+                    </span>
+                    <span
+                      className={`text-[9px] font-mono tracking-[0.18em] uppercase font-bold transition-colors duration-200 ${
+                        isDark
+                          ? 'text-slate-400 group-hover:text-cyan-300'
+                          : 'text-slate-600 group-hover:text-blue-900'
+                      }`}
+                    >
+                      {navSettings.brand.tagline}
+                    </span>
+                  </div>
                 )}
               </div>
             )}

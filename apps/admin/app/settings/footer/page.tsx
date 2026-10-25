@@ -178,31 +178,36 @@ export default function FooterSettingsPage() {
               <span className="text-slate-600">•</span>
               <span className="text-xs text-slate-400">Public Contact & Disclosures</span>
             </div>
-            <h1 className="text-3xl font-black tracking-tight text-white flex items-center gap-3">
-              Footer & Bureau Management
+            <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white flex items-center gap-3">
+              Footer & Bureaus
               <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
-                Live Public Config
+                Live
               </span>
             </h1>
-            <p className="text-sm text-slate-400 mt-1">
-              Manage physical bureau addresses, newsdesk telephone numbers, editorial emails, and legal disclosures displayed across all public web pages.
+            <p className="text-xs text-slate-400 mt-1">
+              Bureau addresses, editorial hotlines, and public legal disclosures.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
-            <Link
-              href="/templates"
-              className="px-4 py-2 text-xs font-semibold rounded-lg border border-slate-800 text-slate-300 hover:bg-slate-900 transition"
-            >
-              Templates
-            </Link>
+            {canManage && (
+              <button
+                type="submit"
+                form="footer-settings-form"
+                disabled={saving}
+                className="flex items-center gap-2 rounded-xl bg-cyan-600 px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-cyan-500 disabled:opacity-50 transition"
+              >
+                <span>💾</span>
+                <span>{saving ? 'Saving...' : 'Save Footer Changes'}</span>
+              </button>
+            )}
             <a
               href="http://localhost:3000"
               target="_blank"
               rel="noreferrer"
-              className="px-4 py-2 text-xs font-semibold rounded-lg bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-cyan-500/30 transition flex items-center gap-1.5"
+              className="px-3.5 py-2 text-xs font-semibold rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 transition flex items-center gap-1.5"
             >
-              <span>View Public Website</span>
+              <span>Public Site</span>
               <span aria-hidden="true">&rarr;</span>
             </a>
           </div>
@@ -257,7 +262,7 @@ export default function FooterSettingsPage() {
         {/* Form & Live Preview Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Main Edit Form */}
-          <form onSubmit={handleSubmit} className="lg:col-span-7 space-y-6">
+          <form id="footer-settings-form" onSubmit={handleSubmit} className="lg:col-span-7 space-y-6">
             {activeTab === 'bureaus' && (
               <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 space-y-6">
                 <div>

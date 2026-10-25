@@ -114,6 +114,9 @@ export default function NavbarSettingsPage() {
 
       setForm(json.navbar_settings);
       setSuccessMsg('Navbar and navigation settings saved successfully! Changes are live on the website.');
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('kjin-brand-updated', { detail: json.navbar_settings?.brand }));
+      }
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err: unknown) {
       setErrorMsg(err instanceof Error ? err.message : 'An error occurred while saving.');
@@ -170,34 +173,24 @@ export default function NavbarSettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-4 sm:p-8">
-      <div className="max-w-6xl mx-auto space-y-8">
+    <div className="p-4 sm:p-6 text-slate-900 dark:text-slate-100">
+      <div className="max-w-6xl mx-auto space-y-6">
         
-        {/* Header Breadcrumb & Title */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-mono text-cyan-400 uppercase tracking-widest mb-1">
-              <Link href="/" className="hover:underline text-slate-400">Dashboard</Link>
-              <span>/</span>
-              <span>Settings</span>
-              <span>/</span>
-              <span className="text-cyan-400 font-bold">Header &amp; Navbar</span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-3">
-              <span>🧭</span>
-              <span>Header &amp; Navigation Controls</span>
+        {/* Compact Header Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-4">
+          <div className="flex items-center gap-2.5">
+            <span className="text-xl">🧭</span>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
+              Header &amp; Navigation Controls
             </h1>
-            <p className="text-sm text-slate-400 mt-1">
-              Control the public website navbar: brand emblem, title, topics (Politics, Economics, etc.), language switcher, and header tools.
-            </p>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex items-center gap-2.5 shrink-0">
             <button
               type="button"
               onClick={handleResetDefaults}
               disabled={!canManage || saving}
-              className="px-3.5 py-2 rounded-xl text-xs font-mono border border-slate-700 bg-slate-900 hover:bg-slate-800 text-slate-300 transition disabled:opacity-50"
+              className="px-3 py-1.5 rounded-xl text-xs font-mono border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition disabled:opacity-50 shadow-2xs"
             >
               Reset Defaults
             </button>
@@ -205,11 +198,11 @@ export default function NavbarSettingsPage() {
               type="button"
               onClick={handleSubmit}
               disabled={!canManage || saving}
-              className="px-5 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-lg shadow-cyan-950/40 transition disabled:opacity-50 flex items-center gap-2"
+              className="px-4 py-1.5 rounded-xl text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white shadow-2xs transition disabled:opacity-50 flex items-center gap-2"
             >
               {saving ? (
                 <>
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   <span>Saving...</span>
                 </>
               ) : (

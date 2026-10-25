@@ -11,7 +11,7 @@ export function SidebarAd({ ad }: SidebarAdProps) {
 
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl border ${styles.borderColor} ${styles.cardBg} ${styles.glow} p-5 transition-all duration-300 group`}
+      className={`relative overflow-hidden rounded-2xl border bg-slate-950 ${styles.borderColor} ${styles.cardBg} ${styles.glow} p-5 transition-all duration-300 group shadow-xl`}
     >
       <div className="flex items-center justify-between gap-2 mb-3">
         <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${styles.badgeBg}`}>

@@ -622,21 +622,22 @@ export default function EmployeesPage() {
   };
 
   return (
-    <div className="p-6 md:p-8">
+    <div className="p-4 sm:p-6 space-y-4">
       <div className="mx-auto max-w-7xl">
-        <header className="mb-8 flex flex-wrap items-end justify-between gap-4 border-b border-slate-800 pb-6">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs font-mono uppercase tracking-widest text-cyan-400">Administration</span>
-              <span className="text-slate-600">•</span>
-              <span className="text-xs text-slate-400">Team & Access Controls</span>
-            </div>
-            <h1 className="text-3xl font-bold tracking-tight text-white">Employees & Staff</h1>
-            <p className="mt-1 text-sm text-slate-400">Manage reporters, editors, permissions, login access, and audit events</p>
+        <header className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Employees & Staff</h1>
+            <span className="rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-xs font-mono font-medium text-slate-600 dark:text-slate-400">
+              {employees.length} members
+            </span>
           </div>
-          <div className="flex items-center gap-3">
-            <button type="button" onClick={() => void loadWorkspace()} className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold hover:border-cyan-500">
-              Refresh
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void loadWorkspace()}
+              className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white shadow-2xs transition"
+            >
+              ↻ Refresh
             </button>
           </div>
         </header>
@@ -687,11 +688,11 @@ export default function EmployeesPage() {
               Verify 2FA Code →
             </Link>
           </div>
-        ) : (
-          <div role="status" className="mb-6 rounded-lg border border-slate-800 bg-slate-900 px-4 py-3 text-sm text-slate-300">
+        ) : status && status !== 'Employee data is current.' ? (
+          <div role="status" className="mb-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 px-4 py-2.5 text-xs text-slate-600 dark:text-slate-300">
             {status}
           </div>
-        )}
+        ) : null}
 
         <nav aria-label="Employee sections" className="mb-6 flex gap-2 overflow-x-auto border-b border-slate-800">
           {tabs.map((tab) => (
