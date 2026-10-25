@@ -47,8 +47,8 @@ pnpm dev:web      # http://localhost:3000
 
 ## 4. Default Owner Credentials
 
-- **Email**: `hafezzargar987@gmail.com`
-- **Password**: `Hafiz7865#`
+- **Email**: `+++++++++++++++++++`
+- **Password**: `++++++++++`
 - **Role**: `owner`
 - **Two-Factor Authentication**: TOTP MFA via Google Authenticator.
 - **Security Window**: High-privilege actions (like inviting staff or modifying roles) require recent MFA verification within the last 15 minutes. If prompted, enter your current 6-digit TOTP code.
