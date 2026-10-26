@@ -30,10 +30,8 @@ export function PaginationControls({
     }
 
     const effectiveLimit = newLimit ?? limit;
-    if (effectiveLimit !== 10) {
+    if (newLimit !== undefined) {
       params.set('limit', effectiveLimit.toString());
-    } else {
-      params.delete('limit');
     }
 
     const query = params.toString();

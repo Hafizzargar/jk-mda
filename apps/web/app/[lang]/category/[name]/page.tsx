@@ -4,13 +4,14 @@ import Image from 'next/image';
 import { Metadata } from 'next';
 import { createServerAnonClient } from '@/lib/supabase-server';
 import { isValidCategory, getCategoryDisplayName, NEWS_CATEGORIES } from '@/lib/taxonomy';
-import { parsePageParam, getPaginationRange } from '@/lib/pagination';
+import { parsePageParam, parseLimitParam, getPaginationRange, calculatePaginationMeta } from '@/lib/pagination';
 import { applyTranslations } from '@/lib/i18n';
 import { SITE_URL, SITE_SHORT_NAME } from '@/lib/config';
 import { getTemplateTheme, type TemplateId } from '@/lib/templates';
 import { SiteNavbar } from '@/components/navigation/SiteNavbar';
 import { SiteFooter } from '@/components/navigation/SiteFooter';
 import { Breadcrumbs } from '@/components/navigation/Breadcrumbs';
+import { PaginationControls } from '@/components/navigation/PaginationControls';
 import { getFooterContactSettings } from '@/lib/contact';
 
 interface CategoryPageProps {
@@ -26,15 +27,31 @@ export async function generateMetadata({ params, searchParams }: CategoryPagePro
   const resolvedSearchParams = await searchParams;
   const categorySlug = name.toLowerCase().trim();
 
-  if (!isValidCategory(categorySlug)) {
-    return {
-      title: 'Category Not Found | KJIN',
-      robots: { index: false, follow: false },
-    };
+  let categoryName = getCategoryDisplayName(categorySlug);
+  let categoryInfo = NEWS_CATEGORIES[categorySlug];
+
+  if (!categoryInfo) {
+    const supabase = createServerAnonClient();
+    const { data: dbCat } = await supabase
+      .from('categories')
+      .select('name_en, description, is_active')
+      .eq('slug', categorySlug)
+      .maybeSingle();
+
+    if (dbCat && dbCat.is_active) {
+      categoryName = dbCat.name_en;
+      categoryInfo = {
+        name: dbCat.name_en,
+        description: dbCat.description || `${dbCat.name_en} news and dispatches across Jammu and Kashmir.`,
+      };
+    } else {
+      return {
+        title: 'Category Not Found | KJIN',
+        robots: { index: false, follow: false },
+      };
+    }
   }
 
-  const categoryName = getCategoryDisplayName(categorySlug);
-  const categoryInfo = NEWS_CATEGORIES[categorySlug];
   const page = parsePageParam(resolvedSearchParams.page);
   const pageSuffix = page > 1 ? ` - Page ${page}` : '';
   const langPrefix = lang === 'en' ? '' : `/${lang}`;
@@ -75,19 +92,34 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
     redirect(`${langPrefix}/india${pageQuery}`);
   }
 
-  // 1. Strict category validation against controlled taxonomy
-  if (!isValidCategory(categorySlug)) {
-    notFound();
+  const supabase = createServerAnonClient();
+
+  // 1. Category validation against controlled taxonomy or database
+  let categoryName = getCategoryDisplayName(categorySlug);
+  let categoryInfo = NEWS_CATEGORIES[categorySlug];
+
+  if (!categoryInfo) {
+    const { data: dbCat } = await supabase
+      .from('categories')
+      .select('name_en, description, is_active')
+      .eq('slug', categorySlug)
+      .maybeSingle();
+
+    if (dbCat && dbCat.is_active) {
+      categoryName = dbCat.name_en;
+      categoryInfo = {
+        name: dbCat.name_en,
+        description: dbCat.description || `${dbCat.name_en} news and dispatches across Jammu and Kashmir.`,
+      };
+    } else {
+      notFound();
+    }
   }
 
-  const categoryName = getCategoryDisplayName(categorySlug);
-  const categoryInfo = NEWS_CATEGORIES[categorySlug];
-  
-  // 2. Safe pagination parsing
+  // 2. Pagination computation
   const page = parsePageParam(resolvedSearchParams.page);
-  const { from, to, limit } = getPaginationRange(page, 12);
-
-  const supabase = createServerAnonClient();
+  const limit = parseLimitParam(resolvedSearchParams.limit, 6);
+  const { from, to } = getPaginationRange(page, limit);
 
   // 3. Query articles with exact count
   const { data: articlesRaw, count } = await supabase
@@ -100,7 +132,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
 
   const articles = applyTranslations(articlesRaw || [], lang);
   const totalArticles = count ?? 0;
-  const hasNextPage = from + limit < totalArticles;
+  const paginationMeta = calculatePaginationMeta(totalArticles, page, limit);
 
   // Fetch Active Template Setting to align theme & background colors
   const { data: settingRow } = await supabase
@@ -153,11 +185,13 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
                   className={`group flex flex-col h-full ${theme.cardBgClass} rounded-xl ${theme.cardBorderClass} ${theme.cardHoverClass} p-5 transition`}
                 >
                   {article.featured_image_url ? (
-                    <div className={`relative w-full h-52 mb-4 overflow-hidden rounded-lg ${theme.subtleBgClass}`}>
+                    <div className={`relative w-full h-52 mb-4 overflow-hidden rounded-lg ${theme.subtleBgClass} bg-slate-100 dark:bg-slate-800/80`}>
                       <Image
                         src={article.featured_image_url}
                         alt={article.title}
                         fill
+                        loading="lazy"
+                        decoding="async"
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         className="object-cover transition-transform duration-500 group-hover:scale-105"
                       />
@@ -183,33 +217,8 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
               ))}
             </div>
 
-            <div className={`mt-16 flex justify-between items-center border-t ${theme.borderClass} pt-8`}>
-              {page > 1 ? (
-                <Link
-                  href={`${langPrefix}/category/${categorySlug}${page - 1 > 1 ? `?page=${page - 1}` : ''}`}
-                  className={`px-6 py-3 rounded-lg border ${theme.borderClass} ${theme.cardBgClass} ${theme.textPrimaryClass} font-semibold hover:opacity-80 transition text-sm`}
-                >
-                  &larr; Previous Page
-                </Link>
-              ) : (
-                <div />
-              )}
-
-              <span className={`text-sm font-medium ${theme.textMutedClass}`}>
-                Page {page} {totalArticles > 0 ? `of ${Math.ceil(totalArticles / limit)}` : ''}
-              </span>
-
-              {hasNextPage ? (
-                <Link
-                  href={`${langPrefix}/category/${categorySlug}?page=${page + 1}`}
-                  className={`px-6 py-3 rounded-lg border ${theme.borderClass} ${theme.cardBgClass} ${theme.textPrimaryClass} font-semibold hover:opacity-80 transition text-sm`}
-                >
-                  Next Page &rarr;
-                </Link>
-              ) : (
-                <div />
-              )}
-            </div>
+            {/* Full Featured Numbered Pagination Controls */}
+            <PaginationControls meta={paginationMeta} theme={theme} showPageSizeSelector={true} />
           </>
         ) : (
           <div className={`py-20 text-center ${theme.textMutedClass} text-lg ${theme.cardBgClass} rounded-xl border ${theme.cardBorderClass}`}>

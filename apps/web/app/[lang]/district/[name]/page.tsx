@@ -4,13 +4,14 @@ import Image from 'next/image';
 import { Metadata } from 'next';
 import { createServerAnonClient } from '@/lib/supabase-server';
 import { isValidDistrict, getDistrictDisplayName, JK_DISTRICTS } from '@/lib/taxonomy';
-import { parsePageParam, getPaginationRange } from '@/lib/pagination';
+import { parsePageParam, parseLimitParam, getPaginationRange, calculatePaginationMeta } from '@/lib/pagination';
 import { applyTranslations } from '@/lib/i18n';
 import { SITE_URL, SITE_SHORT_NAME } from '@/lib/config';
 import { getTemplateTheme, type TemplateId } from '@/lib/templates';
 import { SiteNavbar } from '@/components/navigation/SiteNavbar';
 import { SiteFooter } from '@/components/navigation/SiteFooter';
 import { Breadcrumbs } from '@/components/navigation/Breadcrumbs';
+import { PaginationControls } from '@/components/navigation/PaginationControls';
 import { getFooterContactSettings } from '@/lib/contact';
 
 interface DistrictPageProps {
@@ -76,7 +77,8 @@ export default async function DistrictPage({ params, searchParams }: DistrictPag
 
   // 2. Safe pagination parsing
   const page = parsePageParam(resolvedSearchParams.page);
-  const { from, to, limit } = getPaginationRange(page, 12);
+  const limit = parseLimitParam(resolvedSearchParams.limit, 6);
+  const { from, to } = getPaginationRange(page, limit);
 
   const supabase = createServerAnonClient();
 
@@ -91,7 +93,7 @@ export default async function DistrictPage({ params, searchParams }: DistrictPag
 
   const articles = applyTranslations(articlesRaw || [], lang);
   const totalArticles = count ?? 0;
-  const hasNextPage = from + limit < totalArticles;
+  const paginationMeta = calculatePaginationMeta(totalArticles, page, limit);
 
   // Fetch Active Template Setting to align theme & background colors
   const { data: settingRow } = await supabase
@@ -145,11 +147,13 @@ export default async function DistrictPage({ params, searchParams }: DistrictPag
                   className={`group flex flex-col h-full ${theme.cardBgClass} rounded-xl ${theme.cardBorderClass} ${theme.cardHoverClass} p-5 transition`}
                 >
                   {article.featured_image_url ? (
-                    <div className={`relative w-full h-52 mb-4 overflow-hidden rounded-lg ${theme.subtleBgClass}`}>
+                    <div className={`relative w-full h-52 mb-4 overflow-hidden rounded-lg ${theme.subtleBgClass} bg-slate-100 dark:bg-slate-800/80`}>
                       <Image
                         src={article.featured_image_url}
                         alt={article.title}
                         fill
+                        loading="lazy"
+                        decoding="async"
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         className="object-cover transition-transform duration-500 group-hover:scale-105"
                       />
@@ -180,33 +184,8 @@ export default async function DistrictPage({ params, searchParams }: DistrictPag
               ))}
             </div>
 
-            <div className={`mt-16 flex justify-between items-center border-t ${theme.borderClass} pt-8`}>
-              {page > 1 ? (
-                <Link
-                  href={`${langPrefix}/district/${districtSlug}${page - 1 > 1 ? `?page=${page - 1}` : ''}`}
-                  className={`px-6 py-3 rounded-lg border ${theme.borderClass} ${theme.cardBgClass} ${theme.textPrimaryClass} font-semibold hover:opacity-80 transition text-sm`}
-                >
-                  &larr; Previous Page
-                </Link>
-              ) : (
-                <div />
-              )}
-
-              <span className={`text-sm font-medium ${theme.textMutedClass}`}>
-                Page {page} {totalArticles > 0 ? `of ${Math.ceil(totalArticles / limit)}` : ''}
-              </span>
-
-              {hasNextPage ? (
-                <Link
-                  href={`${langPrefix}/district/${districtSlug}?page=${page + 1}`}
-                  className={`px-6 py-3 rounded-lg border ${theme.borderClass} ${theme.cardBgClass} ${theme.textPrimaryClass} font-semibold hover:opacity-80 transition text-sm`}
-                >
-                  Next Page &rarr;
-                </Link>
-              ) : (
-                <div />
-              )}
-            </div>
+            {/* Full Featured Numbered Pagination Controls */}
+            <PaginationControls meta={paginationMeta} theme={theme} showPageSizeSelector={true} />
           </>
         ) : (
           <div className={`py-20 text-center ${theme.textMutedClass} text-lg ${theme.cardBgClass} rounded-xl border ${theme.cardBorderClass}`}>

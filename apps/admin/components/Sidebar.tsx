@@ -309,7 +309,7 @@ export function Sidebar({
               onClick={onToggleCollapse}
               title="Collapse sidebar"
               aria-label="Collapse sidebar"
-              className="hidden lg:flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 shadow-2xs hover:border-cyan-500 hover:bg-cyan-50 hover:text-cyan-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-cyan-500/50 dark:hover:bg-cyan-950/40 dark:hover:text-cyan-300 transition-all active:scale-95"
+              className="hidden lg:flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] border border-slate-300 bg-white text-slate-700 shadow-2xs hover:border-cyan-500 hover:bg-cyan-50 hover:text-cyan-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-cyan-500/50 dark:hover:bg-cyan-950/40 dark:hover:text-cyan-300 transition-all active:scale-95"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -322,7 +322,7 @@ export function Sidebar({
             type="button"
             onClick={onCloseMobile}
             aria-label="Close sidebar"
-            className="lg:hidden flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
+            className="lg:hidden flex h-7 w-7 items-center justify-center rounded-[8px] border border-slate-200 bg-white text-slate-600 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
           >
             <span className="text-xs">✕</span>
           </button>
@@ -336,7 +336,7 @@ export function Sidebar({
               onClick={onToggleCollapse}
               title="Expand sidebar"
               aria-label="Expand sidebar"
-              className="hidden lg:flex h-8 w-8 items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 shadow-2xs hover:border-cyan-500 hover:bg-cyan-50 hover:text-cyan-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-cyan-500/50 dark:hover:bg-cyan-950/40 dark:hover:text-cyan-300 transition-all active:scale-95"
+              className="hidden lg:flex h-8 w-8 items-center justify-center rounded-[8px] border border-slate-300 bg-white text-slate-700 shadow-2xs hover:border-cyan-500 hover:bg-cyan-50 hover:text-cyan-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-cyan-500/50 dark:hover:bg-cyan-950/40 dark:hover:text-cyan-300 transition-all active:scale-95"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -561,7 +561,7 @@ export function Sidebar({
               href="/profile"
               onClick={onCloseMobile}
               title="Edit Profile & Author Name"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-slate-50 text-slate-700 hover:border-cyan-500 hover:bg-cyan-50 hover:text-cyan-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-cyan-500/50 dark:hover:bg-cyan-500/10 dark:hover:text-cyan-300 transition-colors"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] border border-slate-300 bg-slate-50 text-slate-700 hover:border-cyan-500 hover:bg-cyan-50 hover:text-cyan-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-cyan-500/50 dark:hover:bg-cyan-500/10 dark:hover:text-cyan-300 transition-colors"
             >
               <span className="text-xs">⚙️</span>
             </Link>
@@ -574,7 +574,7 @@ export function Sidebar({
             disabled={loggingOut}
             title="Sign out of newsroom"
             aria-label="Sign out"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-300 bg-slate-50 text-slate-700 hover:border-red-400 hover:bg-red-50 hover:text-red-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-red-500/50 dark:hover:bg-red-500/10 dark:hover:text-red-400 transition-colors"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] border border-slate-300 bg-slate-50 text-slate-700 hover:border-red-400 hover:bg-red-50 hover:text-red-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-red-500/50 dark:hover:bg-red-500/10 dark:hover:text-red-400 transition-colors"
           >
             <span className="text-sm">{loggingOut ? '⏳' : '🚪'}</span>
           </button>
@@ -585,15 +585,13 @@ export function Sidebar({
 
   return (
     <>
-      {/* Desktop Sticky Sidebar */}
+      {/* Desktop Fixed Sidebar */}
       <aside
-        className={`hidden lg:block shrink-0 transition-all duration-300 ease-in-out ${
-          isCollapsed ? 'w-20' : 'w-68'
+        className={`hidden lg:block fixed inset-y-0 left-0 z-40 transition-all duration-300 ease-in-out ${
+          isCollapsed ? 'w-20' : 'w-[272px]'
         }`}
       >
-        <div className={`fixed top-0 bottom-0 z-40 transition-all duration-300 ${isCollapsed ? 'w-20' : 'w-68'}`}>
-          {sidebarContent}
-        </div>
+        {sidebarContent}
       </aside>
 
       {/* Mobile Sliding Drawer & Backdrop */}

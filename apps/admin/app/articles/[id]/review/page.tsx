@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { sanitizeArticleHtml, markdownToHtml } from '@/lib/sanitize';
+import { Button } from '@/components/Button';
 
 type ReviewArticle = {
   id: string;
@@ -194,20 +195,24 @@ export default function ArticleReviewPage() {
             <p className="text-sm uppercase tracking-[0.2em] text-cyan-300">Review</p>
             <h1 className="mt-2 text-3xl font-bold">{article.title}</h1>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             {article.status === 'published' && article.slug && (
-              <a
+              <Button
                 href={`http://localhost:3000/${article.category.toLowerCase()}/${article.slug}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-5 py-2.5 font-semibold text-emerald-300 hover:bg-emerald-500/20"
+                external
+                variant="emerald"
+                size="md"
               >
                 View on Website ↗
-              </a>
+              </Button>
             )}
-            <Link href="/" className="rounded-full border border-slate-700 px-5 py-2.5 font-semibold text-white hover:border-slate-500 hover:bg-slate-900">
+            <Button
+              href="/"
+              variant="secondary"
+              size="md"
+            >
               Back to dashboard
-            </Link>
+            </Button>
           </div>
         </div>
 
@@ -240,31 +245,38 @@ export default function ArticleReviewPage() {
             <div className="rounded-3xl border border-slate-800 bg-slate-900 p-6">
               <p className="text-sm uppercase tracking-[0.2em] text-cyan-300">Decision</p>
               <div className="mt-5 space-y-3">
-                <button
+                <Button
                   type="button"
                   onClick={() => updateStatus('published')}
                   disabled={isSubmitting || article.status === 'published'}
-                  className="w-full rounded-full bg-emerald-500 px-5 py-2.5 font-semibold text-slate-950 hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60 flex items-center justify-center gap-2"
+                  isLoading={isSubmitting}
+                  variant="emerald"
+                  size="md"
+                  icon={<span>🚀</span>}
+                  className="w-full"
                 >
-                  <span>🚀</span>
-                  <span>{article.status === 'published' ? 'Already Published' : 'Approve and publish'}</span>
-                </button>
-                <button
+                  {article.status === 'published' ? 'Already Published' : 'Approve and publish'}
+                </Button>
+                <Button
                   type="button"
                   onClick={() => updateStatus('draft')}
                   disabled={isSubmitting}
-                  className="w-full rounded-full border border-slate-700 bg-slate-950 px-5 py-2.5 font-semibold text-white hover:border-slate-500 hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  variant="secondary"
+                  size="md"
+                  className="w-full"
                 >
                   Send back to draft
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
                   onClick={() => updateStatus('archived')}
                   disabled={isSubmitting || article.status === 'archived'}
-                  className="w-full rounded-full border border-red-500/40 bg-red-500/10 px-5 py-2.5 font-semibold text-red-200 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                  variant="danger"
+                  size="md"
+                  className="w-full"
                 >
                   Reject and archive
-                </button>
+                </Button>
               </div>
             </div>
 

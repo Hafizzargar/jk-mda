@@ -51,10 +51,16 @@ export async function POST(request: Request) {
     const officialResponse = event.official_responses?.[0] || null;
     const sources = Array.isArray(event.original_sources) ? event.original_sources : [];
 
+    const isJKStory = Boolean(
+      event.district_slug ||
+      (event.location_name && /jammu|kashmir|srinagar|ladakh|leh|kargil|anantnag|baramulla|budgam|pulwama|shopian|kulgam|kupwara|bandipora|ganderbal|doda|ramban|kishtwar|udhampur|reasi|kathua|samba|rajouri|poonch/i.test(event.location_name)) ||
+      /jammu|kashmir|srinagar/i.test(event.headline)
+    );
+
     const draftResult = await generateNewsroomDraft({
       headline: event.headline,
       summary: event.summary,
-      districtName: event.location_name || event.district_slug,
+      districtName: isJKStory ? (event.district_slug || event.location_name) : null,
       locationName: event.location_name,
       eventCategory: event.event_category,
       eventDate: event.event_date,
@@ -66,17 +72,27 @@ export async function POST(request: Request) {
 
     // 4. Save into public.articles via RPC create_article or fallback service insert as draft
     const primarySource = sources[0] || null;
+    const sourceName = primarySource?.source_name || primarySource?.sourceName || 'Regional Newsroom Monitor';
+    const sourceUrl = primarySource?.url || null;
     let createdArticleId: string | null = null;
 
+    const targetCategory = !isJKStory
+      ? 'International'
+      : (draftResult.suggestedCategory || 'General');
+
+    const targetDistrict = isJKStory
+      ? (draftResult.suggestedDistrict || event.district_slug || null)
+      : null;
+
     const { data: rpcData, error: rpcError } = await userClient.rpc('create_article', {
-      p_title: draftResult.title,
+      p_title: draftResult.title.slice(0, 250),
       p_excerpt: draftResult.excerpt,
       p_content: draftResult.content,
       p_slug: slug,
-      p_district: draftResult.suggestedDistrict || event.district_slug,
-      p_category: draftResult.suggestedCategory || 'General',
-      p_source_name: primarySource?.source_name || 'Regional Newsroom Monitor',
-      p_source_url: primarySource?.url || null,
+      p_district: targetDistrict,
+      p_category: targetCategory,
+      p_source_name: sourceName,
+      p_source_url: sourceUrl,
       p_featured_image_url: null,
     });
 
@@ -85,7 +101,8 @@ export async function POST(request: Request) {
         ? String((rpcData as { id: string }).id)
         : String(rpcData);
     } else {
-      // Authoritative fallback via service client
+      console.warn('create_article RPC failed, using service fallback:', rpcError);
+
       const { data: profileData } = await service
         .from('profiles')
         .select('display_name')
@@ -97,14 +114,14 @@ export async function POST(request: Request) {
       const { data: fallbackArticle, error: fallbackError } = await service
         .from('articles')
         .insert({
-          title: draftResult.title,
+          title: draftResult.title.slice(0, 250),
           slug,
           content: draftResult.content,
           excerpt: draftResult.excerpt,
-          category: draftResult.suggestedCategory || 'General',
-          district: draftResult.suggestedDistrict || event.district_slug,
-          source_name: primarySource?.source_name || 'Regional Newsroom Monitor',
-          source_url: primarySource?.url || null,
+          category: targetCategory,
+          district: targetDistrict,
+          source_name: sourceName,
+          source_url: sourceUrl,
           featured_image_url: null,
           status: 'draft',
           author_id: user.id,
@@ -114,8 +131,11 @@ export async function POST(request: Request) {
         .single();
 
       if (fallbackError || !fallbackArticle) {
-        console.error('Error creating draft article:', rpcError || fallbackError);
-        return Response.json({ error: 'Failed to create article record.' }, { status: 500 });
+        console.error('Error creating draft article (both RPC and fallback failed):', { rpcError, fallbackError });
+        return Response.json(
+          { error: fallbackError?.message || rpcError?.message || 'Failed to create article record.' },
+          { status: 500 }
+        );
       }
 
       createdArticleId = fallbackArticle.id;
@@ -123,7 +143,7 @@ export async function POST(request: Request) {
       await service.from('article_versions').insert({
         article_id: createdArticleId,
         version_number: 1,
-        title: draftResult.title,
+        title: draftResult.title.slice(0, 250),
         excerpt: draftResult.excerpt,
         content: draftResult.content,
         edited_by: user.id,

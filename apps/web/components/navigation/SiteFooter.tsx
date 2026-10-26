@@ -289,10 +289,6 @@ export function SiteFooter({
             <Link href={`${langPrefix}/latest`} className={`${textMuted} hover:${textPrimary}`}>
               Live Wire
             </Link>
-            <span className={textMuted}>&bull;</span>
-            <a href="http://localhost:3001" className={`${accentText} hover:underline`}>
-              Staff Portal
-            </a>
           </div>
         </div>
       </div>

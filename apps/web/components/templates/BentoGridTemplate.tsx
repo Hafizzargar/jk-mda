@@ -146,6 +146,8 @@ export function BentoGridTemplate({
                     src={secondary3.featured_image_url}
                     alt={secondary3.title}
                     fill
+                    loading="lazy"
+                    decoding="async"
                     sizes="(max-width: 768px) 100vw, 33vw"
                     className="object-cover group-hover:scale-105 transition duration-500"
                   />

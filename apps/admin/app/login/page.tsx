@@ -3,6 +3,7 @@
 import { FormEvent, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { Button } from '@/components/Button';
 
 function LoginForm() {
   const searchParams = useSearchParams();
@@ -88,13 +89,16 @@ function LoginForm() {
             />
           </div>
 
-          <button
+          <Button
             type="submit"
             disabled={isSubmitting}
-            className="w-full rounded-full bg-cyan-500 px-5 py-3 font-semibold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+            isLoading={isSubmitting}
+            variant="primary"
+            size="lg"
+            className="w-full"
           >
             {isSubmitting ? 'Signing in...' : 'Continue to dashboard'}
-          </button>
+          </Button>
         </form>
 
         <p className="mt-6 rounded-xl border border-slate-800 bg-slate-950 p-3 text-sm text-slate-300">{status}</p>

@@ -69,13 +69,16 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
   const isPreviewMode = Boolean(previewParam && previewParam !== dbTemplateId);
   const theme = getTemplateTheme(activeTemplateId);
 
-  // 2. Real Backend Pagination: Parse page & limit (10, 15, or 20)
+  // 2. Real Backend Pagination: Parse page & limit (6, 9, 12, 18)
   const page = parsePageParam(resolvedSearchParams.page);
-  const limit = parseLimitParam(resolvedSearchParams.limit, 10);
+  const limit = parseLimitParam(resolvedSearchParams.limit, 6);
   const { from, to } = getPaginationRange(page, limit);
 
   // 3. Fetch Paginated Latest Articles with exact database count
   // Strictly scoped to Jammu & Kashmir reporting (excludes International and National news)
+  const EXCLUDED_CATEGORIES_FILTER =
+    '(International,international,INTERNATIONAL,National,national,NATIONAL,"International","international","INTERNATIONAL","National","national","NATIONAL")';
+
   const { data: latestArticlesRaw, count } = await supabase
     .from('articles')
     .select(
@@ -83,7 +86,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
       { count: 'exact' }
     )
     .eq('status', 'published')
-    .not('category', 'in', '("International","international","National","national")')
+    .not('category', 'in', EXCLUDED_CATEGORIES_FILTER)
     .order('published_at', { ascending: false, nullsFirst: false })
     .range(from, to);
 
@@ -101,7 +104,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     .from('articles')
     .select('id, slug, title, category, published_at, view_count, article_translations(title, language_code)')
     .eq('status', 'published')
-    .not('category', 'in', '("International","international","National","national")')
+    .not('category', 'in', EXCLUDED_CATEGORIES_FILTER)
     .gte('published_at', thirtyDaysAgo)
     .order('view_count', { ascending: false })
     .limit(5);
@@ -111,14 +114,24 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
       .from('articles')
       .select('id, slug, title, category, published_at, view_count, article_translations(title, language_code)')
       .eq('status', 'published')
-      .not('category', 'in', '("International","international","National","national")')
+      .not('category', 'in', EXCLUDED_CATEGORIES_FILTER)
       .order('view_count', { ascending: false })
       .limit(5);
     trendingArticlesRaw = fallbackTrending || [];
   }
 
-  const latestArticles = (applyTranslations(latestArticlesRaw || [], lang) as unknown) as ArticleItem[];
-  const trendingArticles = (applyTranslations(trendingArticlesRaw || [], lang) as unknown) as ArticleItem[];
+  // Defensive isolation: logically, international and national news belong strictly in their dedicated desks
+  const isExcludedFromHome = (cat?: string | null) => {
+    if (!cat) return false;
+    const lower = cat.toLowerCase().trim();
+    return lower === 'international' || lower === 'national';
+  };
+
+  const rawLatestFiltered = (latestArticlesRaw || []).filter((a) => !isExcludedFromHome(a.category));
+  const rawTrendingFiltered = (trendingArticlesRaw || []).filter((a) => !isExcludedFromHome(a.category));
+
+  const latestArticles = (applyTranslations(rawLatestFiltered, lang) as unknown) as ArticleItem[];
+  const trendingArticles = (applyTranslations(rawTrendingFiltered, lang) as unknown) as ArticleItem[];
 
   const heroArticle = latestArticles && latestArticles.length > 0 ? latestArticles[0] : null;
   const recentArticles = latestArticles && latestArticles.length > 1 ? latestArticles.slice(1) : [];

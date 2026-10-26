@@ -139,6 +139,8 @@ export function VisualStoriesTemplate({
                     src={article.featured_image_url}
                     alt={article.title}
                     fill
+                    loading="lazy"
+                    decoding="async"
                     sizes="(max-width: 768px) 100vw, 25vw"
                     className="object-cover group-hover:scale-105 transition duration-500 brightness-[0.75]"
                   />

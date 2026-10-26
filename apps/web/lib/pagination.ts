@@ -3,7 +3,8 @@
  * Guarantees real database range queries (0 to 10, 15, 20) with exact count metadata.
  */
 
-export const ALLOWED_PAGE_SIZES = [10, 15, 20] as const;
+export const ALLOWED_PAGE_SIZES = [6, 9, 12, 18] as const;
+export const ALL_VALID_LIMITS = [6, 9, 10, 12, 15, 18, 20] as const;
 export type PageSize = (typeof ALLOWED_PAGE_SIZES)[number];
 
 export function parsePageParam(pageParam: unknown, maxPage: number = 500): number {
@@ -25,8 +26,8 @@ export function parsePageParam(pageParam: unknown, maxPage: number = 500): numbe
 
 export function parseLimitParam(
   limitParam: unknown,
-  defaultLimit: number = 10,
-  allowedLimits: readonly number[] = ALLOWED_PAGE_SIZES
+  defaultLimit: number = 6,
+  allowedLimits: readonly number[] = ALL_VALID_LIMITS
 ): number {
   if (typeof limitParam !== 'string') {
     return defaultLimit;

@@ -4,6 +4,7 @@ import { useState, useEffect, FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { Button } from '@/components/Button';
 
 interface ProfileData {
   id: string;
@@ -275,13 +276,15 @@ export default function ProfilePage() {
               </div>
 
               <div className="pt-2">
-                <button
+                <Button
                   type="submit"
+                  variant="primary"
+                  size="md"
                   disabled={savingName}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-400 to-sky-400 px-6 py-2.5 text-xs font-bold text-slate-950 hover:from-cyan-300 hover:to-sky-300 shadow-md shadow-cyan-950/50 disabled:opacity-50 transition-all active:scale-95"
+                  isLoading={savingName}
                 >
-                  <span>{savingName ? 'Saving Changes...' : 'Save Author Name'}</span>
-                </button>
+                  {savingName ? 'Saving Changes...' : 'Save Author Name'}
+                </Button>
               </div>
             </form>
           </div>
@@ -355,13 +358,15 @@ export default function ProfilePage() {
               </div>
 
               <div className="pt-2">
-                <button
+                <Button
                   type="submit"
+                  variant="secondary"
+                  size="md"
                   disabled={savingPassword || !newPassword}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 px-6 py-2.5 text-xs font-bold text-white hover:text-cyan-300 disabled:opacity-50 transition-all active:scale-95"
+                  isLoading={savingPassword}
                 >
-                  <span>{savingPassword ? 'Updating Password...' : 'Update Password'}</span>
-                </button>
+                  {savingPassword ? 'Updating Password...' : 'Update Password'}
+                </Button>
               </div>
             </form>
           </div>

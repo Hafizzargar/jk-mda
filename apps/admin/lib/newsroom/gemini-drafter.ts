@@ -138,7 +138,7 @@ function generateFallbackDraft(input: DraftEventInput): GeneratedDraftResult {
     : 'the monitored region';
 
   const cleanTitle = input.headline.replace(/["']/g, '');
-  const title = input.districtName
+  const title = (isJKStory && input.districtName)
     ? `${cleanTitle} — ${input.districtName}`
     : cleanTitle;
 
@@ -150,10 +150,11 @@ function generateFallbackDraft(input: DraftEventInput): GeneratedDraftResult {
 
   const sourcesListHtml = input.sources
     .map((s) => {
-      let label = s.sourceName?.trim();
+      const srcObj = s as { sourceName?: string; source_name?: string; url?: string; title?: string };
+      let label = (srcObj.sourceName || srcObj.source_name)?.trim();
       if (!label || label === 'undefined' || label === 'null') {
         try {
-          const host = s.url ? new URL(s.url).hostname.replace(/^www\./, '') : '';
+          const host = srcObj.url ? new URL(srcObj.url).hostname.replace(/^www\./, '') : '';
           if (host.includes('un.org')) label = 'UN News';
           else if (host.includes('who.int')) label = 'WHO Dispatch';
           else label = host || 'Reporting Dispatch';
@@ -161,7 +162,7 @@ function generateFallbackDraft(input: DraftEventInput): GeneratedDraftResult {
           label = 'Reporting Dispatch';
         }
       }
-      return `<li><a href="${s.url}" target="_blank" rel="noopener noreferrer">${label}</a>: ${s.title}</li>`;
+      return `<li><a href="${srcObj.url}" target="_blank" rel="noopener noreferrer">${label}</a>: ${srcObj.title || 'Source dispatch'}</li>`;
     })
     .join('');
 
@@ -181,11 +182,15 @@ ${govSection}
 `.trim();
 
   return {
-    title,
+    title: title.slice(0, 250),
     excerpt: input.summary.slice(0, 300),
     content: bodyHtml,
-    suggestedDistrict: input.districtName || null,
-    suggestedCategory: input.eventCategory === 'road_closures' ? 'Local' : 'General',
+    suggestedDistrict: isJKStory ? (input.districtName || null) : null,
+    suggestedCategory: !isJKStory
+      ? 'International'
+      : input.eventCategory === 'road_closures'
+      ? 'Local'
+      : 'General',
     claimsToVerify: [
       `Confirm the exact time and sequence of events in ${input.locationName || input.districtName || 'the reported area'}.`,
       hasConfirmedGovOrder
@@ -200,7 +205,7 @@ ${govSection}
 }
 
 /**
- * Generate a URL-friendly slug from title
+ * Generate a URL-friendly slug from title (strictly enforces single hyphens)
  */
 export function generateSlug(title: string): string {
   const base = title
@@ -211,5 +216,6 @@ export function generateSlug(title: string): string {
     .replace(/^-+|-+$/g, '');
 
   const suffix = Math.random().toString(36).substring(2, 6);
-  return `${base.slice(0, 60)}-${suffix}`;
+  const cleanBase = base.slice(0, 60).replace(/-+$/, '');
+  return `${cleanBase || 'news'}-${suffix}`;
 }

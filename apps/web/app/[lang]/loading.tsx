@@ -71,24 +71,31 @@ export default function Loading() {
         {/* Outermost slow-drift ring */}
         <div
           className="absolute inset-0 rounded-full border border-red-200/60"
-          style={{ animation: 'spin 18s linear infinite' }}
+          style={{
+            animation: 'kjinSpin 18s linear infinite',
+            willChange: 'transform',
+          }}
         />
 
         {/* Dashed orbital */}
         <div
           className="absolute inset-2 rounded-full border-2 border-dashed border-amber-300/50"
-          style={{ animation: 'spin 10s linear infinite reverse' }}
+          style={{
+            animation: 'kjinSpinReverse 10s linear infinite',
+            willChange: 'transform',
+          }}
         />
 
-        {/* Smooth conic-gradient arc spinner */}
+        {/* Smooth conic-gradient arc spinner (Orange/Red rotating circle) */}
         <div
           className="absolute inset-3.5 rounded-full"
           style={{
             background: 'conic-gradient(from 0deg, #dc2626 0%, #f59e0b 45%, transparent 65%)',
-            animation: 'spin 1.4s linear infinite',
+            animation: 'kjinSpin 1.2s linear infinite',
             borderRadius: '9999px',
             mask: 'radial-gradient(farthest-side, transparent calc(100% - 3px), white calc(100% - 2px))',
             WebkitMask: 'radial-gradient(farthest-side, transparent calc(100% - 3px), white calc(100% - 2px))',
+            willChange: 'transform',
           }}
         />
 
@@ -132,7 +139,7 @@ export default function Loading() {
             key={i}
             className="block w-1.5 h-1.5 rounded-full bg-red-500"
             style={{
-              animation: `bounce 1.2s ease-in-out ${i * 0.15}s infinite`,
+              animation: `kjinDotBounce 1.2s ease-in-out ${i * 0.15}s infinite`,
             }}
           />
         ))}
@@ -150,6 +157,32 @@ export default function Loading() {
       </div>
 
       <style>{`
+        @keyframes kjinSpin {
+          0% {
+            transform: rotate(0deg);
+          }
+          100% {
+            transform: rotate(360deg);
+          }
+        }
+        @keyframes kjinSpinReverse {
+          0% {
+            transform: rotate(360deg);
+          }
+          100% {
+            transform: rotate(0deg);
+          }
+        }
+        @keyframes kjinDotBounce {
+          0%, 100% {
+            transform: translateY(0);
+            opacity: 0.35;
+          }
+          50% {
+            transform: translateY(-5px);
+            opacity: 1;
+          }
+        }
         @keyframes shimmer {
           0%   { transform: translateX(-100%); }
           100% { transform: translateX(300%); }

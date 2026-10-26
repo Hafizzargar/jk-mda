@@ -10,6 +10,9 @@ import {
   type NavbarSettings,
   type NavItemConfig,
 } from '@/lib/navbar';
+import { Button } from '@/components/Button';
+import { ConfirmModal } from '@/components/ConfirmModal';
+import { toast } from '@/components/Toast';
 
 export default function NavbarSettingsPage() {
   const router = useRouter();
@@ -20,6 +23,16 @@ export default function NavbarSettingsPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'brand' | 'categories' | 'languages' | 'tools'>('brand');
+
+  // Add Category Modal State
+  const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+  const [newCatTitle, setNewCatTitle] = useState('');
+  const [newCatSlug, setNewCatSlug] = useState('');
+  const [newCatEnabled, setNewCatEnabled] = useState(true);
+  const [newCatError, setNewCatError] = useState<string | null>(null);
+
+  // Category deletion state
+  const [categoryToDelete, setCategoryToDelete] = useState<{ index: number; item: NavItemConfig } | null>(null);
 
   useEffect(() => {
     async function loadSettings() {
@@ -132,8 +145,10 @@ export default function NavbarSettingsPage() {
   // Category item handlers
   const toggleCategory = (index: number) => {
     const updated = [...form.nav_items];
-    updated[index] = { ...updated[index], enabled: !updated[index].enabled };
+    const newStatus = !updated[index].enabled;
+    updated[index] = { ...updated[index], enabled: newStatus };
     setForm({ ...form, nav_items: updated });
+    toast.info(`"${updated[index].label}" set to ${newStatus ? 'Active' : 'Inactive'}. Save changes to publish.`);
   };
 
   const updateCategoryLabel = (index: number, newLabel: string) => {
@@ -142,22 +157,68 @@ export default function NavbarSettingsPage() {
     setForm({ ...form, nav_items: updated });
   };
 
-  const addCustomCategory = () => {
-    const label = prompt('Enter category/nav item title (e.g. Tech, Health, Opinions):');
-    if (!label || !label.trim()) return;
-    const slug = label.trim().toLowerCase().replace(/[^a-z0-9-_]/g, '-');
-    const newItem: NavItemConfig = {
-      id: slug,
-      label: label.trim(),
-      slug,
-      enabled: true,
-    };
-    setForm({ ...form, nav_items: [...form.nav_items, newItem] });
+  const openAddCategoryModal = () => {
+    setNewCatTitle('');
+    setNewCatSlug('');
+    setNewCatEnabled(true);
+    setNewCatError(null);
+    setShowAddCategoryModal(true);
   };
 
-  const removeCategory = (index: number) => {
+  const handleTitleChangeForNewCat = (val: string) => {
+    setNewCatTitle(val);
+    const autoSlug = val
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)+/g, '');
+    setNewCatSlug(autoSlug);
+  };
+
+  const handleConfirmAddCategory = () => {
+    if (!newCatTitle.trim()) {
+      setNewCatError('Please enter a category title.');
+      return;
+    }
+    const cleanSlug = (newCatSlug.trim() || newCatTitle.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-'))
+      .replace(/(^-|-$)+/g, '');
+    if (!cleanSlug) {
+      setNewCatError('A valid URL slug is required.');
+      return;
+    }
+
+    // Check duplicate slug
+    const exists = form.nav_items.some(
+      (item) => item.slug?.toLowerCase() === cleanSlug.toLowerCase() || item.id?.toLowerCase() === cleanSlug.toLowerCase()
+    );
+    if (exists) {
+      setNewCatError(`A category with slug "${cleanSlug}" already exists.`);
+      return;
+    }
+
+    const newItem: NavItemConfig = {
+      id: cleanSlug,
+      label: newCatTitle.trim(),
+      slug: cleanSlug,
+      enabled: newCatEnabled,
+    };
+
+    setForm({ ...form, nav_items: [...form.nav_items, newItem] });
+    setShowAddCategoryModal(false);
+    toast.success(`Category "${newCatTitle.trim()}" created! Click "Save Navbar Changes" to publish.`);
+  };
+
+  const requestDeleteCategory = (index: number, item: NavItemConfig) => {
+    setCategoryToDelete({ index, item });
+  };
+
+  const handleConfirmDeleteCategory = () => {
+    if (!categoryToDelete) return;
+    const { index, item } = categoryToDelete;
     const updated = form.nav_items.filter((_, i) => i !== index);
     setForm({ ...form, nav_items: updated });
+    setCategoryToDelete(null);
+    toast.info(`Category "${item.label}" removed. Click "Save Navbar Changes" to sync.`);
   };
 
   if (loading) {
@@ -183,32 +244,26 @@ export default function NavbarSettingsPage() {
           </div>
 
           <div className="flex items-center gap-2.5 shrink-0">
-            <button
+            <Button
               type="button"
+              variant="secondary"
+              size="sm"
               onClick={handleResetDefaults}
               disabled={!canManage || saving}
-              className="px-3 py-1.5 rounded-xl text-xs font-mono border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition disabled:opacity-50 shadow-2xs"
             >
               Reset Defaults
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="primary"
+              size="sm"
+              icon="💾"
               onClick={handleSubmit}
               disabled={!canManage || saving}
-              className="px-4 py-1.5 rounded-xl text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white shadow-2xs transition disabled:opacity-50 flex items-center gap-2"
+              isLoading={saving}
             >
-              {saving ? (
-                <>
-                  <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Saving...</span>
-                </>
-              ) : (
-                <>
-                  <span>💾</span>
-                  <span>Save Navbar Changes</span>
-                </>
-              )}
-            </button>
+              {saving ? 'Saving...' : 'Save Navbar Changes'}
+            </Button>
           </div>
         </div>
 
@@ -330,7 +385,7 @@ export default function NavbarSettingsPage() {
           <button
             type="button"
             onClick={() => setActiveTab('brand')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition ${
+            className={`px-4 py-2 rounded-[8px] text-xs font-bold uppercase tracking-wider transition ${
               activeTab === 'brand'
                 ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-sm'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
@@ -341,7 +396,7 @@ export default function NavbarSettingsPage() {
           <button
             type="button"
             onClick={() => setActiveTab('categories')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition ${
+            className={`px-4 py-2 rounded-[8px] text-xs font-bold uppercase tracking-wider transition ${
               activeTab === 'categories'
                 ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-sm'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
@@ -352,7 +407,7 @@ export default function NavbarSettingsPage() {
           <button
             type="button"
             onClick={() => setActiveTab('languages')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition ${
+            className={`px-4 py-2 rounded-[8px] text-xs font-bold uppercase tracking-wider transition ${
               activeTab === 'languages'
                 ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-sm'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
@@ -363,7 +418,7 @@ export default function NavbarSettingsPage() {
           <button
             type="button"
             onClick={() => setActiveTab('tools')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition ${
+            className={`px-4 py-2 rounded-[8px] text-xs font-bold uppercase tracking-wider transition ${
               activeTab === 'tools'
                 ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 shadow-sm'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
@@ -705,80 +760,137 @@ export default function NavbarSettingsPage() {
                   Show, hide, or rename categories (Politics, Economy, Sports, International, etc.) in the navbar.
                 </p>
               </div>
-              <button
+              <Button
                 type="button"
-                onClick={addCustomCategory}
-                className="px-3.5 py-1.5 rounded-xl text-xs font-bold border border-cyan-500/40 bg-cyan-500/10 text-cyan-300 hover:bg-cyan-500/20 transition flex items-center gap-1.5 self-start"
+                onClick={openAddCategoryModal}
+                variant="cyan"
+                size="sm"
+                icon={<span>➕</span>}
+                className="self-start"
               >
-                <span>➕</span> Add Custom Topic
-              </button>
+                Add Custom Topic
+              </Button>
             </div>
 
             {/* Category Cards List */}
             <div className="space-y-3">
-              {form.nav_items.map((item, index) => (
-                <div
-                  key={item.id}
-                  className={`p-4 rounded-xl border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
-                    item.enabled
-                      ? 'border-slate-700 bg-slate-950/80'
-                      : 'border-slate-850 bg-slate-950/40 opacity-60'
-                  }`}
-                >
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <button
-                      type="button"
-                      onClick={() => toggleCategory(index)}
-                      className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm transition shrink-0 ${
-                        item.enabled
-                          ? 'bg-cyan-500/20 border border-cyan-500/40 text-cyan-400'
-                          : 'bg-slate-800 border border-slate-700 text-slate-500'
-                      }`}
-                      title={item.enabled ? 'Click to hide' : 'Click to show'}
-                    >
-                      {item.enabled ? '👁️' : '🚫'}
-                    </button>
+              {form.nav_items.length === 0 ? (
+                <div className="p-8 text-center rounded-xl border border-dashed border-slate-800 bg-slate-950/40 text-slate-400">
+                  <p className="text-sm font-semibold">No categories defined yet.</p>
+                  <p className="text-xs text-slate-500 mt-1">Add custom topics to organize news articles and navigation.</p>
+                  <Button
+                    type="button"
+                    onClick={openAddCategoryModal}
+                    variant="cyan"
+                    size="sm"
+                    className="mt-3"
+                    icon={<span>➕</span>}
+                  >
+                    Add First Topic
+                  </Button>
+                </div>
+              ) : (
+                form.nav_items.map((item, index) => (
+                  <div
+                    key={item.id}
+                    className={`p-4 rounded-xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+                      item.enabled
+                        ? 'border-slate-700 bg-slate-950/80 shadow-xs'
+                        : 'border-slate-850 bg-slate-950/40 opacity-70'
+                    }`}
+                  >
+                    <div className="flex items-start sm:items-center gap-3 flex-1 min-w-0">
+                      {/* Order number */}
+                      <span className="w-7 h-7 rounded-[8px] bg-slate-800 border border-slate-700/80 text-[11px] font-mono font-bold text-slate-400 flex items-center justify-center shrink-0">
+                        #{index + 1}
+                      </span>
 
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="text"
-                          value={item.label}
-                          onChange={(e) => updateCategoryLabel(index, e.target.value)}
-                          className="bg-transparent font-bold text-sm text-white focus:outline-none focus:border-b border-cyan-500"
-                        />
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">
-                          {item.slug === 'india' || item.id === 'national' ? '/india' : item.slug === 'international' || item.id === 'international' ? '/international' : `/category/${item.slug}`}
-                        </span>
-                      </div>
-                      <div className="text-[11px] text-slate-500 mt-0.5">
-                        {item.enabled ? 'Visible in navbar' : 'Hidden from navbar'}
+                      {/* Status indicator button */}
+                      <button
+                        type="button"
+                        onClick={() => toggleCategory(index)}
+                        className={`w-9 h-9 rounded-[8px] flex items-center justify-center font-bold text-sm transition shrink-0 ${
+                          item.enabled
+                            ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/30'
+                            : 'bg-slate-800 border border-slate-700 text-slate-500 hover:bg-slate-750'
+                        }`}
+                        title={item.enabled ? 'Click to make Inactive' : 'Click to make Active'}
+                      >
+                        {item.enabled ? '👁️' : '🚫'}
+                      </button>
+
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <input
+                            type="text"
+                            value={item.label}
+                            onChange={(e) => updateCategoryLabel(index, e.target.value)}
+                            className="bg-transparent font-bold text-sm text-white focus:outline-none focus:border-b-2 border-cyan-500 max-w-[220px]"
+                            title="Click to rename category label"
+                          />
+
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded-[8px] bg-slate-800 border border-slate-700 text-slate-300">
+                            {item.slug === 'india' || item.id === 'national'
+                              ? '/india'
+                              : item.slug === 'international' || item.id === 'international'
+                              ? '/international'
+                              : `/category/${item.slug}`}
+                          </span>
+
+                          {/* Dynamic Active/Inactive Badge */}
+                          {item.enabled ? (
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[8px] text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                              Active (Articles &amp; Navbar)
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-[8px] text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">
+                              <span className="h-1.5 w-1.5 rounded-full bg-slate-500"></span>
+                              Inactive (Hidden)
+                            </span>
+                          )}
+                        </div>
+
+                        <p className="text-[11px] text-slate-400">
+                          {item.enabled
+                            ? 'Available in article creation and visible in public website navigation.'
+                            : 'Hidden from navigation and omitted from new article category selections.'}
+                        </p>
                       </div>
                     </div>
-                  </div>
 
-                  <div className="flex items-center gap-3 shrink-0 self-end sm:self-auto">
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={item.enabled}
-                        onChange={() => toggleCategory(index)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
-                    </label>
+                    <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-850">
+                      {/* Active toggle switch */}
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-medium text-slate-400">
+                          {item.enabled ? 'Active' : 'Inactive'}
+                        </span>
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={item.enabled}
+                            onChange={() => toggleCategory(index)}
+                            className="sr-only peer"
+                          />
+                          <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
+                        </label>
+                      </div>
 
-                    <button
-                      type="button"
-                      onClick={() => removeCategory(index)}
-                      className="p-1.5 text-slate-500 hover:text-red-400 transition text-sm"
-                      title="Delete category"
-                    >
-                      ✕
-                    </button>
+                      {/* Delete category button */}
+                      <Button
+                        type="button"
+                        variant="danger"
+                        size="sm"
+                        icon="🗑️"
+                        onClick={() => requestDeleteCategory(index, item)}
+                        title={`Delete ${item.label}`}
+                      >
+                        Delete
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
 
             {/* Special Nav Elements */}
@@ -1075,15 +1187,148 @@ export default function NavbarSettingsPage() {
           <div className="text-xs text-slate-400">
             Changes take effect immediately on public site across all 10 presentation templates.
           </div>
-          <button
+          <Button
             type="button"
+            variant="primary"
+            size="md"
             onClick={handleSubmit}
             disabled={!canManage || saving}
-            className="px-6 py-2.5 rounded-xl text-sm font-bold bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-lg shadow-cyan-950/40 transition disabled:opacity-50 flex items-center gap-2"
+            isLoading={saving}
           >
             {saving ? 'Saving...' : 'Save & Publish Navbar'}
-          </button>
+          </Button>
         </div>
+
+        {/* Add Custom Category Modal */}
+        {showAddCategoryModal && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShowAddCategoryModal(false);
+            }}
+          >
+            <div className="w-full max-w-md rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl p-6 space-y-5 text-slate-100 animate-in zoom-in-95 duration-150">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">📑</span>
+                  <h3 className="text-base font-bold text-white">Add Custom Topic &amp; Category</h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowAddCategoryModal(false)}
+                  className="text-slate-400 hover:text-white transition text-sm"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {newCatError && (
+                <div className="p-3 rounded-lg bg-red-950/60 border border-red-500/50 text-red-300 text-xs">
+                  {newCatError}
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                    Category Name / Title <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newCatTitle}
+                    onChange={(e) => handleTitleChangeForNewCat(e.target.value)}
+                    placeholder="e.g. Science & Tech, Climate, Health"
+                    className="w-full rounded-[8px] border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none"
+                    autoFocus
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                    URL Slug <span className="text-red-400">*</span>
+                  </label>
+                  <div className="flex items-center rounded-[8px] border border-slate-700 bg-slate-950 px-3 py-2">
+                    <span className="text-xs font-mono text-slate-500 mr-1">/category/</span>
+                    <input
+                      type="text"
+                      value={newCatSlug}
+                      onChange={(e) => setNewCatSlug(e.target.value)}
+                      placeholder="science-tech"
+                      className="flex-1 bg-transparent font-mono text-xs text-white placeholder-slate-500 focus:outline-none"
+                    />
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Public readers will view this category at <code>/category/{newCatSlug || 'your-slug'}</code>
+                  </p>
+                </div>
+
+                <div className="p-3 rounded-xl border border-slate-800 bg-slate-950/60 flex items-center justify-between">
+                  <div>
+                    <div className="text-xs font-semibold text-white">Active Status</div>
+                    <div className="text-[11px] text-slate-400">
+                      Immediately show in navbar and article creation
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newCatEnabled}
+                      onChange={(e) => setNewCatEnabled(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-800">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setShowAddCategoryModal(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  variant="cyan"
+                  size="sm"
+                  icon={<span>➕</span>}
+                  onClick={handleConfirmAddCategory}
+                >
+                  Create Category
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Delete Category Confirmation Modal */}
+        {categoryToDelete && (
+          <ConfirmModal
+            isOpen={true}
+            onClose={() => setCategoryToDelete(null)}
+            onConfirm={handleConfirmDeleteCategory}
+            title={`Remove Category "${categoryToDelete.item.label}"`}
+            description={
+              <div className="space-y-2">
+                <p>
+                  Are you sure you want to remove <strong>&quot;{categoryToDelete.item.label}&quot;</strong> from navigation topics?
+                </p>
+                <p className="text-xs text-slate-400">
+                  This will hide it from the website navigation. Any existing articles previously tagged with this category will retain their text label, but this category will no longer appear in new article category selections.
+                </p>
+              </div>
+            }
+            confirmText="Remove Category"
+            cancelText="Keep Category"
+            variant="red"
+            icon="🗑️"
+          />
+        )}
 
       </div>
     </div>

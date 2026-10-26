@@ -127,6 +127,8 @@ export function ModernMagazineTemplate({
                             src={article.featured_image_url}
                             alt={article.title}
                             fill
+                            loading="lazy"
+                            decoding="async"
                             sizes="(max-width: 768px) 100vw, 33vw"
                             className="object-cover transition duration-500 group-hover:scale-105"
                           />
@@ -240,6 +242,8 @@ export function ModernMagazineTemplate({
                           src={article.featured_image_url}
                           alt={article.title}
                           fill
+                          loading="lazy"
+                          decoding="async"
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                           className="object-cover transition duration-500 group-hover:scale-105"
                         />

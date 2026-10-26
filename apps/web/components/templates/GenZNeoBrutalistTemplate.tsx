@@ -225,6 +225,8 @@ export function GenZNeoBrutalistTemplate({
                       src={article.featured_image_url}
                       alt={article.title}
                       fill
+                      loading="lazy"
+                      decoding="async"
                       sizes="(max-width: 768px) 100vw, 33vw"
                       className="object-cover hover:scale-105 transition duration-500"
                     />

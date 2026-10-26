@@ -66,6 +66,53 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Database update failed.' }, { status: 500 });
   }
 
+  // Synchronize nav_items into public.categories database table
+  try {
+    const activeNavSlugs: string[] = [];
+
+    for (let index = 0; index < sanitized.nav_items.length; index++) {
+      const item = sanitized.nav_items[index];
+      const canonicalSlug =
+        item.id === 'national' || item.slug === 'india'
+          ? 'national'
+          : (item.slug || item.id).toLowerCase().trim();
+
+      activeNavSlugs.push(canonicalSlug);
+
+      await authorization.service
+        .from('categories')
+        .upsert(
+          {
+            slug: canonicalSlug,
+            name_en: item.label.trim(),
+            is_active: Boolean(item.enabled),
+            display_order: index + 1,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'slug' }
+        );
+    }
+
+    // For any existing category in public.categories that was removed from navbar,
+    // mark is_active = false so it no longer appears in new article category dropdowns
+    const { data: existingCats } = await authorization.service
+      .from('categories')
+      .select('id, slug');
+
+    if (existingCats && existingCats.length > 0) {
+      for (const cat of existingCats) {
+        if (!activeNavSlugs.includes(cat.slug.toLowerCase())) {
+          await authorization.service
+            .from('categories')
+            .update({ is_active: false, updated_at: new Date().toISOString() })
+            .eq('id', cat.id);
+        }
+      }
+    }
+  } catch (catSyncErr) {
+    console.warn('[Navbar Settings API] Category synchronization warning:', catSyncErr);
+  }
+
   // Automatically keep footer organization name synchronized from unified brand config
   try {
     const { data: footerRow } = await authorization.service

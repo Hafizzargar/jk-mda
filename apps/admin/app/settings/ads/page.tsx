@@ -4,6 +4,7 @@ import { useEffect, useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { requiresMfa } from '@/lib/mfa';
+import { Button } from '@/components/Button';
 
 type AdThemeAccent = 'gold' | 'emerald' | 'cyan' | 'ruby' | 'indigo';
 
@@ -220,26 +221,28 @@ export default function AdsSettingsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           {canManage && (
-            <button
+            <Button
               type="submit"
               form="ads-settings-form"
+              variant="cyan"
+              size="md"
               disabled={saving}
-              className="flex items-center gap-2 rounded-xl bg-cyan-600 px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-cyan-500 disabled:opacity-50 transition"
+              isLoading={saving}
+              icon={<span>💾</span>}
             >
-              <span>💾</span>
-              <span>{saving ? 'Saving...' : 'Save Settings'}</span>
-            </button>
+              {saving ? 'Saving...' : 'Save Settings'}
+            </Button>
           )}
-          <a
+          <Button
             href="http://localhost:3000"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:text-slate-950 dark:hover:text-white transition shadow-2xs"
+            external
+            variant="secondary"
+            size="md"
           >
             Public Site ↗
-          </a>
+          </Button>
         </div>
       </div>
 

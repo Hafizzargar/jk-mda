@@ -30,7 +30,7 @@ export function Navbar({
           type="button"
           onClick={onOpenMobile}
           aria-label="Open sidebar menu"
-          className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 lg:hidden transition-colors dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+          className="flex h-7 w-7 items-center justify-center rounded-[8px] border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 lg:hidden transition-colors dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
         >
           <span className="text-sm">☰</span>
         </button>
@@ -39,13 +39,13 @@ export function Navbar({
         <button
           type="button"
           onClick={onOpenSearch}
-          className="group hidden sm:flex items-center justify-between gap-4 rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-1 text-xs text-slate-500 hover:border-slate-300 hover:bg-white transition-all shadow-2xs dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 w-52 md:w-60"
+          className="group hidden sm:flex items-center justify-between gap-4 rounded-[8px] border border-slate-200 bg-slate-50/80 px-2.5 py-1 text-xs text-slate-500 hover:border-slate-300 hover:bg-white transition-all shadow-2xs dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 w-52 md:w-60"
         >
           <div className="flex items-center gap-1.5">
             <span className="text-slate-400 text-xs">🔍</span>
             <span className="text-xs text-slate-600 dark:text-slate-300">Quick search...</span>
           </div>
-          <kbd className="rounded border border-slate-200 bg-white px-1 py-0.2 text-[9px] font-mono text-slate-500 dark:bg-slate-800 dark:border-slate-700">
+          <kbd className="rounded-[4px] border border-slate-200 bg-white px-1 py-0.2 text-[9px] font-mono text-slate-500 dark:bg-slate-800 dark:border-slate-700">
             ⌘K
           </kbd>
         </button>
@@ -58,7 +58,7 @@ export function Navbar({
           type="button"
           onClick={onOpenSearch}
           aria-label="Open search"
-          className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 sm:hidden dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
+          className="flex h-7 w-7 items-center justify-center rounded-[8px] border border-slate-200 bg-white text-slate-700 sm:hidden dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
         >
           <span className="text-xs">🔍</span>
         </button>
@@ -72,7 +72,7 @@ export function Navbar({
             onClick={onToggleTheme}
             title={`Switch to ${theme === 'light' ? 'Dark' : 'Light'} theme`}
             aria-label="Toggle color theme"
-            className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+            className="flex h-7 w-7 items-center justify-center rounded-[8px] border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 transition dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
           >
             <span className="text-xs">{theme === 'light' ? '🌙' : '☀️'}</span>
           </button>

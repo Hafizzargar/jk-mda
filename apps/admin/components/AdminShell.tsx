@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { Sidebar } from './Sidebar';
 import { Navbar } from './Navbar';
 import { CommandPalette } from './CommandPalette';
+import { Toaster } from './Toast';
 
 export interface AdminContextType {
   theme: 'light' | 'dark';
@@ -176,7 +177,12 @@ export function AdminShell({ children }: AdminShellProps) {
   // If on login or MFA auth routes, don't show the dashboard sidebar/navbar shell
   const isAuthRoute = pathname === '/login' || pathname.startsWith('/mfa/');
   if (isAuthRoute) {
-    return <>{children}</>;
+    return (
+      <>
+        {children}
+        <Toaster position="top-right" />
+      </>
+    );
   }
 
   return (
@@ -189,11 +195,11 @@ export function AdminShell({ children }: AdminShellProps) {
       }}
     >
       <div
-        className={`min-h-screen flex antialiased selection:bg-cyan-500 selection:text-white transition-colors duration-200 ${
+        className={`min-h-screen antialiased selection:bg-cyan-500 selection:text-white transition-colors duration-200 ${
           theme === 'dark' ? 'bg-[#020817] text-slate-100' : 'bg-slate-50 text-slate-900'
         }`}
       >
-        {/* Sidebar (Desktop sticky + Mobile sliding drawer) */}
+        {/* Sidebar (Desktop fixed + Mobile sliding drawer) */}
         <Sidebar
           isCollapsed={isCollapsed}
           onToggleCollapse={handleToggleCollapse}
@@ -207,8 +213,12 @@ export function AdminShell({ children }: AdminShellProps) {
           brandLogo={brandLogo}
         />
 
-        {/* Main Body */}
-        <div className="flex-1 flex flex-col min-w-0 transition-all duration-300">
+        {/* Main Body - Offset by desktop sidebar width */}
+        <div
+          className={`flex flex-col min-h-screen min-w-0 transition-all duration-300 ${
+            isCollapsed ? 'lg:pl-20' : 'lg:pl-[272px]'
+          }`}
+        >
           <Navbar
             onOpenMobile={() => setMobileOpen(true)}
             onOpenSearch={() => setIsCommandPaletteOpen(true)}
@@ -220,7 +230,7 @@ export function AdminShell({ children }: AdminShellProps) {
             brandName={brandName}
           />
 
-          <main className="flex-1 min-w-0">{children}</main>
+          <main className="flex-1 min-w-0 w-full overflow-x-hidden">{children}</main>
         </div>
 
         {/* Command Palette Modal */}
@@ -228,6 +238,9 @@ export function AdminShell({ children }: AdminShellProps) {
           isOpen={isCommandPaletteOpen}
           onClose={() => setIsCommandPaletteOpen(false)}
         />
+
+        {/* Global Toaster Notification Container (Top-Right) */}
+        <Toaster position="top-right" />
       </div>
     </AdminContext.Provider>
   );

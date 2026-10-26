@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { AVAILABLE_TEMPLATES, type TemplateDefinition, type TemplateId } from '@/lib/templates';
 import { requiresMfa } from '@/lib/mfa';
 import { TemplateMockupPreview } from './TemplateMockupPreview';
+import { Button } from '@/components/Button';
 
 const ALLOWED_ROLES = ['owner', 'superadmin', 'admin'];
 
@@ -347,13 +348,15 @@ export default function TemplatesManagementPage() {
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <button
+            <Button
               type="button"
+              variant="secondary"
+              size="sm"
+              icon="↻"
               onClick={() => window.location.reload()}
-              className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold hover:border-cyan-500"
             >
               Refresh
-            </button>
+            </Button>
           </div>
         </header>
 
@@ -391,14 +394,14 @@ export default function TemplatesManagementPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <Link
+            <Button
               href="http://localhost:3000"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-xl border border-slate-700 bg-slate-800/80 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-slate-700 transition"
+              external
+              variant="secondary"
+              size="md"
             >
               Open Active Website ↗
-            </Link>
+            </Button>
           </div>
         </div>
 
@@ -424,7 +427,7 @@ export default function TemplatesManagementPage() {
                   key={tab.id}
                   type="button"
                   onClick={() => setFilterCategory(tab.id as 'all' | 'light' | 'dark' | 'special')}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1.5 ${
+                  className={`px-3.5 py-1.5 rounded-[8px] text-xs font-semibold transition flex items-center gap-1.5 ${
                     isSelected
                       ? 'bg-cyan-500 text-slate-950 font-bold shadow-md shadow-cyan-500/20'
                       : 'bg-slate-850 border border-slate-700/80 text-slate-300 hover:bg-slate-800 hover:text-white'
@@ -565,21 +568,22 @@ export default function TemplatesManagementPage() {
 
                 {/* Card Action Footer */}
                 <div
-                  className={`p-4 pt-3 border-t mt-2 flex items-center gap-3 ${
+                  className={`p-4 pt-3 border-t mt-2 flex items-center gap-2.5 ${
                     meta.isLight ? 'border-slate-200/80 bg-white/40' : 'border-slate-800/60 bg-black/20'
                   }`}
                 >
-                  <Link
+                  <Button
                     href={`http://localhost:3000/?preview=${tmpl.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`flex-1 text-center rounded-xl py-2 text-xs font-semibold transition ${meta.previewBtnClass}`}
+                    external
+                    variant="secondary"
+                    size="sm"
+                    className="flex-1"
                   >
                     Live Preview ↗
-                  </Link>
+                  </Button>
 
                   {canManage && !isActive ? (
-                    <button
+                    <Button
                       type="button"
                       disabled={isSubmitting}
                       onClick={() => {
@@ -587,13 +591,15 @@ export default function TemplatesManagementPage() {
                         setActivationReason(`Switching site layout to ${tmpl.name}`);
                         setModalError(null);
                       }}
-                      className={`flex-1 rounded-xl py-2 text-xs font-bold transition disabled:opacity-50 ${meta.activateBtnClass}`}
+                      variant="cyan"
+                      size="sm"
+                      className="flex-1"
                     >
                       Activate
-                    </button>
+                    </Button>
                   ) : isActive ? (
                     <div
-                      className={`flex-1 py-2 text-center text-xs font-bold rounded-xl border ${
+                      className={`flex-1 py-1.5 text-center text-xs font-bold rounded-[8px] border ${
                         meta.isLight
                           ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
                           : 'bg-emerald-950/30 text-emerald-400 border-emerald-800/40'
@@ -660,21 +666,24 @@ export default function TemplatesManagementPage() {
               )}
 
               <div className="flex justify-end gap-3 pt-2">
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
+                  size="md"
                   onClick={() => setSelectedForActivation(null)}
                   disabled={isSubmitting}
-                  className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-300 hover:bg-slate-800"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
+                  variant="primary"
+                  size="md"
                   disabled={isSubmitting}
-                  className="rounded-lg bg-cyan-400 px-5 py-2 text-sm font-bold text-slate-950 hover:bg-cyan-300 disabled:opacity-50"
+                  isLoading={isSubmitting}
                 >
                   {isSubmitting ? 'Activating...' : 'Confirm & Activate'}
-                </button>
+                </Button>
               </div>
             </form>
           </div>

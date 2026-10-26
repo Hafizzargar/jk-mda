@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { DISTRICT_GROUPS } from '@/lib/taxonomy-options';
+import { Button } from '@/components/Button';
+import { toast } from '@/components/Toast';
 
 interface SourceCitation {
   source_name: string;
@@ -102,6 +104,7 @@ export default function EventGovernmentResponseMonitorPage() {
   }
 
   async function handleRefreshSources() {
+    const toastId = toast.loading('⚡ Scanning configured RSS feeds & government portals...');
     try {
       setRefreshing(true);
       setMessage({ text: '⚡ Scanning configured RSS feeds & government portals...', type: 'info' });
@@ -116,23 +119,25 @@ export default function EventGovernmentResponseMonitorPage() {
 
       if (res.ok) {
         const result = await res.json();
-        setMessage({
-          text: `Scan complete: Checked ${result.sourcesChecked} sources. Found ${result.newEventsCount} new events and ${result.officialMatchesCount} verified official updates.`,
-          type: 'success',
-        });
+        const successMsg = `Scan complete: Checked ${result.sourcesChecked} sources. Found ${result.newEventsCount} new events and ${result.officialMatchesCount} official updates.`;
+        setMessage({ text: successMsg, type: 'success' });
+        toast.success(successMsg, { id: toastId, title: 'Sources Refreshed' });
         await loadEvents();
       } else {
         setMessage({ text: 'Error during source collection refresh.', type: 'error' });
+        toast.error('Error during source collection refresh.', { id: toastId });
       }
     } catch (err) {
       console.error(err);
       setMessage({ text: 'Network failure refreshing sources.', type: 'error' });
+      toast.error('Network failure refreshing sources.', { id: toastId });
     } finally {
       setRefreshing(false);
     }
   }
 
   async function handleRecheckOfficialSources(eventId: string) {
+    const toastId = toast.loading('Rechecking official government sources...');
     try {
       setRecheckingId(eventId);
       const { data: sessionData } = await supabase.auth.getSession();
@@ -149,23 +154,25 @@ export default function EventGovernmentResponseMonitorPage() {
 
       if (res.ok) {
         const result = await res.json();
-        setMessage({
-          text: `Official recheck completed: ${result.matchResult.matchExplanation}`,
-          type: 'success',
-        });
+        const msg = `Official recheck completed: ${result.matchResult.matchExplanation}`;
+        setMessage({ text: msg, type: 'success' });
+        toast.success(msg, { id: toastId, title: 'Recheck Complete' });
         await loadEvents();
       } else {
         setMessage({ text: 'Failed to recheck official sources.', type: 'error' });
+        toast.error('Failed to recheck official sources.', { id: toastId });
       }
     } catch (err) {
       console.error(err);
       setMessage({ text: 'Network failure rechecking sources.', type: 'error' });
+      toast.error('Network failure rechecking sources.', { id: toastId });
     } finally {
       setRecheckingId(null);
     }
   }
 
   async function handleApproveForDraft(eventId: string) {
+    const toastId = toast.loading('Draft approved. Calling Gemini AI to generate sourced draft and verify checklist...');
     try {
       setDraftingId(eventId);
       const { data: sessionData } = await supabase.auth.getSession();
@@ -184,21 +191,23 @@ export default function EventGovernmentResponseMonitorPage() {
 
       if (res.ok) {
         const result = await res.json();
-        setMessage({
-          text: `Draft successfully generated into articles queue (ID: ${result.articleId}). Redirecting to editor...`,
-          type: 'success',
-        });
+        const successMsg = `Draft successfully generated into articles queue (ID: ${result.articleId}). Redirecting to editor...`;
+        setMessage({ text: successMsg, type: 'success' });
+        toast.success('Draft generated! Redirecting to editor...', { id: toastId, title: 'AI Draft Ready' });
         await loadEvents();
         setTimeout(() => {
           router.push(`/articles/${result.articleId}/edit`);
         }, 1200);
       } else {
         const err = await res.json();
-        setMessage({ text: err.error || 'Failed to generate draft.', type: 'error' });
+        const errorMsg = err.error || 'Failed to generate draft.';
+        setMessage({ text: errorMsg, type: 'error' });
+        toast.error(errorMsg, { id: toastId });
       }
     } catch (err) {
       console.error(err);
       setMessage({ text: 'Network failure during draft generation.', type: 'error' });
+      toast.error('Network failure during draft generation.', { id: toastId });
     } finally {
       setDraftingId(null);
     }
@@ -220,6 +229,7 @@ export default function EventGovernmentResponseMonitorPage() {
 
       if (res.ok) {
         setEvents((prev) => prev.filter((e) => e.id !== eventId));
+        toast.info('Event dismissed from monitor.');
       }
     } catch (err) {
       console.error(err);
@@ -249,22 +259,24 @@ export default function EventGovernmentResponseMonitorPage() {
         </div>
 
         <div className="flex items-center gap-2.5">
-          <Link
+          <Button
             href="/newsroom/sources"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-2xs dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+            variant="secondary"
+            size="md"
+            icon="🔗"
           >
-            <span>🔗</span>
-            <span>Source Registry</span>
-          </Link>
-          <button
+            Source Registry
+          </Button>
+          <Button
             type="button"
+            variant="emerald"
+            size="md"
+            icon={refreshing ? '🔄' : '⚡'}
+            isLoading={refreshing}
             onClick={handleRefreshSources}
-            disabled={refreshing}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-2xs hover:bg-emerald-500 transition disabled:opacity-50"
           >
-            <span>{refreshing ? '🔄' : '⚡'}</span>
-            <span>{refreshing ? 'Scanning Portals...' : 'Refresh Sources'}</span>
-          </button>
+            {refreshing ? 'Scanning Portals...' : 'Refresh Sources'}
+          </Button>
         </div>
       </div>
 
@@ -410,18 +422,23 @@ export default function EventGovernmentResponseMonitorPage() {
             const isConfirmed = officialResp?.match_status === 'confirmed_relevant';
             const isPossible = officialResp?.match_status === 'possible_match';
             const isFailed = officialResp?.match_status === 'check_failed';
+            const isDrafted = (event.status === 'drafted' || event.status === 'draft_approved') && Boolean(event.article_id);
 
             return (
               <div
                 key={event.id}
-                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-2xs transition hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900"
+                className={`rounded-2xl border p-5 shadow-sm transition ${
+                  isDrafted
+                    ? 'border-l-6 border-l-emerald-500 border-emerald-300/80 bg-gradient-to-br from-emerald-50/60 via-white to-teal-50/30 hover:border-emerald-400 dark:border-l-emerald-400 dark:border-emerald-800/80 dark:bg-gradient-to-br dark:from-emerald-950/35 dark:via-slate-900 dark:to-teal-950/25 shadow-emerald-500/5'
+                    : 'border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900'
+                }`}
               >
                 {/* Event Top Bar */}
                 <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3 dark:border-slate-800">
                   <div className="flex flex-wrap items-center gap-2">
-                    {/* District badge */}
+                    {/* District / Scope badge */}
                     <span className="rounded-md border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-xs font-bold font-mono text-cyan-900 dark:border-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200">
-                      📍 {event.location_name || event.district_slug?.toUpperCase() || 'J&K'}
+                      📍 {event.location_name || (event.district_slug ? event.district_slug.toUpperCase() : 'International')}
                     </span>
 
                     {/* Category badge */}
@@ -441,6 +458,14 @@ export default function EventGovernmentResponseMonitorPage() {
                     >
                       {event.verification_status.replace(/_/g, ' ')}
                     </span>
+
+                    {/* Distinct badge when event already went to articles */}
+                    {isDrafted && (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300 bg-emerald-100 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-emerald-800 shadow-2xs dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-200">
+                        <span>📰</span>
+                        <span>Already In Articles &amp; Stories</span>
+                      </span>
+                    )}
                   </div>
 
                   <span className="text-[11px] text-slate-500 font-mono">
@@ -512,14 +537,18 @@ export default function EventGovernmentResponseMonitorPage() {
                       </span>
                     </div>
 
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="sm"
                       onClick={() => handleRecheckOfficialSources(event.id)}
                       disabled={recheckingId === event.id}
-                      className="text-[11px] font-bold text-cyan-700 hover:text-cyan-900 dark:text-cyan-400 hover:underline disabled:opacity-50"
+                      isLoading={recheckingId === event.id}
+                      icon={recheckingId === event.id ? undefined : "⚡"}
+                      className="text-xs font-bold text-cyan-700 dark:text-cyan-400 hover:bg-cyan-50 dark:hover:bg-cyan-950/40"
                     >
-                      {recheckingId === event.id ? 'Rechecking...' : '⚡ Recheck Official Sources'}
-                    </button>
+                      {recheckingId === event.id ? 'Rechecking...' : 'Recheck Official Sources'}
+                    </Button>
                   </div>
 
                   {officialResp && (
@@ -562,36 +591,48 @@ export default function EventGovernmentResponseMonitorPage() {
                 {/* Bottom Action Footer */}
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
                   <div className="flex items-center gap-2">
-                    {event.status === 'drafted' && event.article_id ? (
-                      <Link
-                        href={`/articles/${event.article_id}/edit`}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-cyan-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-cyan-500 transition"
-                      >
-                        <span>📝</span>
-                        <span>Open Generated Draft in Editor</span>
-                      </Link>
+                    {isDrafted ? (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button
+                          href={`/articles/${event.article_id}`}
+                          variant="emerald"
+                          size="sm"
+                          icon="👁️"
+                        >
+                          View Story
+                        </Button>
+                        <Button
+                          href={`/articles/${event.article_id}/edit`}
+                          variant="primary"
+                          size="sm"
+                          icon="✏️"
+                        >
+                          Edit Draft
+                        </Button>
+                      </div>
                     ) : (
-                      <button
+                      <Button
                         type="button"
+                        variant="primary"
+                        size="sm"
+                        icon="✨"
                         onClick={() => handleApproveForDraft(event.id)}
-                        disabled={draftingId === event.id}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3.5 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-slate-800 transition disabled:opacity-50 dark:bg-slate-800 dark:hover:bg-slate-700"
+                        isLoading={draftingId === event.id}
                       >
-                        <span>✨</span>
-                        <span>
-                          {draftingId === event.id ? 'Generating Draft...' : 'Approve for Gemini Draft'}
-                        </span>
-                      </button>
+                        {draftingId === event.id ? 'Generating Draft...' : 'Approve for Gemini Draft'}
+                      </Button>
                     )}
                   </div>
 
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => handleDismissEvent(event.id)}
-                    className="text-xs font-bold text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 transition"
+                    className="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400"
                   >
                     Dismiss Event
-                  </button>
+                  </Button>
                 </div>
               </div>
             );

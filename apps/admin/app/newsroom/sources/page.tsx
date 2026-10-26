@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { DISTRICT_GROUPS } from '@/lib/taxonomy-options';
+import { Button } from '@/components/Button';
 
 interface SourceItem {
   id: string;
@@ -194,21 +195,23 @@ export default function SourceManagerPage() {
         </div>
 
         <div className="flex items-center gap-2.5">
-          <Link
+          <Button
             href="/newsroom"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-2xs dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+            variant="secondary"
+            size="md"
+            icon="📡"
           >
-            <span>📡</span>
-            <span>Back to Monitor</span>
-          </Link>
-          <button
+            Back to Monitor
+          </Button>
+          <Button
             type="button"
+            variant="primary"
+            size="md"
+            icon="+"
             onClick={() => setShowAddModal(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-cyan-600 px-4 py-2 text-xs font-bold text-white shadow-2xs hover:bg-cyan-500 transition"
           >
-            <span>+</span>
-            <span>Add Source</span>
-          </button>
+            Add Source
+          </Button>
         </div>
       </div>
 
@@ -332,24 +335,22 @@ export default function SourceManagerPage() {
 
                   {/* Actions */}
                   <td className="px-4 py-3.5 text-right space-x-2">
-                    <button
+                    <Button
                       type="button"
+                      size="sm"
+                      variant={src.is_active ? 'secondary' : 'amber'}
                       onClick={() => handleToggleSource(src)}
-                      className={`rounded px-2 py-1 text-xs font-bold transition ${
-                        src.is_active
-                          ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'
-                          : 'bg-amber-100 text-amber-900 hover:bg-amber-200'
-                      }`}
                     >
                       {src.is_active ? 'Active' : 'Disabled'}
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                       type="button"
+                      size="sm"
+                      variant="danger"
                       onClick={() => handleDeleteSource(src.id)}
-                      className="rounded px-2 py-1 text-xs font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40"
                     >
                       Delete
-                    </button>
+                    </Button>
                   </td>
                 </tr>
               ))
@@ -540,20 +541,23 @@ export default function SourceManagerPage() {
               )}
 
               <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 dark:border-slate-800">
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
+                  size="md"
                   onClick={() => setShowAddModal(false)}
-                  className="rounded-lg border border-slate-200 px-4 py-2 text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300"
                 >
                   Cancel
-                </button>
-                <button
+                </Button>
+                <Button
                   type="submit"
+                  variant="primary"
+                  size="md"
                   disabled={submitting}
-                  className="rounded-lg bg-cyan-600 px-4 py-2 font-bold text-white hover:bg-cyan-500 disabled:opacity-50"
+                  isLoading={submitting}
                 >
                   {submitting ? 'Validating URL...' : 'Register Source'}
-                </button>
+                </Button>
               </div>
             </form>
           </div>

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { Button } from '@/components/Button';
 
 interface FactCheckItem {
   id: string;
@@ -114,13 +115,14 @@ export default function DraftsFactCheckPage() {
           </p>
         </div>
 
-        <Link
+        <Button
           href="/newsroom"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-2xs dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+          variant="secondary"
+          size="md"
+          icon="📡"
         >
-          <span>📡</span>
-          <span>Back to Monitor</span>
-        </Link>
+          Back to Monitor
+        </Button>
       </div>
 
       {/* Content */}
@@ -161,13 +163,14 @@ export default function DraftsFactCheckPage() {
 
                   <div className="flex items-center gap-2">
                     {article?.id && (
-                      <Link
+                      <Button
                         href={`/articles/${article.id}/edit`}
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-cyan-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-2xs hover:bg-cyan-500 transition"
+                        variant="primary"
+                        size="sm"
+                        icon="📝"
                       >
-                        <span>📝</span>
-                        <span>Open in Article Editor</span>
-                      </Link>
+                        Open in Article Editor
+                      </Button>
                     )}
                   </div>
                 </div>
@@ -216,30 +219,24 @@ export default function DraftsFactCheckPage() {
                           </div>
 
                           <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
-                            <button
+                            <Button
                               type="button"
+                              size="sm"
+                              variant={isVer ? 'emerald' : 'secondary'}
                               onClick={() => handleToggleStatus(claimItem.id, 'verified')}
                               disabled={updatingId === claimItem.id}
-                              className={`rounded-md px-2.5 py-1 text-xs font-bold transition ${
-                                isVer
-                                  ? 'bg-emerald-600 text-white'
-                                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-emerald-50 hover:text-emerald-800 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300'
-                              }`}
                             >
                               Verify
-                            </button>
-                            <button
+                            </Button>
+                            <Button
                               type="button"
+                              size="sm"
+                              variant={isDisputed ? 'danger' : 'secondary'}
                               onClick={() => handleToggleStatus(claimItem.id, 'flagged_disputed')}
                               disabled={updatingId === claimItem.id}
-                              className={`rounded-md px-2.5 py-1 text-xs font-bold transition ${
-                                isDisputed
-                                  ? 'bg-rose-600 text-white'
-                                  : 'bg-white border border-slate-200 text-slate-700 hover:bg-rose-50 hover:text-rose-800 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300'
-                              }`}
                             >
                               Dispute
-                            </button>
+                            </Button>
                           </div>
                         </div>
                       );

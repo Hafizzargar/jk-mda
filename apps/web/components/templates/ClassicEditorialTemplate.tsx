@@ -3,7 +3,6 @@ import Image from 'next/image';
 import { NewsletterForm } from '@/components/NewsletterForm';
 import { SiteNavbar } from '@/components/navigation/SiteNavbar';
 import { SiteFooter } from '@/components/navigation/SiteFooter';
-import { Breadcrumbs } from '@/components/navigation/Breadcrumbs';
 import { PaginationControls } from '@/components/navigation/PaginationControls';
 import { LeaderboardAd } from '@/components/ads/LeaderboardAd';
 import { SidebarAd } from '@/components/ads/SidebarAd';
@@ -34,11 +33,6 @@ export function ClassicEditorialTemplate({
       <div>
         {/* Sleek, Compact Modern Broadsheet Navbar */}
         <SiteNavbar lang={lang} theme={theme} navbarSettings={navbarSettings} />
-
-        {/* Unified Breadcrumbs on All Pages */}
-        <div className="max-w-7xl mx-auto px-4 md:px-8 pt-4 pb-2">
-          <Breadcrumbs items={[{ label: 'Verified News Wire', current: true }]} lang={lang} theme={theme} />
-        </div>
 
         {/* Front Page Top Header Leaderboard Ad */}
         {leaderboardAd && (
@@ -111,6 +105,8 @@ export function ClassicEditorialTemplate({
                           src={article.featured_image_url}
                           alt={article.title}
                           fill
+                          loading="lazy"
+                          decoding="async"
                           sizes="(max-width: 768px) 100vw, 33vw"
                           className="object-cover group-hover:opacity-95 transition"
                         />

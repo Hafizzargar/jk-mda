@@ -44,7 +44,15 @@ export function normalizeArticleInsert(article: ArticleDraft) {
   };
 }
 
-export function summarizeArticleQueue(articles: Array<Pick<ArticleDraft, 'id' | 'title' | 'summary' | 'status'>>) {
+export function summarizeArticleQueue(
+  articles: Array<
+    Partial<Pick<ArticleDraft, 'id' | 'title' | 'summary' | 'status'>> & {
+      excerpt?: string | null;
+      category?: string | null;
+      updated_at?: string | null;
+    }
+  >
+) {
   const counts = {
     draft: 0,
     review: 0,
@@ -53,24 +61,27 @@ export function summarizeArticleQueue(articles: Array<Pick<ArticleDraft, 'id' | 
   };
 
   for (const article of articles) {
-    const status = article.status ?? 'draft';
+    const status = (article.status ?? 'draft') as ArticleStatus;
     if (status in counts) {
       counts[status] += 1;
     }
   }
 
   const queue = [...articles]
-    .filter((article) => article.title)
+    .filter((article): article is typeof article & { title: string } => Boolean(article.title))
     .sort((left, right) => {
       const order = { review: 0, draft: 1, published: 2, archived: 3 } as const;
-      return (order[left.status ?? 'draft'] ?? 99) - (order[right.status ?? 'draft'] ?? 99);
+      const leftStatus = (left.status ?? 'draft') as ArticleStatus;
+      const rightStatus = (right.status ?? 'draft') as ArticleStatus;
+      return (order[leftStatus] ?? 99) - (order[rightStatus] ?? 99);
     })
     .slice(0, 6)
     .map((article) => ({
       id: article.id,
       title: article.title,
       status: article.status ?? 'draft',
-      summary: article.summary || 'No summary available yet.',
+      summary: article.excerpt?.trim() || article.summary?.trim() || 'No summary available yet.',
+      category: article.category ?? undefined,
     }));
 
   const stats: DashboardStat[] = [

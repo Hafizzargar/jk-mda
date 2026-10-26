@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { Button } from '@/components/Button';
 
 interface UsageSummary {
   recentCalls: number;
@@ -76,13 +77,14 @@ export default function AiUsagePage() {
           </p>
         </div>
 
-        <Link
+        <Button
           href="/newsroom"
-          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-2xs dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+          variant="secondary"
+          size="sm"
+          icon={<span>📡</span>}
         >
-          <span>📡</span>
-          <span>Back to Monitor</span>
-        </Link>
+          Back to Monitor
+        </Button>
       </div>
 
       {/* Metrics Cards */}

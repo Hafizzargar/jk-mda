@@ -1,3 +1,5 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
+
 export interface CategoryOption {
   value: string;
   label: string;
@@ -5,6 +7,8 @@ export interface CategoryOption {
 }
 
 export const CATEGORY_OPTIONS: CategoryOption[] = [
+  { value: 'National', label: 'National — Union Affairs & Pan-India Policy', description: 'National governance, union ministry directives, Supreme Court rulings, and national security' },
+  { value: 'International', label: 'International — Global & Diaspora Relations', description: 'Global developments, diaspora connections, trade diplomacy, and cross-border relations' },
   { value: 'Local', label: 'Local — Civic Issues & Ground Reporting', description: 'Area problems, roads, water, electricity, civic grievances, and grassroots district reporting' },
   { value: 'Investigation', label: 'Investigation — In-Depth & Accountability', description: 'Investigative reporting, policy audits, and environmental/public funds investigations' },
   { value: 'Politics', label: 'Politics — Governance & Assemblies', description: 'Elections, legislative deliberations, administrative policy, and public affairs' },
@@ -13,9 +17,74 @@ export const CATEGORY_OPTIONS: CategoryOption[] = [
   { value: 'Sports', label: 'Sports — Athletics & Youth Affairs', description: 'Tournaments, mountain marathons, cricket, and youth sports' },
   { value: 'Education', label: 'Education — Universities & Schools', description: 'Colleges, research patents, literacy, and student affairs' },
   { value: 'Opinion', label: 'Opinion — Columns & Editorials', description: 'Guest essays, expert analysis, and editorial board stances' },
-  { value: 'International', label: 'International — Global & Diaspora Relations', description: 'Global developments, diaspora connections, trade diplomacy, and cross-border relations' },
   { value: 'General', label: 'General — Regional News Bulletins', description: 'General interest dispatches and public announcements' },
 ];
+
+export interface DynamicCategoryItem {
+  id?: string;
+  value: string;
+  label: string;
+  slug: string;
+  description: string;
+  is_active: boolean;
+}
+
+export function formatCategoryOptions(
+  dbCategories: Array<{ id?: string; name_en?: string; slug?: string; description?: string; is_active?: boolean }>
+): DynamicCategoryItem[] {
+  if (!dbCategories || dbCategories.length === 0) {
+    return CATEGORY_OPTIONS.map((c) => ({
+      value: c.value,
+      label: c.label,
+      slug: c.value.toLowerCase(),
+      description: c.description,
+      is_active: true,
+    }));
+  }
+
+  return dbCategories.map((c) => {
+    const name = (c.name_en || c.slug || 'General').trim();
+    const existing = CATEGORY_OPTIONS.find(
+      (o) =>
+        o.value.toLowerCase() === (c.slug || '').toLowerCase() ||
+        o.value.toLowerCase() === name.toLowerCase()
+    );
+    return {
+      id: c.id,
+      value: name,
+      label: existing ? existing.label : `${name} — News Desk`,
+      slug: (c.slug || name).toLowerCase().trim(),
+      description: c.description || (existing ? existing.description : `${name} reporting and ground coverage`),
+      is_active: c.is_active ?? true,
+    };
+  });
+}
+
+export async function fetchDynamicCategories(
+  supabase: SupabaseClient,
+  includeInactive = false
+): Promise<DynamicCategoryItem[]> {
+  try {
+    let query = supabase
+      .from('categories')
+      .select('id, slug, name_en, description, is_active, display_order')
+      .order('display_order', { ascending: true });
+
+    if (!includeInactive) {
+      query = query.eq('is_active', true);
+    }
+
+    const { data, error } = await query;
+    if (error || !data || data.length === 0) {
+      return formatCategoryOptions([]);
+    }
+
+    return formatCategoryOptions(data);
+  } catch (err) {
+    console.error('Failed to fetch dynamic categories, falling back to canonical:', err);
+    return formatCategoryOptions([]);
+  }
+}
 
 export interface DistrictItem {
   slug: string;

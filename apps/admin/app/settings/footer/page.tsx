@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { requiresMfa } from '@/lib/mfa';
 import { DEFAULT_FOOTER_CONTACT, type FooterContactSettings } from '@/lib/contact';
+import { Button } from '@/components/Button';
 
 export default function FooterSettingsPage() {
   const router = useRouter();
@@ -191,25 +192,26 @@ export default function FooterSettingsPage() {
 
           <div className="flex items-center gap-3">
             {canManage && (
-              <button
+              <Button
                 type="submit"
                 form="footer-settings-form"
                 disabled={saving}
-                className="flex items-center gap-2 rounded-xl bg-cyan-600 px-5 py-2 text-xs font-bold text-white shadow-xs hover:bg-cyan-500 disabled:opacity-50 transition"
+                isLoading={saving}
+                variant="primary"
+                size="md"
+                icon="💾"
               >
-                <span>💾</span>
-                <span>{saving ? 'Saving...' : 'Save Footer Changes'}</span>
-              </button>
+                {saving ? 'Saving...' : 'Save Footer Changes'}
+              </Button>
             )}
-            <a
+            <Button
               href="http://localhost:3000"
-              target="_blank"
-              rel="noreferrer"
-              className="px-3.5 py-2 text-xs font-semibold rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-700 transition flex items-center gap-1.5"
+              external
+              variant="secondary"
+              size="md"
             >
-              <span>Public Site</span>
-              <span aria-hidden="true">&rarr;</span>
-            </a>
+              Public Site →
+            </Button>
           </div>
         </div>
 
@@ -631,14 +633,15 @@ export default function FooterSettingsPage() {
                 Logged in as: <strong className="text-slate-300 capitalize">{userRole}</strong>
               </span>
 
-              <button
+              <Button
                 type="submit"
                 disabled={saving || !canManage}
-                className="px-6 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-sm shadow-md transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                isLoading={saving}
+                variant="primary"
+                size="md"
               >
-                {saving && <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />}
-                <span>{saving ? 'Publishing Changes...' : 'Save & Publish Footer Info'}</span>
-              </button>
+                {saving ? 'Publishing Changes...' : 'Save & Publish Footer Info'}
+              </Button>
             </div>
           </form>
 

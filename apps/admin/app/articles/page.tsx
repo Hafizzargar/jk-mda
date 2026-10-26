@@ -5,7 +5,17 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { requiresMfa } from '@/lib/mfa';
-import { CATEGORY_OPTIONS, DISTRICT_GROUPS } from '@/lib/taxonomy-options';
+import {
+  CATEGORY_OPTIONS,
+  DISTRICT_GROUPS,
+  fetchDynamicCategories,
+  formatCategoryOptions,
+  type DynamicCategoryItem,
+} from '@/lib/taxonomy-options';
+import { ConfirmModal } from '@/components/ConfirmModal';
+import { Button } from '@/components/Button';
+import { toast } from '@/components/Toast';
+import { DataTable, Column } from '@/components/DataTable';
 
 type Article = {
   id: string;
@@ -24,7 +34,7 @@ type Article = {
 
 type TopicMode = 'news' | 'civic' | 'all';
 
-const PAGE_SIZE = 20;
+const DEFAULT_PAGE_SIZE = 5;
 
 const RETRACTION_REASON_PRESETS = [
   'Reported as fake / false news',
@@ -56,12 +66,14 @@ function ArticlesPageContent() {
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   
   // Topic Architecture & Filters State (Default is 'news'!)
+  const [categories, setCategories] = useState<DynamicCategoryItem[]>(() => formatCategoryOptions([]));
   const [topicFilter, setTopicFilter] = useState<TopicMode>(initialTopic);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>(initialCategory || 'all');
   const [districtFilter, setDistrictFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
 
   // Modal States
   const [retractArticle, setRetractArticle] = useState<Article | null>(null);
@@ -69,6 +81,7 @@ function ArticlesPageContent() {
   const [retractionNotes, setRetractionNotes] = useState('');
   const [deleteArticle, setDeleteArticle] = useState<Article | null>(null);
   const [confirmDeleteInput, setConfirmDeleteInput] = useState('');
+  const [reactivateArticleTarget, setReactivateArticleTarget] = useState<Article | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const can = (permission: string) => permissions.includes(permission);
@@ -112,6 +125,16 @@ function ArticlesPageContent() {
 
       setPermissions((permResult.data as string[] | null) ?? []);
       setIsAuthorized(true);
+
+      // Load dynamic categories for filtering
+      try {
+        const dynamicCats = await fetchDynamicCategories(supabase, true);
+        if (dynamicCats && dynamicCats.length > 0) {
+          setCategories(dynamicCats);
+        }
+      } catch (catErr) {
+        console.warn('Failed to load categories for filtering:', catErr);
+      }
     }
     checkAuth();
   }, [router]);
@@ -148,8 +171,8 @@ function ArticlesPageContent() {
       query = query.eq('district', districtFilter);
     }
     
-    const from = (page - 1) * PAGE_SIZE;
-    const to = from + PAGE_SIZE - 1;
+    const from = (page - 1) * pageSize;
+    const to = from + pageSize - 1;
     
     query = query.order('updated_at', { ascending: false }).range(from, to);
     
@@ -167,14 +190,18 @@ function ArticlesPageContent() {
   useEffect(() => {
     loadArticles();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthorized, search, statusFilter, topicFilter, categoryFilter, districtFilter, page]);
+  }, [isAuthorized, search, statusFilter, topicFilter, categoryFilter, districtFilter, page, pageSize]);
 
   // Handle Quick Reactivate
-  const handleReactivate = async (article: Article) => {
-    if (!confirm(`Reactivate "${article.title}"? It will immediately be live on the public website.`)) {
-      return;
-    }
+  const handleReactivate = (article: Article) => {
+    setReactivateArticleTarget(article);
+  };
+
+  const executeReactivate = async () => {
+    if (!reactivateArticleTarget) return;
+    const article = reactivateArticleTarget;
     setIsSubmitting(true);
+    const toastId = toast.loading('Reactivating article live...');
     try {
       const { data: session } = await supabase.auth.getSession();
       const response = await fetch(`/api/articles/${article.id}/reactivate`, {
@@ -189,10 +216,15 @@ function ArticlesPageContent() {
       if (!response.ok) {
         throw new Error(result.error || 'Failed to reactivate article.');
       }
-      setFeedback({ type: 'success', message: `Article "${article.title}" reactivated and published live.` });
+      const successMsg = `Article "${article.title}" reactivated and published live! ✨`;
+      setFeedback({ type: 'success', message: successMsg });
+      toast.success(successMsg, { id: toastId, title: 'Article Reactivated' });
+      setReactivateArticleTarget(null);
       await loadArticles();
     } catch (err: unknown) {
-      setFeedback({ type: 'error', message: err instanceof Error ? err.message : String(err) });
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      setFeedback({ type: 'error', message: errorMsg });
+      toast.error(errorMsg, { id: toastId });
     } finally {
       setIsSubmitting(false);
     }
@@ -203,6 +235,7 @@ function ArticlesPageContent() {
     e.preventDefault();
     if (!retractArticle) return;
     setIsSubmitting(true);
+    const toastId = toast.loading('Deactivating and pulling article offline...');
     try {
       const combinedReason = retractionNotes.trim()
         ? `${retractionPreset}: ${retractionNotes.trim()}`
@@ -221,15 +254,19 @@ function ArticlesPageContent() {
       if (!response.ok) {
         throw new Error(result.error || 'Failed to deactivate article.');
       }
+      const successMsg = `Article "${retractArticle.title}" deactivated and pulled offline.`;
       setFeedback({
         type: 'success',
-        message: `Article "${retractArticle.title}" deactivated and pulled offline. Reason recorded: "${combinedReason}"`,
+        message: `${successMsg} Reason recorded: "${combinedReason}"`,
       });
+      toast.success(successMsg, { id: toastId, title: 'Article Deactivated' });
       setRetractArticle(null);
       setRetractionNotes('');
       await loadArticles();
     } catch (err: unknown) {
-      setFeedback({ type: 'error', message: err instanceof Error ? err.message : String(err) });
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      setFeedback({ type: 'error', message: errorMsg });
+      toast.error(errorMsg, { id: toastId });
     } finally {
       setIsSubmitting(false);
     }
@@ -240,10 +277,13 @@ function ArticlesPageContent() {
     e.preventDefault();
     if (!deleteArticle) return;
     if (confirmDeleteInput.trim() !== 'DELETE') {
-      alert('Please type DELETE in capital letters to confirm permanent deletion.');
+      const msg = 'Please type DELETE in capital letters to confirm permanent deletion.';
+      setFeedback({ type: 'error', message: msg });
+      toast.warning(msg);
       return;
     }
     setIsSubmitting(true);
+    const toastId = toast.loading('Permanently purging article from database...');
     try {
       const { data: session } = await supabase.auth.getSession();
       const response = await fetch(`/api/articles/${deleteArticle.id}`, {
@@ -258,19 +298,205 @@ function ArticlesPageContent() {
       if (!response.ok) {
         throw new Error(result.error || 'Failed to delete article.');
       }
+      const successMsg = `Article "${deleteArticle.title}" and revision history permanently deleted.`;
       setFeedback({
         type: 'success',
-        message: `Article "${deleteArticle.title}" and its revision history permanently deleted from database.`,
+        message: successMsg,
       });
+      toast.success(successMsg, { id: toastId, title: 'Article Deleted' });
       setDeleteArticle(null);
       setConfirmDeleteInput('');
       await loadArticles();
     } catch (err: unknown) {
-      setFeedback({ type: 'error', message: err instanceof Error ? err.message : String(err) });
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      setFeedback({ type: 'error', message: errorMsg });
+      toast.error(errorMsg, { id: toastId });
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const columns: Column<Article>[] = [
+    {
+      key: 'title',
+      header: 'Article',
+      render: (article) => (
+        <div>
+          <Link
+            href={`/articles/${article.id}`}
+            className="font-bold text-slate-900 hover:text-cyan-700 text-sm leading-snug dark:text-white dark:hover:text-cyan-300 transition-colors"
+          >
+            {article.title}
+          </Link>
+          <p className="mt-1 text-xs text-slate-600 font-mono font-medium truncate max-w-sm dark:text-slate-400">
+            {article.slug}
+          </p>
+          <div className="mt-2 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+            {article.category ? (
+              <span className="rounded-[6px] bg-slate-100 border border-slate-300 px-2 py-0.5 font-bold text-slate-800 text-[11px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200">
+                {article.category}
+              </span>
+            ) : null}
+            {article.district ? (
+              <span className="capitalize font-semibold text-slate-700 dark:text-slate-300">
+                📍 {article.district}
+              </span>
+            ) : null}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      width: '180px',
+      render: (article) => {
+        const tagClass =
+          article.status === 'review'
+            ? 'bg-amber-50 text-amber-950 border-amber-300 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-700'
+            : article.status === 'published'
+            ? 'bg-emerald-50 text-emerald-950 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-200 dark:border-emerald-700'
+            : article.status === 'archived'
+            ? 'bg-red-50 text-red-950 border-red-300 font-bold dark:bg-red-950/40 dark:text-red-200 dark:border-red-700'
+            : 'bg-slate-100 text-slate-900 border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700';
+
+        return (
+          <div>
+            <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-bold capitalize ${tagClass}`}>
+              <span
+                className={`h-2 w-2 rounded-full ${
+                  article.status === 'published'
+                    ? 'bg-emerald-500'
+                    : article.status === 'archived'
+                    ? 'bg-red-500'
+                    : article.status === 'review'
+                    ? 'bg-amber-500'
+                    : 'bg-slate-500'
+                }`}
+              />
+              {article.status === 'archived'
+                ? 'Inactive / Retracted'
+                : article.status === 'published'
+                ? 'Live Published'
+                : article.status === 'review'
+                ? 'In Review'
+                : 'Draft'}
+            </span>
+            {article.status === 'archived' && article.archive_reason ? (
+              <p
+                className="mt-1.5 max-w-xs text-[11px] text-red-700 dark:text-red-300 italic line-clamp-2 font-medium"
+                title={article.archive_reason}
+              >
+                Reason: {article.archive_reason}
+              </p>
+            ) : null}
+          </div>
+        );
+      },
+    },
+    {
+      key: 'author_display_name',
+      header: 'Author',
+      width: '140px',
+      render: (article) => (
+        <span className="font-bold text-slate-900 text-xs dark:text-slate-200">
+          {article.author_display_name}
+        </span>
+      ),
+    },
+    {
+      key: 'updated_at',
+      header: 'Last Updated',
+      width: '130px',
+      render: (article) => (
+        <span className="whitespace-nowrap text-slate-700 font-semibold text-xs dark:text-slate-300">
+          {new Date(article.updated_at).toLocaleDateString()}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Actions',
+      width: '260px',
+      render: (article) => {
+        const isOwnDraft =
+          article.author_id === userId && ['draft', 'review'].includes(article.status);
+        const canEdit =
+          can('article.review') ||
+          isOwnDraft ||
+          (article.status === 'draft' && can('article.create'));
+        const canDelete = can('article.delete') || can('article.archive');
+
+        return (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <Button href={`/articles/${article.id}`} variant="secondary" size="sm">
+              View
+            </Button>
+
+            {canEdit ? (
+              <Button href={`/articles/${article.id}/edit`} variant="cyan" size="sm">
+                Edit
+              </Button>
+            ) : null}
+
+            {article.status === 'published' && can('article.archive') ? (
+              <Button
+                type="button"
+                variant="amber"
+                size="sm"
+                icon="🚫"
+                onClick={() => {
+                  setRetractArticle(article);
+                  setRetractionPreset(RETRACTION_REASON_PRESETS[0]);
+                  setRetractionNotes('');
+                }}
+                title="Immediately pull this article offline from the website"
+              >
+                Inactivate
+              </Button>
+            ) : null}
+
+            {article.status === 'archived' &&
+            (can('article.publish') || can('article.review')) ? (
+              <Button
+                type="button"
+                variant="emerald"
+                size="sm"
+                icon="✨"
+                disabled={isSubmitting}
+                onClick={() => handleReactivate(article)}
+                title="Reactivate this article and publish it live on the site"
+              >
+                Reactivate
+              </Button>
+            ) : null}
+
+            {article.status === 'review' && can('article.review') ? (
+              <Button href={`/articles/${article.id}/review`} variant="amber" size="sm">
+                Review
+              </Button>
+            ) : null}
+
+            {canDelete ? (
+              <Button
+                type="button"
+                variant="danger"
+                size="sm"
+                icon="🗑️"
+                onClick={() => {
+                  setDeleteArticle(article);
+                  setConfirmDeleteInput('');
+                }}
+                title="Permanently purge article from database"
+              >
+                Delete
+              </Button>
+            ) : null}
+          </div>
+        );
+      },
+    },
+  ];
 
   if (isAuthorized === false) {
     return (
@@ -295,20 +521,24 @@ function ArticlesPageContent() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button
+            <Button
               type="button"
+              variant="secondary"
+              size="sm"
+              icon="🔄"
               onClick={() => void loadArticles()}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-slate-900 shadow-2xs dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 transition"
             >
-              🔄 Refresh
-            </button>
+              Refresh
+            </Button>
             {can('article.create') ? (
-              <Link
+              <Button
                 href="/articles/new"
-                className="rounded-lg bg-cyan-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-cyan-500 shadow-2xs transition"
+                variant="primary"
+                size="sm"
+                icon="+"
               >
-                + New Story
-              </Link>
+                New Story
+              </Button>
             ) : null}
           </div>
         </div>
@@ -316,7 +546,7 @@ function ArticlesPageContent() {
         {/* Clean Topic Navigation & Status Filters Bar */}
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           {/* Topic Segmented Control */}
-          <div className="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200 dark:bg-slate-900 dark:border-slate-800">
+          <div className="inline-flex rounded-[8px] bg-slate-100 p-1 border border-slate-200 dark:bg-slate-900 dark:border-slate-800">
             <button
               type="button"
               onClick={() => {
@@ -324,7 +554,7 @@ function ArticlesPageContent() {
                 setCategoryFilter('all');
                 setPage(1);
               }}
-              className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold transition ${
+              className={`flex items-center gap-2 rounded-[8px] px-3.5 py-1.5 text-xs font-bold transition ${
                 topicFilter === 'news'
                   ? 'bg-white text-slate-900 shadow-xs dark:bg-slate-800 dark:text-white'
                   : 'text-slate-600 hover:text-slate-900 dark:text-slate-400'
@@ -341,7 +571,7 @@ function ArticlesPageContent() {
                 setCategoryFilter('Local');
                 setPage(1);
               }}
-              className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold transition ${
+              className={`flex items-center gap-2 rounded-[8px] px-3.5 py-1.5 text-xs font-bold transition ${
                 topicFilter === 'civic'
                   ? 'bg-white text-slate-900 shadow-xs dark:bg-slate-800 dark:text-white'
                   : 'text-slate-600 hover:text-slate-900 dark:text-slate-400'
@@ -358,7 +588,7 @@ function ArticlesPageContent() {
                 setCategoryFilter('all');
                 setPage(1);
               }}
-              className={`flex items-center gap-2 rounded-lg px-3.5 py-1.5 text-xs font-bold transition ${
+              className={`flex items-center gap-2 rounded-[8px] px-3.5 py-1.5 text-xs font-bold transition ${
                 topicFilter === 'all'
                   ? 'bg-white text-slate-900 shadow-xs dark:bg-slate-800 dark:text-white'
                   : 'text-slate-600 hover:text-slate-900 dark:text-slate-400'
@@ -377,7 +607,7 @@ function ArticlesPageContent() {
                 setStatusFilter('all');
                 setPage(1);
               }}
-              className={`rounded-lg px-2.5 py-1 text-xs font-bold transition ${
+              className={`rounded-[8px] px-2.5 py-1 text-xs font-bold transition ${
                 statusFilter === 'all'
                   ? 'bg-slate-900 text-white'
                   : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
@@ -391,7 +621,7 @@ function ArticlesPageContent() {
                 setStatusFilter('published');
                 setPage(1);
               }}
-              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold transition ${
+              className={`flex items-center gap-1.5 rounded-[8px] px-2.5 py-1 text-xs font-bold transition ${
                 statusFilter === 'published'
                   ? 'bg-emerald-700 text-white'
                   : 'bg-emerald-50 text-emerald-950 border border-emerald-300 hover:bg-emerald-100'
@@ -406,7 +636,7 @@ function ArticlesPageContent() {
                 setStatusFilter('review');
                 setPage(1);
               }}
-              className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold transition ${
+              className={`flex items-center gap-1 rounded-[8px] px-2.5 py-1 text-xs font-bold transition ${
                 statusFilter === 'review'
                   ? 'bg-amber-600 text-white'
                   : 'bg-amber-50 text-amber-950 border border-amber-300 hover:bg-amber-100'
@@ -421,7 +651,7 @@ function ArticlesPageContent() {
                 setStatusFilter('archived');
                 setPage(1);
               }}
-              className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold transition ${
+              className={`flex items-center gap-1 rounded-[8px] px-2.5 py-1 text-xs font-bold transition ${
                 statusFilter === 'archived'
                   ? 'bg-red-700 text-white'
                   : 'bg-red-50 text-red-950 border border-red-300 hover:bg-red-100'
@@ -504,11 +734,13 @@ function ArticlesPageContent() {
                     <option value="all">
                       {topicFilter === 'news' ? 'All News Desks' : 'All Categories'}
                     </option>
-                    {CATEGORY_OPTIONS.filter((opt) => topicFilter !== 'news' || opt.value !== 'Local').map((opt) => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
+                    {categories
+                      .filter((opt) => topicFilter !== 'news' || opt.value !== 'Local')
+                      .map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </option>
+                      ))}
                   </>
                 )}
               </select>
@@ -535,230 +767,72 @@ function ArticlesPageContent() {
           </div>
         </section>
 
-        {/* Clean Table Area */}
-        <section className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-2xs dark:border-slate-800 dark:bg-slate-900">
-          {error ? (
-            <div className="m-4 rounded-xl border border-red-300 bg-red-50 p-3.5 text-xs font-bold text-red-900">
-              Error: {error}
+        {/* Error notification if query fails */}
+        {error ? (
+          <div className="mb-4 rounded-xl border border-red-300 bg-red-50 p-3.5 text-xs font-bold text-red-900">
+            Error: {error}
+          </div>
+        ) : null}
+
+        {/* Reusable Data Table with 5, 10, 15 pagination */}
+        <DataTable<Article>
+          columns={columns}
+          data={articles}
+          keyExtractor={(a) => a.id}
+          isLoading={isLoading}
+          emptyMessage={
+            <div>
+              <p>No articles found matching filters.</p>
+              {categoryFilter === 'Local' ? (
+                <p className="mt-2 text-xs text-amber-700 dark:text-amber-300 font-bold">
+                  No articles under &quot;Local — Civic Issues &amp; Ground Reporting&quot; found. You can create one with the New Article button above.
+                </p>
+              ) : null}
             </div>
-          ) : null}
-
-          <table className="w-full min-w-[800px] border-collapse text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 text-[11px] uppercase font-bold text-slate-600 dark:border-slate-800 dark:bg-slate-800/80 dark:text-slate-300">
-                <th className="px-4 py-3">Article</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Author</th>
-                <th className="px-4 py-3">Last Updated</th>
-                <th className="px-4 py-3">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {isLoading ? (
-                <tr><td colSpan={5} className="px-5 py-12 text-center text-slate-600 font-bold dark:text-slate-400">Loading articles...</td></tr>
-              ) : articles.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="px-5 py-12 text-center text-slate-600 font-bold dark:text-slate-400">
-                    No articles found matching filters.
-                    {categoryFilter === 'Local' ? (
-                      <p className="mt-2 text-xs text-amber-700 dark:text-amber-300 font-bold">
-                        No articles under &quot;Local — Civic Issues &amp; Ground Reporting&quot; found. You can create one with the New Article button above.
-                      </p>
-                    ) : null}
-                  </td>
-                </tr>
-              ) : (
-                articles.map((article) => {
-                  const tagClass =
-                    article.status === 'review' ? 'bg-amber-50 text-amber-950 border-amber-300 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-700'
-                    : article.status === 'published' ? 'bg-emerald-50 text-emerald-950 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-200 dark:border-emerald-700'
-                    : article.status === 'archived' ? 'bg-red-50 text-red-950 border-red-300 font-bold dark:bg-red-950/40 dark:text-red-200 dark:border-red-700'
-                    : 'bg-slate-100 text-slate-900 border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700';
-
-                  const isOwnDraft = article.author_id === userId && ['draft', 'review'].includes(article.status);
-                  const canEdit =
-                    can('article.review') ||
-                    isOwnDraft ||
-                    (article.status === 'draft' && can('article.create'));
-
-                  const canDelete = can('article.delete') || can('article.archive');
-
-                  return (
-                    <tr key={article.id} className="align-top hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors">
-                      <td className="px-5 py-5">
-                        <Link href={`/articles/${article.id}`} className="font-bold text-slate-900 hover:text-cyan-700 text-base leading-snug dark:text-white dark:hover:text-cyan-300 transition-colors">
-                          {article.title}
-                        </Link>
-                        <p className="mt-1 text-xs text-slate-600 font-mono font-medium truncate max-w-sm dark:text-slate-400">{article.slug}</p>
-                        <div className="mt-2 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-                          {article.category ? (
-                            <span className="rounded-md bg-slate-100 border border-slate-300 px-2 py-0.5 font-bold text-slate-800 text-xs dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200">
-                              {article.category}
-                            </span>
-                          ) : null}
-                          {article.district ? (
-                            <span className="capitalize font-semibold text-slate-700 dark:text-slate-300">📍 {article.district}</span>
-                          ) : null}
-                        </div>
-                      </td>
-                      <td className="px-5 py-5">
-                        <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold capitalize ${tagClass}`}>
-                          <span className={`h-2 w-2 rounded-full ${
-                            article.status === 'published' ? 'bg-emerald-500' :
-                            article.status === 'archived' ? 'bg-red-500' :
-                            article.status === 'review' ? 'bg-amber-500' : 'bg-slate-500'
-                          }`} />
-                          {article.status === 'archived' ? 'Inactive / Retracted' :
-                           article.status === 'published' ? 'Live Published' :
-                           article.status === 'review' ? 'In Review' : 'Draft'}
-                        </span>
-                        {article.status === 'archived' && article.archive_reason ? (
-                          <p className="mt-1.5 max-w-xs text-[11px] text-red-700 dark:text-red-300 italic line-clamp-2 font-medium" title={article.archive_reason}>
-                            Reason: {article.archive_reason}
-                          </p>
-                        ) : null}
-                      </td>
-                      <td className="px-5 py-5 text-slate-900 font-bold text-sm dark:text-slate-200">{article.author_display_name}</td>
-                      <td className="whitespace-nowrap px-5 py-5 text-slate-700 font-semibold text-xs dark:text-slate-300">
-                        {new Date(article.updated_at).toLocaleDateString()}
-                      </td>
-                      <td className="px-5 py-5">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Link 
-                            href={`/articles/${article.id}`} 
-                            className="rounded-lg border border-slate-300 bg-white px-3 py-1 text-xs font-bold text-slate-800 hover:border-slate-400 hover:bg-slate-100 shadow-2xs dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 transition"
-                          >
-                            View
-                          </Link>
-
-                          {/* Edit Action (Available across all states for reviewers/authors) */}
-                          {canEdit ? (
-                            <Link 
-                              href={`/articles/${article.id}/edit`} 
-                              className="rounded-lg border border-cyan-400 bg-cyan-50 px-3 py-1 text-xs font-bold text-cyan-950 hover:bg-cyan-100 shadow-2xs dark:border-cyan-600 dark:bg-cyan-950/40 dark:text-cyan-200 transition"
-                            >
-                              Edit
-                            </Link>
-                          ) : null}
-
-                          {/* Inactive / Retract Action (for Published articles) */}
-                          {article.status === 'published' && can('article.archive') ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setRetractArticle(article);
-                                setRetractionPreset(RETRACTION_REASON_PRESETS[0]);
-                                setRetractionNotes('');
-                              }}
-                              className="rounded-lg border border-amber-400 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-950 hover:bg-amber-100 shadow-2xs dark:border-amber-600 dark:bg-amber-950/40 dark:text-amber-200 transition flex items-center gap-1"
-                              title="Immediately pull this article offline from the website"
-                            >
-                              <span>🚫</span> Inactivate
-                            </button>
-                          ) : null}
-
-                          {/* Reactivate / Restore Action (for Inactive/Archived articles) */}
-                          {article.status === 'archived' && (can('article.publish') || can('article.review')) ? (
-                            <button
-                              type="button"
-                              disabled={isSubmitting}
-                              onClick={() => handleReactivate(article)}
-                              className="rounded-lg border border-emerald-400 bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-950 hover:bg-emerald-100 transition flex items-center gap-1 shadow-2xs dark:border-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-200"
-                              title="Reactivate this article and publish it live on the site"
-                            >
-                              <span>✨</span> Reactivate
-                            </button>
-                          ) : null}
-
-                          {/* Review Action (for articles in review) */}
-                          {article.status === 'review' && can('article.review') ? (
-                            <Link 
-                              href={`/articles/${article.id}/review`} 
-                              className="rounded-lg border border-amber-400 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-950 hover:bg-amber-100 transition shadow-2xs dark:border-amber-600 dark:bg-amber-950/40 dark:text-amber-200"
-                            >
-                              Review
-                            </Link>
-                          ) : null}
-
-                          {/* Permanent Delete Action */}
-                          {canDelete ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setDeleteArticle(article);
-                                setConfirmDeleteInput('');
-                              }}
-                              className="rounded-lg border border-red-300 bg-red-50 px-3 py-1 text-xs font-bold text-red-800 hover:bg-red-100 transition flex items-center gap-1 shadow-2xs dark:border-red-600 dark:bg-red-950/40 dark:text-red-300"
-                              title="Permanently purge article from database"
-                            >
-                              <span>🗑️</span> Delete
-                            </button>
-                          ) : null}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-          
-          {/* Pagination */}
-          {!isLoading && totalCount > 0 ? (
-            <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50/80 px-5 py-4 dark:border-slate-800 dark:bg-slate-950/40">
-              <p className="text-sm font-medium text-slate-700 dark:text-slate-400">
-                Showing <span className="font-bold text-slate-900 dark:text-slate-200">{(page - 1) * PAGE_SIZE + 1}</span> to <span className="font-bold text-slate-900 dark:text-slate-200">{Math.min(page * PAGE_SIZE, totalCount)}</span> of <span className="font-bold text-slate-900 dark:text-slate-200">{totalCount}</span>
-              </p>
-              <div className="flex gap-2">
-                <button 
-                  disabled={page === 1}
-                  onClick={() => setPage(p => p - 1)}
-                  className="rounded-lg border border-slate-300 bg-white px-3.5 py-1.5 text-sm font-bold text-slate-800 hover:border-slate-400 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 transition"
-                >
-                  Previous
-                </button>
-                <button 
-                  disabled={page * PAGE_SIZE >= totalCount}
-                  onClick={() => setPage(p => p + 1)}
-                  className="rounded-lg border border-slate-300 bg-white px-3.5 py-1.5 text-sm font-bold text-slate-800 hover:border-slate-400 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed shadow-2xs dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 transition"
-                >
-                  Next
-                </button>
-              </div>
-            </div>
-          ) : null}
-        </section>
+          }
+          pagination={{
+            page,
+            pageSize,
+            totalCount,
+            pageSizeOptions: [5, 10, 15, 20],
+            onPageChange: (p) => setPage(p),
+            onPageSizeChange: (s) => {
+              setPageSize(s);
+              setPage(1);
+            },
+          }}
+        />
 
         {/* Retraction / Inactivate Modal */}
         {retractArticle && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
-            <div className="w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
-              <div className="flex items-start justify-between border-b border-slate-800 pb-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs animate-in fade-in duration-150" role="dialog" aria-modal="true">
+            <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-slate-900">
+              <div className="flex items-start justify-between border-b border-slate-100 pb-4 dark:border-slate-800">
                 <div>
-                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                    <span className="text-amber-400">🚫</span> Deactivate Article
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span className="text-amber-500">🚫</span> Deactivate Article
                   </h2>
-                  <p className="mt-1 text-sm text-slate-400">
-                    Immediately pulls <strong className="text-white">{retractArticle.title}</strong> offline from the public website.
+                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                    Immediately pulls <strong className="text-slate-900 dark:text-white">{retractArticle.title}</strong> offline from the public website.
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setRetractArticle(null)}
                   disabled={isSubmitting}
-                  className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white"
+                  className="rounded-[8px] p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"
                 >
                   ✕
                 </button>
               </div>
 
               <form onSubmit={handleRetractSubmit} className="mt-5 space-y-4">
-                <label className="block text-sm text-slate-300">
+                <label className="block text-sm text-slate-700 dark:text-slate-300">
                   Select Reason for Inactivation / Retraction:
                   <select
                     value={retractionPreset}
                     onChange={(e) => setRetractionPreset(e.target.value)}
-                    className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white focus:border-amber-400 focus:outline-none"
+                    className="mt-1.5 w-full rounded-[8px] border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:border-amber-500 focus:outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white"
                   >
                     {RETRACTION_REASON_PRESETS.map((preset) => (
                       <option key={preset} value={preset}>{preset}</option>
@@ -766,7 +840,7 @@ function ArticlesPageContent() {
                   </select>
                 </label>
 
-                <label className="block text-sm text-slate-300">
+                <label className="block text-sm text-slate-700 dark:text-slate-300">
                   Additional Editorial Notes <span className="text-xs text-slate-500">(Optional explanation for audit records)</span>
                   <textarea
                     rows={3}
@@ -774,26 +848,28 @@ function ArticlesPageContent() {
                     value={retractionNotes}
                     onChange={(e) => setRetractionNotes(e.target.value)}
                     placeholder="Details about disputed claims, fake report findings, or facts being re-investigated..."
-                    className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-amber-400 focus:outline-none"
+                    className="mt-1.5 w-full rounded-[8px] border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-amber-500 focus:outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:placeholder-slate-500"
                   />
                 </label>
 
                 <div className="flex justify-end gap-3 pt-2">
-                  <button
+                  <Button
                     type="button"
+                    variant="secondary"
+                    size="md"
                     onClick={() => setRetractArticle(null)}
                     disabled={isSubmitting}
-                    className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-300 hover:bg-slate-800"
                   >
                     Cancel
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
-                    disabled={isSubmitting}
-                    className="rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-amber-400 disabled:opacity-50"
+                    variant="amber"
+                    size="md"
+                    isLoading={isSubmitting}
                   >
-                    {isSubmitting ? 'Pulling offline...' : 'Confirm & Deactivate'}
-                  </button>
+                    Confirm &amp; Deactivate
+                  </Button>
                 </div>
               </form>
             </div>
@@ -802,71 +878,86 @@ function ArticlesPageContent() {
 
         {/* Permanent Delete Modal */}
         {deleteArticle && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
-            <div className="w-full max-w-lg rounded-2xl border border-red-500/50 bg-slate-900 p-6 shadow-2xl">
-              <div className="flex items-start justify-between border-b border-slate-800 pb-4">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-xs animate-in fade-in duration-150" role="dialog" aria-modal="true">
+            <div className="w-full max-w-lg rounded-2xl border border-rose-300 bg-white p-6 shadow-2xl dark:border-rose-500/50 dark:bg-slate-900">
+              <div className="flex items-start justify-between border-b border-slate-100 pb-4 dark:border-slate-800">
                 <div>
-                  <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                    <span className="text-red-400">🗑️</span> Permanent Article Deletion
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <span className="text-rose-500">🗑️</span> Permanent Article Deletion
                   </h2>
-                  <p className="mt-1 text-sm text-slate-400">
-                    Purging <strong className="text-white">{deleteArticle.title}</strong>
+                  <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+                    Purging <strong className="text-slate-900 dark:text-white">{deleteArticle.title}</strong>
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setDeleteArticle(null)}
                   disabled={isSubmitting}
-                  className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white"
+                  className="rounded-[8px] p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white"
                 >
                   ✕
                 </button>
               </div>
 
               <form onSubmit={handleDeleteSubmit} className="mt-5 space-y-4">
-                <div className="rounded-xl border border-red-500/50 bg-red-950/40 p-4 text-xs text-red-200 space-y-2">
-                  <p className="font-bold text-red-300 uppercase tracking-wide">⚠️ IRREVERSIBLE DATABASE ACTION</p>
+                <div className="rounded-[8px] border border-rose-200 bg-rose-50 p-4 text-xs text-rose-900 space-y-2 dark:border-rose-500/50 dark:bg-red-950/40 dark:text-red-200">
+                  <p className="font-bold text-rose-800 dark:text-red-300 uppercase tracking-wide">⚠️ IRREVERSIBLE DATABASE ACTION</p>
                   <p>
                     This will permanently delete this article, all associated versions, and translations from the database. This action CANNOT be undone.
                   </p>
-                  <p className="text-slate-300">
+                  <p className="text-slate-600 dark:text-slate-300">
                     If this article was fake or inaccurate, you can also use <strong>Inactivate</strong> instead of deleting if you want to keep an audit trail of the retraction.
                   </p>
                 </div>
 
-                <label className="block text-sm text-slate-300">
-                  To confirm deletion, please type <span className="font-mono text-red-400 font-bold">DELETE</span> below:
+                <label className="block text-sm text-slate-700 dark:text-slate-300">
+                  To confirm deletion, please type <span className="font-mono text-rose-600 dark:text-rose-400 font-bold">DELETE</span> below:
                   <input
                     type="text"
                     required
                     value={confirmDeleteInput}
                     onChange={(e) => setConfirmDeleteInput(e.target.value)}
                     placeholder="DELETE"
-                    className="mt-1.5 w-full rounded-lg border border-red-500/50 bg-slate-950 px-3 py-2 text-sm text-white font-mono placeholder-slate-600 focus:border-red-400 focus:outline-none"
+                    className="mt-1.5 w-full rounded-[8px] border border-rose-300 bg-white px-3 py-2 text-sm text-slate-900 font-mono placeholder-slate-400 focus:border-rose-500 focus:outline-none dark:border-rose-500/50 dark:bg-slate-950 dark:text-white dark:placeholder-slate-600"
                   />
                 </label>
 
                 <div className="flex justify-end gap-3 pt-2">
-                  <button
+                  <Button
                     type="button"
+                    variant="secondary"
+                    size="md"
                     onClick={() => setDeleteArticle(null)}
                     disabled={isSubmitting}
-                    className="rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold text-slate-300 hover:bg-slate-800"
                   >
                     Cancel
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
+                    variant="danger"
+                    size="md"
                     disabled={isSubmitting || confirmDeleteInput.trim() !== 'DELETE'}
-                    className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-red-900/40"
+                    isLoading={isSubmitting}
                   >
-                    {isSubmitting ? 'Deleting...' : 'Permanently Delete from DB'}
-                  </button>
+                    Permanently Delete from DB
+                  </Button>
                 </div>
               </form>
             </div>
           </div>
         )}
+
+        <ConfirmModal
+          isOpen={Boolean(reactivateArticleTarget)}
+          onClose={() => setReactivateArticleTarget(null)}
+          onConfirm={executeReactivate}
+          title="Reactivate Article"
+          description={`Reactivate "${reactivateArticleTarget?.title}"? It will immediately be restored and published live on the public website.`}
+          confirmText="Reactivate Article"
+          variant="emerald"
+          icon="✨"
+          isLoading={isSubmitting}
+        />
       </div>
     </div>
   );

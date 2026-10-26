@@ -4,13 +4,14 @@ import Image from 'next/image';
 import { Metadata } from 'next';
 import { createServerAnonClient } from '@/lib/supabase-server';
 import { isValidRegion, getRegion, JK_DISTRICTS } from '@/lib/taxonomy';
-import { parsePageParam, getPaginationRange } from '@/lib/pagination';
+import { parsePageParam, parseLimitParam, getPaginationRange, calculatePaginationMeta } from '@/lib/pagination';
 import { applyTranslations } from '@/lib/i18n';
 import { SITE_URL, SITE_SHORT_NAME } from '@/lib/config';
 import { getTemplateTheme, type TemplateId } from '@/lib/templates';
 import { SiteNavbar } from '@/components/navigation/SiteNavbar';
 import { SiteFooter } from '@/components/navigation/SiteFooter';
 import { Breadcrumbs } from '@/components/navigation/Breadcrumbs';
+import { PaginationControls } from '@/components/navigation/PaginationControls';
 import { getFooterContactSettings } from '@/lib/contact';
 
 interface RegionPageProps {
@@ -72,7 +73,8 @@ export default async function RegionPage({ params, searchParams }: RegionPagePro
   const region = getRegion(regionSlug)!;
 
   const page = parsePageParam(resolvedSearchParams.page);
-  const { from, to, limit } = getPaginationRange(page, 12);
+  const limit = parseLimitParam(resolvedSearchParams.limit, 6);
+  const { from, to } = getPaginationRange(page, limit);
 
   const supabase = createServerAnonClient();
 
@@ -87,7 +89,7 @@ export default async function RegionPage({ params, searchParams }: RegionPagePro
 
   const articles = applyTranslations(articlesRaw || [], lang);
   const totalArticles = count ?? 0;
-  const totalPages = Math.ceil(totalArticles / limit);
+  const paginationMeta = calculatePaginationMeta(totalArticles, page, limit);
   // Fetch Active Template Setting to align theme & background colors
   const { data: settingRow } = await supabase
     .from('site_settings')
@@ -174,11 +176,13 @@ export default async function RegionPage({ params, searchParams }: RegionPagePro
                 className={`group flex flex-col h-full rounded-2xl border ${theme.cardBorderClass} ${theme.cardBgClass} ${theme.cardHoverClass} p-5 transition shadow-sm`}
               >
                 {article.featured_image_url ? (
-                  <div className={`relative w-full h-48 mb-4 overflow-hidden rounded-xl ${theme.subtleBgClass}`}>
+                  <div className={`relative w-full h-48 mb-4 overflow-hidden rounded-xl ${theme.subtleBgClass} bg-slate-100 dark:bg-slate-800/80`}>
                     <Image
                       src={article.featured_image_url}
                       alt={article.title}
                       fill
+                      loading="lazy"
+                      decoding="async"
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                       className="object-cover transition-transform duration-500 group-hover:scale-105"
                     />
@@ -222,24 +226,8 @@ export default async function RegionPage({ params, searchParams }: RegionPagePro
           </div>
         )}
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="mt-12 flex justify-center gap-2">
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-              <Link
-                key={p}
-                href={`${langPrefix}/region/${regionSlug}?page=${p}`}
-                className={`px-4 py-2 rounded-lg text-xs font-bold transition ${
-                  p === page
-                    ? `${theme.accentBgClass}`
-                    : `${theme.cardBgClass} ${theme.textSecondaryClass} border ${theme.borderClass} hover:opacity-80`
-                }`}
-              >
-                {p}
-              </Link>
-            ))}
-          </div>
-        )}
+        {/* Full Featured Numbered Pagination Controls */}
+        <PaginationControls meta={paginationMeta} theme={theme} showPageSizeSelector={true} />
       </div>
     </div>
 

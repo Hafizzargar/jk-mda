@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from '@/lib/supabase';
+import { Button } from '@/components/Button';
 
 export default function MFAEnrollmentPage() {
   const router = useRouter();
@@ -200,13 +201,16 @@ export default function MFAEnrollmentPage() {
                   required
                 />
               </div>
-              <button
+              <Button
                 type="submit"
                 disabled={isVerifying || verificationCode.length !== 6}
-                className="w-full rounded-full bg-cyan-500 py-3 font-semibold text-slate-950 transition hover:bg-cyan-400 disabled:opacity-50 disabled:hover:bg-cyan-500"
+                isLoading={isVerifying}
+                variant="primary"
+                size="lg"
+                className="w-full"
               >
                 {isVerifying ? 'Verifying...' : 'Complete Setup'}
-              </button>
+              </Button>
             </form>
           </div>
         )}
