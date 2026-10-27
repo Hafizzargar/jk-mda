@@ -2,6 +2,7 @@ import './globals.css';
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { AdminShell } from '@/components/AdminShell';
+import { ScrollToTop } from '@/components/ScrollToTop';
 
 export const metadata: Metadata = {
   title: 'KJIN Admin',
@@ -25,6 +26,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en" data-scroll-behavior="smooth">
       <body data-nonce={nonce ? 'present' : undefined}>
+        <ScrollToTop />
         <AdminShell>{children}</AdminShell>
       </body>
     </html>

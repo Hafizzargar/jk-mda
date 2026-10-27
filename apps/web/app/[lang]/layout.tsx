@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { SITE_URL, SITE_NAME, SITE_SHORT_NAME } from '@/lib/config';
 import { createServerAnonClient } from '@/lib/supabase-server';
 import { getTemplateTheme, type TemplateId } from '@/lib/templates';
-
+import { ScrollToTop } from '@/components/navigation/ScrollToTop';
 import { getBrandSettings } from '@/lib/brand';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -69,6 +69,7 @@ export default async function RootLayout({
       <body
         className={`min-h-screen ${theme.pageBgClass} ${theme.textPrimaryClass} ${theme.fontFamilyClass} ${theme.selectionClass} antialiased transition-colors duration-200`}
       >
+        <ScrollToTop />
         {children}
       </body>
     </html>
