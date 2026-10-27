@@ -4,11 +4,13 @@
 
 import * as Sentry from "@sentry/nextjs";
 
+const isProduction = process.env.NODE_ENV === "production";
+
 Sentry.init({
   dsn: "https://9dc74a10c8c4165e926b171fdd4321bb@o4512232572387328.ingest.us.sentry.io/4512232604041216",
 
-  // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
-  tracesSampleRate: 1,
+  enabled: isProduction,
+  tracesSampleRate: isProduction ? 0.1 : 0,
 
   // Turns off collection of data that could identify users. Adjust per category:
   // https://docs.sentry.io/platforms/javascript/configuration/options/#dataCollection
