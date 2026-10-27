@@ -1,11 +1,10 @@
 'use client';
 
-import { useEffect, Suspense } from 'react';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 
-function ScrollToTopInner() {
+export function ScrollToTop() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   useEffect(() => {
     // Disable browser default scroll restoration so refresh always starts at top
@@ -27,7 +26,7 @@ function ScrollToTopInner() {
       cancelAnimationFrame(frameId);
       clearTimeout(timeoutId);
     };
-  }, [pathname, searchParams]);
+  }, [pathname]);
 
   useEffect(() => {
     const handleBeforeUnload = () => {
@@ -42,10 +41,3 @@ function ScrollToTopInner() {
   return null;
 }
 
-export function ScrollToTop() {
-  return (
-    <Suspense fallback={null}>
-      <ScrollToTopInner />
-    </Suspense>
-  );
-}
