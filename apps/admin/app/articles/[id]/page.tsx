@@ -321,9 +321,9 @@ export default function ArticleViewPage({ params }: { params: Promise<{ id: stri
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24 lg:pb-8">
       {/* Top Breadcrumb & Status Bar */}
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4 dark:border-slate-800">
+      <div className="mb-4 sm:mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-3 sm:pb-4 dark:border-slate-800">
         <div className="flex flex-wrap items-center gap-3">
           <Button href="/articles" variant="secondary" size="sm" icon="←">
             Back to Stories

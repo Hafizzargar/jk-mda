@@ -1,7 +1,7 @@
 import { authenticateEmployeeRequest, isEmployeeAuthorization, requireRecentAuthentication } from '@/lib/employee-server';
 import { DEFAULT_ADS_SETTINGS, type CustomAdsSettings } from '@/lib/ads';
 
-const ALLOWED_ROLES = ['owner', 'superadmin', 'admin'];
+const ALLOWED_ROLES = ['owner', 'superadmin'];
 
 export async function GET(request: Request) {
   const authorization = await authenticateEmployeeRequest(request);

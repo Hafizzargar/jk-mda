@@ -1,7 +1,7 @@
 import { authenticateEmployeeRequest, isEmployeeAuthorization, requireRecentAuthentication } from '@/lib/employee-server';
 import { AVAILABLE_TEMPLATES, type TemplateId } from '@/lib/templates';
 
-const ALLOWED_ROLES = ['owner', 'superadmin', 'admin'];
+const ALLOWED_ROLES = ['owner', 'superadmin'];
 
 export async function GET(request: Request) {
   const authorization = await authenticateEmployeeRequest(request);
@@ -34,10 +34,10 @@ export async function POST(request: Request) {
   const authorization = await authenticateEmployeeRequest(request);
   if (!isEmployeeAuthorization(authorization)) return authorization;
 
-  // Strict role check: Only owner, superadmin, and admin can change presentation templates
+  // Strict role check: Only owner and superadmin can change presentation templates
   if (!ALLOWED_ROLES.includes(authorization.profile.role_key)) {
     return Response.json(
-      { error: 'Only Owner, Superadmin, and Admin can control website presentation templates.' },
+      { error: 'Only Owner and Superadmin can control website presentation templates.' },
       { status: 403 }
     );
   }

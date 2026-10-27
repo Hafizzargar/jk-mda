@@ -14,6 +14,7 @@ export interface AdminContextType {
   toggleTheme: () => void;
   brandName: string;
   brandLogo: string;
+  userRole?: string | null;
 }
 
 export const AdminContext = createContext<AdminContextType>({
@@ -21,6 +22,7 @@ export const AdminContext = createContext<AdminContextType>({
   toggleTheme: () => {},
   brandName: 'KCPJLN',
   brandLogo: '/kcpjln-symbol.webp',
+  userRole: null,
 });
 
 export const useAdmin = () => useContext(AdminContext);
@@ -216,6 +218,7 @@ export function AdminShell({ children }: AdminShellProps) {
         toggleTheme: handleToggleTheme,
         brandName,
         brandLogo,
+        userRole,
       }}
     >
       <div
@@ -259,7 +262,7 @@ export function AdminShell({ children }: AdminShellProps) {
         </div>
 
         {/* Mobile Sticky Bottom Navigation Bar */}
-        <MobileBottomBar onOpenMenu={() => setMobileOpen(true)} />
+        <MobileBottomBar onOpenMenu={() => setMobileOpen(true)} userRole={userRole} />
 
         {/* Command Palette Modal */}
         <CommandPalette

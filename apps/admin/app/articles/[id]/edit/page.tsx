@@ -252,24 +252,24 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950/50 p-4 sm:p-6 lg:p-8">
-      <div className="mx-auto max-w-4xl space-y-6">
+    <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950/50 p-3 sm:p-6 lg:p-8 pb-24 lg:pb-8">
+      <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6">
         {/* Breadcrumb Navigation & Top Action Header */}
-        <header className="rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900/90">
-          <div className="flex flex-wrap items-center justify-between gap-4">
+        <header className="rounded-xl sm:rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900/90">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
             <div className="space-y-1.5">
-              <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
                 <Link href="/articles" className="hover:text-cyan-600 dark:hover:text-cyan-400 transition">
                   Stories
                 </Link>
                 <span>/</span>
                 <span className="text-slate-400 dark:text-slate-600">Edit</span>
                 <span>/</span>
-                <span className="font-mono text-slate-700 dark:text-slate-300 truncate max-w-[180px]">
+                <span className="font-mono text-slate-700 dark:text-slate-300 truncate max-w-[140px] sm:max-w-[180px]">
                   {article.slug || id}
                 </span>
                 <span
-                  className={`ml-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wider ${
+                  className={`ml-1 sm:ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider ${
                     article.status === 'published'
                       ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300'
                       : article.status === 'archived'
@@ -281,16 +281,16 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
                 </span>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5 sm:gap-3">
                 <Link
                   href={`/articles/${id}`}
-                  className="flex h-9 w-9 items-center justify-center rounded-[8px] border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 transition shadow-2xs"
+                  className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 transition shadow-2xs"
                   title="Back to article details"
                 >
                   ←
                 </Link>
                 <div>
-                  <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+                  <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
                     Edit Story
                   </h1>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -300,8 +300,13 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
               </div>
             </div>
 
-            <div className="flex items-center gap-2.5">
-              <Button href={`/articles/${id}`} variant="secondary" size="md">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Button
+                href={`/articles/${id}`}
+                variant="secondary"
+                size="md"
+                className="flex-1 sm:flex-none justify-center"
+              >
                 Cancel
               </Button>
               <Button
@@ -312,6 +317,7 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
                 disabled={isSubmitting}
                 isLoading={isSubmitting}
                 icon={<span>💾</span>}
+                className="flex-1 sm:flex-none justify-center font-bold"
               >
                 {isSubmitting ? 'Saving...' : 'Save Changes'}
               </Button>

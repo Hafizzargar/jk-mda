@@ -1581,7 +1581,7 @@ test('template: GET unauthenticated request returns 401', async () => {
 });
 
 test('template: GET returns active template and available templates list', async () => {
-  configure({ role: 'admin' });
+  configure({ role: 'superadmin' });
   const res = await templateRoute.GET(
     new Request('http://localhost/api/settings/template', {
       method: 'GET',
@@ -1631,11 +1631,11 @@ test('template: POST author or editor returns 403 forbidden', async () => {
   );
   assert.equal(res.status, 403);
   const body = (await res.json()) as { error?: string };
-  assert.match(body.error ?? '', /Only Owner, Superadmin, and Admin/);
+  assert.match(body.error ?? '', /Only Owner and Superadmin/);
 });
 
 test('template: POST invalid template_id returns 400', async () => {
-  configure({ role: 'admin' });
+  configure({ role: 'superadmin' });
   const res = await templateRoute.POST(
     jsonRequest('http://localhost/api/settings/template', {
       token: MFA_VALID_TOKEN,
@@ -1647,8 +1647,8 @@ test('template: POST invalid template_id returns 400', async () => {
   assert.match(body.error ?? '', /Invalid template_id/);
 });
 
-test('template: POST admin successfully updates template and records audit log (200)', async () => {
-  configure({ role: 'admin' });
+test('template: POST superadmin successfully updates template and records audit log (200)', async () => {
+  configure({ role: 'superadmin' });
   const res = await templateRoute.POST(
     jsonRequest('http://localhost/api/settings/template', {
       token: MFA_VALID_TOKEN,
@@ -1708,7 +1708,7 @@ test('footer: GET unauthenticated request returns 401', async () => {
 });
 
 test('footer: GET returns footer contact settings and can_manage', async () => {
-  configure({ role: 'admin' });
+  configure({ role: 'superadmin' });
   const req = new Request('http://localhost/api/settings/footer', {
     headers: { Authorization: `Bearer ${MFA_VALID_TOKEN}` },
   });
@@ -1722,7 +1722,7 @@ test('footer: GET returns footer contact settings and can_manage', async () => {
 });
 
 test('footer: POST unauthenticated request returns 401', async () => {
-  configure({ role: 'admin' });
+  configure({ role: 'superadmin' });
   const res = await footerRoute.POST(
     jsonRequest('http://localhost/api/settings/footer', {
       body: { phone_primary: '+91 194 999 9999' },
@@ -1742,8 +1742,8 @@ test('footer: POST author returns 403 forbidden', async () => {
   assert.equal(res.status, 403);
 });
 
-test('footer: POST admin successfully updates contact info and records audit log (200)', async () => {
-  configure({ role: 'admin' });
+test('footer: POST superadmin successfully updates contact info and records audit log (200)', async () => {
+  configure({ role: 'superadmin' });
   const res = await footerRoute.POST(
     jsonRequest('http://localhost/api/settings/footer', {
       token: MFA_VALID_TOKEN,

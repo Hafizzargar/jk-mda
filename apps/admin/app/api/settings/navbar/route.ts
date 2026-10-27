@@ -1,7 +1,7 @@
 import { authenticateEmployeeRequest, isEmployeeAuthorization, requireRecentAuthentication } from '@/lib/employee-server';
 import { DEFAULT_NAVBAR_SETTINGS, sanitizeNavbarSettings, type NavbarSettings } from '@/lib/navbar';
 
-const ALLOWED_ROLES = ['owner', 'superadmin', 'admin', 'editor'];
+const ALLOWED_ROLES = ['owner', 'superadmin'];
 
 export async function GET(request: Request) {
   const authorization = await authenticateEmployeeRequest(request);

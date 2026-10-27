@@ -41,6 +41,13 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Hide Next.js floating dev indicators so they do not block the mobile bottom navigation */
+nextjs-portal,
+#__nextjs_dev_indicator_portal,
+[data-nextjs-dev-tools-button] {
+  display: none !important;
+}
+
 /* Light Theme Core Enhancements for Admin Portal and all Subpages */
 html:not([data-theme='dark']) {
   /* Slate 950 backgrounds -> Pure White Cards & Panels */

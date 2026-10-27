@@ -112,7 +112,12 @@ export default function AdsSettingsPage() {
         const role = (profile as { role_key?: string }).role_key || 'staff';
         setUserRole(role);
 
-        if (role !== 'owner' && requiresMfa(role)) {
+        if (role !== 'owner' && role !== 'superadmin') {
+          router.push('/');
+          return;
+        }
+
+        if (requiresMfa(role)) {
           const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
           if (aalData?.currentLevel !== 'aal2') {
             router.push('/mfa/challenge');
@@ -120,7 +125,7 @@ export default function AdsSettingsPage() {
           }
         }
 
-        const hasAccess = ['owner', 'superadmin', 'admin'].includes(role);
+        const hasAccess = ['owner', 'superadmin'].includes(role);
         setCanManage(hasAccess);
 
         // Fetch current custom_ads from API route

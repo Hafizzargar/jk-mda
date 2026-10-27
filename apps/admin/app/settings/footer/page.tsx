@@ -43,7 +43,12 @@ export default function FooterSettingsPage() {
         const role = profile.role_key;
         setUserRole(role);
 
-        if (role !== 'owner' && role !== 'superadmin' && requiresMfa(role)) {
+        if (role !== 'owner' && role !== 'superadmin') {
+          router.push('/');
+          return;
+        }
+
+        if (requiresMfa(role)) {
           const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
           if (aalData?.currentLevel !== 'aal2') {
             router.push('/mfa/challenge');

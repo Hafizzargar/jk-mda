@@ -167,7 +167,7 @@ export function Sidebar({
           description: 'Staff directory, RBAC roles & permissions',
           href: '/employees',
           icon: '👥',
-          roles: ['owner', 'superadmin', 'admin'],
+          roles: ['owner', 'superadmin'],
         },
         {
           name: 'My Profile & Author',
@@ -185,7 +185,7 @@ export function Sidebar({
           description: 'Name, acronym, logo emblem & legal masthead',
           href: '/settings/brand',
           icon: '🎨',
-          roles: ['owner', 'superadmin', 'admin'],
+          roles: ['owner', 'superadmin'],
           badge: 'Core',
           badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40 font-bold',
         },
@@ -194,7 +194,7 @@ export function Sidebar({
           description: 'Brand logo, navbar menus, topics & tools',
           href: '/settings/navbar',
           icon: '🧭',
-          roles: ['owner', 'superadmin', 'admin'],
+          roles: ['owner', 'superadmin'],
           badge: 'Live',
           badgeColor: 'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/40 font-bold',
         },
@@ -203,14 +203,14 @@ export function Sidebar({
           description: 'Footer columns, bureau contacts & links',
           href: '/settings/footer',
           icon: '📑',
-          roles: ['owner', 'superadmin', 'admin'],
+          roles: ['owner', 'superadmin'],
         },
         {
           name: 'Website Templates',
           description: 'Reader themes, typography & layout presets',
           href: '/templates',
           icon: '🎨',
-          roles: ['owner', 'superadmin', 'admin'],
+          roles: ['owner', 'superadmin'],
         },
       ],
     },
@@ -222,7 +222,7 @@ export function Sidebar({
           description: 'Sponsors, native ad slots & earnings',
           href: '/settings/ads',
           icon: '💰',
-          roles: ['owner', 'superadmin', 'admin'],
+          roles: ['owner', 'superadmin'],
           badge: '✨ Earn',
           badgeColor: 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-500/25 dark:text-amber-200 dark:border-amber-400/50 font-bold',
         },
@@ -367,7 +367,8 @@ export function Sidebar({
       >
         {navSections.map((section) => {
           const filteredItems = section.items.filter((item) => {
-            if (!item.roles || !userRole) return true;
+            if (!item.roles) return true;
+            if (!userRole) return false;
             return item.roles.includes(userRole);
           });
 

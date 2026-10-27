@@ -37,6 +37,7 @@ export function RichTextEditor({
         heading: {
           levels: [2, 3, 4],
         },
+        link: false,
       }),
       Link.configure({
         openOnClick: false,

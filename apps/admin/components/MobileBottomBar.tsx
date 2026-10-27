@@ -5,15 +5,19 @@ import { usePathname } from 'next/navigation';
 
 interface MobileBottomBarProps {
   onOpenMenu: () => void;
+  userRole?: string | null;
 }
 
-export function MobileBottomBar({ onOpenMenu }: MobileBottomBarProps) {
+export function MobileBottomBar({ onOpenMenu, userRole }: MobileBottomBarProps) {
   const pathname = usePathname();
+  const canManageBrand = userRole === 'owner' || userRole === 'superadmin';
 
   const isDashboard = pathname === '/';
   const isStories = pathname.startsWith('/articles') && pathname !== '/articles/new';
   const isNew = pathname === '/articles/new';
-  const isSettings = pathname.startsWith('/settings') || pathname === '/profile';
+  const isSettings = canManageBrand
+    ? pathname.startsWith('/settings') || pathname === '/profile'
+    : pathname === '/profile';
 
   return (
     <nav
@@ -60,18 +64,32 @@ export function MobileBottomBar({ onOpenMenu }: MobileBottomBarProps) {
           <span className="text-xl font-bold leading-none">+</span>
         </Link>
 
-        {/* Settings / Brand */}
-        <Link
-          href="/settings/brand"
-          className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all ${
-            isSettings
-              ? 'text-cyan-700 dark:text-cyan-400 font-bold scale-105'
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-          }`}
-        >
-          <span className="text-lg leading-none mb-0.5">🎨</span>
-          <span className="text-[10px] tracking-tight">Brand</span>
-        </Link>
+        {/* Settings / Brand (Owner & Superadmin only) or Profile */}
+        {canManageBrand ? (
+          <Link
+            href="/settings/brand"
+            className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all ${
+              isSettings
+                ? 'text-cyan-700 dark:text-cyan-400 font-bold scale-105'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+            }`}
+          >
+            <span className="text-lg leading-none mb-0.5">🎨</span>
+            <span className="text-[10px] tracking-tight">Brand</span>
+          </Link>
+        ) : (
+          <Link
+            href="/profile"
+            className={`flex flex-col items-center justify-center py-1 px-2.5 rounded-xl transition-all ${
+              isSettings
+                ? 'text-cyan-700 dark:text-cyan-400 font-bold scale-105'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+            }`}
+          >
+            <span className="text-lg leading-none mb-0.5">👤</span>
+            <span className="text-[10px] tracking-tight">Profile</span>
+          </Link>
+        )}
 
         {/* Menu / Drawer Trigger */}
         <button

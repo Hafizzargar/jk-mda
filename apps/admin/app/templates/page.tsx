@@ -9,7 +9,7 @@ import { requiresMfa } from '@/lib/mfa';
 import { TemplateMockupPreview } from './TemplateMockupPreview';
 import { Button } from '@/components/Button';
 
-const ALLOWED_ROLES = ['owner', 'superadmin', 'admin'];
+const ALLOWED_ROLES = ['owner', 'superadmin'];
 
 const TEMPLATE_META: Record<
   TemplateId,
@@ -236,6 +236,11 @@ export default function TemplatesManagementPage() {
 
       const userRole = roleData as string;
       setRole(userRole);
+
+      if (userRole !== 'owner' && userRole !== 'superadmin') {
+        router.push('/');
+        return;
+      }
 
       // Check MFA if required
       if (requiresMfa(userRole)) {

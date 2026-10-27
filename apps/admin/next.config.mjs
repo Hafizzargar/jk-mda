@@ -8,6 +8,7 @@ const configuredSupabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  devIndicators: false,
   async headers() {
     return [
       {

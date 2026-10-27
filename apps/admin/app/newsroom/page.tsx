@@ -243,27 +243,28 @@ export default function EventGovernmentResponseMonitorPage() {
   });
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 py-4 sm:py-8 pb-24 lg:pb-8">
       {/* Page Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-5 dark:border-slate-800">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-4 sm:pb-5 dark:border-slate-800">
         <div>
           <div className="flex items-center gap-2">
-            <span className="text-2xl">📡</span>
-            <h1 className="text-2xl font-black text-slate-900 dark:text-white">
+            <span className="text-xl sm:text-2xl">📡</span>
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
               Event &amp; Government Response Monitor
             </h1>
           </div>
-          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+          <p className="mt-1 text-xs sm:text-sm text-slate-600 dark:text-slate-400">
             Detects J&amp;K district events and links them with verified official government orders, advisories, and disaster alerts.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 w-full sm:w-auto">
           <Button
             href="/newsroom/sources"
             variant="secondary"
             size="md"
             icon="🔗"
+            className="flex-1 sm:flex-none justify-center"
           >
             Source Registry
           </Button>
@@ -274,8 +275,9 @@ export default function EventGovernmentResponseMonitorPage() {
             icon={refreshing ? '🔄' : '⚡'}
             isLoading={refreshing}
             onClick={handleRefreshSources}
+            className="flex-1 sm:flex-none justify-center"
           >
-            {refreshing ? 'Scanning Portals...' : 'Refresh Sources'}
+            {refreshing ? 'Scanning...' : 'Refresh Sources'}
           </Button>
         </div>
       </div>
@@ -427,9 +429,9 @@ export default function EventGovernmentResponseMonitorPage() {
             return (
               <div
                 key={event.id}
-                className={`rounded-2xl border p-5 shadow-sm transition ${
+                className={`rounded-xl sm:rounded-2xl border p-3.5 sm:p-5 shadow-2xs transition ${
                   isDrafted
-                    ? 'border-l-6 border-l-emerald-500 border-emerald-300/80 bg-gradient-to-br from-emerald-50/60 via-white to-teal-50/30 hover:border-emerald-400 dark:border-l-emerald-400 dark:border-emerald-800/80 dark:bg-gradient-to-br dark:from-emerald-950/35 dark:via-slate-900 dark:to-teal-950/25 shadow-emerald-500/5'
+                    ? 'border-l-4 sm:border-l-6 border-l-emerald-500 border-emerald-300/80 bg-gradient-to-br from-emerald-50/60 via-white to-teal-50/30 hover:border-emerald-400 dark:border-l-emerald-400 dark:border-emerald-800/80 dark:bg-gradient-to-br dark:from-emerald-950/35 dark:via-slate-900 dark:to-teal-950/25 shadow-emerald-500/5'
                     : 'border-slate-200 bg-white hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900'
                 }`}
               >
@@ -589,15 +591,16 @@ export default function EventGovernmentResponseMonitorPage() {
                 </div>
 
                 {/* Bottom Action Footer */}
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center gap-2">
+                <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
                     {isDrafted ? (
-                      <div className="flex flex-wrap items-center gap-2">
+                      <div className="flex items-center gap-2 w-full sm:w-auto">
                         <Button
                           href={`/articles/${event.article_id}`}
                           variant="emerald"
                           size="sm"
                           icon="👁️"
+                          className="flex-1 sm:flex-none justify-center"
                         >
                           View Story
                         </Button>
@@ -606,6 +609,7 @@ export default function EventGovernmentResponseMonitorPage() {
                           variant="primary"
                           size="sm"
                           icon="✏️"
+                          className="flex-1 sm:flex-none justify-center"
                         >
                           Edit Draft
                         </Button>
@@ -618,6 +622,7 @@ export default function EventGovernmentResponseMonitorPage() {
                         icon="✨"
                         onClick={() => handleApproveForDraft(event.id)}
                         isLoading={draftingId === event.id}
+                        className="w-full sm:w-auto justify-center font-bold"
                       >
                         {draftingId === event.id ? 'Generating Draft...' : 'Approve for Gemini Draft'}
                       </Button>
@@ -629,7 +634,7 @@ export default function EventGovernmentResponseMonitorPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => handleDismissEvent(event.id)}
-                    className="text-slate-400 hover:text-rose-600 dark:hover:text-rose-400"
+                    className="w-full sm:w-auto justify-center text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 text-xs"
                   >
                     Dismiss Event
                   </Button>

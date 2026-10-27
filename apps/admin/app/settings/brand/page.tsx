@@ -64,7 +64,12 @@ export default function BrandSettingsPage() {
         }
 
         const role = profile.role_key;
-        if (role !== 'owner' && role !== 'superadmin' && requiresMfa(role)) {
+        if (role !== 'owner' && role !== 'superadmin') {
+          router.push('/');
+          return;
+        }
+
+        if (requiresMfa(role)) {
           const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
           if (aalData?.currentLevel !== 'aal2') {
             router.push('/mfa/challenge');
@@ -90,7 +95,7 @@ export default function BrandSettingsPage() {
           }
           setCanManage(Boolean(json.can_manage));
         } else {
-          const allowed = ['owner', 'superadmin', 'admin', 'editor'].includes(role);
+          const allowed = ['owner', 'superadmin'].includes(role);
           setCanManage(allowed);
         }
       } catch (err: unknown) {
@@ -207,9 +212,9 @@ export default function BrandSettingsPage() {
   }
 
   return (
-    <div className="p-4 md:p-8 max-w-5xl mx-auto space-y-6">
+    <div className="p-3 sm:p-6 md:p-8 max-w-5xl mx-auto space-y-4 sm:space-y-6 pb-24 lg:pb-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 pb-4 border-b border-slate-200 dark:border-slate-800">
         <div>
           <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-cyan-600 dark:text-cyan-400 font-bold mb-1">
             <Link href="/" className="hover:underline">Dashboard</Link>
@@ -218,7 +223,7 @@ export default function BrandSettingsPage() {
             <span>/</span>
             <span>Brand Identity</span>
           </div>
-          <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
             <span>🎨</span> One-Place Brand &amp; Identity Control
           </h1>
           <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 mt-1 max-w-3xl">
@@ -226,7 +231,7 @@ export default function BrandSettingsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
           <Button
             type="button"
             variant="primary"
@@ -235,6 +240,7 @@ export default function BrandSettingsPage() {
             onClick={handleSubmit}
             disabled={!canManage || saving}
             isLoading={saving}
+            className="w-full sm:w-auto justify-center font-bold"
           >
             {saving ? 'Publishing...' : 'Save & Broadcast Everywhere'}
           </Button>

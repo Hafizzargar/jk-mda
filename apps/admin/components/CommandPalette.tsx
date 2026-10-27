@@ -13,6 +13,7 @@ export interface CommandItem {
   icon: string;
   badge?: string;
   external?: boolean;
+  roles?: string[];
 }
 
 const COMMANDS: CommandItem[] = [
@@ -74,6 +75,7 @@ const COMMANDS: CommandItem[] = [
     description: 'Manage reporters, editors, permissions and access',
     href: '/employees',
     icon: '👥',
+    roles: ['owner', 'superadmin'],
   },
   {
     id: 'my-profile',
@@ -91,6 +93,7 @@ const COMMANDS: CommandItem[] = [
     description: 'Preview and switch public editorial themes',
     href: '/templates',
     icon: '🎨',
+    roles: ['owner', 'superadmin'],
   },
   {
     id: 'footer-settings',
@@ -99,6 +102,7 @@ const COMMANDS: CommandItem[] = [
     description: 'Manage bureau phone numbers, addresses, and grievance cell',
     href: '/settings/footer',
     icon: '📑',
+    roles: ['owner', 'superadmin'],
   },
   {
     id: 'public-site',
@@ -119,7 +123,7 @@ interface CommandPaletteProps {
 
 export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
   const router = useRouter();
-  const { brandName } = useAdmin();
+  const { brandName, userRole } = useAdmin();
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -150,15 +154,21 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
   }, [isOpen]);
 
   const filteredCommands = useMemo(() => {
-    if (!query.trim()) return COMMANDS;
+    const roleFiltered = COMMANDS.filter((cmd) => {
+      if (!cmd.roles) return true;
+      if (!userRole) return false;
+      return cmd.roles.includes(userRole);
+    });
+
+    if (!query.trim()) return roleFiltered;
     const q = query.toLowerCase();
-    return COMMANDS.filter(
+    return roleFiltered.filter(
       (cmd) =>
         cmd.title.toLowerCase().includes(q) ||
         cmd.description.toLowerCase().includes(q) ||
         cmd.category.toLowerCase().includes(q)
     );
-  }, [query]);
+  }, [query, userRole]);
 
   const handleSelect = (cmd: CommandItem) => {
     onClose();

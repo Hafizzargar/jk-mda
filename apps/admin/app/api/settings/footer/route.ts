@@ -1,7 +1,7 @@
 import { authenticateEmployeeRequest, isEmployeeAuthorization, requireRecentAuthentication } from '@/lib/employee-server';
 import { DEFAULT_FOOTER_CONTACT, sanitizeContactSettings, type FooterContactSettings } from '@/lib/contact';
 
-const ALLOWED_ROLES = ['owner', 'superadmin', 'admin', 'editor'];
+const ALLOWED_ROLES = ['owner', 'superadmin'];
 
 export async function GET(request: Request) {
   const authorization = await authenticateEmployeeRequest(request);

@@ -214,6 +214,13 @@ export default function EmployeesPage() {
     const sessionUserRole = roleData as AuthRole;
     setRole(sessionUserRole);
 
+    if (sessionUserRole !== 'owner' && sessionUserRole !== 'superadmin') {
+      setStatus('Access denied: Only Owner and Superadmin roles have access to the Employee Directory.');
+      setIsLoading(false);
+      window.location.href = '/';
+      return;
+    }
+
     // 2. Enforce MFA check before querying protected RPCs
     const mfaRequired = requiresMfa(sessionUserRole);
     if (mfaRequired) {
@@ -623,11 +630,11 @@ export default function EmployeesPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 space-y-4">
+    <div className="p-3 sm:p-6 space-y-4 pb-24 lg:pb-8">
       <div className="mx-auto max-w-7xl">
         <header className="mb-4 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
           <div className="flex items-center gap-2.5">
-            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Employees & Staff</h1>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Employees &amp; Staff</h1>
             <span className="rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-xs font-mono font-medium text-slate-600 dark:text-slate-400">
               {employees.length} members
             </span>
@@ -698,14 +705,18 @@ export default function EmployeesPage() {
           </div>
         ) : null}
 
-        <nav aria-label="Employee sections" className="mb-6 flex gap-2 overflow-x-auto border-b border-slate-800">
+        <nav aria-label="Employee sections" className="mb-4 sm:mb-6 flex gap-1.5 overflow-x-auto no-scrollbar pb-1 border-b border-slate-200 dark:border-slate-800">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               type="button"
               onClick={() => setActiveTab(tab.id)}
               aria-current={activeTab === tab.id ? 'page' : undefined}
-              className={`shrink-0 border-b-2 px-3 py-3 text-sm font-medium ${activeTab === tab.id ? 'border-cyan-400 text-white' : 'border-transparent text-slate-400 hover:text-white'}`}
+              className={`shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs sm:text-sm font-semibold transition ${
+                activeTab === tab.id
+                  ? 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/40'
+                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white border border-transparent'
+              }`}
             >
               {tab.label}{tabCount(tab.id) !== null ? ` (${tabCount(tab.id)})` : ''}
             </button>
@@ -823,7 +834,273 @@ export default function EmployeesPage() {
 
         {!isLoading && ['all', 'active', 'disabled'].includes(activeTab) ? (
           <section>
-            <div className="overflow-x-auto">
+            {/* Mobile Card List (block md:hidden) */}
+            <div className="block md:hidden space-y-3">
+              {visibleEmployees.map((employee) => {
+                const pendingReq = deletionRequests.find((req) => req.target_profile_id === employee.id);
+                return (
+                  <div
+                    key={employee.id}
+                    className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-2xs space-y-3"
+                  >
+                    {/* Header: Name + Role */}
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cyan-100 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-300 font-bold text-xs">
+                          {(employee.display_name || employee.email || 'U').charAt(0).toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-bold text-sm text-slate-900 dark:text-white truncate">
+                            {employee.display_name || 'Unnamed employee'}
+                          </p>
+                          <p className="text-xs text-slate-500 truncate">
+                            {employee.email ?? 'Contact details restricted'}
+                          </p>
+                          {employee.phone ? <p className="text-xs text-slate-400 truncate">{employee.phone}</p> : null}
+                        </div>
+                      </div>
+
+                      <span className="shrink-0 rounded-md border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300 capitalize">
+                        {employee.role_key}
+                      </span>
+                    </div>
+
+                    {/* Status & Quick Toggle */}
+                    <div className="flex items-center justify-between border-t border-b border-slate-100 dark:border-slate-800/80 py-2.5 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${
+                            employee.status === 'active'
+                              ? 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                              : employee.status === 'disabled'
+                              ? 'border border-red-500/30 bg-red-500/10 text-red-700 dark:text-red-300'
+                              : 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300'
+                          }`}
+                        >
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              employee.status === 'active'
+                                ? 'bg-emerald-500'
+                                : employee.status === 'disabled'
+                                ? 'bg-red-500'
+                                : 'bg-cyan-500'
+                            }`}
+                          />
+                          {employee.status === 'active'
+                            ? 'Active'
+                            : employee.status === 'disabled'
+                            ? 'Disabled'
+                            : 'Invited'}
+                        </span>
+
+                        <span className="text-[11px] text-slate-500">
+                          {employee.status === 'active'
+                            ? 'Can log in'
+                            : employee.status === 'disabled'
+                            ? 'Login blocked'
+                            : 'Pending'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {employee.can_manage &&
+                        (employee.status === 'active' || employee.status === 'disabled') &&
+                        ((employee.status === 'active' && can('employee.disable')) ||
+                          (employee.status === 'disabled' && can('employee.enable'))) ? (
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={employee.status === 'active'}
+                            disabled={isSubmitting}
+                            onClick={() =>
+                              openModal({
+                                type: 'change-status',
+                                employee,
+                                nextStatus: employee.status === 'active' ? 'disabled' : 'active',
+                              })
+                            }
+                            aria-label={
+                              employee.status === 'active'
+                                ? `Disable ${employee.display_name || employee.email}`
+                                : `Enable ${employee.display_name || employee.email}`
+                            }
+                            className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-cyan-400 disabled:opacity-50 ${
+                              employee.status === 'active' ? 'bg-emerald-500' : 'bg-slate-400 dark:bg-slate-700'
+                            }`}
+                          >
+                            <span
+                              className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                                employee.status === 'active' ? 'translate-x-4' : 'translate-x-0'
+                              }`}
+                            />
+                          </button>
+                        ) : null}
+
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          {new Date(employee.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Action Toolbar */}
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                      {employee.can_manage &&
+                      (employee.status === 'active' || employee.status === 'disabled') && (
+                        employee.status === 'active' && can('employee.disable') ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="amber"
+                            disabled={isSubmitting}
+                            onClick={() =>
+                              openModal({
+                                type: 'change-status',
+                                employee,
+                                nextStatus: 'disabled',
+                              })
+                            }
+                            className="text-xs"
+                          >
+                            Disable login
+                          </Button>
+                        ) : employee.status === 'disabled' && can('employee.enable') ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="emerald"
+                            disabled={isSubmitting}
+                            onClick={() =>
+                              openModal({
+                                type: 'change-status',
+                                employee,
+                                nextStatus: 'active',
+                              })
+                            }
+                            className="text-xs"
+                          >
+                            Enable login
+                          </Button>
+                        ) : null
+                      )}
+
+                      {employee.can_manage && can('employee.basic.update') ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="secondary"
+                          disabled={isSubmitting}
+                          onClick={() => openModal({ type: 'update-name', employee, name: employee.display_name })}
+                          className="text-xs"
+                        >
+                          Edit name
+                        </Button>
+                      ) : null}
+
+                      {employee.can_manage && can('employee.role.change') ? (
+                        <select
+                          aria-label={`Change role for ${employee.display_name}`}
+                          value={employee.role_key}
+                          disabled={isSubmitting}
+                          onChange={(event) => {
+                            const nextRole = event.target.value as AuthRole;
+                            if (nextRole !== employee.role_key) {
+                              openModal({
+                                type: 'change-role',
+                                employee,
+                                nextRole,
+                              });
+                            }
+                          }}
+                          className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-xs capitalize cursor-pointer"
+                        >
+                          {[...new Set([employee.role_key, ...assignableRoles])].map((item) => (
+                            <option key={item} value={item}>{item}</option>
+                          ))}
+                        </select>
+                      ) : null}
+
+                      {pendingReq ? (
+                        <div className="flex items-center gap-1.5">
+                          {can('employee.deletion.resolve') ? (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="danger"
+                              disabled={isSubmitting}
+                              onClick={() => openModal({ type: 'permanent-delete', employee })}
+                              className="text-xs"
+                            >
+                              Purge DB
+                            </Button>
+                          ) : (
+                            <span className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-xs font-semibold text-amber-600 dark:text-amber-300">
+                              Pending deletion
+                            </span>
+                          )}
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="secondary"
+                            disabled={isSubmitting}
+                            onClick={() => openModal({ type: 'resolve-deletion', request: pendingReq, decision: 'rejected' })}
+                            className="text-xs"
+                          >
+                            Cancel request
+                          </Button>
+                        </div>
+                      ) : (
+                        employee.can_manage &&
+                        (can('employee.deletion.resolve') || can('employee.permanent_delete') || role === 'owner') ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="danger"
+                            icon="🗑️"
+                            disabled={isSubmitting}
+                            onClick={() => openModal({ type: 'permanent-delete', employee })}
+                            className="text-xs"
+                          >
+                            Delete
+                          </Button>
+                        ) : employee.can_manage && can('employee.deletion.request') && employee.status !== 'disabled' ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="danger"
+                            disabled={isSubmitting}
+                            onClick={() => openModal({ type: 'request-deletion', employee })}
+                            className="text-xs"
+                          >
+                            Request deletion
+                          </Button>
+                        ) : null
+                      )}
+
+                      {(role === 'owner' || (employee.can_manage && can('employee.invite'))) && employee.status === 'invited' ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="cyan"
+                          disabled={isSubmitting}
+                          onClick={() => openModal({ type: 'resend-invite', employee })}
+                          className="text-xs"
+                        >
+                          Resend invite
+                        </Button>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              })}
+              {visibleEmployees.length === 0 ? (
+                <div className="p-8 text-center text-xs text-slate-500 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                  No employees in this view.
+                </div>
+              ) : null}
+            </div>
+
+            {/* Desktop Table (hidden md:block) */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full min-w-[760px] border-collapse text-left text-sm">
                 <thead>
                   <tr className="border-b border-slate-700 text-xs uppercase text-slate-400">

@@ -56,8 +56,12 @@ export default function NavbarSettingsPage() {
         }
 
         const role = profile.role_key;
+        if (role !== 'owner' && role !== 'superadmin') {
+          router.push('/');
+          return;
+        }
 
-        if (role !== 'owner' && role !== 'superadmin' && requiresMfa(role)) {
+        if (requiresMfa(role)) {
           const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
           if (aalData?.currentLevel !== 'aal2') {
             router.push('/mfa/challenge');
@@ -81,7 +85,7 @@ export default function NavbarSettingsPage() {
           }
           setCanManage(Boolean(json.can_manage));
         } else {
-          const allowed = ['owner', 'superadmin', 'admin', 'editor'].includes(role);
+          const allowed = ['owner', 'superadmin'].includes(role);
           setCanManage(allowed);
         }
       } catch (err: unknown) {
