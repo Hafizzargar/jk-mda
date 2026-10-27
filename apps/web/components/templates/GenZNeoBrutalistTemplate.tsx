@@ -8,7 +8,10 @@ export function GenZNeoBrutalistTemplate({
   heroArticle,
   recentArticles,
   trendingArticles,
+  navbarSettings,
 }: TemplateProps) {
+  const brandName = navbarSettings?.brand?.name || 'KCPJLN';
+  const brandFullName = navbarSettings?.brand?.full_name || 'Kashmir Chenab Panjal Jammu Ladakh Network';
   const categories = [
     { name: 'Politics', color: 'bg-yellow-300', emoji: '🏛️' },
     { name: 'Local', color: 'bg-lime-300', emoji: '📍' },
@@ -22,7 +25,7 @@ export function GenZNeoBrutalistTemplate({
       {/* Neo-Brutalist Animated / Running Marquee Bar */}
       <div className="bg-black text-lime-400 py-2.5 px-4 font-mono font-bold text-xs uppercase tracking-wider overflow-hidden border-b-2 border-black flex justify-between items-center">
         <div className="flex items-center gap-6 animate-pulse">
-          <span>⚡ KJIN WIRE: ZERO CLICKBAIT • 100% VERIFIED REGIONAL DISPATCHES</span>
+          <span>⚡ {brandName} WIRE: ZERO CLICKBAIT • 100% VERIFIED REGIONAL DISPATCHES</span>
           <span className="hidden md:inline">• REAL STORIES FROM 20 DISTRICTS OF J&K</span>
           <span className="hidden lg:inline">• NEXT-GEN INVESTIGATIVE DESK</span>
         </div>
@@ -39,11 +42,11 @@ export function GenZNeoBrutalistTemplate({
               href={`${langPrefix}/`}
               className="text-4xl md:text-5xl font-black tracking-tight uppercase bg-yellow-300 px-3 py-1 border-3 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition inline-block -rotate-1"
             >
-              KJIN ⚡
+              {brandName} ⚡
             </Link>
             <div className="text-xs font-mono font-bold leading-tight uppercase ml-2 text-neutral-700">
               <span className="bg-lime-300 px-1 border border-black inline-block font-black">GEN-Z EDITION</span>
-              <div className="text-neutral-500 mt-0.5">Kashmir Jammu Info Network</div>
+              <div className="text-neutral-500 mt-0.5">{brandFullName}</div>
             </div>
           </div>
 
@@ -118,7 +121,7 @@ export function GenZNeoBrutalistTemplate({
 
                   <div className="flex items-center justify-between pt-4 border-t-2 border-black">
                     <div className="text-xs font-mono font-bold uppercase text-neutral-600">
-                      By {heroArticle.author_display_name || 'KJIN Desk'}
+                      By {heroArticle.author_display_name || `${brandName} Desk`}
                     </div>
                     <Link
                       href={`${langPrefix}/${heroArticle.category.toLowerCase()}/${heroArticle.slug}`}
@@ -174,7 +177,7 @@ export function GenZNeoBrutalistTemplate({
             <div className="bg-pink-300 border-3 border-black p-5 shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] rounded-2xl">
               <div className="font-black text-sm uppercase mb-1 flex items-center gap-1.5">
                 <span>📱</span>
-                <span>KJIN DAILY RECAP</span>
+                <span>{brandName} DAILY RECAP</span>
               </div>
               <p className="text-xs font-medium text-neutral-800 mb-3">
                 Get high-impact verified news straight to your screen without filler or bias.

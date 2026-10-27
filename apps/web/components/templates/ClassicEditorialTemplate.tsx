@@ -21,6 +21,7 @@ export function ClassicEditorialTemplate({
   navbarSettings,
 }: TemplateProps) {
   const lang = langPrefix ? langPrefix.replace('/', '') : 'en';
+  const brandName = navbarSettings?.brand?.name || 'KCPJLN';
   const leaderboardAd = adsSettings?.monetization_enabled
     ? adsSettings.placements.find((p) => p.id === 'leaderboard_top' && p.enabled)
     : null;
@@ -128,7 +129,7 @@ export function ClassicEditorialTemplate({
                       {article.excerpt}
                     </p>
                     <div className="text-xs font-sans text-slate-400">
-                      By {article.author_display_name || 'KJIN Bureau'}
+                      By {article.author_display_name || `${brandName} Bureau`}
                     </div>
                   </Link>
                 </article>
@@ -180,7 +181,7 @@ export function ClassicEditorialTemplate({
 
           {/* Morning Intelligence Brief */}
           <section className="bg-[#f2efe9] border border-slate-300 p-6 rounded-none font-sans">
-            <div className="text-xs font-bold uppercase tracking-widest text-slate-700 mb-1">KJIN Broadsheet Edition</div>
+            <div className="text-xs font-bold uppercase tracking-widest text-slate-700 mb-1">{brandName} Broadsheet Edition</div>
             <h3 className="text-xl font-bold font-serif text-slate-900 mb-2">Morning Intelligence Brief</h3>
             <p className="text-xs text-slate-600 mb-4 leading-relaxed font-serif">
               Delivered daily to public servants, civil engineers, and citizens across Jammu and Kashmir.

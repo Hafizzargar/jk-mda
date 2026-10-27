@@ -8,6 +8,7 @@ import { parsePageParam, parseLimitParam, getPaginationRange, calculatePaginatio
 import { applyTranslations } from '@/lib/i18n';
 import { SITE_URL, SITE_SHORT_NAME } from '@/lib/config';
 import { getTemplateTheme, type TemplateId } from '@/lib/templates';
+import { getBrandSettings } from '@/lib/brand';
 import { SiteNavbar } from '@/components/navigation/SiteNavbar';
 import { SiteFooter } from '@/components/navigation/SiteFooter';
 import { Breadcrumbs } from '@/components/navigation/Breadcrumbs';
@@ -26,10 +27,12 @@ export async function generateMetadata({ params, searchParams }: DistrictPagePro
   const { lang, name } = await params;
   const resolvedSearchParams = await searchParams;
   const districtSlug = name.toLowerCase().trim();
+  const supabase = createServerAnonClient();
+  const brandSettings = await getBrandSettings(supabase);
 
   if (!isValidDistrict(districtSlug)) {
     return {
-      title: 'District Not Found | KJIN',
+      title: `District Not Found | ${brandSettings.name}`,
       robots: { index: false, follow: false },
     };
   }
@@ -43,7 +46,7 @@ export async function generateMetadata({ params, searchParams }: DistrictPagePro
 
   return {
     metadataBase: new URL(SITE_URL),
-    title: `${districtName} District News${pageSuffix} | ${SITE_SHORT_NAME}`,
+    title: `${districtName} District News${pageSuffix} | ${brandSettings.name}`,
     description: `Latest ground reporting, public affairs, and verified news from ${districtName} district (${districtInfo?.region || 'J&K'}).`,
     alternates: {
       canonical: canonicalUrl,
@@ -53,7 +56,7 @@ export async function generateMetadata({ params, searchParams }: DistrictPagePro
       follow: true,
     },
     openGraph: {
-      title: `${districtName} District News | ${SITE_SHORT_NAME}`,
+      title: `${districtName} District News | ${brandSettings.name}`,
       description: `Reporting from ${districtName} district, ${districtInfo?.region || 'Jammu & Kashmir'}.`,
       url: canonicalUrl,
       type: 'website',
@@ -104,6 +107,7 @@ export default async function DistrictPage({ params, searchParams }: DistrictPag
 
   const dbTemplateId = (settingRow?.value as { template_id?: string } | null)?.template_id as TemplateId | undefined;
   const theme = getTemplateTheme(dbTemplateId);
+  const brandSettings = await getBrandSettings(supabase);
   const contactSettings = await getFooterContactSettings(supabase);
 
   const breadcrumbs = [
@@ -178,7 +182,7 @@ export default async function DistrictPage({ params, searchParams }: DistrictPag
                     </p>
                   )}
                   <div className={`mt-auto text-xs font-medium ${theme.textMutedClass} pt-2 border-t ${theme.borderMutedClass}`}>
-                    By {article.author_display_name || 'KJIN Desk'}
+                    By {article.author_display_name || `${brandSettings.name} Desk`}
                   </div>
                 </Link>
               ))}
@@ -195,7 +199,7 @@ export default async function DistrictPage({ params, searchParams }: DistrictPag
       </div>
     </div>
 
-    <SiteFooter lang={lang} theme={theme} contactSettings={contactSettings} />
+    <SiteFooter lang={lang} theme={theme} contactSettings={contactSettings} brandSettings={brandSettings} />
   </main>
 );
 }

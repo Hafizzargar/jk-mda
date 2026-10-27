@@ -8,6 +8,7 @@ import { parsePageParam, parseLimitParam, getPaginationRange, calculatePaginatio
 import { applyTranslations } from '@/lib/i18n';
 import { SITE_URL, SITE_SHORT_NAME } from '@/lib/config';
 import { getTemplateTheme, type TemplateId } from '@/lib/templates';
+import { getBrandSettings } from '@/lib/brand';
 import { SiteNavbar } from '@/components/navigation/SiteNavbar';
 import { SiteFooter } from '@/components/navigation/SiteFooter';
 import { Breadcrumbs } from '@/components/navigation/Breadcrumbs';
@@ -26,12 +27,13 @@ export async function generateMetadata({ params, searchParams }: CategoryPagePro
   const { lang, name } = await params;
   const resolvedSearchParams = await searchParams;
   const categorySlug = name.toLowerCase().trim();
+  const supabase = createServerAnonClient();
+  const brandSettings = await getBrandSettings(supabase);
 
   let categoryName = getCategoryDisplayName(categorySlug);
   let categoryInfo = NEWS_CATEGORIES[categorySlug];
 
   if (!categoryInfo) {
-    const supabase = createServerAnonClient();
     const { data: dbCat } = await supabase
       .from('categories')
       .select('name_en, description, is_active')
@@ -46,7 +48,7 @@ export async function generateMetadata({ params, searchParams }: CategoryPagePro
       };
     } else {
       return {
-        title: 'Category Not Found | KJIN',
+        title: `Category Not Found | ${brandSettings.name}`,
         robots: { index: false, follow: false },
       };
     }
@@ -59,8 +61,8 @@ export async function generateMetadata({ params, searchParams }: CategoryPagePro
 
   return {
     metadataBase: new URL(SITE_URL),
-    title: `${categoryName} News${pageSuffix} | ${SITE_SHORT_NAME}`,
-    description: categoryInfo?.description || `Latest reporting and updates in ${categoryName} from KJIN.`,
+    title: `${categoryName} News${pageSuffix} | ${brandSettings.name}`,
+    description: categoryInfo?.description || `Latest reporting and updates in ${categoryName} from ${brandSettings.name}.`,
     alternates: {
       canonical: canonicalUrl,
     },
@@ -69,7 +71,7 @@ export async function generateMetadata({ params, searchParams }: CategoryPagePro
       follow: true,
     },
     openGraph: {
-      title: `${categoryName} News | ${SITE_SHORT_NAME}`,
+      title: `${categoryName} News | ${brandSettings.name}`,
       description: categoryInfo?.description,
       url: canonicalUrl,
       type: 'website',
@@ -143,6 +145,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
 
   const dbTemplateId = (settingRow?.value as { template_id?: string } | null)?.template_id as TemplateId | undefined;
   const theme = getTemplateTheme(dbTemplateId);
+  const brandSettings = await getBrandSettings(supabase);
   const contactSettings = await getFooterContactSettings(supabase);
 
   const breadcrumbs = [
@@ -211,7 +214,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
                     </p>
                   )}
                   <div className={`mt-auto text-xs font-medium ${theme.textMutedClass} pt-2 border-t ${theme.borderMutedClass}`}>
-                    By {article.author_display_name || 'KJIN Desk'}
+                    By {article.author_display_name || `${brandSettings.name} Desk`}
                   </div>
                 </Link>
               ))}
@@ -228,7 +231,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
       </div>
     </div>
 
-    <SiteFooter lang={lang} theme={theme} contactSettings={contactSettings} />
+    <SiteFooter lang={lang} theme={theme} contactSettings={contactSettings} brandSettings={brandSettings} />
   </main>
 );
 }

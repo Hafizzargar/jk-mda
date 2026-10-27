@@ -52,8 +52,8 @@ export function Sidebar({
   userRole,
   userEmail,
   onSignOut,
-  brandName = 'KJIN',
-  brandLogo = '/kjin-emblem.png',
+  brandName = 'KCPJLN',
+  brandLogo = '/kcpjln-symbol.webp',
 }: SidebarProps) {
   const pathname = usePathname();
   const [loggingOut, setLoggingOut] = useState(false);
@@ -181,6 +181,15 @@ export function Sidebar({
       title: 'Site Design & Navigation',
       items: [
         {
+          name: 'Brand & Identity',
+          description: 'Name, acronym, logo emblem & legal masthead',
+          href: '/settings/brand',
+          icon: '🎨',
+          roles: ['owner', 'superadmin', 'admin'],
+          badge: 'Core',
+          badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40 font-bold',
+        },
+        {
           name: 'Header & Navigation',
           description: 'Brand logo, navbar menus, topics & tools',
           href: '/settings/navbar',
@@ -277,7 +286,7 @@ export function Sidebar({
           >
             <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white border border-slate-200 p-1 shadow-xs dark:bg-slate-900 dark:border-slate-700">
               <Image
-                src={brandLogo || '/kjin-emblem.png'}
+                src={brandLogo || '/kcpjln-symbol.webp'}
                 alt={`${brandName} Symbol`}
                 width={26}
                 height={26}

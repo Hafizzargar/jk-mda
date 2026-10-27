@@ -6,6 +6,7 @@ import { parsePageParam, parseLimitParam, getPaginationRange, calculatePaginatio
 import { SITE_URL, SITE_SHORT_NAME } from '@/lib/config';
 import { applyTranslations } from '@/lib/i18n';
 import { getTemplateTheme, type TemplateId } from '@/lib/templates';
+import { getBrandSettings } from '@/lib/brand';
 import { SiteNavbar } from '@/components/navigation/SiteNavbar';
 import { SiteFooter } from '@/components/navigation/SiteFooter';
 import { Breadcrumbs } from '@/components/navigation/Breadcrumbs';
@@ -26,9 +27,11 @@ export async function generateMetadata({ params, searchParams }: IndiaPageProps)
   const pageSuffix = page > 1 ? ` - Page ${page}` : '';
   const langPrefix = lang === 'en' ? '' : `/${lang}`;
   const canonicalUrl = `${SITE_URL}${langPrefix}/india${page > 1 ? `?page=${page}` : ''}`;
+  const supabase = createServerAnonClient();
+  const brandSettings = await getBrandSettings(supabase);
 
   return {
-    title: `National News${pageSuffix} | ${SITE_SHORT_NAME}`,
+    title: `National News${pageSuffix} | ${brandSettings.name}`,
     description: 'Indian national news, union governance, Supreme Court rulings, national economy, and pan-India developments.',
     alternates: {
       canonical: canonicalUrl,
@@ -38,7 +41,7 @@ export async function generateMetadata({ params, searchParams }: IndiaPageProps)
       follow: true,
     },
     openGraph: {
-      title: `National News | ${SITE_SHORT_NAME}`,
+      title: `National News | ${brandSettings.name}`,
       description: 'Verified Indian national reporting, policy dispatches, and country-wide affairs.',
       url: canonicalUrl,
       type: 'website',
@@ -81,6 +84,7 @@ export default async function IndiaNationalPage({ params, searchParams }: IndiaP
 
   const dbTemplateId = (settingRow?.value as { template_id?: string } | null)?.template_id as TemplateId | undefined;
   const theme = getTemplateTheme(dbTemplateId);
+  const brandSettings = await getBrandSettings(supabase);
   const contactSettings = await getFooterContactSettings(supabase);
   const adsSettings = await getCustomAdsSettings(supabase);
 
@@ -166,7 +170,7 @@ export default async function IndiaNationalPage({ params, searchParams }: IndiaP
                         )}
                       </div>
                       <div className={`pt-4 border-t ${theme.borderMutedClass} flex items-center justify-between text-xs font-medium ${theme.textMutedClass}`}>
-                        <span>By {articles[0].author_display_name || 'KJIN National Desk'}</span>
+                        <span>By {articles[0].author_display_name || `${brandSettings.name} National Desk`}</span>
                         <span className="font-semibold text-blue-600 dark:text-cyan-400 group-hover:underline flex items-center gap-1">
                           Read Full Report &rarr;
                         </span>
@@ -187,7 +191,7 @@ export default async function IndiaNationalPage({ params, searchParams }: IndiaP
                         <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-gradient-to-br from-slate-800 to-slate-950">
                           <span className="text-4xl mb-2">🇮🇳</span>
                           <span className="text-xs font-mono uppercase tracking-widest text-slate-400 font-bold">
-                            KJIN National Bureau
+                            {brandSettings.name} National Bureau
                           </span>
                         </div>
                       )}
@@ -240,7 +244,7 @@ export default async function IndiaNationalPage({ params, searchParams }: IndiaP
                     )}
 
                     <div className={`mt-auto text-xs font-medium ${theme.textMutedClass} pt-3 border-t ${theme.borderMutedClass} flex items-center justify-between`}>
-                      <span>By {article.author_display_name || 'KJIN National Desk'}</span>
+                      <span>By {article.author_display_name || `${brandSettings.name} National Desk`}</span>
                       <span className="text-[11px] font-semibold text-blue-600 dark:text-cyan-400 group-hover:underline">
                         Read &rarr;
                       </span>
@@ -260,7 +264,7 @@ export default async function IndiaNationalPage({ params, searchParams }: IndiaP
         </div>
       </div>
 
-      <SiteFooter lang={lang} theme={theme} contactSettings={contactSettings} />
+      <SiteFooter lang={lang} theme={theme} contactSettings={contactSettings} brandSettings={brandSettings} />
     </main>
   );
 }

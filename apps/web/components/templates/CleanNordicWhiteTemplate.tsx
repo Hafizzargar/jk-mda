@@ -8,12 +8,16 @@ export function CleanNordicWhiteTemplate({
   heroArticle,
   recentArticles,
   trendingArticles,
+  navbarSettings,
 }: TemplateProps) {
+  const brandName = navbarSettings?.brand?.name || 'KCPJLN';
+  const brandTagline = navbarSettings?.brand?.tagline || 'Verified Independent Journalism';
+
   return (
     <div className="min-h-screen bg-white text-neutral-900 pb-24 font-sans selection:bg-neutral-900 selection:text-white">
       {/* Refined Minimalist Top Announcement */}
       <div className="border-b border-neutral-100 py-2.5 px-4 text-center text-xs tracking-widest uppercase font-medium text-neutral-500">
-        <span>KJIN &bull; Verified Independent Journalism &bull; Jammu &amp; Kashmir</span>
+        <span>{brandName} &bull; {brandTagline}</span>
       </div>
 
       {/* Main Header */}
@@ -22,9 +26,9 @@ export function CleanNordicWhiteTemplate({
           <div>
             <Link
               href={`${langPrefix}/`}
-              className="text-4xl md:text-5xl font-light tracking-tighter uppercase text-neutral-950 hover:opacity-80 transition inline-block"
+              className="text-4xl md:text-5xl font-light tracking-tighter uppercase text-neutral-950 hover:opacity-80 transition inline-block tracking-wider"
             >
-              K J I N
+              {brandName.split('').join(' ')}
             </Link>
             <div className="text-[11px] tracking-widest uppercase text-neutral-400 mt-1">
               Nordic Paper Edition &bull; High Readability
@@ -67,7 +71,7 @@ export function CleanNordicWhiteTemplate({
               )}
 
               <div className="flex items-center justify-between text-xs tracking-wider uppercase text-neutral-500 pt-4 border-t border-neutral-100">
-                <span>Reporting: {heroArticle.author_display_name || 'KJIN Staff'}</span>
+                <span>Reporting: {heroArticle.author_display_name || `${brandName} Staff`}</span>
                 <Link
                   href={`${langPrefix}/${heroArticle.category.toLowerCase()}/${heroArticle.slug}`}
                   className="font-semibold text-neutral-950 hover:underline"

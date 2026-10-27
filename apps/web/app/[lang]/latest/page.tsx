@@ -6,6 +6,7 @@ import { parsePageParam, parseLimitParam, getPaginationRange, calculatePaginatio
 import { SITE_URL, SITE_SHORT_NAME } from '@/lib/config';
 import { applyTranslations } from '@/lib/i18n';
 import { getTemplateTheme, type TemplateId } from '@/lib/templates';
+import { getBrandSettings } from '@/lib/brand';
 import { SiteNavbar } from '@/components/navigation/SiteNavbar';
 import { SiteFooter } from '@/components/navigation/SiteFooter';
 import { Breadcrumbs } from '@/components/navigation/Breadcrumbs';
@@ -24,9 +25,11 @@ export async function generateMetadata({ params, searchParams }: LatestPageProps
   const pageSuffix = page > 1 ? ` - Page ${page}` : '';
   const langPrefix = lang === 'en' ? '' : `/${lang}`;
   const canonicalUrl = `${SITE_URL}${langPrefix}/latest${page > 1 ? `?page=${page}` : ''}`;
+  const supabase = createServerAnonClient();
+  const brandSettings = await getBrandSettings(supabase);
 
   return {
-    title: `Latest News${pageSuffix} | ${SITE_SHORT_NAME}`,
+    title: `Latest News${pageSuffix} | ${brandSettings.name}`,
     description: 'The latest verified news, investigations, and ground dispatches from Jammu and Kashmir.',
     alternates: {
       canonical: canonicalUrl,
@@ -36,7 +39,7 @@ export async function generateMetadata({ params, searchParams }: LatestPageProps
       follow: true,
     },
     openGraph: {
-      title: `Latest News | ${SITE_SHORT_NAME}`,
+      title: `Latest News | ${brandSettings.name}`,
       description: 'The latest verified news and ground reporting from Jammu and Kashmir.',
       url: canonicalUrl,
       type: 'website',
@@ -74,6 +77,7 @@ export default async function LatestPage({ params, searchParams }: LatestPagePro
 
   const dbTemplateId = (settingRow?.value as { template_id?: string } | null)?.template_id as TemplateId | undefined;
   const theme = getTemplateTheme(dbTemplateId);
+  const brandSettings = await getBrandSettings(supabase);
   const contactSettings = await getFooterContactSettings(supabase);
 
   const breadcrumbs = [
@@ -143,7 +147,7 @@ export default async function LatestPage({ params, searchParams }: LatestPagePro
                     </p>
                   )}
                   <div className={`mt-auto text-xs font-medium ${theme.textMutedClass} pt-2 border-t ${theme.borderMutedClass}`}>
-                    By {article.author_display_name || 'KJIN Desk'}
+                    By {article.author_display_name || `${brandSettings.name} Desk`}
                   </div>
                 </Link>
               ))}
@@ -160,7 +164,7 @@ export default async function LatestPage({ params, searchParams }: LatestPagePro
       </div>
     </div>
 
-    <SiteFooter lang={lang} theme={theme} contactSettings={contactSettings} />
+    <SiteFooter lang={lang} theme={theme} contactSettings={contactSettings} brandSettings={brandSettings} />
   </main>
 );
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAdmin } from './AdminShell';
 
 export interface CommandItem {
   id: string;
@@ -118,6 +119,7 @@ interface CommandPaletteProps {
 
 export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
   const router = useRouter();
+  const { brandName } = useAdmin();
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -288,7 +290,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
               <kbd className="rounded bg-slate-800 px-1.5 py-0.5 font-mono text-[10px] text-slate-300 border border-slate-700">↵</kbd> to select
             </span>
           </div>
-          <span className="text-slate-500 font-mono">KJIN Command OS</span>
+          <span className="text-slate-500 font-mono">{brandName || 'KCPJLN'} Command OS</span>
         </div>
       </div>
     </div>

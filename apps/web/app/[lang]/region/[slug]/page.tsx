@@ -8,6 +8,7 @@ import { parsePageParam, parseLimitParam, getPaginationRange, calculatePaginatio
 import { applyTranslations } from '@/lib/i18n';
 import { SITE_URL, SITE_SHORT_NAME } from '@/lib/config';
 import { getTemplateTheme, type TemplateId } from '@/lib/templates';
+import { getBrandSettings } from '@/lib/brand';
 import { SiteNavbar } from '@/components/navigation/SiteNavbar';
 import { SiteFooter } from '@/components/navigation/SiteFooter';
 import { Breadcrumbs } from '@/components/navigation/Breadcrumbs';
@@ -26,10 +27,12 @@ export async function generateMetadata({ params, searchParams }: RegionPageProps
   const { lang, slug } = await params;
   const resolvedSearchParams = await searchParams;
   const regionSlug = slug.toLowerCase().trim();
+  const supabase = createServerAnonClient();
+  const brandSettings = await getBrandSettings(supabase);
 
   if (!isValidRegion(regionSlug)) {
     return {
-      title: 'Region Not Found | KJIN',
+      title: `Region Not Found | ${brandSettings.name}`,
       robots: { index: false, follow: false },
     };
   }
@@ -42,7 +45,7 @@ export async function generateMetadata({ params, searchParams }: RegionPageProps
 
   return {
     metadataBase: new URL(SITE_URL),
-    title: `${region?.name || 'Regional'} News & Dispatches${pageSuffix} | ${SITE_SHORT_NAME}`,
+    title: `${region?.name || 'Regional'} News & Dispatches${pageSuffix} | ${brandSettings.name}`,
     description: `Verified grassroots journalism and news coverage across the ${region?.name} (${region?.districts.map((d) => JK_DISTRICTS[d]?.name).join(', ')}).`,
     alternates: {
       canonical: canonicalUrl,
@@ -52,7 +55,7 @@ export async function generateMetadata({ params, searchParams }: RegionPageProps
       follow: true,
     },
     openGraph: {
-      title: `${region?.name} Dispatches | ${SITE_SHORT_NAME}`,
+      title: `${region?.name} Dispatches | ${brandSettings.name}`,
       description: `Comprehensive regional reporting from ${region?.name}.`,
       url: canonicalUrl,
       type: 'website',
@@ -99,6 +102,7 @@ export default async function RegionPage({ params, searchParams }: RegionPagePro
 
   const dbTemplateId = (settingRow?.value as { template_id?: string } | null)?.template_id as TemplateId | undefined;
   const theme = getTemplateTheme(dbTemplateId);
+  const brandSettings = await getBrandSettings(supabase);
   const contactSettings = await getFooterContactSettings(supabase);
 
   const breadcrumbs = [
@@ -123,7 +127,7 @@ export default async function RegionPage({ params, searchParams }: RegionPagePro
         <div className={`border-b ${theme.borderClass} ${theme.subtleBgClass} py-8 px-4 md:px-8`}>
         <div className="max-w-7xl mx-auto">
           <div className={`inline-flex items-center gap-2 rounded-full border ${theme.borderClass} ${theme.cardBgClass} px-3 py-1 text-xs font-semibold ${theme.accentTextClass} mb-4`}>
-            <span>KJIN Regional Bureau</span>
+            <span>{brandSettings.name} Regional Bureau</span>
             <span>&bull;</span>
             <span className="capitalize">{region.shortName}</span>
           </div>
@@ -231,7 +235,7 @@ export default async function RegionPage({ params, searchParams }: RegionPagePro
       </div>
     </div>
 
-    <SiteFooter lang={lang} theme={theme} contactSettings={contactSettings} />
+    <SiteFooter lang={lang} theme={theme} contactSettings={contactSettings} brandSettings={brandSettings} />
   </main>
 );
 }

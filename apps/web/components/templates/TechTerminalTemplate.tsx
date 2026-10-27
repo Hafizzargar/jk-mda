@@ -8,14 +8,17 @@ export function TechTerminalTemplate({
   heroArticle,
   recentArticles,
   trendingArticles,
+  navbarSettings,
 }: TemplateProps) {
+  const brandName = navbarSettings?.brand?.name || 'KCPJLN';
+
   return (
     <div className="min-h-screen bg-[#050805] text-[#22c55e] pb-24 font-mono selection:bg-[#22c55e] selection:text-black">
       {/* CLI Command Status Bar */}
       <div className="border-b border-[#14532d] bg-[#020402] py-2 px-4 text-xs flex justify-between items-center text-[#4ade80]">
         <div className="flex items-center gap-3">
           <span className="w-2.5 h-2.5 rounded-full bg-[#22c55e] animate-ping" />
-          <span>$ kjin-wire --region=jk --channel=verified --stream=live</span>
+          <span>$ {brandName.toLowerCase()}-wire --region=jk --channel=verified --stream=live</span>
         </div>
         <div className="flex items-center gap-4 text-[11px] text-neutral-400">
           <span>ENC: AES-GCM-256</span>
@@ -32,7 +35,7 @@ export function TechTerminalTemplate({
               className="text-3xl md:text-4xl font-black tracking-tight text-white flex items-center gap-2"
             >
               <span className="text-[#22c55e]">&gt;_</span>
-              <span>KJIN::TERMINAL</span>
+              <span>{brandName}::TERMINAL</span>
             </Link>
             <div className="text-xs text-neutral-400 mt-1">
               Automated Newsroom Telemetry &bull; Jammu &amp; Kashmir Bureau

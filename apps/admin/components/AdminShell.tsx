@@ -18,8 +18,8 @@ export interface AdminContextType {
 export const AdminContext = createContext<AdminContextType>({
   theme: 'light',
   toggleTheme: () => {},
-  brandName: 'KJIN',
-  brandLogo: '/kjin-emblem.png',
+  brandName: 'KCPJLN',
+  brandLogo: '/kcpjln-symbol.webp',
 });
 
 export const useAdmin = () => useContext(AdminContext);
@@ -41,8 +41,34 @@ export function AdminShell({ children }: AdminShellProps) {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
 
-  const [brandName, setBrandName] = useState('KJIN');
-  const [brandLogo, setBrandLogo] = useState('/kjin-emblem.png');
+  const [brandName, setBrandName] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('kjin_brand_config');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed?.name) return parsed.name;
+        }
+      } catch {
+        // ignore
+      }
+    }
+    return 'KCPJLN';
+  });
+  const [brandLogo, setBrandLogo] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('kjin_brand_config');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed?.logo_url) return parsed.logo_url;
+        }
+      } catch {
+        // ignore
+      }
+    }
+    return '/kcpjln-symbol.webp';
+  });
 
   // Initialize theme state from localStorage on client mount
   useEffect(() => {
@@ -144,6 +170,13 @@ export function AdminShell({ children }: AdminShellProps) {
         }
         if (brand?.logo_url && typeof brand.logo_url === 'string' && brand.logo_url.trim()) {
           setBrandLogo(brand.logo_url.trim());
+        }
+        if (brand) {
+          try {
+            localStorage.setItem('kjin_brand_config', JSON.stringify(brand));
+          } catch {
+            // ignore
+          }
         }
       } catch {
         // Fallback to default

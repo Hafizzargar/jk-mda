@@ -18,6 +18,7 @@ import { SidebarAd } from '@/components/ads/SidebarAd';
 import { NewsletterForm } from '@/components/NewsletterForm';
 import { applyTranslations } from '@/lib/i18n';
 import { getDistrictDisplayName } from '@/lib/taxonomy';
+import { getBrandSettings } from '@/lib/brand';
 
 interface ArticlePageProps {
   params: Promise<{
@@ -30,6 +31,8 @@ interface ArticlePageProps {
 export async function generateMetadata({ params }: ArticlePageProps): Promise<Metadata> {
   const resolvedParams = await params;
   const supabase = createServerAnonClient();
+  const brandSettings = await getBrandSettings(supabase);
+
   const { data: article } = await supabase
     .from('articles')
     .select('title, excerpt, featured_image_url, category, published_at, updated_at, author_display_name, article_translations(title, excerpt, language_code)')
@@ -38,7 +41,7 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
 
   if (!article) {
     return {
-      title: 'Article Not Found | KJIN',
+      title: `Article Not Found | ${brandSettings.name}`,
       robots: { index: false, follow: false },
     };
   }
@@ -58,7 +61,7 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
 
   return {
     metadataBase: new URL(SITE_URL),
-    title: `${title} | ${SITE_SHORT_NAME}`,
+    title: `${title} | ${brandSettings.name}`,
     description: excerpt,
     alternates: {
       canonical: canonicalUrl,
@@ -74,12 +77,12 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
       title: title,
       description: excerpt,
       url: canonicalUrl,
-      siteName: SITE_NAME,
+      siteName: brandSettings.full_name,
       locale: DEFAULT_LOCALE,
       type: 'article',
       publishedTime: article.published_at || undefined,
       modifiedTime: article.updated_at || undefined,
-      authors: [article.author_display_name || 'KJIN Desk'],
+      authors: [article.author_display_name || `${brandSettings.name} Desk`],
       section: article.category,
       images: article.featured_image_url
         ? [
@@ -152,6 +155,7 @@ function splitContentForMidArticleAd(html: string): { before: string; after: str
 export default async function ArticlePage({ params }: ArticlePageProps) {
   const resolvedParams = await params;
   const supabase = createServerAnonClient();
+  const brandSettings = await getBrandSettings(supabase);
 
   // Note: RLS ensures we only get rows where status = 'published'
   const { data: article, error } = await supabase
@@ -208,16 +212,16 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     author: [
       {
         '@type': 'Person',
-        name: article.author_display_name || 'KJIN Desk',
+        name: article.author_display_name || `${brandSettings.name} Desk`,
       },
     ],
     publisher: {
       '@type': 'Organization',
-      name: SITE_NAME,
+      name: brandSettings.full_name,
       url: SITE_URL,
       logo: {
         '@type': 'ImageObject',
-        url: `${SITE_URL}/logo.png`,
+        url: brandSettings.logo_url || `${SITE_URL}/logo.png`,
       },
     },
   };
@@ -340,7 +344,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
               </div>
               <div>
                 <div className={`font-medium ${theme.textPrimaryClass}`}>
-                  {displayArticle.author_display_name || 'KJIN Desk'}
+                  {displayArticle.author_display_name || `${brandSettings.name} Desk`}
                 </div>
                 {displayArticle.source_name && (
                   <div className={`text-sm ${theme.textMutedClass}`}>
@@ -519,7 +523,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
         {/* Morning Intelligence Brief */}
         <div className={`p-6 rounded-2xl ${theme.subtleBgClass} ${theme.borderClass} border`}>
           <div className={`text-xs font-bold uppercase tracking-widest ${theme.accentTextClass} mb-1`}>
-            KJIN Broadsheet Edition
+            {brandSettings.name} Broadsheet Edition
           </div>
           <h4 className={`text-lg font-bold font-serif ${theme.textPrimaryClass} mb-2`}>
             Morning Intelligence Brief
@@ -540,7 +544,12 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     </div>
   </div>
 
-  <SiteFooter lang={resolvedParams.lang} theme={theme} contactSettings={contactSettings} />
+  <SiteFooter
+    lang={resolvedParams.lang}
+    theme={theme}
+    contactSettings={contactSettings}
+    brandSettings={brandSettings}
+  />
 </main>
     </>
   );

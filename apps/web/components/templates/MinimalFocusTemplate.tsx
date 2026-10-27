@@ -8,7 +8,10 @@ export function MinimalFocusTemplate({
   langPrefix,
   heroArticle,
   recentArticles,
+  navbarSettings,
 }: TemplateProps) {
+  const brandName = navbarSettings?.brand?.name || SITE_SHORT_NAME;
+
   return (
     <div className="min-h-screen bg-[#fafaf9] text-stone-900 font-sans pb-28 antialiased">
       {/* Clean Minimalist Header */}
@@ -18,7 +21,7 @@ export function MinimalFocusTemplate({
             href="/"
             className="text-2xl font-serif font-black tracking-tight text-stone-900 hover:text-stone-700 transition"
           >
-            {SITE_SHORT_NAME}
+            {brandName}
           </Link>
 
           <nav className="flex items-center gap-6 text-sm font-medium text-stone-600">
@@ -101,7 +104,7 @@ export function MinimalFocusTemplate({
                   </p>
 
                   <div className="text-xs text-stone-400 flex items-center justify-between pt-1">
-                    <span>{article.author_display_name || 'KJIN Bureau'}</span>
+                    <span>{article.author_display_name || `${brandName} Bureau`}</span>
                     <span>{new Date(article.published_at).toLocaleDateString()}</span>
                   </div>
                 </Link>

@@ -58,9 +58,9 @@ export default function Loading() {
     };
   }, []);
 
-  const logoSrc = brand.logo_url || '/kjin-emblem.png';
-  const brandName = brand.name || 'KJIN';
-  const subtitle = brand.loader_text || brand.tagline || 'Jammu & Kashmir Journal of Record';
+  const logoSrc = brand.logo_url || '/kcpjln-symbol.webp';
+  const brandName = brand.name || 'KCPJLN';
+  const subtitle = brand.loader_text || brand.tagline || 'ONE REGION, MANY VOICES, TRUSTED NEWS';
 
   return (
     <div className="min-h-[85vh] flex flex-col items-center justify-center bg-white select-none px-4 transition-colors duration-200">

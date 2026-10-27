@@ -7,7 +7,9 @@ export function VisualStoriesTemplate({
   langPrefix,
   heroArticle,
   recentArticles,
+  navbarSettings,
 }: TemplateProps) {
+  const brandName = navbarSettings?.brand?.name || 'KCPJLN';
   const storyBubbles = [
     { label: 'Srinagar', icon: '🏔️', color: 'from-amber-400 to-rose-500' },
     { label: 'Jammu', icon: '🏛️', color: 'from-fuchsia-500 to-indigo-500' },
@@ -30,7 +32,7 @@ export function VisualStoriesTemplate({
               <span className="w-8 h-8 rounded-full bg-gradient-to-tr from-amber-400 via-rose-500 to-purple-600 flex items-center justify-center text-sm shadow-lg shadow-rose-500/20">
                 ▶
               </span>
-              <span>KJIN<span className="text-rose-500 font-serif">Stories</span></span>
+              <span>{brandName}<span className="text-rose-500 font-serif">Stories</span></span>
             </Link>
           </div>
 

@@ -8,7 +8,9 @@ export function HyperlocalCommunityTemplate({
   heroArticle,
   recentArticles,
   trendingArticles,
+  navbarSettings,
 }: TemplateProps) {
+  const brandName = navbarSettings?.brand?.name || 'KCPJLN';
   const districts = [
     'Srinagar', 'Jammu', 'Baramulla', 'Anantnag', 'Pulwama',
     'Budgam', 'Kupwara', 'Ganderbal', 'Shopian', 'Doda'
@@ -37,7 +39,7 @@ export function HyperlocalCommunityTemplate({
               href={`${langPrefix}/`}
               className="text-3xl md:text-4xl font-extrabold tracking-tight text-emerald-900 flex items-center gap-2 uppercase"
             >
-              <span>KJIN</span>
+              <span>{brandName}</span>
               <span className="text-emerald-600 text-sm font-semibold tracking-normal lowercase bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
                 community hub
               </span>
@@ -174,7 +176,7 @@ export function HyperlocalCommunityTemplate({
                   )}
 
                   <div className="text-[11px] text-slate-400 pt-3 border-t border-slate-100 flex justify-between items-center mt-auto">
-                    <span>{article.author_display_name || 'KJIN Bureau'}</span>
+                    <span>{article.author_display_name || `${brandName} Bureau`}</span>
                     <span className="text-slate-400">{new Date(article.published_at).toLocaleDateString()}</span>
                   </div>
                 </div>
@@ -224,7 +226,7 @@ export function HyperlocalCommunityTemplate({
                 &ldquo;Clean civic water corridors and verified reporting give citizens a stake in their districts.&rdquo;
               </blockquote>
               <div className="text-[11px] font-semibold text-emerald-800">
-                &mdash; KJIN Reader Roundtable, Srinagar
+                &mdash; {brandName} Reader Roundtable, Srinagar
               </div>
             </div>
           </div>

@@ -10,7 +10,10 @@ export function ModernMagazineTemplate({
   heroArticle,
   recentArticles,
   trendingArticles,
+  navbarSettings,
 }: TemplateProps) {
+  const brandName = navbarSettings?.brand?.name || SITE_SHORT_NAME;
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans pb-24 selection:bg-blue-600 selection:text-white">
       {/* Modern High-Tech Header */}
@@ -20,7 +23,7 @@ export function ModernMagazineTemplate({
             href="/"
             className="text-2xl md:text-3xl font-black tracking-tighter bg-gradient-to-r from-blue-400 via-indigo-300 to-cyan-400 bg-clip-text text-transparent hover:opacity-90 transition"
           >
-            {SITE_SHORT_NAME}
+            {brandName}
           </Link>
 
           <nav className="hidden md:flex items-center gap-6 text-sm font-semibold text-slate-400">
@@ -91,7 +94,7 @@ export function ModernMagazineTemplate({
                   )}
 
                   <div className="mt-4 flex items-center gap-3 text-xs text-slate-400">
-                    <span className="font-semibold text-slate-200">By {heroArticle.author_display_name || 'KJIN Desk'}</span>
+                    <span className="font-semibold text-slate-200">By {heroArticle.author_display_name || `${brandName} Desk`}</span>
                   </div>
                 </div>
               </div>
@@ -198,7 +201,7 @@ export function ModernMagazineTemplate({
 
             {/* Newsletter Subscription */}
             <div className="rounded-2xl border border-blue-500/30 bg-gradient-to-br from-blue-950/40 via-slate-900 to-indigo-950/40 p-6 backdrop-blur-md shadow-lg shadow-blue-950/30">
-              <div className="text-xs font-bold uppercase tracking-widest text-cyan-400 mb-2">KJIN Dispatch</div>
+              <div className="text-xs font-bold uppercase tracking-widest text-cyan-400 mb-2">{brandName} Dispatch</div>
               <h4 className="text-lg font-bold text-white mb-1.5">Independent Reporting, Delivered</h4>
               <p className="text-xs text-slate-400 mb-4 leading-relaxed">
                 Join thousands receiving weekly investigative briefs and policy analyses directly.

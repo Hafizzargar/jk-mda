@@ -1,9 +1,11 @@
 import Link from 'next/link';
 import { createServerAnonClient } from '@/lib/supabase-server';
 import { getTemplateTheme, type TemplateId } from '@/lib/templates';
+import { getBrandSettings } from '@/lib/brand';
 
 export default async function NotFound() {
   const supabase = createServerAnonClient();
+  const brandSettings = await getBrandSettings(supabase);
   const { data: settingRow } = await supabase
     .from('site_settings')
     .select('value')
@@ -25,7 +27,7 @@ export default async function NotFound() {
           href="/"
           className={`inline-block ${theme.accentBgClass} font-semibold px-6 py-3 rounded-lg hover:opacity-90 transition text-sm`}
         >
-          Return to KJIN Homepage
+          Return to {brandSettings.name} Homepage
         </Link>
       </div>
     </main>

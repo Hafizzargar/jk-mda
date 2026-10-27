@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { createServerAnonClient } from '@/lib/supabase-server';
-import { SITE_URL, SITE_NAME, DEFAULT_LOCALE } from '@/lib/config';
+import { SITE_URL, SITE_NAME, SITE_SHORT_NAME, DEFAULT_LOCALE } from '@/lib/config';
 import { applyTranslations } from '@/lib/i18n';
 import { type TemplateId, getTemplateDefinition, getTemplateTheme } from '@/lib/templates';
 import { parsePageParam, parseLimitParam, getPaginationRange, calculatePaginationMeta } from '@/lib/pagination';
@@ -22,26 +22,36 @@ import { ArticleItem } from '@/components/templates/types';
 
 export const revalidate = 60; // Revalidate every 60 seconds
 
-export const metadata: Metadata = {
-  metadataBase: new URL(SITE_URL),
-  title: `${SITE_NAME} | Verified Journalism from Jammu & Kashmir`,
-  description: 'Independent, verified reporting, investigations, and ground dispatches from Jammu and Kashmir.',
-  alternates: {
-    canonical: SITE_URL,
-  },
-  openGraph: {
-    title: `${SITE_NAME} | Ground Reporting from J&K`,
-    description: 'Independent, verified reporting, investigations, and ground dispatches from Jammu and Kashmir.',
-    url: SITE_URL,
-    siteName: SITE_NAME,
-    locale: DEFAULT_LOCALE,
-    type: 'website',
-  },
-  robots: {
-    index: true,
-    follow: true,
-  },
-};
+import { getBrandSettings } from '@/lib/brand';
+
+export async function generateMetadata(): Promise<Metadata> {
+  const supabase = createServerAnonClient();
+  const brand = await getBrandSettings(supabase);
+  const brandName = brand.name || SITE_SHORT_NAME;
+  const brandFullName = brand.full_name || SITE_NAME;
+  const tagline = brand.tagline || 'Verified Journalism from Jammu & Kashmir';
+
+  return {
+    metadataBase: new URL(SITE_URL),
+    title: `${brandFullName} (${brandName}) | ${tagline}`,
+    description: `Independent, verified reporting, investigations, and ground dispatches from ${brandFullName}.`,
+    alternates: {
+      canonical: SITE_URL,
+    },
+    openGraph: {
+      title: `${brandFullName} | ${brandName}`,
+      description: tagline,
+      url: SITE_URL,
+      siteName: `${brandFullName} (${brandName})`,
+      locale: DEFAULT_LOCALE,
+      type: 'website',
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
+  };
+}
 
 interface HomePageProps {
   params: Promise<{ lang: string }>;
