@@ -41,34 +41,8 @@ export function AdminShell({ children }: AdminShellProps) {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
 
-  const [brandName, setBrandName] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const cached = localStorage.getItem('kjin_brand_config');
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (parsed?.name) return parsed.name;
-        }
-      } catch {
-        // ignore
-      }
-    }
-    return 'KCPJLN';
-  });
-  const [brandLogo, setBrandLogo] = useState(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const cached = localStorage.getItem('kjin_brand_config');
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (parsed?.logo_url) return parsed.logo_url;
-        }
-      } catch {
-        // ignore
-      }
-    }
-    return '/kcpjln-symbol.webp';
-  });
+  const [brandName, setBrandName] = useState('KCPJLN');
+  const [brandLogo, setBrandLogo] = useState('/kcpjln-symbol.webp');
 
   // Initialize theme state from localStorage on client mount
   useEffect(() => {
@@ -155,6 +129,22 @@ export function AdminShell({ children }: AdminShellProps) {
 
   // Fetch dynamic brand configuration from site_settings
   useEffect(() => {
+    // Fast sync from local cache on client mount (safe after hydration)
+    try {
+      const cached = localStorage.getItem('kjin_brand_config');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed?.name && typeof parsed.name === 'string' && parsed.name.trim()) {
+          setBrandName(parsed.name.trim());
+        }
+        if (parsed?.logo_url && typeof parsed.logo_url === 'string' && parsed.logo_url.trim()) {
+          setBrandLogo(parsed.logo_url.trim());
+        }
+      }
+    } catch {
+      // ignore
+    }
+
     async function loadBrandSettings() {
       try {
         const { data } = await supabase

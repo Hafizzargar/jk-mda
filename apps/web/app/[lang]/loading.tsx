@@ -6,28 +6,27 @@ import { supabase } from '@/lib/supabase';
 import { DEFAULT_NAVBAR_SETTINGS, type NavbarBrandConfig, sanitizeNavbarSettings } from '@/lib/navbar';
 
 export default function Loading() {
-  const [brand, setBrand] = useState<NavbarBrandConfig>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const cached = localStorage.getItem('kjin_brand_config');
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (parsed && typeof parsed === 'object' && parsed.name) {
-            return {
-              ...DEFAULT_NAVBAR_SETTINGS.brand,
-              ...parsed,
-            };
-          }
-        }
-      } catch {
-        // ignore JSON parse error
-      }
-    }
-    return DEFAULT_NAVBAR_SETTINGS.brand;
-  });
+  const [brand, setBrand] = useState<NavbarBrandConfig>(DEFAULT_NAVBAR_SETTINGS.brand);
 
   useEffect(() => {
     let isMounted = true;
+
+    // Fast sync from local cache on client mount
+    try {
+      const cached = localStorage.getItem('kjin_brand_config');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && typeof parsed === 'object' && parsed.name) {
+          setBrand({
+            ...DEFAULT_NAVBAR_SETTINGS.brand,
+            ...parsed,
+          });
+        }
+      }
+    } catch {
+      // ignore
+    }
+
     async function fetchBrandSettings() {
       try {
         const { data } = await supabase

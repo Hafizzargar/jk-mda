@@ -282,6 +282,7 @@ export function Sidebar({
             href="/"
             onClick={onCloseMobile}
             title={`${brandName} Newsroom Admin`}
+            suppressHydrationWarning
             className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-2.5'} transition-opacity hover:opacity-90`}
           >
             <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white border border-slate-200 p-1 shadow-xs dark:bg-slate-900 dark:border-slate-700">
@@ -292,12 +293,16 @@ export function Sidebar({
                 height={26}
                 className="object-contain"
                 priority
+                suppressHydrationWarning
               />
             </div>
             {!isCollapsed && (
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
-                  <span className="font-extrabold text-base tracking-wider text-slate-900 dark:text-white uppercase">
+                  <span
+                    suppressHydrationWarning
+                    className="font-extrabold text-base tracking-wider text-slate-900 dark:text-white uppercase"
+                  >
                     {brandName}
                   </span>
                   <span className="rounded bg-cyan-100 text-cyan-900 border border-cyan-300 dark:bg-cyan-900/50 dark:text-cyan-200 dark:border-cyan-700 px-1.5 py-0.2 text-[9px] font-mono font-bold uppercase tracking-widest">
