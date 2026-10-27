@@ -30,6 +30,7 @@ export interface DataTableProps<T> {
   emptyMessage?: React.ReactNode;
   pagination?: PaginationConfig;
   className?: string;
+  mobileCardRender?: (item: T, index: number) => React.ReactNode;
 }
 
 export function DataTable<T>({
@@ -40,6 +41,7 @@ export function DataTable<T>({
   emptyMessage = 'No records found.',
   pagination,
   className = '',
+  mobileCardRender,
 }: DataTableProps<T>) {
   const pageSizeOptions = pagination?.pageSizeOptions || [5, 10, 15, 20];
   const currentPage = pagination?.page || 1;
@@ -71,7 +73,52 @@ export function DataTable<T>({
     <div
       className={`rounded-xl border border-slate-200 bg-white shadow-2xs overflow-hidden dark:border-slate-800 dark:bg-slate-900/60 ${className}`}
     >
-      <div className="overflow-x-auto">
+      {/* Mobile Card View (on < md screens when mobileCardRender is provided) */}
+      {mobileCardRender && (
+        <div className="block md:hidden">
+          {isLoading ? (
+            <div className="p-3 space-y-2.5">
+              {Array.from({ length: Math.min(pageSize || 5, 4) }).map((_, rIdx) => (
+                <div
+                  key={`skeleton-card-${rIdx}`}
+                  className="rounded-xl border border-slate-200/80 bg-slate-50/70 p-3.5 space-y-2.5 animate-pulse dark:border-slate-800 dark:bg-slate-900/40"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="h-4 w-24 bg-slate-200 dark:bg-slate-700/60 rounded-full" />
+                    <div className="h-3.5 w-16 bg-slate-200 dark:bg-slate-700/60 rounded-md" />
+                  </div>
+                  <div className="h-5 w-4/5 bg-slate-200 dark:bg-slate-700/60 rounded-md" />
+                  <div className="h-3 w-1/2 bg-slate-200 dark:bg-slate-700/60 rounded-md" />
+                  <div className="pt-2 flex gap-2 border-t border-slate-100 dark:border-slate-800">
+                    <div className="h-7 flex-1 bg-slate-200 dark:bg-slate-700/60 rounded-md" />
+                    <div className="h-7 flex-1 bg-slate-200 dark:bg-slate-700/60 rounded-md" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : data.length === 0 ? (
+            <div className="px-4 py-12 text-center text-slate-500 dark:text-slate-400 font-medium">
+              <div className="flex flex-col items-center justify-center gap-2">
+                <span className="text-2xl" aria-hidden="true">
+                  📭
+                </span>
+                <div>{emptyMessage}</div>
+              </div>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+              {data.map((item, rowIdx) => (
+                <div key={keyExtractor(item, rowIdx)} className="p-3 sm:p-3.5 hover:bg-slate-50/60 dark:hover:bg-slate-800/40 transition">
+                  {mobileCardRender(item, rowIdx)}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Desktop Table View (hidden on mobile if mobileCardRender is provided) */}
+      <div className={`overflow-x-auto ${mobileCardRender ? 'hidden md:block' : ''}`}>
         <table className="w-full min-w-[750px] border-collapse text-left text-xs">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:border-slate-800 dark:bg-slate-800/80 dark:text-slate-300">

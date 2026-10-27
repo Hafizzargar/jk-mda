@@ -498,6 +498,149 @@ function ArticlesPageContent() {
     },
   ];
 
+  const renderMobileArticleCard = (article: Article) => {
+    const isOwnDraft =
+      article.author_id === userId && ['draft', 'review'].includes(article.status);
+    const canEdit =
+      can('article.review') ||
+      isOwnDraft ||
+      (article.status === 'draft' && can('article.create'));
+    const canDelete = can('article.delete') || can('article.archive');
+
+    const tagClass =
+      article.status === 'review'
+        ? 'bg-amber-50 text-amber-950 border-amber-300 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-700'
+        : article.status === 'published'
+        ? 'bg-emerald-50 text-emerald-950 border-emerald-300 dark:bg-emerald-950/40 dark:text-emerald-200 dark:border-emerald-700'
+        : article.status === 'archived'
+        ? 'bg-red-50 text-red-950 border-red-300 font-bold dark:bg-red-950/40 dark:text-red-200 dark:border-red-700'
+        : 'bg-slate-100 text-slate-900 border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700';
+
+    const dotClass =
+      article.status === 'published'
+        ? 'bg-emerald-500'
+        : article.status === 'archived'
+        ? 'bg-red-500'
+        : article.status === 'review'
+        ? 'bg-amber-500'
+        : 'bg-slate-500';
+
+    const statusLabel =
+      article.status === 'archived'
+        ? 'Inactive'
+        : article.status === 'published'
+        ? 'Live'
+        : article.status === 'review'
+        ? 'In Review'
+        : 'Draft';
+
+    return (
+      <div className="space-y-2.5">
+        {/* Top Meta: Status badge + Category & District */}
+        <div className="flex items-center justify-between gap-2">
+          <span className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-bold capitalize ${tagClass}`}>
+            <span className={`h-1.5 w-1.5 rounded-full ${dotClass}`} />
+            {statusLabel}
+          </span>
+          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate">
+            {article.category && (
+              <span className="rounded bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 text-[10px] font-bold text-slate-700 dark:text-slate-300 truncate">
+                {article.category}
+              </span>
+            )}
+            {article.district && (
+              <span className="capitalize text-[10px] truncate">
+                📍 {article.district}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Title & Slug */}
+        <div>
+          <Link
+            href={`/articles/${article.id}`}
+            className="font-bold text-sm text-slate-950 dark:text-white line-clamp-2 leading-snug hover:text-cyan-700 dark:hover:text-cyan-400 transition-colors"
+          >
+            {article.title}
+          </Link>
+          <p className="mt-0.5 text-[10px] font-mono text-slate-400 dark:text-slate-500 truncate">
+            {article.slug}
+          </p>
+        </div>
+
+        {/* Author & Timestamp */}
+        <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-0.5 font-medium">
+          <span className="truncate max-w-[170px]">✍️ {article.author_display_name || 'Staff'}</span>
+          <span className="font-mono text-[10px]">{new Date(article.updated_at).toLocaleDateString()}</span>
+        </div>
+
+        {/* Action Buttons Toolbar on Mobile */}
+        <div className="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-slate-100 dark:border-slate-800/80">
+          <Button href={`/articles/${article.id}`} variant="secondary" size="sm" className="flex-1 justify-center py-1 text-xs">
+            View
+          </Button>
+
+          {canEdit ? (
+            <Button href={`/articles/${article.id}/edit`} variant="cyan" size="sm" className="flex-1 justify-center py-1 text-xs font-bold">
+              Edit
+            </Button>
+          ) : null}
+
+          {article.status === 'review' && can('article.review') ? (
+            <Button href={`/articles/${article.id}/review`} variant="amber" size="sm" className="flex-1 justify-center py-1 text-xs font-bold">
+              Review
+            </Button>
+          ) : null}
+
+          {article.status === 'published' && can('article.archive') ? (
+            <Button
+              type="button"
+              variant="amber"
+              size="sm"
+              onClick={() => {
+                setRetractArticle(article);
+                setRetractionPreset(RETRACTION_REASON_PRESETS[0]);
+                setRetractionNotes('');
+              }}
+              className="flex-1 justify-center py-1 text-xs"
+            >
+              Inactivate
+            </Button>
+          ) : null}
+
+          {article.status === 'archived' && (can('article.publish') || can('article.review')) ? (
+            <Button
+              type="button"
+              variant="emerald"
+              size="sm"
+              disabled={isSubmitting}
+              onClick={() => handleReactivate(article)}
+              className="flex-1 justify-center py-1 text-xs font-bold"
+            >
+              Reactivate
+            </Button>
+          ) : null}
+
+          {canDelete ? (
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              onClick={() => {
+                setDeleteArticle(article);
+                setConfirmDeleteInput('');
+              }}
+              className="px-2.5 py-1 text-xs"
+            >
+              🗑️
+            </Button>
+          ) : null}
+        </div>
+      </div>
+    );
+  };
+
   if (isAuthorized === false) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-950 p-8 text-white">
@@ -510,23 +653,24 @@ function ArticlesPageContent() {
   }
 
   return (
-    <div className="p-6 md:p-8">
+    <div className="p-3 sm:p-6 md:p-8 pb-24 lg:pb-8">
       <div className="mx-auto max-w-7xl">
         {/* Streamlined Header */}
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4 dark:border-slate-800">
+        <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/90 pb-3 sm:pb-4 dark:border-slate-800">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Articles</h1>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Articles</h1>
             <p className="mt-0.5 text-xs font-medium text-slate-500 dark:text-slate-400">
               Newsroom stories, ground civic grievances, and editorial drafts
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <Button
               type="button"
               variant="secondary"
               size="sm"
               icon="🔄"
               onClick={() => void loadArticles()}
+              className="flex-1 sm:flex-none justify-center"
             >
               Refresh
             </Button>
@@ -536,6 +680,7 @@ function ArticlesPageContent() {
                 variant="primary"
                 size="sm"
                 icon="+"
+                className="flex-1 sm:flex-none justify-center font-bold"
               >
                 New Story
               </Button>
@@ -544,9 +689,9 @@ function ArticlesPageContent() {
         </div>
 
         {/* Clean Topic Navigation & Status Filters Bar */}
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          {/* Topic Segmented Control */}
-          <div className="inline-flex rounded-[8px] bg-slate-100 p-1 border border-slate-200 dark:bg-slate-900 dark:border-slate-800">
+        <div className="mb-3 sm:mb-4 flex flex-col gap-2.5">
+          {/* Topic Segmented Control — Horizontal Scroll on mobile */}
+          <div className="flex overflow-x-auto no-scrollbar gap-1 rounded-xl bg-slate-100 p-1 border border-slate-200/90 dark:bg-slate-900 dark:border-slate-800 w-full sm:w-auto">
             <button
               type="button"
               onClick={() => {
@@ -554,9 +699,9 @@ function ArticlesPageContent() {
                 setCategoryFilter('all');
                 setPage(1);
               }}
-              className={`flex items-center gap-2 rounded-[8px] px-3.5 py-1.5 text-xs font-bold transition ${
+              className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition whitespace-nowrap ${
                 topicFilter === 'news'
-                  ? 'bg-white text-slate-900 shadow-xs dark:bg-slate-800 dark:text-white'
+                  ? 'bg-white text-slate-900 shadow-2xs dark:bg-slate-800 dark:text-white'
                   : 'text-slate-600 hover:text-slate-900 dark:text-slate-400'
               }`}
             >
@@ -571,9 +716,9 @@ function ArticlesPageContent() {
                 setCategoryFilter('Local');
                 setPage(1);
               }}
-              className={`flex items-center gap-2 rounded-[8px] px-3.5 py-1.5 text-xs font-bold transition ${
+              className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition whitespace-nowrap ${
                 topicFilter === 'civic'
-                  ? 'bg-white text-slate-900 shadow-xs dark:bg-slate-800 dark:text-white'
+                  ? 'bg-white text-slate-900 shadow-2xs dark:bg-slate-800 dark:text-white'
                   : 'text-slate-600 hover:text-slate-900 dark:text-slate-400'
               }`}
             >
@@ -588,9 +733,9 @@ function ArticlesPageContent() {
                 setCategoryFilter('all');
                 setPage(1);
               }}
-              className={`flex items-center gap-2 rounded-[8px] px-3.5 py-1.5 text-xs font-bold transition ${
+              className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition whitespace-nowrap ${
                 topicFilter === 'all'
-                  ? 'bg-white text-slate-900 shadow-xs dark:bg-slate-800 dark:text-white'
+                  ? 'bg-white text-slate-900 shadow-2xs dark:bg-slate-800 dark:text-white'
                   : 'text-slate-600 hover:text-slate-900 dark:text-slate-400'
               }`}
             >
@@ -599,15 +744,15 @@ function ArticlesPageContent() {
             </button>
           </div>
 
-          {/* Quick Status Filter Tabs with High Contrast */}
-          <div className="flex items-center gap-1.5">
+          {/* Quick Status Filter Tabs with Horizontal Scroll */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
             <button
               type="button"
               onClick={() => {
                 setStatusFilter('all');
                 setPage(1);
               }}
-              className={`rounded-[8px] px-2.5 py-1 text-xs font-bold transition ${
+              className={`shrink-0 whitespace-nowrap rounded-[8px] px-2.5 py-1 text-xs font-bold transition ${
                 statusFilter === 'all'
                   ? 'bg-slate-900 text-white'
                   : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
@@ -621,7 +766,7 @@ function ArticlesPageContent() {
                 setStatusFilter('published');
                 setPage(1);
               }}
-              className={`flex items-center gap-1.5 rounded-[8px] px-2.5 py-1 text-xs font-bold transition ${
+              className={`shrink-0 whitespace-nowrap flex items-center gap-1.5 rounded-[8px] px-2.5 py-1 text-xs font-bold transition ${
                 statusFilter === 'published'
                   ? 'bg-emerald-700 text-white'
                   : 'bg-emerald-50 text-emerald-950 border border-emerald-300 hover:bg-emerald-100'
@@ -636,7 +781,7 @@ function ArticlesPageContent() {
                 setStatusFilter('review');
                 setPage(1);
               }}
-              className={`flex items-center gap-1 rounded-[8px] px-2.5 py-1 text-xs font-bold transition ${
+              className={`shrink-0 whitespace-nowrap flex items-center gap-1 rounded-[8px] px-2.5 py-1 text-xs font-bold transition ${
                 statusFilter === 'review'
                   ? 'bg-amber-600 text-white'
                   : 'bg-amber-50 text-amber-950 border border-amber-300 hover:bg-amber-100'
@@ -651,7 +796,7 @@ function ArticlesPageContent() {
                 setStatusFilter('archived');
                 setPage(1);
               }}
-              className={`flex items-center gap-1 rounded-[8px] px-2.5 py-1 text-xs font-bold transition ${
+              className={`shrink-0 whitespace-nowrap flex items-center gap-1 rounded-[8px] px-2.5 py-1 text-xs font-bold transition ${
                 statusFilter === 'archived'
                   ? 'bg-red-700 text-white'
                   : 'bg-red-50 text-red-950 border border-red-300 hover:bg-red-100'
@@ -692,10 +837,10 @@ function ArticlesPageContent() {
         )}
 
         {/* Search & Filter Controls */}
-        <section className="mb-5 rounded-xl border border-slate-200 bg-white p-3.5 shadow-2xs dark:border-slate-800 dark:bg-slate-900">
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <section className="mb-4 sm:mb-5 rounded-xl border border-slate-200/90 bg-white p-3 sm:p-3.5 shadow-2xs dark:border-slate-800 dark:bg-slate-900">
+          <div className="grid gap-2.5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
             <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Search</label>
+              <label className="block text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Search</label>
               <input 
                 type="text" 
                 placeholder="Title or slug keywords..." 
@@ -705,7 +850,7 @@ function ArticlesPageContent() {
               />
             </div>
             <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Status</label>
+              <label className="block text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Status</label>
               <select 
                 value={statusFilter}
                 onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
@@ -719,7 +864,7 @@ function ArticlesPageContent() {
               </select>
             </div>
             <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+              <label className="block text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
                 {topicFilter === 'civic' ? 'Civic Category' : 'News Desk'}
               </label>
               <select 
@@ -746,7 +891,7 @@ function ArticlesPageContent() {
               </select>
             </div>
             <div>
-              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Coverage District</label>
+              <label className="block text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">Coverage District</label>
               <select 
                 value={districtFilter}
                 onChange={(e) => { setDistrictFilter(e.target.value); setPage(1); }}
@@ -774,7 +919,7 @@ function ArticlesPageContent() {
           </div>
         ) : null}
 
-        {/* Reusable Data Table with 5, 10, 15 pagination */}
+        {/* Reusable Data Table with Native Mobile Card View */}
         <DataTable<Article>
           columns={columns}
           data={articles}
@@ -801,7 +946,9 @@ function ArticlesPageContent() {
               setPage(1);
             },
           }}
+          mobileCardRender={renderMobileArticleCard}
         />
+
 
         {/* Retraction / Inactivate Modal */}
         {retractArticle && (
