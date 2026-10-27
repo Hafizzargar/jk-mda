@@ -28,8 +28,8 @@ AS $$
           AND profiles.status = 'active'
           AND role_permissions.permission_key = p_permission_key
           AND (
-            -- Editorial standard operations do not require MFA level 2
-            p_permission_key IN ('article.create', 'article.review', 'article.submit_review', 'article.publish', 'article.archive')
+            -- Editorial standard draft operations do not require MFA level 2
+            p_permission_key IN ('article.create', 'article.review', 'article.submit_review')
             OR profiles.role_key NOT IN ('owner', 'superadmin', 'admin')
             OR ((SELECT auth.jwt() ->> 'aal') = 'aal2')
           )

@@ -26,8 +26,8 @@ AS $$
   WHERE profiles.id = (SELECT auth.uid())
     AND profiles.status = 'active'
     AND (
-      -- Editorial standard operations do not require MFA level 2
-      role_permissions.permission_key IN ('article.create', 'article.review', 'article.submit_review', 'article.publish', 'article.archive')
+      -- Editorial standard draft operations do not require MFA level 2
+      role_permissions.permission_key IN ('article.create', 'article.review', 'article.submit_review')
       OR profiles.role_key NOT IN ('owner', 'superadmin', 'admin')
       OR ((SELECT auth.jwt() ->> 'aal') = 'aal2')
     );
@@ -54,6 +54,11 @@ BEGIN
   -- Publish permission check (authoritative check via has_permission)
   IF NOT public.has_permission('article.publish') THEN 
     RAISE EXCEPTION 'Article publish permission required'; 
+  END IF;
+
+  -- Defense-in-depth MFA requirement: publishing to the public domain strictly requires AAL2
+  IF coalesce((SELECT auth.jwt() ->> 'aal'), '') <> 'aal2' THEN
+    RAISE EXCEPTION 'MFA (AAL2) is strictly required to publish articles';
   END IF;
 
   SELECT * INTO article_row FROM public.articles WHERE id = p_article_id FOR UPDATE;
@@ -110,6 +115,11 @@ BEGIN
 
   IF article_row.status NOT IN ('review', 'published') THEN
     RAISE EXCEPTION 'Only published or in-review articles can be archived';
+  END IF;
+
+  -- Defense-in-depth MFA requirement: archiving an article strictly requires AAL2
+  IF coalesce((SELECT auth.jwt() ->> 'aal'), '') <> 'aal2' THEN
+    RAISE EXCEPTION 'MFA (AAL2) is strictly required to archive articles';
   END IF;
 
   UPDATE public.articles SET 
