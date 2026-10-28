@@ -29,6 +29,10 @@ export function buildCspHeader(options: CspOptions): string {
     'https://cdn.kjin.org',
     'https://media.kjin.org',
     'https://images.unsplash.com',
+    'https://lh3.googleusercontent.com',
+    'https://lh4.googleusercontent.com',
+    'https://lh5.googleusercontent.com',
+    'https://lh6.googleusercontent.com',
   ];
 
   const trustedConnectHosts = [

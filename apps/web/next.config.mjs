@@ -106,6 +106,10 @@ export function buildImageRemotePatterns(env = process.env) {
     'cdn.kjin.org',
     'media.kjin.org',
     'images.unsplash.com',
+    'lh3.googleusercontent.com',
+    'lh4.googleusercontent.com',
+    'lh5.googleusercontent.com',
+    'lh6.googleusercontent.com',
   ];
 
   for (const hostname of trustedHosts) {
