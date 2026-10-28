@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/Button';
+import { requiresMfa } from '@/lib/mfa';
 
 function MFAChallengeForm() {
   const router = useRouter();
@@ -19,6 +20,26 @@ function MFAChallengeForm() {
   useEffect(() => {
     async function initChallenge() {
       try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData.session) {
+          router.push('/login');
+          return;
+        }
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role_key')
+          .eq('id', sessionData.session.user.id)
+          .single();
+
+        const role = profile?.role_key || 'author';
+        if (!requiresMfa(role)) {
+          const nextUrl = searchParams.get('next');
+          const destination = nextUrl && nextUrl.startsWith('/') && !nextUrl.startsWith('//') ? nextUrl : '/';
+          router.push(destination);
+          return;
+        }
+
         const { data: aalData, error: aalError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
         
         if (aalError) {

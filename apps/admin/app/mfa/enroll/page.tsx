@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/Button';
+import { requiresMfa } from '@/lib/mfa';
 
 export default function MFAEnrollmentPage() {
   const router = useRouter();
@@ -21,6 +22,24 @@ export default function MFAEnrollmentPage() {
   useEffect(() => {
     async function initMFA() {
       try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData.session) {
+          router.push('/login');
+          return;
+        }
+
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role_key')
+          .eq('id', sessionData.session.user.id)
+          .single();
+
+        const role = profile?.role_key || 'author';
+        if (!requiresMfa(role)) {
+          router.push('/');
+          return;
+        }
+
         const { data: aalData, error: aalError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
         
         if (aalError) {
