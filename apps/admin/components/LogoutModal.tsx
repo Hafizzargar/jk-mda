@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Button } from './Button';
 
@@ -58,6 +58,14 @@ export function LogoutModal({ isOpen, onRedirect }: LogoutModalProps) {
     };
   }, [isOpen]);
 
+  const handleRedirect = useCallback(() => {
+    if (onRedirect) {
+      onRedirect();
+    } else {
+      window.location.href = '/login?alert=signed_out';
+    }
+  }, [onRedirect]);
+
   // Countdown timer for automatic redirect once sign-out completes
   useEffect(() => {
     if (phase !== 'done') return;
@@ -74,15 +82,7 @@ export function LogoutModal({ isOpen, onRedirect }: LogoutModalProps) {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [phase]);
-
-  const handleRedirect = () => {
-    if (onRedirect) {
-      onRedirect();
-    } else {
-      window.location.href = '/login?alert=signed_out';
-    }
-  };
+  }, [phase, handleRedirect]);
 
   if (!isOpen) return null;
 

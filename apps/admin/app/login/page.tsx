@@ -152,7 +152,7 @@ function LoginForm() {
               <span>Signed Out Successfully</span>
             </div>
             <p className="mt-1 text-xs text-cyan-300/80 leading-relaxed">
-              You have been safely signed out. Enter your credentials when you're ready to sign back in.
+              You have been safely signed out. Enter your credentials when you&apos;re ready to sign back in.
             </p>
           </div>
         )}

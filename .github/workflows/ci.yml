@@ -35,7 +35,7 @@ jobs:
         run: pnpm --filter @kjin/web test
 
       - name: Test (Admin)
-        run: pnpm --filter admin test
+        run: pnpm --filter @kjin/admin test
         
       - name: Build (Web)
         run: pnpm --filter @kjin/web build
@@ -44,7 +44,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: "dummy-key"
 
       - name: Build (Admin)
-        run: pnpm --filter admin build
+        run: pnpm --filter @kjin/admin build
         env:
           NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co"
           NEXT_PUBLIC_SUPABASE_ANON_KEY: "dummy-key"
