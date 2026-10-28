@@ -8,6 +8,7 @@ import { parsePageParam, parseLimitParam, getPaginationRange, calculatePaginatio
 import { getFooterContactSettings } from '@/lib/contact';
 import { getCustomAdsSettings } from '@/lib/ads';
 import { getNavbarSettings } from '@/lib/navbar';
+import { getTelemetrySettings } from '@/lib/telemetry';
 import { ClassicEditorialTemplate } from '@/components/templates/ClassicEditorialTemplate';
 import { ModernMagazineTemplate } from '@/components/templates/ModernMagazineTemplate';
 import { MinimalFocusTemplate } from '@/components/templates/MinimalFocusTemplate';
@@ -19,6 +20,9 @@ import { VisualStoriesTemplate } from '@/components/templates/VisualStoriesTempl
 import { TechTerminalTemplate } from '@/components/templates/TechTerminalTemplate';
 import { HyperlocalCommunityTemplate } from '@/components/templates/HyperlocalCommunityTemplate';
 import { ArticleItem } from '@/components/templates/types';
+import { REGIONAL_DIVISIONS, getDistrictDisplayName, type KJINRegionKey } from '@/lib/taxonomy';
+import { getCurationSettings } from '@/lib/curation';
+import { getRegionalWeather } from '@/lib/weather';
 
 export const revalidate = 60; // Revalidate every 60 seconds
 
@@ -103,10 +107,15 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
   const totalCount = count ?? 0;
   const paginationMeta = calculatePaginationMeta(totalCount, page, limit);
 
-  // 4. Fetch Footer & Bureau Contact Settings from database
-  const contactSettings = await getFooterContactSettings(supabase);
-  const adsSettings = await getCustomAdsSettings(supabase);
-  const navbarSettings = await getNavbarSettings(supabase);
+  // 4. Fetch Footer & Bureau Contact Settings, Telemetry, Curation Layout & Live Regional Weather
+  const [contactSettings, adsSettings, navbarSettings, telemetry, curation, weather] = await Promise.all([
+    getFooterContactSettings(supabase),
+    getCustomAdsSettings(supabase),
+    getNavbarSettings(supabase),
+    getTelemetrySettings(supabase),
+    getCurationSettings(supabase),
+    getRegionalWeather(),
+  ]);
 
   // 5. Fetch Trending Articles (bounded to recent 30-day window, J&K news only)
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -143,14 +152,150 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
   const latestArticles = (applyTranslations(rawLatestFiltered, lang) as unknown) as ArticleItem[];
   const trendingArticles = (applyTranslations(rawTrendingFiltered, lang) as unknown) as ArticleItem[];
 
-  const heroArticle = latestArticles && latestArticles.length > 0 ? latestArticles[0] : null;
-  const recentArticles = latestArticles && latestArticles.length > 1 ? latestArticles.slice(1) : [];
+  // 6. Fetch specifically curated article IDs if set in curation desk
+  const allCuratedIds = Array.from(
+    new Set([
+      curation.lead_hero_id,
+      ...(curation.sub_lead_ids || []),
+      ...(curation.wire_ids || []),
+      ...(curation.dossier_ids || []),
+      curation.editorial_id,
+      curation.developing_article_id,
+      ...Object.values(curation.corridor_assignments || {}),
+    ].filter(Boolean) as string[])
+  );
+
+  const curatedArticlesMap = new Map<string, ArticleItem>();
+  if (allCuratedIds.length > 0) {
+    const { data: curatedDbArticles } = await supabase
+      .from('articles')
+      .select(
+        'id, slug, title, excerpt, category, district, author_display_name, published_at, featured_image_url, view_count, article_translations(title, excerpt, language_code)'
+      )
+      .in('id', allCuratedIds);
+
+    const translatedCurated = (applyTranslations(curatedDbArticles || [], lang) as unknown) as ArticleItem[];
+    for (const art of translatedCurated) {
+      curatedArticlesMap.set(art.id, art);
+    }
+  }
+
+  // 7. Resolve Curated vs Algorithmic Slots
+  const heroArticle =
+    (curation.lead_hero_id ? curatedArticlesMap.get(curation.lead_hero_id) : null) ||
+    (latestArticles && latestArticles.length > 0 ? latestArticles[0] : null);
+
+  const remainingArticles = latestArticles.filter((a) => a.id !== heroArticle?.id);
+
+  const subArticles: ArticleItem[] =
+    curation.sub_lead_ids && curation.sub_lead_ids.length > 0
+      ? (curation.sub_lead_ids.map((id) => curatedArticlesMap.get(id)).filter(Boolean) as ArticleItem[])
+      : remainingArticles.slice(0, 2);
+
+  const wireArticles: ArticleItem[] =
+    curation.wire_ids && curation.wire_ids.length > 0
+      ? (curation.wire_ids.map((id) => curatedArticlesMap.get(id)).filter(Boolean) as ArticleItem[])
+      : remainingArticles.slice(2, 7);
+
+  const dossierArticles: ArticleItem[] =
+    curation.dossier_ids && curation.dossier_ids.length > 0
+      ? (curation.dossier_ids.map((id) => curatedArticlesMap.get(id)).filter(Boolean) as ArticleItem[])
+      : latestArticles.filter((a) => {
+          const c = a.category.toLowerCase();
+          return c === 'investigation' || c === 'culture' || c === 'environment' || c === 'economy';
+        }).slice(0, 3);
+
+  const editorialArticle: ArticleItem | null =
+    (curation.editorial_id ? curatedArticlesMap.get(curation.editorial_id) : null) ||
+    latestArticles.find((a) => a.category.toLowerCase() === 'opinion') ||
+    null;
+
+  // 8. Fetch Territorial Corridor Trending News (dynamic real-time stories for all 5 corridors)
+  const { data: corridorArticlesRaw } = await supabase
+    .from('articles')
+    .select('id, slug, title, category, district, published_at, view_count, reading_time_minutes, article_translations(title, language_code)')
+    .eq('status', 'published')
+    .not('district', 'is', null)
+    .order('view_count', { ascending: false, nullsFirst: false });
+
+  // Map each of the 5 canonical corridors to its top trending regional news or curated override
+  const CORRIDOR_REGIONS: Record<string, { regionKey: KJINRegionKey; name: string }> = {
+    kashmir: { regionKey: 'kashmir', name: 'Kashmir Valley' },
+    jammu: { regionKey: 'jammu', name: 'Jammu Plains' },
+    chenab: { regionKey: 'chenab-valley', name: 'Chenab Valley' },
+    panjal: { regionKey: 'pir-panjal', name: 'Pir Panjal' },
+    ladakh: { regionKey: 'leh', name: 'Leh & Ladakh' },
+  };
+
+  const dynamicCorridors = (telemetry.corridors_at_a_glance || []).map((corridor) => {
+    const config = CORRIDOR_REGIONS[corridor.id] || {
+      regionKey: (corridor.id === 'chenab' ? 'chenab-valley' : corridor.id === 'panjal' ? 'pir-panjal' : corridor.id === 'ladakh' ? 'leh' : corridor.id) as KJINRegionKey,
+      name: corridor.name,
+    };
+
+    const regionDef = REGIONAL_DIVISIONS[config.regionKey];
+    const allowedDistricts = regionDef?.districts || [];
+
+    // Check if specifically curated for this corridor
+    const pinnedArticleId = curation.corridor_assignments?.[corridor.id];
+    const matchedArticle =
+      (pinnedArticleId ? curatedArticlesMap.get(pinnedArticleId) : null) ||
+      (corridorArticlesRaw || []).find((art) =>
+        art.district && allowedDistricts.includes(art.district.toLowerCase().trim())
+      );
+
+    if (matchedArticle) {
+      const translation = (matchedArticle as any).article_translations?.find(
+        (t: { language_code: string; title?: string }) => t.language_code === lang
+      );
+      const headline = translation?.title || matchedArticle.title;
+      const districtName = matchedArticle.district
+        ? getDistrictDisplayName(matchedArticle.district)
+        : regionDef?.shortName || corridor.name;
+      const stats = matchedArticle.view_count && matchedArticle.view_count > 0
+        ? `${districtName} • ${matchedArticle.view_count.toLocaleString()} Readers • Trending`
+        : `${districtName} • Verified Field Dispatch • ${(matchedArticle as any).reading_time_minutes || 3}m read`;
+
+      return {
+        ...corridor,
+        headline,
+        stats,
+        link_path: `/${matchedArticle.category.toLowerCase()}/${matchedArticle.slug}`,
+        region_slug: config.regionKey,
+        article_id: matchedArticle.id,
+        is_dynamic: true,
+      };
+    }
+
+    const safeLink = corridor.link_path && !corridor.link_path.startsWith('/category/') && corridor.link_path !== '/transit'
+      ? corridor.link_path
+      : `/region/${config.regionKey}`;
+
+    return {
+      ...corridor,
+      link_path: safeLink,
+      region_slug: config.regionKey,
+    };
+  });
+
+  const enhancedTelemetry = {
+    ...telemetry,
+    live_wire: curation.developing_is_active && curation.developing_headline
+      ? {
+          headline: curation.developing_headline,
+          is_active: true,
+          synced_time: 'LIVE DESK',
+          verified: true,
+        }
+      : telemetry.live_wire,
+    corridors_at_a_glance: dynamicCorridors,
+  };
 
   const templateProps = {
     lang,
     langPrefix,
     heroArticle,
-    recentArticles,
+    recentArticles: remainingArticles,
     trendingArticles,
     allArticles: latestArticles,
     theme,
@@ -158,6 +303,13 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     paginationMeta,
     adsSettings,
     navbarSettings,
+    telemetry: enhancedTelemetry,
+    curation,
+    weather,
+    dossierArticles,
+    editorialArticle,
+    subArticles,
+    wireArticles,
   };
 
   const currentTemplateDef = getTemplateDefinition(activeTemplateId);

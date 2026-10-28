@@ -1,3 +1,8 @@
+// Ensure global self is defined in all runtimes (Edge / Node.js emulation)
+if (typeof (globalThis as unknown as { self: unknown }).self === 'undefined') {
+  (globalThis as unknown as { self: unknown }).self = globalThis;
+}
+
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { buildCspHeader } from './lib/csp';

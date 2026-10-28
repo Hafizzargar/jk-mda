@@ -12,6 +12,8 @@ import {
   DEFAULT_NAVBAR_SETTINGS,
   sanitizeNavbarSettings,
   type NavbarSettings,
+  BASE_TERRITORIAL_CORRIDORS,
+  getDailyRotatedCorridors,
 } from '@/lib/navbar';
 
 interface SiteNavbarProps {
@@ -105,6 +107,9 @@ export function SiteNavbar({
   }, [pathname]);
 
   const isDark = theme?.isDark ?? false;
+  const corridors = (navSettings.actions.daily_corridor_rotation ?? true)
+    ? getDailyRotatedCorridors(BASE_TERRITORIAL_CORRIDORS)
+    : BASE_TERRITORIAL_CORRIDORS;
 
   // Background and border tokens
   const navBg = theme?.headerBgClass || (isDark ? 'bg-slate-950/95' : 'bg-white/95');
@@ -140,154 +145,70 @@ export function SiteNavbar({
   };
 
   return (
-    <header className={`sticky top-0 z-50 backdrop-blur-md ${navBg} ${navBorder} transition-colors duration-200`}>
+    <header className={`w-full max-w-full overflow-x-hidden sticky top-0 z-50 backdrop-blur-md ${navBg} ${navBorder} transition-colors duration-200`}>
       {/* 1. Slim Top Utility Strip */}
       {navSettings.top_strip.enabled && (
-        <div className={`border-b ${isDark ? 'border-slate-800/80' : 'border-slate-200/80'} px-4 py-1 text-[11px] font-sans flex items-center justify-between`}>
-          {/* Left: Dateline & Pulse */}
-          <div className="flex items-center gap-3">
-            {navSettings.top_strip.show_date && (
-              <span className={`font-semibold ${textPrimary}`}>{currentDate}</span>
-            )}
-            {navSettings.top_strip.show_date && navSettings.top_strip.show_live_wire && (
-              <span className="hidden sm:inline text-slate-400">&bull;</span>
-            )}
-            {navSettings.top_strip.show_live_wire && (
-              <div className="hidden sm:flex items-center gap-1.5">
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-                <span className={`font-mono text-[10px] uppercase font-bold tracking-wider ${isDark ? 'text-emerald-400' : 'text-emerald-700'}`}>
-                  {navSettings.top_strip.live_wire_label}
-                </span>
-              </div>
-            )}
+        <div className="w-full max-w-full px-2.5 sm:px-4 py-1 sm:py-1.5 border-b border-stone-200/80 flex items-center justify-between text-[9px] sm:text-[10.5px] uppercase tracking-wider text-stone-600 font-medium overflow-hidden gap-1.5 sm:gap-2">
+          {/* Left: Dateline & Hijri/Calendar */}
+          <div className="flex items-center space-x-1 sm:space-x-2 min-w-0 truncate">
+            <span className="font-semibold text-stone-800 truncate" suppressHydrationWarning>{currentDate}</span>
+            <span className="text-stone-300 hidden xs:inline">|</span>
+            <span className="text-stone-500 font-serif lowercase italic text-[9px] sm:text-[10.5px] truncate hidden xs:inline">16 Jumada al-awwal 1448</span>
           </div>
 
-          {/* Center: Publication Banner */}
-          {navSettings.top_strip.show_center_banner && (
-            <div className={`hidden md:block text-[10px] font-bold uppercase tracking-widest ${textMuted}`}>
-              {navSettings.top_strip.center_banner_text}
+          {/* Right: Verified Wire Badge & Languages */}
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+            <div className="flex items-center space-x-1 bg-emerald-50 text-emerald-800 px-1.5 sm:px-2 py-0.5 rounded-full border border-emerald-200 text-[8px] sm:text-[9.5px] font-semibold whitespace-nowrap">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+              <span>VERIFIED WIRE</span>
             </div>
-          )}
-
-          {/* Right: Language switchers & Quick Tip */}
-          <div className="flex items-center gap-3">
             {navSettings.languages.enabled && (
-              <div className="flex items-center gap-1 font-mono text-[10px]">
-                {navSettings.languages.en && (
-                  <Link
-                    href={pathname.replace(/^\/(ur|ks|hi)/, '') || '/'}
-                    className={`px-1.5 py-0.5 rounded transition ${lang === 'en' ? 'font-bold bg-slate-200/60 dark:bg-slate-800 text-slate-900 dark:text-white' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
-                  >
-                    EN
-                  </Link>
-                )}
-                {navSettings.languages.en && navSettings.languages.ur && <span className="text-slate-400">/</span>}
-                {navSettings.languages.ur && (
-                  <Link
-                    href={`/ur${pathname.replace(/^\/(ur|ks|hi)/, '')}`}
-                    className={`px-1.5 py-0.5 rounded transition ${lang === 'ur' ? 'font-bold bg-slate-200/60 dark:bg-slate-800 text-slate-900 dark:text-white' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
-                  >
-                    اردو
-                  </Link>
-                )}
-                {(navSettings.languages.en || navSettings.languages.ur) && navSettings.languages.ks && <span className="text-slate-400">/</span>}
-                {navSettings.languages.ks && (
-                  <Link
-                    href={`/ks${pathname.replace(/^\/(ur|ks|hi)/, '')}`}
-                    className={`px-1.5 py-0.5 rounded transition ${lang === 'ks' ? 'font-bold bg-slate-200/60 dark:bg-slate-800 text-slate-900 dark:text-white' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
-                  >
-                    कॉशुर
-                  </Link>
-                )}
-                {(navSettings.languages.en || navSettings.languages.ur || navSettings.languages.ks) && navSettings.languages.hi && <span className="text-slate-400">/</span>}
-                {navSettings.languages.hi && (
-                  <Link
-                    href={`/hi${pathname.replace(/^\/(ur|ks|hi)/, '')}`}
-                    className={`px-1.5 py-0.5 rounded transition ${lang === 'hi' ? 'font-bold bg-slate-200/60 dark:bg-slate-800 text-slate-900 dark:text-white' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'}`}
-                  >
-                    हिन्दी
-                  </Link>
-                )}
+              <div className="hidden sm:flex items-center gap-1 font-mono text-[10px] ml-1">
+                <Link href={pathname.replace(/^\/(ur|ks|hi)/, '') || '/'} className={`px-1 py-0.5 rounded ${lang === 'en' ? 'font-bold bg-stone-200/80 text-stone-900' : 'text-stone-500'}`}>EN</Link>
+                <span className="text-stone-300">/</span>
+                <Link href={`/ur${pathname.replace(/^\/(ur|ks|hi)/, '')}`} className={`px-1 py-0.5 rounded ${lang === 'ur' ? 'font-bold bg-stone-200/80 text-stone-900' : 'text-stone-500'}`}>اردو</Link>
               </div>
-            )}
-
-            {navSettings.actions.show_submit_tip && (
-              <a
-                href={navSettings.actions.submit_tip_url}
-                className={`hidden lg:inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold border ${isDark ? 'border-slate-800 hover:border-slate-700 text-slate-300' : 'border-slate-300 hover:border-slate-400 text-slate-700'} transition`}
-              >
-                {navSettings.actions.submit_tip_label}
-              </a>
             )}
           </div>
         </div>
       )}
 
-      {/* 2. Main Navigation Bar */}
-      <div className="max-w-7xl mx-auto px-4 md:px-6 h-14 flex items-center justify-between gap-4">
-        {/* Brand Mark — controlled from Admin portal */}
-        <div className="flex items-center shrink-0">
-          <Link
-            href={`${langPrefix}/`}
-            className="flex items-center gap-3 group transition-all duration-300"
-          >
-            {/* The emblem icon with ambient glowing ring & micro-zoom */}
+      {/* 2. Master Heraldic Masthead */}
+      <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 py-2.5 flex items-center justify-between gap-2 sm:gap-3">
+        {/* Brand Crest & Name */}
+        <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+          <Link href={`${langPrefix}/`} className="flex items-center space-x-2 sm:space-x-3 group transition-all min-w-0">
             {navSettings.brand.show_logo_image && (
-              <div className="relative flex items-center justify-center h-12 w-12 shrink-0 rounded-2xl bg-gradient-to-br from-white/95 via-slate-50/80 to-slate-100/60 dark:from-slate-800/80 dark:via-slate-900/90 dark:to-slate-950 p-1.5 shadow-xs border border-slate-200/90 dark:border-slate-700/60 transition-all duration-300 ease-out group-hover:scale-105 group-hover:shadow-md group-hover:shadow-cyan-500/25 group-hover:border-cyan-500/50">
-                {/* Radiant background aura on hover */}
-                <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-cyan-500/15 via-blue-500/10 to-amber-500/15 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-                <Image
-                  src={navSettings.brand.logo_url || '/kjin-emblem.png'}
-                  alt={navSettings.brand.name || 'KJIN'}
-                  fill
-                  className="object-contain p-1 transition-transform duration-300 ease-out group-hover:rotate-1 group-hover:scale-105"
-                  priority
-                  sizes="48px"
-                />
+              <div className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-full p-0.5 bg-gradient-to-tr from-amber-600 via-amber-200 to-amber-700 shadow-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <div className="w-full h-full bg-stone-900 rounded-full flex flex-col items-center justify-center p-0.5 sm:p-1 text-center border border-amber-300/40 relative overflow-hidden">
+                  <Image
+                    src={navSettings.brand.logo_url || '/kcpjln-symbol.webp'}
+                    alt={navSettings.brand.name || 'KCPJLN'}
+                    fill
+                    className="object-contain p-0.5 rounded-full"
+                    priority
+                    sizes="44px"
+                  />
+                </div>
               </div>
             )}
-
-            {/* Wordmark next to emblem with dynamic color transition & animated underline */}
-            {(navSettings.brand.show_name || navSettings.brand.show_tagline) && (
-              <div className="flex flex-col justify-center">
-                {navSettings.brand.show_name && (
-                  <span
-                    className={`relative inline-block text-2xl font-black tracking-tight uppercase transition-all duration-300 ${
-                      isDark
-                        ? 'text-white group-hover:text-cyan-300 group-hover:drop-shadow-[0_0_12px_rgba(34,211,238,0.4)]'
-                        : 'text-slate-950 group-hover:text-blue-900 group-hover:drop-shadow-[0_1px_3px_rgba(30,58,138,0.25)]'
-                    }`}
-                    style={{ fontFamily: theme?.id === 'classic-editorial' ? 'Georgia, serif' : 'inherit' }}
-                  >
-                    <span className="transition-all duration-300 group-hover:tracking-wide">
-                      {navSettings.brand.name || SITE_SHORT_NAME}
-                    </span>
-                    {/* Animated gradient accent bar beneath the brand name */}
-                    <span className="absolute -bottom-0.5 left-0 h-0.5 w-0 rounded-full bg-gradient-to-r from-blue-700 via-cyan-500 to-amber-500 transition-all duration-300 ease-out group-hover:w-full" />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline space-x-1 sm:space-x-1.5">
+                <h1 className="font-masthead text-lg sm:text-xl font-black text-stone-900 tracking-tight leading-none truncate">
+                  {navSettings.brand.name || 'KCPJLN'}
+                </h1>
+                {(navSettings.brand.show_est_badge ?? true) && (
+                  <span className="text-[8px] sm:text-[9px] font-serif font-bold text-amber-800 tracking-widest uppercase bg-amber-100/70 px-1 py-0.5 rounded shrink-0">
+                    {navSettings.brand.est_badge_text || 'EST. 1948'}
                   </span>
                 )}
-                {navSettings.brand.show_tagline && (
-                  <div className="flex items-center gap-1.5 mt-0.5 hidden sm:flex">
-                    <span className="relative flex h-1.5 w-1.5 shrink-0">
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-75" />
-                      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-cyan-500" />
-                    </span>
-                    <span
-                      className={`text-[9px] font-mono tracking-[0.18em] uppercase font-bold transition-colors duration-200 ${
-                        isDark
-                          ? 'text-slate-400 group-hover:text-cyan-300'
-                          : 'text-slate-600 group-hover:text-blue-900'
-                      }`}
-                    >
-                      {navSettings.brand.tagline}
-                    </span>
-                  </div>
-                )}
               </div>
-            )}
+              {(navSettings.brand.show_tagline ?? true) && Boolean(navSettings.brand.tagline?.trim()) && (
+                <p className="text-[8.5px] sm:text-[9.5px] font-serif italic text-stone-600 leading-tight tracking-wide mt-0.5 truncate">
+                  {navSettings.brand.tagline}
+                </p>
+              )}
+            </div>
           </Link>
         </div>
 
@@ -438,17 +359,32 @@ export function SiteNavbar({
           )}
         </nav>
 
-        {/* Mobile Hamburger Toggle */}
-        <div className="flex items-center md:hidden">
+        {/* Mobile Actions: Search & Hamburger Toggle */}
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 md:hidden">
+          <Link
+            href={`${langPrefix}/search`}
+            className={`p-1.5 sm:p-2 rounded-xl border transition-all duration-150 ${
+              isDark
+                ? 'border-slate-800 text-slate-200 hover:bg-slate-900 bg-slate-900/60'
+                : 'border-slate-200 text-slate-700 hover:bg-slate-100 bg-slate-50/80 shadow-xs'
+            }`}
+            aria-label="Search dispatches"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </Link>
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className={`p-1.5 rounded-lg border ${
-              isDark ? 'border-slate-800 text-slate-300 hover:bg-slate-900' : 'border-slate-300 text-slate-700 hover:bg-slate-100'
+            className={`p-1.5 sm:p-2 rounded-xl border transition-all duration-150 active:scale-95 ${
+              isDark
+                ? 'border-slate-800 text-slate-200 hover:bg-slate-900 bg-slate-900/60'
+                : 'border-slate-200 text-slate-700 hover:bg-slate-100 bg-slate-50/80 shadow-xs'
             }`}
             aria-label="Toggle navigation menu"
           >
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-4.5 h-4.5 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               {mobileMenuOpen ? (
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               ) : (
@@ -458,6 +394,39 @@ export function SiteNavbar({
           </button>
         </div>
       </div>
+
+      {/* 2b. Five Territorial Corridor Filter Navigation Bar (Daily +1 Shift Rotation) */}
+      <nav
+        aria-label="Regional Corridors"
+        className="w-full max-w-full border-t border-stone-200/80 px-3 py-1.5 overflow-x-auto no-scrollbar flex items-center space-x-2 text-[11px] font-semibold tracking-wide whitespace-nowrap bg-stone-100/60"
+      >
+        <Link
+          href={`${langPrefix}/`}
+          className={`shrink-0 px-2.5 py-1 rounded-full shadow-xs flex items-center space-x-1.5 transition-colors ${
+            !activeRegion
+              ? 'bg-stone-900 text-stone-100'
+              : 'bg-white border border-stone-300 text-stone-700 hover:bg-stone-50'
+          }`}
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span>ALL BUREAUS</span>
+        </Link>
+        {corridors.map((c) => {
+          const isActive = activeRegion === c.id || activeRegion === c.slug;
+          return (
+            <Link
+              key={c.id}
+              href={`${langPrefix}/region/${c.slug}`}
+              className={`shrink-0 px-2.5 py-1 rounded-full border transition-colors flex items-center space-x-1.5 ${
+                isActive ? c.activeClass : c.idleClass
+              }`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${c.dotColor}`}></span>
+              <span>{c.name}</span>
+            </Link>
+          );
+        })}
+      </nav>
 
       {/* 3. Mobile Navigation Drawer */}
       {mobileMenuOpen && (

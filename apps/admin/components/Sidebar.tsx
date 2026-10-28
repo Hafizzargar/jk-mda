@@ -25,6 +25,7 @@ interface SubNavItem {
   badge?: string;
   badgeColor?: string;
   exact?: boolean;
+  roles?: string[];
 }
 
 interface NavItem {
@@ -58,10 +59,8 @@ export function Sidebar({
   const pathname = usePathname();
   const [loggingOut, setLoggingOut] = useState(false);
   const [currentSearch, setCurrentSearch] = useState('');
-  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({
-    'Articles & Stories': true,
-    'Event & Gov Monitor': true,
-  });
+  // Single active accordion section: only one dropdown open at any time
+  const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -71,15 +70,6 @@ export function Sidebar({
       return () => window.removeEventListener('popstate', handleLocation);
     }
   }, [pathname]);
-
-  const toggleMenu = (name: string, e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setOpenMenus((prev) => ({
-      ...prev,
-      [name]: !prev[name],
-    }));
-  };
 
   const navSections: NavSection[] = [
     {
@@ -109,29 +99,27 @@ export function Sidebar({
               href: '/articles/new',
               icon: '✍️',
               badge: 'Draft',
-              badgeColor: 'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/40',
+              badgeColor:
+                'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/40',
             },
             {
               name: 'Area Problems',
               href: '/articles?category=Local',
               icon: '🏛️',
               badge: 'Civic',
-              badgeColor: 'bg-amber-100 text-amber-900 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40',
+              badgeColor:
+                'bg-amber-100 text-amber-900 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40',
             },
           ],
         },
-      ],
-    },
-    {
-      title: 'AI Newsroom',
-      items: [
         {
           name: 'Event & Gov Monitor',
           description: 'District events & official government response monitor',
           href: '/newsroom',
           icon: '📡',
           badge: 'Radar',
-          badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 font-bold',
+          badgeColor:
+            'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 font-bold',
           roles: ['owner', 'superadmin', 'admin', 'editor'],
           children: [
             {
@@ -160,71 +148,115 @@ export function Sidebar({
       ],
     },
     {
-      title: 'Team & Workspace',
+      title: 'Workspace & Management',
       items: [
         {
-          name: 'Employees & Access',
-          description: 'Staff directory, RBAC roles & permissions',
+          name: 'Team & Workspace',
+          description: 'Staff directory, hiring & author profile',
           href: '/employees',
           icon: '👥',
-          roles: ['owner', 'superadmin'],
+          children: [
+            {
+              name: 'Employees & Access',
+              href: '/employees',
+              icon: '👥',
+              roles: ['owner', 'superadmin'],
+            },
+            {
+              name: 'Careers & Hiring',
+              href: '/careers',
+              icon: '💼',
+              roles: ['owner', 'superadmin', 'admin'],
+              badge: 'Jobs',
+              badgeColor:
+                'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40 font-bold',
+            },
+            {
+              name: 'My Profile & Author',
+              href: '/profile',
+              icon: '👤',
+            },
+          ],
         },
         {
-          name: 'My Profile & Author',
-          description: 'Author bio, credentials & security MFA',
-          href: '/profile',
-          icon: '👤',
-        },
-      ],
-    },
-    {
-      title: 'Site Design & Navigation',
-      items: [
-        {
-          name: 'Brand & Identity',
-          description: 'Name, acronym, logo emblem & legal masthead',
-          href: '/settings/brand',
+          name: 'Site Design & Navigation',
+          description: 'Visual broadsheet curator, branding, navbar, footer & passes',
+          href: '/settings/curation',
           icon: '🎨',
-          roles: ['owner', 'superadmin'],
-          badge: 'Core',
-          badgeColor: 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40 font-bold',
+          badge: 'Design',
+          badgeColor:
+            'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/40 font-bold',
+          roles: ['owner', 'superadmin', 'admin', 'editor'],
+          children: [
+            {
+              name: 'Homepage Curator',
+              href: '/settings/curation',
+              icon: '📰',
+              roles: ['owner', 'superadmin', 'admin', 'editor'],
+              badge: 'Curator',
+              badgeColor:
+                'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/40 font-bold',
+            },
+            {
+              name: 'Brand & Identity',
+              href: '/settings/brand',
+              icon: '🎨',
+              roles: ['owner', 'superadmin'],
+              badge: 'Core',
+              badgeColor:
+                'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40 font-bold',
+            },
+            {
+              name: 'Header & Navigation',
+              href: '/settings/navbar',
+              icon: '🧭',
+              roles: ['owner', 'superadmin'],
+              badge: 'Live',
+              badgeColor:
+                'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/40 font-bold',
+            },
+            {
+              name: 'Footer & Bureaus',
+              href: '/settings/footer',
+              icon: '📑',
+              roles: ['owner', 'superadmin'],
+            },
+            {
+              name: 'Regional Telemetry & Passes',
+              href: '/settings/telemetry',
+              icon: '🏔️',
+              roles: ['owner', 'superadmin', 'admin', 'editor'],
+              badge: 'Live',
+              badgeColor:
+                'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40 font-bold',
+            },
+            {
+              name: 'Website Templates',
+              href: '/templates',
+              icon: '🎨',
+              roles: ['owner', 'superadmin'],
+            },
+          ],
         },
         {
-          name: 'Header & Navigation',
-          description: 'Brand logo, navbar menus, topics & tools',
-          href: '/settings/navbar',
-          icon: '🧭',
-          roles: ['owner', 'superadmin'],
-          badge: 'Live',
-          badgeColor: 'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/40 font-bold',
-        },
-        {
-          name: 'Footer & Bureaus',
-          description: 'Footer columns, bureau contacts & links',
-          href: '/settings/footer',
-          icon: '📑',
-          roles: ['owner', 'superadmin'],
-        },
-        {
-          name: 'Website Templates',
-          description: 'Reader themes, typography & layout presets',
-          href: '/templates',
-          icon: '🎨',
-          roles: ['owner', 'superadmin'],
-        },
-      ],
-    },
-    {
-      title: 'Revenue & Monetization',
-      items: [
-        {
-          name: 'Custom Ads & Monetization',
+          name: 'Revenue & Monetization',
           description: 'Sponsors, native ad slots & earnings',
           href: '/settings/ads',
           icon: '💰',
           roles: ['owner', 'superadmin'],
           badge: '✨ Earn',
-          badgeColor: 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-500/25 dark:text-amber-200 dark:border-amber-400/50 font-bold',
+          badgeColor:
+            'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-500/25 dark:text-amber-200 dark:border-amber-400/50 font-bold',
+          children: [
+            {
+              name: 'Custom Ads & Monetization',
+              href: '/settings/ads',
+              icon: '💰',
+              badge: '✨ Earn',
+              badgeColor:
+                'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-500/25 dark:text-amber-200 dark:border-amber-400/50 font-bold',
+            },
+          ],
         },
       ],
     },
@@ -236,27 +268,49 @@ export function Sidebar({
   };
 
   const isSubItemActive = (sub: SubNavItem) => {
-    if (sub.href === '/articles?category=Local') {
+    if (sub.href.includes('?category=Local')) {
       return pathname === '/articles' && currentSearch.includes('category=Local');
     }
     if (sub.href === '/articles') {
       return pathname === '/articles' && !currentSearch.includes('category=Local');
     }
-    return pathname === sub.href;
+    if (sub.exact) {
+      return pathname === sub.href;
+    }
+    return pathname === sub.href || (sub.href !== '/' && pathname.startsWith(sub.href) && !sub.href.includes('?'));
   };
 
   const isLinkActive = (item: NavItem) => {
     if (item.exact) {
       return pathname === item.href;
     }
-    if (item.children) {
-      return pathname.startsWith(item.href);
+    if (item.children && item.children.length > 0) {
+      return item.children.some((child) => isSubItemActive(child));
     }
-    // Specific match for category=Local
     if (item.href === '/articles?category=Local') {
       return pathname === '/articles' && currentSearch.includes('category=Local');
     }
     return pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href) && !item.href.includes('?'));
+  };
+
+  // Synchronize open accordion with active route whenever pathname changes
+  useEffect(() => {
+    const activeParent = navSections
+      .flatMap((s) => s.items)
+      .find((item) => item.children && item.children.length > 0 && isLinkActive(item));
+
+    if (activeParent) {
+      setOpenMenu(activeParent.name);
+    }
+  }, [pathname, currentSearch]);
+
+  // Single-accordion toggle: opening one closes all other dropdowns
+  const toggleMenu = (name: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    setOpenMenu((current) => (current === name ? null : name));
   };
 
   const userInitials = userEmail
@@ -363,7 +417,7 @@ export function Sidebar({
       {/* Navigation Sections */}
       <nav
         data-sidebar-nav
-        className="flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden no-scrollbar px-3 py-2 space-y-2"
+        className="flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden no-scrollbar px-3 py-2 space-y-3"
       >
         {navSections.map((section) => {
           const filteredItems = section.items.filter((item) => {
@@ -375,100 +429,151 @@ export function Sidebar({
           if (filteredItems.length === 0) return null;
 
           return (
-            <div key={section.title} className="space-y-0.5">
+            <div key={section.title} className="space-y-1">
               {!isCollapsed && (
-                <p className="px-3 pt-1.5 pb-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono">
+                <p className="px-3 pt-1 pb-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono">
                   {section.title}
                 </p>
               )}
-              <div className="space-y-0.5">
+
+              <div className="space-y-1">
                 {filteredItems.map((item) => {
                   const active = isLinkActive(item);
                   const hasChildren = item.children && item.children.length > 0;
-                  const isOpen = openMenus[item.name] ?? true;
+                  const isOpen = openMenu === item.name;
 
+                  // Render Dropdown Accordion Item
                   if (hasChildren) {
-                    return (
-                      <div key={item.name} className="space-y-0.5">
-                        <div
-                          className={`group flex items-center justify-between rounded-xl px-3 py-1.5 text-xs font-semibold transition-all ${
+                    if (isCollapsed) {
+                      return (
+                        <Link
+                          key={item.name}
+                          href={item.href}
+                          onClick={onCloseMobile}
+                          title={item.name}
+                          className={`group flex items-center justify-center rounded-xl p-2.5 text-xs font-semibold transition-all ${
                             active
-                              ? 'bg-cyan-50/80 text-cyan-950 font-bold border-l-4 border-cyan-600 shadow-2xs dark:bg-cyan-950/50 dark:text-cyan-200 dark:border-cyan-400'
-                              : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 border-l-4 border-transparent dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white'
+                              ? 'bg-cyan-50 text-cyan-950 font-bold shadow-2xs dark:bg-cyan-950/50 dark:text-cyan-200'
+                              : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white'
                           }`}
                         >
-                          <Link
-                            href={item.href}
-                            onClick={onCloseMobile}
-                            title={item.name}
-                            className="flex items-center gap-2.5 flex-1 min-w-0"
-                          >
+                          <span className="text-lg shrink-0 transition-transform group-hover:scale-110">
+                            {item.icon}
+                          </span>
+                        </Link>
+                      );
+                    }
+
+                    return (
+                      <div key={item.name} className="space-y-0.5">
+                        {/* Parent Dropdown Button */}
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onClick={(e) => toggleMenu(item.name, e)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              toggleMenu(item.name);
+                            }
+                          }}
+                          title={item.description || item.name}
+                          className={`group flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold cursor-pointer select-none transition-all ${
+                            active
+                              ? 'bg-cyan-50/90 text-cyan-950 font-bold border-l-4 border-cyan-600 shadow-2xs dark:bg-cyan-950/60 dark:text-cyan-200 dark:border-cyan-400'
+                              : isOpen
+                                ? 'bg-slate-100 text-slate-900 font-bold border-l-4 border-slate-300 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700'
+                                : 'text-slate-700 hover:bg-slate-100/70 hover:text-slate-900 border-l-4 border-transparent dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 flex-1 min-w-0">
                             <span className="text-base shrink-0 transition-transform group-hover:scale-110">
                               {item.icon}
                             </span>
-                            {!isCollapsed && (
-                              <span className="truncate flex-1">
-                                {item.name}
+                            <span className="truncate flex-1">{item.name}</span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0 ml-1">
+                            {item.badge && (
+                              <span
+                                className={`rounded-full border px-1.5 py-0.2 text-[9px] font-bold tracking-wide ${item.badgeColor || 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'}`}
+                              >
+                                {item.badge}
                               </span>
                             )}
-                          </Link>
-
-                          {!isCollapsed && (
-                            <button
-                              type="button"
-                              onClick={(e) => toggleMenu(item.name, e)}
-                              aria-label={isOpen ? 'Collapse submenu' : 'Expand submenu'}
-                              className="ml-1 flex h-5 w-5 items-center justify-center rounded-md text-slate-400 hover:bg-slate-200/60 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition-colors"
+                            <span
+                              className={`inline-block text-[9px] text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-transform duration-200 ${
+                                isOpen ? 'rotate-180' : ''
+                              }`}
                             >
-                              <span
-                                className={`inline-block text-[9px] transition-transform duration-200 ${
-                                  isOpen ? 'rotate-180' : ''
-                                }`}
-                              >
-                                ▼
-                              </span>
-                            </button>
-                          )}
+                              ▼
+                            </span>
+                          </div>
                         </div>
 
-                        {!isCollapsed && isOpen && (
-                          <div className="ml-5 mt-0.5 space-y-0.5 border-l-2 border-slate-200 dark:border-slate-800 pl-2.5 py-0.5">
-                            {item.children!.map((sub) => {
-                              const subActive = isSubItemActive(sub);
-
-                              return (
-                                <Link
-                                  key={sub.name}
-                                  href={sub.href}
-                                  onClick={onCloseMobile}
-                                  title={sub.name}
-                                  className={`group flex items-center gap-2 rounded-lg px-2 py-1 text-xs font-medium transition-all ${
-                                    subActive
-                                      ? 'bg-cyan-100/90 text-cyan-950 font-bold dark:bg-cyan-900/50 dark:text-cyan-200 shadow-2xs'
-                                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-white'
-                                  }`}
-                                >
-                                  {sub.icon && (
-                                    <span className="text-xs shrink-0 transition-transform group-hover:scale-110">
-                                      {sub.icon}
-                                    </span>
-                                  )}
-                                  <span className="truncate flex-1">
-                                    {sub.name}
-                                  </span>
-                                  {sub.badge && (
-                                    <span
-                                      className={`ml-auto shrink-0 rounded-full border px-1.5 py-0.2 text-[9px] font-bold tracking-wide ${sub.badgeColor}`}
-                                    >
-                                      {sub.badge}
-                                    </span>
-                                  )}
-                                </Link>
-                              );
-                            })}
+                        {/* Dropdown Children */}
+                        {isOpen && (
+                          <div className="ml-4 mt-0.5 space-y-0.5 border-l-2 border-slate-200 dark:border-slate-800 pl-2.5 py-0.5">
+                            {item.children!
+                              .filter((sub) => {
+                                if (!sub.roles) return true;
+                                if (!userRole) return false;
+                                return sub.roles.includes(userRole);
+                              })
+                              .map((sub) => {
+                                const subActive = isSubItemActive(sub);
+                                return (
+                                  <Link
+                                    key={sub.name}
+                                    href={sub.href}
+                                    onClick={onCloseMobile}
+                                    title={sub.name}
+                                    className={`group flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
+                                      subActive
+                                        ? 'bg-cyan-100/90 text-cyan-950 font-bold dark:bg-cyan-900/50 dark:text-cyan-200 shadow-2xs'
+                                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-white'
+                                    }`}
+                                  >
+                                    {sub.icon && (
+                                      <span className="text-xs shrink-0 transition-transform group-hover:scale-110">
+                                        {sub.icon}
+                                      </span>
+                                    )}
+                                    <span className="truncate flex-1">{sub.name}</span>
+                                    {sub.badge && (
+                                      <span
+                                        className={`ml-auto shrink-0 rounded-full border px-1.5 py-0.2 text-[9px] font-bold tracking-wide ${sub.badgeColor || 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'}`}
+                                      >
+                                        {sub.badge}
+                                      </span>
+                                    )}
+                                  </Link>
+                                );
+                              })}
                           </div>
                         )}
                       </div>
+                    );
+                  }
+
+                  // Render Single Link Item (e.g. Dashboard)
+                  if (isCollapsed) {
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        onClick={onCloseMobile}
+                        title={item.name}
+                        className={`group flex items-center justify-center rounded-xl p-2.5 text-xs font-semibold transition-all ${
+                          active
+                            ? 'bg-cyan-50 text-cyan-950 font-bold shadow-2xs dark:bg-cyan-950/50 dark:text-cyan-200'
+                            : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white'
+                        }`}
+                      >
+                        <span className="text-lg shrink-0 transition-transform group-hover:scale-110">
+                          {item.icon}
+                        </span>
+                      </Link>
                     );
                   }
 
@@ -477,29 +582,23 @@ export function Sidebar({
                       key={item.name}
                       href={item.href}
                       onClick={onCloseMobile}
-                      title={item.name}
-                      className={`group flex items-center gap-2.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all ${
+                      title={item.description || item.name}
+                      className={`group flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold transition-all ${
                         active
-                          ? 'bg-cyan-50 text-cyan-950 font-bold border-l-4 border-cyan-600 shadow-2xs dark:bg-cyan-950/50 dark:text-cyan-200 dark:border-cyan-400'
+                          ? 'bg-cyan-50/90 text-cyan-950 font-bold border-l-4 border-cyan-600 shadow-2xs dark:bg-cyan-950/60 dark:text-cyan-200 dark:border-cyan-400'
                           : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 border-l-4 border-transparent dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white'
                       }`}
                     >
                       <span className="text-base shrink-0 transition-transform group-hover:scale-110">
                         {item.icon}
                       </span>
-                      {!isCollapsed && (
-                        <>
-                          <span className="truncate flex-1">
-                            {item.name}
-                          </span>
-                          {item.badge && (
-                            <span
-                              className={`ml-auto shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold tracking-wide ${item.badgeColor}`}
-                            >
-                              {item.badge}
-                            </span>
-                          )}
-                        </>
+                      <span className="truncate flex-1">{item.name}</span>
+                      {item.badge && (
+                        <span
+                          className={`ml-auto shrink-0 rounded-full border px-1.5 py-0.2 text-[9px] font-bold tracking-wide ${item.badgeColor || 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'}`}
+                        >
+                          {item.badge}
+                        </span>
                       )}
                     </Link>
                   );
@@ -527,7 +626,9 @@ export function Sidebar({
             {!isCollapsed && (
               <>
                 <span className="truncate flex-1">Public Site</span>
-                <span className="text-xs text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 font-bold">↗</span>
+                <span className="text-xs text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 font-bold">
+                  ↗
+                </span>
               </>
             )}
           </a>

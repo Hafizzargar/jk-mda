@@ -25,6 +25,8 @@ export interface NavbarBrandConfig {
   show_tagline: boolean;
   loader_text?: string;
   show_loader_emblem?: boolean;
+  est_badge_text?: string;
+  show_est_badge?: boolean;
 }
 
 export interface NavbarTopStripConfig {
@@ -43,6 +45,89 @@ export interface NavbarActionsConfig {
   show_submit_tip: boolean;
   submit_tip_label: string;
   submit_tip_url: string;
+  daily_corridor_rotation?: boolean;
+}
+
+export interface TerritorialCorridor {
+  id: string;
+  name: string;
+  slug: string;
+  dotColor: string;
+  activeClass: string;
+  idleClass: string;
+}
+
+export const BASE_TERRITORIAL_CORRIDORS: TerritorialCorridor[] = [
+  {
+    id: 'kashmir',
+    name: 'Kashmir Valley',
+    slug: 'kashmir',
+    dotColor: 'bg-emerald-600',
+    activeClass: 'bg-emerald-100 text-emerald-900 border-emerald-300 font-bold',
+    idleClass: 'bg-white border-stone-300 text-emerald-900 hover:bg-emerald-50/80',
+  },
+  {
+    id: 'chenab-valley',
+    name: 'Chenab Valley',
+    slug: 'chenab-valley',
+    dotColor: 'bg-cyan-600',
+    activeClass: 'bg-cyan-100 text-cyan-900 border-cyan-300 font-bold',
+    idleClass: 'bg-white border-stone-300 text-cyan-900 hover:bg-cyan-50/80',
+  },
+  {
+    id: 'pir-panjal',
+    name: 'Pir Panjal',
+    slug: 'pir-panjal',
+    dotColor: 'bg-purple-600',
+    activeClass: 'bg-purple-100 text-purple-900 border-purple-300 font-bold',
+    idleClass: 'bg-white border-stone-300 text-purple-900 hover:bg-purple-50/80',
+  },
+  {
+    id: 'jammu',
+    name: 'Jammu Plains',
+    slug: 'jammu',
+    dotColor: 'bg-amber-600',
+    activeClass: 'bg-amber-100 text-amber-900 border-amber-300 font-bold',
+    idleClass: 'bg-white border-stone-300 text-amber-900 hover:bg-amber-50/80',
+  },
+  {
+    id: 'leh',
+    name: 'Leh & Ladakh',
+    slug: 'leh',
+    dotColor: 'bg-blue-600',
+    activeClass: 'bg-blue-100 text-blue-900 border-blue-300 font-bold',
+    idleClass: 'bg-white border-stone-300 text-blue-900 hover:bg-blue-50/80',
+  },
+];
+
+/**
+ * Calculates daily cyclic rotation of the 5 regional corridors.
+ * On Oct 27, 2026, offset is 0 (Kashmir Valley leads).
+ * On Oct 28, 2026, offset is 1 (Chenab Valley leads, followed by Kashmir Valley and other corridors),
+ * shifting +1 in position every day.
+ */
+export function getDailyRotatedCorridors<T>(
+  corridors: T[] = BASE_TERRITORIAL_CORRIDORS as unknown as T[],
+  currentDate: Date = new Date(),
+  mode: 'lead-first' | 'cyclic' = 'lead-first'
+): T[] {
+  if (!corridors || corridors.length <= 1) return corridors;
+  const refMidnight = Date.UTC(2026, 9, 27); // Oct 27, 2026 anchor (month is 0-indexed: 9 = Oct)
+  const currentMidnight = Date.UTC(
+    currentDate.getFullYear(),
+    currentDate.getMonth(),
+    currentDate.getDate()
+  );
+  const diffDays = Math.floor((currentMidnight - refMidnight) / (1000 * 60 * 60 * 24));
+  const leadIndex = ((diffDays % corridors.length) + corridors.length) % corridors.length;
+
+  if (mode === 'lead-first') {
+    const lead = corridors[leadIndex];
+    const others = corridors.filter((_, idx) => idx !== leadIndex);
+    return [lead, ...others];
+  }
+
+  return [...corridors.slice(leadIndex), ...corridors.slice(0, leadIndex)];
 }
 
 export interface NavbarSettings {
@@ -64,6 +149,8 @@ export const DEFAULT_NAVBAR_SETTINGS: NavbarSettings = {
     show_tagline: true,
     loader_text: 'Jammu & Kashmir Journal of Record',
     show_loader_emblem: true,
+    est_badge_text: 'EST. 1948',
+    show_est_badge: true,
   },
   nav_items: [
     { id: 'national', label: 'NATIONAL', slug: 'india', enabled: true },
@@ -97,6 +184,7 @@ export const DEFAULT_NAVBAR_SETTINGS: NavbarSettings = {
     show_submit_tip: true,
     submit_tip_label: 'Submit Tip',
     submit_tip_url: 'mailto:editorial@kjin.org?subject=News%20Tip%20Dispatch',
+    daily_corridor_rotation: true,
   },
 };
 
@@ -121,6 +209,8 @@ export function sanitizeNavbarSettings(raw: unknown): NavbarSettings {
     show_tagline: typeof rawBrand.show_tagline === 'boolean' ? rawBrand.show_tagline : true,
     loader_text: typeof rawBrand.loader_text === 'string' ? rawBrand.loader_text.trim().slice(0, 150) : (DEFAULT_NAVBAR_SETTINGS.brand.loader_text || ''),
     show_loader_emblem: typeof rawBrand.show_loader_emblem === 'boolean' ? rawBrand.show_loader_emblem : true,
+    est_badge_text: typeof rawBrand.est_badge_text === 'string' ? rawBrand.est_badge_text.trim().slice(0, 30) : (DEFAULT_NAVBAR_SETTINGS.brand.est_badge_text || 'EST. 1948'),
+    show_est_badge: typeof rawBrand.show_est_badge === 'boolean' ? rawBrand.show_est_badge : true,
   };
 
   const defaultItemMap = new Map(DEFAULT_NAVBAR_SETTINGS.nav_items.map((i) => [i.id, i]));
@@ -182,6 +272,7 @@ export function sanitizeNavbarSettings(raw: unknown): NavbarSettings {
     submit_tip_url: typeof rawActions.submit_tip_url === 'string' && rawActions.submit_tip_url.trim()
       ? rawActions.submit_tip_url.trim().slice(0, 200)
       : DEFAULT_NAVBAR_SETTINGS.actions.submit_tip_url,
+    daily_corridor_rotation: typeof rawActions.daily_corridor_rotation === 'boolean' ? rawActions.daily_corridor_rotation : true,
   };
 
   return {

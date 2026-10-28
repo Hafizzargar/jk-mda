@@ -9,6 +9,8 @@ import {
   DEFAULT_NAVBAR_SETTINGS,
   type NavbarSettings,
   type NavItemConfig,
+  BASE_TERRITORIAL_CORRIDORS,
+  getDailyRotatedCorridors,
 } from '@/lib/navbar';
 import { Button } from '@/components/Button';
 import { ConfirmModal } from '@/components/ConfirmModal';
@@ -33,6 +35,10 @@ export default function NavbarSettingsPage() {
 
   // Category deletion state
   const [categoryToDelete, setCategoryToDelete] = useState<{ index: number; item: NavItemConfig } | null>(null);
+
+  const previewCorridors = (form.actions.daily_corridor_rotation ?? true)
+    ? getDailyRotatedCorridors(BASE_TERRITORIAL_CORRIDORS)
+    : BASE_TERRITORIAL_CORRIDORS;
 
   useEffect(() => {
     async function loadSettings() {
@@ -339,24 +345,33 @@ export default function NavbarSettingsPage() {
               {/* Brand section */}
               <div className="flex items-center gap-2.5">
                 {form.brand.show_logo_image && (
-                  <div className="relative w-9 h-9 shrink-0">
-                    <Image
-                      src={form.brand.logo_url || '/kjin-emblem.png'}
-                      alt="Brand"
-                      fill
-                      className="object-contain"
-                    />
+                  <div className="relative w-10 h-10 shrink-0 rounded-full p-0.5 bg-gradient-to-tr from-amber-600 via-amber-200 to-amber-700">
+                    <div className="w-full h-full bg-stone-900 rounded-full flex items-center justify-center relative overflow-hidden">
+                      <Image
+                        src={form.brand.logo_url || '/kcpjln-symbol.webp'}
+                        alt="Brand"
+                        fill
+                        className="object-contain p-0.5"
+                      />
+                    </div>
                   </div>
                 )}
                 <div>
                   {form.brand.show_name && (
-                    <div className="text-xl font-black font-serif tracking-tight leading-none text-slate-900">
-                      {form.brand.name || 'KJIN'}
+                    <div className="flex items-baseline space-x-1.5">
+                      <span className="text-xl font-black font-masthead tracking-tight leading-none text-stone-900">
+                        {form.brand.name || 'KCPJLN'}
+                      </span>
+                      {(form.brand.show_est_badge ?? true) && (
+                        <span className="text-[9px] font-serif font-bold text-amber-800 tracking-widest uppercase bg-amber-100/70 px-1 py-0.5 rounded">
+                          {form.brand.est_badge_text || 'EST. 1948'}
+                        </span>
+                      )}
                     </div>
                   )}
-                  {form.brand.show_tagline && (
-                    <div className="text-[8px] font-mono tracking-widest uppercase font-semibold text-slate-500 leading-tight">
-                      {form.brand.tagline || 'J&K Journal of Record'}
+                  {form.brand.show_tagline && Boolean(form.brand.tagline?.trim()) && (
+                    <div className="text-[9.5px] font-serif italic text-stone-600 leading-tight tracking-wide mt-0.5">
+                      {form.brand.tagline}
                     </div>
                   )}
                 </div>
@@ -380,6 +395,23 @@ export default function NavbarSettingsPage() {
                   </span>
                 )}
               </div>
+            </div>
+
+            {/* Five Territorial Corridor Navigation Preview Bar (Daily +1 Shift Rotation) */}
+            <div className="border-t border-stone-200 px-3 py-1.5 flex items-center space-x-2 text-[10px] font-semibold bg-stone-100/80 overflow-x-auto whitespace-nowrap">
+              <span className="px-2.5 py-0.5 rounded-full bg-stone-900 text-stone-100 flex items-center gap-1 shrink-0">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span>ALL BUREAUS</span>
+              </span>
+              {previewCorridors.map((c) => (
+                <span
+                  key={c.id}
+                  className="px-2.5 py-0.5 rounded-full bg-white border border-stone-300 text-stone-800 flex items-center gap-1 shrink-0"
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${c.dotColor}`} />
+                  <span>{c.name}</span>
+                </span>
+              ))}
             </div>
           </div>
         </div>
@@ -609,7 +641,7 @@ export default function NavbarSettingsPage() {
               </div>
 
               {/* Show Tagline Switch */}
-              <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/60 flex items-center justify-between md:col-span-2">
+              <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/60 flex items-center justify-between">
                 <div>
                   <div className="font-semibold text-sm text-white">Show Tagline Subtitle</div>
                   <div className="text-xs text-slate-400">Display the tagline under the logo wordmark</div>
@@ -622,6 +654,51 @@ export default function NavbarSettingsPage() {
                       setForm({
                         ...form,
                         brand: { ...form.brand, show_tagline: e.target.checked },
+                      })
+                    }
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
+                </label>
+              </div>
+
+              {/* Establishment Badge Text Input */}
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="block text-xs font-mono uppercase text-slate-300 font-semibold flex items-center justify-between">
+                  <span>Establishment Badge Text</span>
+                  <span className="text-[10px] text-amber-400 font-normal">Heritage Badge Next to Logo</span>
+                </label>
+                <input
+                  type="text"
+                  value={form.brand.est_badge_text ?? 'EST. 1948'}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      brand: { ...form.brand, est_badge_text: e.target.value },
+                    })
+                  }
+                  placeholder="e.g. EST. 1948"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white font-medium focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
+                />
+                <p className="text-[11px] text-slate-500">
+                  Historical establishment badge displayed beside the brand title in the header masthead (e.g. EST. 1948).
+                </p>
+              </div>
+
+              {/* Show Establishment Badge Switch */}
+              <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/60 flex items-center justify-between md:col-span-2">
+                <div>
+                  <div className="font-semibold text-sm text-white">Show Establishment Badge</div>
+                  <div className="text-xs text-slate-400">Display the &apos;EST. 1948&apos; heritage pill next to the brand name</div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={form.brand.show_est_badge ?? true}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        brand: { ...form.brand, show_est_badge: e.target.checked },
                       })
                     }
                     className="sr-only peer"
@@ -658,13 +735,20 @@ export default function NavbarSettingsPage() {
                     )}
                     <div>
                       {form.brand.show_name && (
-                        <div className="text-lg font-black font-serif tracking-tight leading-none text-slate-900">
-                          {form.brand.name || 'KJIN'}
+                        <div className="flex items-baseline space-x-1">
+                          <span className="text-lg font-black font-serif tracking-tight leading-none text-slate-900">
+                            {form.brand.name || 'KJIN'}
+                          </span>
+                          {(form.brand.show_est_badge ?? true) && (
+                            <span className="text-[7.5px] font-serif font-bold text-amber-800 tracking-widest uppercase bg-amber-100/70 px-1 py-0.2 rounded">
+                              {form.brand.est_badge_text || 'EST. 1948'}
+                            </span>
+                          )}
                         </div>
                       )}
-                      {form.brand.show_tagline && (
+                      {form.brand.show_tagline && Boolean(form.brand.tagline?.trim()) && (
                         <div className="text-[8px] font-mono tracking-widest uppercase font-semibold text-slate-500 leading-tight mt-0.5">
-                          {form.brand.tagline || 'J&K Journal of Record'}
+                          {form.brand.tagline}
                         </div>
                       )}
                     </div>
@@ -1181,6 +1265,35 @@ export default function NavbarSettingsPage() {
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white font-mono text-xs focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
                 />
                 <p className="text-[11px] text-slate-500">Supports mailto: links or direct secure whistleblower form URLs</p>
+              </div>
+
+              {/* Daily Regional Corridor Rotation Switch */}
+              <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/60 flex items-center justify-between md:col-span-2">
+                <div>
+                  <div className="font-semibold text-sm text-white flex items-center gap-2">
+                    <span>Daily Regional Corridor Rotation</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800/60 font-bold">
+                      +1 Position Shift Every Day
+                    </span>
+                  </div>
+                  <div className="text-xs text-slate-400 mt-0.5">
+                    Automatically shifts bureau corridor order by +1 each day (Kashmir, Chenab, Pir Panjal, Jammu, Leh) so each region gets equal top visibility.
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                  <input
+                    type="checkbox"
+                    checked={form.actions.daily_corridor_rotation ?? true}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        actions: { ...form.actions, daily_corridor_rotation: e.target.checked },
+                      })
+                    }
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
+                </label>
               </div>
             </div>
           </div>

@@ -25,6 +25,7 @@ const submitRoute = await import('../app/api/articles/[id]/submit/route.ts');
 const resendInviteRoute = await import('../app/api/employees/resend-invite/route.ts');
 const templateRoute = await import('../app/api/settings/template/route.ts');
 const footerRoute = await import('../app/api/settings/footer/route.ts');
+const telemetryRoute = await import('../app/api/settings/telemetry/route.ts');
 const profileRoute = await import('../app/api/profile/route.ts');
 const uploadRoute = await import('../app/api/upload/route.ts');
 
@@ -1775,6 +1776,66 @@ test('footer: POST superadmin successfully updates contact info and records audi
     (a) => a.action === 'site_settings.footer_contact_updated'
   );
   assert.ok(audit, 'Audit log entry must be created on footer contact update');
+  assert.equal(audit.target_type, 'site_settings');
+});
+
+// ---------------------------------------------------------------------------
+// GET & POST /api/settings/telemetry
+// ---------------------------------------------------------------------------
+
+test('settings/telemetry: unauthenticated request returns 401', async () => {
+  const res = await telemetryRoute.GET(
+    jsonRequest('http://localhost/api/settings/telemetry', { method: 'GET', token: null })
+  );
+  assert.equal(res.status, 401);
+});
+
+test('settings/telemetry: authenticated user can read telemetry settings', async () => {
+  configure({ role: 'editor' });
+  const res = await telemetryRoute.GET(
+    jsonRequest('http://localhost/api/settings/telemetry', { method: 'GET', token: MFA_VALID_TOKEN })
+  );
+  assert.equal(res.status, 200);
+  const data = (await res.json()) as any;
+  assert.ok(data.telemetry);
+  assert.ok(Array.isArray(data.telemetry.mountain_passes));
+  assert.ok(Array.isArray(data.telemetry.mandi_commodities));
+});
+
+test('settings/telemetry: updates pass and commodity status with audit log', async () => {
+  configure({ role: 'admin' });
+  const res = await telemetryRoute.POST(
+    jsonRequest('http://localhost/api/settings/telemetry', {
+      method: 'POST',
+      token: MFA_VALID_TOKEN,
+      body: {
+        live_wire: {
+          headline: 'Live speed trial successful on Chenab Arch',
+          is_active: true,
+          synced_time: '14:30 IST',
+          verified: true,
+        },
+        reason: 'Updated speed trial bulletin',
+      },
+    })
+  );
+  assert.equal(res.status, 200);
+  const body = (await res.json()) as any;
+  assert.equal(body.success, true);
+  assert.equal(body.telemetry.live_wire.headline, 'Live speed trial successful on Chenab Arch');
+
+  // Verify site_settings was updated
+  const setting = harness.fixtures.site_settings?.find(
+    (s: any) => s.key === 'telemetry_config'
+  );
+  assert.ok(setting);
+  assert.equal((setting.value as any).live_wire.headline, 'Live speed trial successful on Chenab Arch');
+
+  // Verify audit log
+  const audit = harness.audits.find(
+    (a) => a.action === 'site_settings.telemetry_updated'
+  );
+  assert.ok(audit, 'Audit log entry must be created on telemetry update');
   assert.equal(audit.target_type, 'site_settings');
 });
 

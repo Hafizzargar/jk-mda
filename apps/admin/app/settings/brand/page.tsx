@@ -181,6 +181,8 @@ export default function BrandSettingsPage() {
       show_name: true,
       show_tagline: true,
       show_logo_image: true,
+      est_badge_text: 'EST. 1948',
+      show_est_badge: true,
     });
     toast.info('Applied KCPJLN identity preset. Click "Save & Broadcast Changes" to publish.');
   };
@@ -196,6 +198,8 @@ export default function BrandSettingsPage() {
       show_name: true,
       show_tagline: true,
       show_logo_image: true,
+      est_badge_text: 'EST. 1948',
+      show_est_badge: true,
     });
     toast.info('Applied KJIN identity preset. Click "Save & Broadcast Changes" to publish.');
   };
@@ -317,8 +321,15 @@ export default function BrandSettingsPage() {
             )}
             <div>
               {brand.show_name && (
-                <div className="text-2xl font-black font-serif tracking-tight text-slate-950 dark:text-white uppercase leading-none">
-                  {brand.name || 'KCPJLN'}
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-black font-serif tracking-tight text-slate-950 dark:text-white uppercase leading-none">
+                    {brand.name || 'KCPJLN'}
+                  </span>
+                  {(brand.show_est_badge ?? true) && (
+                    <span className="text-[10px] font-serif font-bold text-amber-800 tracking-widest uppercase bg-amber-100/70 dark:bg-amber-900/40 dark:text-amber-300 px-1.5 py-0.5 rounded">
+                      {brand.est_badge_text || 'EST. 1948'}
+                    </span>
+                  )}
                 </div>
               )}
               {brand.full_name && (
@@ -417,6 +428,24 @@ export default function BrandSettingsPage() {
               />
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
                 Text displayed beneath the spinning orbital logo during page transitions and initial application boot.
+              </p>
+            </div>
+
+            {/* 5. Establishment Badge Text */}
+            <div className="space-y-1.5 md:col-span-2">
+              <label className="block text-xs font-mono uppercase text-slate-700 dark:text-slate-300 font-semibold flex items-center justify-between">
+                <span>Establishment Badge Text</span>
+                <span className="text-[10px] text-amber-600 dark:text-amber-400 font-normal">Next to Brand Title</span>
+              </label>
+              <input
+                type="text"
+                value={brand.est_badge_text ?? 'EST. 1948'}
+                onChange={(e) => setBrand({ ...brand, est_badge_text: e.target.value })}
+                placeholder="e.g. EST. 1948"
+                className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-medium focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
+              />
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                Heritage establishment pill displayed next to the brand name in the masthead (e.g. EST. 1948).
               </p>
             </div>
           </div>
@@ -521,6 +550,19 @@ export default function BrandSettingsPage() {
                 <div>
                   <div className="text-xs font-bold text-slate-900 dark:text-white">Show Logo Emblem</div>
                   <div className="text-[10px] text-slate-500">Display official symbol in navbar</div>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/30 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-900/60 transition">
+                <input
+                  type="checkbox"
+                  checked={brand.show_est_badge ?? true}
+                  onChange={(e) => setBrand({ ...brand, show_est_badge: e.target.checked })}
+                  className="rounded border-slate-300 text-cyan-600 focus:ring-cyan-500 w-4 h-4"
+                />
+                <div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">Show Establishment Badge</div>
+                  <div className="text-[10px] text-slate-500">Display EST badge next to title</div>
                 </div>
               </label>
             </div>

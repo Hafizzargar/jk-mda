@@ -151,9 +151,29 @@ html:not([data-theme='dark']) {
     color: #0369a1 !important;
   }
 
-  /* Keep gradient buttons crisp with bright white text */
+  /* Keep gradient buttons, primary buttons, and dark badges crisp with bright white text */
   button.bg-gradient-to-r,
-  a.bg-gradient-to-r {
+  a.bg-gradient-to-r,
+  .bg-\[\#0F172A\],
+  .bg-\[\#0F172A\] *,
+  .bg-\[\#0f172a\],
+  .bg-\[\#0f172a\] *,
+  .bg-cyan-600,
+  .bg-cyan-600 *,
+  .bg-emerald-600,
+  .bg-emerald-600 *,
+  .bg-red-600,
+  .bg-red-600 *,
+  .bg-indigo-600,
+  .bg-indigo-600 *,
+  .bg-purple-600,
+  .bg-purple-600 *,
+  button[class*="bg-[#0F172A]"],
+  button[class*="bg-slate-900"],
+  [class*="bg-[#0F172A]"] .text-white,
+  [class*="bg-[#0f172a]"] .text-white,
+  [class*="bg-slate-900"] .text-white,
+  [class*="bg-slate-800"] .text-white {
     color: #ffffff !important;
   }
 }

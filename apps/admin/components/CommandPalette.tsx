@@ -78,6 +78,15 @@ const COMMANDS: CommandItem[] = [
     roles: ['owner', 'superadmin'],
   },
   {
+    id: 'careers',
+    title: 'Careers & Newsroom Hiring',
+    category: 'Administration',
+    description: 'Post job openings, hire reporters/editors, and review candidate portfolios',
+    href: '/careers',
+    icon: '💼',
+    roles: ['owner', 'superadmin', 'admin'],
+  },
+  {
     id: 'my-profile',
     title: 'My Profile & Author Settings',
     category: 'Administration',

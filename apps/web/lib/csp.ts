@@ -120,10 +120,10 @@ export function buildCspHeader(options: CspOptions): string {
   const cspDirectives = [
     "default-src 'self'",
     `script-src 'self' 'nonce-${options.nonce}' 'strict-dynamic' ${isDev ? "'unsafe-eval'" : ''}`.trim(),
-    "style-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     `img-src 'self' data: blob: ${trustedImageHosts.join(' ')}`,
     `connect-src 'self' ${trustedConnectHosts.join(' ')}`,
-    "font-src 'self'",
+    "font-src 'self' https://fonts.gstatic.com data:",
     "object-src 'none'",
     "worker-src 'self' blob:",
     "base-uri 'self'",
