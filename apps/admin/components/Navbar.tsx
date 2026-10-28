@@ -25,39 +25,40 @@ export function Navbar({
   brandLogo = '/kcpjln-symbol.webp',
 }: NavbarProps) {
   return (
-    <header className="sticky top-0 z-30 flex h-12 sm:h-11 w-full items-center justify-between border-b border-slate-200/90 bg-white/95 px-3 sm:px-4 md:px-6 shadow-2xs backdrop-blur-md dark:bg-slate-950/95 dark:border-slate-800 transition-all">
-      {/* Left: Mobile Toggle & Quick Search */}
-      <div className="flex items-center gap-2 sm:gap-2.5">
-        {/* Mobile menu hamburger */}
+    <header className="sticky top-0 z-30 flex h-13 w-full items-center justify-between border-b border-slate-200/90 bg-white/95 px-3 sm:px-4 md:px-6 shadow-2xs backdrop-blur-md dark:bg-slate-950/95 dark:border-slate-800 transition-all">
+      {/* Left: Prominent Top Menu Button & Brand Identity */}
+      <div className="flex items-center gap-2 sm:gap-3">
+        {/* Prominent Mobile/Tablet Menu Button with Icon + Text */}
         <button
           type="button"
           onClick={onOpenMobile}
-          aria-label="Open sidebar menu"
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 active:scale-95 lg:hidden transition dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200"
+          aria-label="Open navigation menu"
+          className="flex lg:hidden items-center gap-1.5 h-8 px-2.5 rounded-lg border border-slate-300 bg-white text-slate-800 hover:bg-slate-100 hover:border-cyan-500 active:scale-95 shadow-2xs transition dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
         >
-          <span className="text-base leading-none">☰</span>
+          <span className="text-sm font-bold leading-none">☰</span>
+          <span className="text-xs font-bold tracking-tight">Menu</span>
         </button>
 
-        {/* Mobile Brand Identity */}
+        {/* Brand Logo & Name */}
         <Link
           href="/"
-          className="flex lg:hidden items-center gap-1.5 active:opacity-80 transition"
+          className="flex items-center gap-2 active:opacity-80 transition"
         >
           {brandLogo && (
-            <div className="relative h-6 w-6 rounded-md overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shrink-0">
+            <div className="relative h-7 w-7 rounded-lg overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shrink-0 p-0.5">
               <Image
                 src={brandLogo}
                 alt={brandName}
                 fill
-                className="object-contain p-0.5"
-                sizes="24px"
+                className="object-contain"
+                sizes="28px"
               />
             </div>
           )}
-          <span className="font-black text-sm text-slate-900 dark:text-white uppercase tracking-tight">
+          <span className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white uppercase tracking-tight">
             {brandName}
           </span>
-          <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950/60 px-1 py-0.2 rounded border border-cyan-200/70 dark:border-cyan-800/60">
+          <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-cyan-800 dark:text-cyan-300 bg-cyan-100 dark:bg-cyan-950/80 px-1.5 py-0.2 rounded border border-cyan-300 dark:border-cyan-700">
             Desk
           </span>
         </Link>
@@ -66,7 +67,7 @@ export function Navbar({
         <button
           type="button"
           onClick={onOpenSearch}
-          className="group hidden sm:flex items-center justify-between gap-4 rounded-[8px] border border-slate-200 bg-slate-50/80 px-2.5 py-1 text-xs text-slate-500 hover:border-slate-300 hover:bg-white transition-all shadow-2xs dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 w-52 md:w-60"
+          className="group hidden md:flex items-center justify-between gap-4 rounded-lg border border-slate-200 bg-slate-50/80 px-2.5 py-1 text-xs text-slate-500 hover:border-slate-300 hover:bg-white transition-all shadow-2xs dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 w-52 lg:w-64"
         >
           <div className="flex items-center gap-1.5">
             <span className="text-slate-400 text-xs">🔍</span>
@@ -78,14 +79,24 @@ export function Navbar({
         </button>
       </div>
 
-      {/* Right: Clean, touch-friendly utility controls */}
+      {/* Right: Actions & Controls */}
       <div className="flex items-center gap-1.5 sm:gap-2">
-        {/* Mobile Search Icon */}
+        {/* Top + New Story Button (Standard Web Action) */}
+        <Link
+          href="/articles/new"
+          title="Create New Story"
+          className="flex items-center gap-1.5 h-8 px-2.5 sm:px-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs shadow-xs active:scale-95 transition"
+        >
+          <span className="text-sm font-bold leading-none">+</span>
+          <span className="hidden sm:inline">New Story</span>
+        </Link>
+
+        {/* Mobile Search Trigger Icon */}
         <button
           type="button"
           onClick={onOpenSearch}
           aria-label="Open search"
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-700 sm:hidden active:scale-95 transition dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
+          className="flex md:hidden h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-700 active:scale-95 transition dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
         >
           <span className="text-xs">🔍</span>
         </button>
@@ -103,17 +114,28 @@ export function Navbar({
           </button>
         )}
 
-        {/* Role Badge */}
+        {/* Live Public Site External Link */}
+        <a
+          href="http://localhost:3000"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="View Live Reader Site"
+          className="hidden sm:flex items-center gap-1 h-8 px-2.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 text-xs font-semibold shadow-2xs transition"
+        >
+          <span>🌐 Site</span>
+          <span className="text-[10px] text-slate-400 font-bold">↗</span>
+        </a>
+
+        {/* Role & Profile Badge */}
         <Link
           href="/profile"
           title="My Profile & Author Settings"
-          className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 hover:bg-slate-100 px-2 sm:px-2.5 py-0.5 text-[10px] sm:text-[11px] font-mono font-bold text-slate-800 capitalize transition active:scale-95 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 hover:bg-slate-100 px-2.5 py-1 text-xs font-mono font-bold text-slate-800 capitalize transition active:scale-95 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
         >
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />
-          <span className="truncate max-w-[64px] sm:max-w-none">{userRole || 'Profile'}</span>
+          <span className="truncate max-w-[70px] sm:max-w-none">{userRole || 'Profile'}</span>
         </Link>
       </div>
     </header>
   );
 }
-

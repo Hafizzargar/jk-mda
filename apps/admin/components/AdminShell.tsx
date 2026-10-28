@@ -5,7 +5,6 @@ import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Sidebar } from './Sidebar';
 import { Navbar } from './Navbar';
-import { MobileBottomBar } from './MobileBottomBar';
 import { CommandPalette } from './CommandPalette';
 import { Toaster } from './Toast';
 
@@ -258,11 +257,8 @@ export function AdminShell({ children }: AdminShellProps) {
             brandLogo={brandLogo}
           />
 
-          <main className="flex-1 min-w-0 w-full overflow-x-hidden pb-20 lg:pb-8">{children}</main>
+          <main className="flex-1 min-w-0 w-full overflow-x-hidden pb-8">{children}</main>
         </div>
-
-        {/* Mobile Sticky Bottom Navigation Bar */}
-        <MobileBottomBar onOpenMenu={() => setMobileOpen(true)} userRole={userRole} />
 
         {/* Command Palette Modal */}
         <CommandPalette
