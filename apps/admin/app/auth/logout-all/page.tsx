@@ -1,34 +1,76 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
-export default function LogoutAllDevicesPage() {
-  const [countdown, setCountdown] = useState(3);
-  const [status, setStatus] = useState<'revoking' | 'completed'>('revoking');
+function LogoutAllDevicesContent() {
+  const searchParams = useSearchParams();
+  const [countdown, setCountdown] = useState(4);
+  const [status, setStatus] = useState<'revoking' | 'completed' | 'error'>('revoking');
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     async function revokeAllSessions() {
       try {
-        // 1. Global Supabase Auth signout (invalidates all refresh tokens for this user on server)
-        await supabase.auth.signOut({ scope: 'global' });
-      } catch (err) {
-        console.warn('Client sign-out exception (falling back to storage purge):', err);
-      }
+        const uid = searchParams.get('uid');
+        const sig = searchParams.get('sig');
+        const exp = searchParams.get('exp');
 
-      // 2. Clear all local browser tokens and cached sessions
-      try {
-        localStorage.clear();
-        sessionStorage.clear();
-      } catch {
-        // ignore
-      }
+        // 1. Get current session token if available in this browser
+        const { data: sessionData } = await supabase.auth.getSession();
+        const localToken = sessionData.session?.access_token;
 
-      setStatus('completed');
+        // 2. Invoke server endpoint to purge sessions across all devices in postgres
+        const res = await fetch('/api/auth/logout-all', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(localToken ? { Authorization: `Bearer ${localToken}` } : {}),
+          },
+          body: JSON.stringify({
+            uid: uid || undefined,
+            sig: sig || undefined,
+            exp: exp ? Number(exp) : undefined,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to revoke remote sessions.');
+        }
+
+        // 3. Complete client-side signout and storage purge on this device
+        try {
+          await supabase.auth.signOut({ scope: 'local' });
+        } catch {
+          // Ignore
+        }
+
+        try {
+          localStorage.clear();
+          sessionStorage.clear();
+        } catch {
+          // Ignore
+        }
+
+        setStatus('completed');
+      } catch (err: unknown) {
+        console.error('Session revocation error:', err);
+        const msg = err instanceof Error ? err.message : 'Error revoking sessions.';
+        setErrorMsg(msg);
+        // Still clear local tokens so this browser is safe
+        try {
+          localStorage.clear();
+          sessionStorage.clear();
+        } catch {}
+        setStatus('error');
+      }
     }
 
     revokeAllSessions();
-  }, []);
+  }, [searchParams]);
 
   // Automatic redirect timer once sessions are revoked
   useEffect(() => {
@@ -38,7 +80,6 @@ export default function LogoutAllDevicesPage() {
       setCountdown((prev) => {
         if (prev <= 1) {
           clearInterval(interval);
-          // Hard navigation to reset all client memory and shell state
           window.location.href = '/login?alert=all_sessions_revoked';
           return 0;
         }
@@ -56,17 +97,19 @@ export default function LogoutAllDevicesPage() {
   return (
     <main className="fixed inset-0 z-[9999] flex min-h-screen w-screen items-center justify-center bg-slate-950 px-4 py-8 text-white">
       <div className="w-full max-w-md rounded-3xl border border-slate-800 bg-slate-900 p-8 shadow-2xl text-center">
-        {status === 'revoking' ? (
+        {status === 'revoking' && (
           <div className="space-y-4">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-950/80 border border-cyan-800/60 text-2xl animate-pulse">
               🔒
             </div>
-            <h1 className="text-xl font-bold text-white">Terminating All Sessions</h1>
+            <h1 className="text-xl font-bold text-white">Revoking All Active Devices</h1>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Disconnecting your account from all phones, laptops, and active browsers...
+              Disconnecting your account from all phones, laptops, and active browsers in the database...
             </p>
           </div>
-        ) : (
+        )}
+
+        {status === 'completed' && (
           <div className="space-y-5 animate-in fade-in duration-300">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-950/80 border border-emerald-800/60 text-2xl text-emerald-400">
               ✓
@@ -77,7 +120,7 @@ export default function LogoutAllDevicesPage() {
               </span>
               <h1 className="text-xl font-bold text-white">Logged Out Globally</h1>
               <p className="mt-2 text-xs text-slate-300 leading-relaxed">
-                All active sessions across all devices have been terminated.
+                All active sessions across all devices have been terminated. Anyone currently on your account has been kicked out immediately.
               </p>
             </div>
 
@@ -96,7 +139,45 @@ export default function LogoutAllDevicesPage() {
             </div>
           </div>
         )}
+
+        {status === 'error' && (
+          <div className="space-y-5 animate-in fade-in duration-300">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-950/80 border border-rose-800/60 text-2xl text-rose-400">
+              ⚠️
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-white">Security Link Expired or Used</h1>
+              <p className="mt-2 text-xs text-slate-300 leading-relaxed">
+                {errorMsg || 'This security revocation link has expired or has already been used.'}
+              </p>
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={handleImmediateRedirect}
+                className="w-full rounded-xl bg-slate-800 px-4 py-3 text-sm font-bold text-white shadow-lg hover:bg-slate-700 transition"
+              >
+                Return to Login
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </main>
+  );
+}
+
+export default function LogoutAllDevicesPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="fixed inset-0 z-[9999] flex min-h-screen w-screen items-center justify-center bg-slate-950 text-white">
+          <div className="text-sm text-slate-400">Loading session revocation...</div>
+        </main>
+      }
+    >
+      <LogoutAllDevicesContent />
+    </Suspense>
   );
 }

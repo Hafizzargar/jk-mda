@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse, after } from 'next/server';
 import { sendLoginAlertEmail } from '@/lib/mailer';
+import { createLogoutToken } from '@/lib/auth-tokens';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321';
@@ -10,14 +11,17 @@ export async function POST(request: NextRequest) {
     const authHeader = request.headers.get('Authorization');
     let email: string | undefined;
     let displayName: string | undefined;
+    let userId: string | undefined;
+
+    const client = createClient(supabaseUrl, serviceRoleKey);
 
     // 1. Try to verify via Supabase Bearer token if present
     if (authHeader && authHeader.startsWith('Bearer ')) {
       const token = authHeader.replace('Bearer ', '').trim();
-      const client = createClient(supabaseUrl, serviceRoleKey);
       const { data: userData } = await client.auth.getUser(token);
       if (userData?.user?.email) {
         email = userData.user.email;
+        userId = userData.user.id;
         // Lookup display name
         const { data: profile } = await client
           .from('profiles')
@@ -49,6 +53,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing recipient email' }, { status: 400 });
     }
 
+    // Lookup user id by email if not found from token
+    if (!userId) {
+      const { data: profile } = await client
+        .from('profiles')
+        .select('id, display_name')
+        .eq('email', email)
+        .maybeSingle();
+      if (profile?.id) {
+        userId = profile.id;
+        if (!displayName && profile.display_name) {
+          displayName = profile.display_name;
+        }
+      }
+    }
+
     // Telemetry capture
     const forwardedFor = request.headers.get('x-forwarded-for');
     const ipAddress = forwardedFor
@@ -57,6 +76,16 @@ export async function POST(request: NextRequest) {
     const userAgent = request.headers.get('user-agent') || 'Web Browser';
 
     const recipientEmail = email;
+
+    // Generate cryptographically signed one-click logout link for all devices
+    const defaultAdminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001';
+    let logoutUrl = `${defaultAdminUrl}/auth/logout-all`;
+    if (userId) {
+      const tokenData = createLogoutToken(userId);
+      logoutUrl = `${defaultAdminUrl}/auth/logout-all?uid=${encodeURIComponent(
+        tokenData.uid
+      )}&sig=${encodeURIComponent(tokenData.sig)}&exp=${tokenData.exp}`;
+    }
 
     // Dispatch login security notification in the background after the response is sent
     after(async () => {
@@ -67,8 +96,9 @@ export async function POST(request: NextRequest) {
           loginTime: new Date(),
           ipAddress,
           userAgent,
+          logoutUrl,
         });
-        console.log('[Auth Notify] Background login alert sent:', mailResult.messageId);
+        console.log('[Auth Notify] Background login alert sent with signed logout link:', mailResult.messageId);
       } catch (err) {
         console.error('[Auth Notify] Background email error:', err);
       }
