@@ -7,6 +7,7 @@ import { Sidebar } from './Sidebar';
 import { Navbar } from './Navbar';
 import { CommandPalette } from './CommandPalette';
 import { Toaster } from './Toast';
+import { LogoutModal } from './LogoutModal';
 
 export interface AdminContextType {
   theme: 'light' | 'dark';
@@ -39,6 +40,7 @@ export function AdminShell({ children }: AdminShellProps) {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -195,11 +197,7 @@ export function AdminShell({ children }: AdminShellProps) {
   }, []);
 
   const handleSignOut = async () => {
-    try {
-      await supabase.auth.signOut();
-    } finally {
-      router.push('/login');
-    }
+    setIsLoggingOut(true);
   };
 
   // If on login, MFA, or public auth security routes, don't show the dashboard sidebar/navbar shell
@@ -271,6 +269,9 @@ export function AdminShell({ children }: AdminShellProps) {
 
         {/* Global Toaster Notification Container (Top-Right) */}
         <Toaster position="top-right" />
+
+        {/* Sign-Out Feedback Modal */}
+        <LogoutModal isOpen={isLoggingOut} />
       </div>
     </AdminContext.Provider>
   );

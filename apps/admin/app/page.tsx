@@ -8,11 +8,13 @@ import { summarizeArticleQueue } from '@kjin/db';
 import { supabase } from '@/lib/supabase';
 import { requiresMfa } from '@/lib/mfa';
 import { Button } from '@/components/Button';
+import { LogoutModal } from '@/components/LogoutModal';
 
 export default function DashboardPage() {
   const router = useRouter();
   const [status, setStatus] = useState('Checking auth session...');
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
   const [queue, setQueue] = useState<Array<{ id?: string; title: string; status: string; summary: string }>>([]);
   const [stats, setStats] = useState([
@@ -182,8 +184,7 @@ export default function DashboardPage() {
   }, []);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
+    setIsLoggingOut(true);
   };
 
   if (isAuthorized === false) {
@@ -206,6 +207,7 @@ export default function DashboardPage() {
             </Button>
           </div>
         </div>
+        <LogoutModal isOpen={isLoggingOut} />
       </main>
     );
   }

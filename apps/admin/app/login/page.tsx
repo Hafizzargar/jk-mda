@@ -145,6 +145,18 @@ function LoginForm() {
           </div>
         )}
 
+        {searchParams.get('alert') === 'signed_out' && (
+          <div className="mb-6 rounded-2xl border border-cyan-500/40 bg-cyan-950/40 p-4 text-cyan-200">
+            <div className="flex items-center gap-2 font-bold text-sm text-cyan-400">
+              <span>👋</span>
+              <span>Signed Out Successfully</span>
+            </div>
+            <p className="mt-1 text-xs text-cyan-300/80 leading-relaxed">
+              You have been safely signed out. Enter your credentials when you're ready to sign back in.
+            </p>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label htmlFor="email" className="mb-2 block text-sm text-slate-300">

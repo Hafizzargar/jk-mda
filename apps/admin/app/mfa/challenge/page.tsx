@@ -4,6 +4,7 @@ import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/Button';
+import { LogoutModal } from '@/components/LogoutModal';
 import { requiresMfa } from '@/lib/mfa';
 
 function MFAChallengeForm() {
@@ -12,6 +13,7 @@ function MFAChallengeForm() {
   
   const [status, setStatus] = useState('Checking MFA status...');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   
   const [factorId, setFactorId] = useState<string | null>(null);
   const [verificationCode, setVerificationCode] = useState('');
@@ -193,8 +195,7 @@ function MFAChallengeForm() {
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
+    setIsLoggingOut(true);
   };
 
   return (
@@ -259,6 +260,7 @@ function MFAChallengeForm() {
             </form>
           </div>
         )}
+        <LogoutModal isOpen={isLoggingOut} />
       </div>
     </main>
   );
