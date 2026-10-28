@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { sendLoginAlertEmail } from '@/lib/mailer';
 import { createClient } from '@supabase/supabase-js';
 
@@ -56,19 +56,28 @@ export async function POST(request: NextRequest) {
       : request.headers.get('x-real-ip') || '127.0.0.1 (Local)';
     const userAgent = request.headers.get('user-agent') || 'Web Browser';
 
-    // Dispatch login security notification asynchronously
-    const mailResult = await sendLoginAlertEmail({
-      to: email,
-      displayName,
-      loginTime: new Date(),
-      ipAddress,
-      userAgent,
+    const recipientEmail = email;
+
+    // Dispatch login security notification in the background after the response is sent
+    after(async () => {
+      try {
+        const mailResult = await sendLoginAlertEmail({
+          to: recipientEmail,
+          displayName,
+          loginTime: new Date(),
+          ipAddress,
+          userAgent,
+        });
+        console.log('[Auth Notify] Background login alert sent:', mailResult.messageId);
+      } catch (err) {
+        console.error('[Auth Notify] Background email error:', err);
+      }
     });
 
+    // Return immediately to the client so login is 100% instant
     return NextResponse.json({
-      success: mailResult.success,
-      skipped: mailResult.skipped,
-      messageId: mailResult.messageId,
+      success: true,
+      queued: true,
     });
   } catch (err: unknown) {
     console.error('Error in /api/auth/notify-login:', err);

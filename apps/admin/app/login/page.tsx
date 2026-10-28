@@ -44,25 +44,18 @@ function LoginForm() {
       setStatus('Checking authentication assurance level...');
       const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
 
-      // Dispatch login security alert email with device telemetry (survives page navigation)
+      // Dispatch login security alert email asynchronously (zero wait time, does not delay dashboard entry)
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
-      try {
-        await Promise.race([
-          fetch('/api/auth/notify-login', {
-            method: 'POST',
-            keepalive: true,
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            },
-            body: JSON.stringify({ email }),
-          }),
-          new Promise((resolve) => setTimeout(resolve, 600)),
-        ]);
-      } catch {
-        // Telemetry failure should not block dashboard access
-      }
+      fetch('/api/auth/notify-login', {
+        method: 'POST',
+        keepalive: true,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ email }),
+      }).catch(() => {});
 
       if (aalData?.nextLevel === 'aal2') {
         setStatus('Two-factor verification required. Redirecting...');
