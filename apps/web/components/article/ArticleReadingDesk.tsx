@@ -187,7 +187,7 @@ export function ArticleReadingDesk({
                   <span className="text-emerald-600 font-bold">✓</span>
                   <span className="font-semibold text-slate-800">Press Council Certified</span>
                   <span className="text-slate-400">•</span>
-                  <span className="text-slate-600">{article.view_count ? `${article.view_count.toLocaleString()} Readers` : 'Verified Wire'}</span>
+                  <span className="text-slate-600">Verified Wire</span>
                 </div>
               </div>
 
@@ -526,7 +526,7 @@ export function ArticleReadingDesk({
                     <h4 className="text-xs font-bold text-[#0F172A] leading-snug hover:text-[#0891B2] transition">
                       Saffron Farmers in Pampore Report 22% Yield Bump Following Micro-Irrigation Adoption
                     </h4>
-                    <span className="text-[10px] text-slate-400 mt-1 block">5 Min Read • 12.4k Views</span>
+                    <span className="text-[10px] text-slate-400 mt-1 block">5 Min Read</span>
                   </div>
                 </div>
 
@@ -539,7 +539,7 @@ export function ArticleReadingDesk({
                     <h4 className="text-xs font-bold text-[#0F172A] leading-snug hover:text-[#0891B2] transition">
                       Narwal Mandi Upgrades Basmati Grading Infrastructure for Middle Eastern Export Hub
                     </h4>
-                    <span className="text-[10px] text-slate-400 mt-1 block">4 Min Read • 9.8k Views</span>
+                    <span className="text-[10px] text-slate-400 mt-1 block">4 Min Read</span>
                   </div>
                 </div>
 
@@ -552,7 +552,7 @@ export function ArticleReadingDesk({
                     <h4 className="text-xs font-bold text-[#0F172A] leading-snug hover:text-[#0891B2] transition">
                       Leh Geothermal Power Plant Tests Reach Operational Depths of 1,000 Meters
                     </h4>
-                    <span className="text-[10px] text-slate-400 mt-1 block">8 Min Read • 8.1k Views</span>
+                    <span className="text-[10px] text-slate-400 mt-1 block">8 Min Read</span>
                   </div>
                 </div>
 
@@ -565,7 +565,7 @@ export function ArticleReadingDesk({
                     <h4 className="text-xs font-bold text-[#0F172A] leading-snug hover:text-[#0891B2] transition">
                       Gojri & Pahari Folklore Digitization Archive Completes 500th Oral History Entry
                     </h4>
-                    <span className="text-[10px] text-slate-400 mt-1 block">6 Min Read • 6.3k Views</span>
+                    <span className="text-[10px] text-slate-400 mt-1 block">6 Min Read</span>
                   </div>
                 </div>
 
@@ -578,7 +578,7 @@ export function ArticleReadingDesk({
                     <h4 className="text-xs font-bold text-[#0F172A] leading-snug hover:text-[#0891B2] transition">
                       Doda High-Altitude Lavender Co-Op Inks Organic Oil Contract with Grasse Perfumers
                     </h4>
-                    <span className="text-[10px] text-slate-400 mt-1 block">3 Min Read • 5.7k Views</span>
+                    <span className="text-[10px] text-slate-400 mt-1 block">3 Min Read</span>
                   </div>
                 </div>
               </div>

@@ -260,9 +260,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
       const districtName = matchedArticle.district
         ? getDistrictDisplayName(matchedArticle.district)
         : regionDef?.shortName || corridor.name;
-      const stats = matchedArticle.view_count && matchedArticle.view_count > 0
-        ? `${districtName} • ${matchedArticle.view_count.toLocaleString()} Readers • Trending`
-        : `${districtName} • Verified Field Dispatch • ${artObj.reading_time_minutes || 3}m read`;
+      const stats = `${districtName} • Verified Field Dispatch • ${artObj.reading_time_minutes || 3}m read`;
 
       return {
         ...corridor,

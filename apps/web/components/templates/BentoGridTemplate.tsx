@@ -188,9 +188,6 @@ export function BentoGridTemplate({
                   >
                     <span className="font-mono text-slate-500 group-hover:text-cyan-300 font-bold">#{idx + 1}</span>
                     <span className="font-medium text-slate-300 group-hover:text-white truncate flex-1">{item.title}</span>
-                    {item.view_count ? (
-                      <span className="font-mono text-[10px] text-slate-500 shrink-0">{item.view_count}</span>
-                    ) : null}
                   </Link>
                 ))}
               </div>
