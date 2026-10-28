@@ -59,7 +59,7 @@ function MFAChallengeForm() {
             const base64 = raw.replace(/-/g, '+').replace(/_/g, '/');
             const claims = JSON.parse(decodeURIComponent(atob(base64).split('').map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')));
             const totpEntry = claims.amr?.find((m: { method: string; timestamp: number }) => m.method === 'totp' || m.method === 'mfa');
-            const freshThreshold = process.env.NODE_ENV === 'production' ? 900 : 86400;
+            const freshThreshold = 900; // 15 minutes maximum freshness window
             if (totpEntry && (Date.now() / 1000 - totpEntry.timestamp < freshThreshold)) {
               isFresh = true;
             }

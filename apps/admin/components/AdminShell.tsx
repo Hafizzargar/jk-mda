@@ -110,12 +110,15 @@ export function AdminShell({ children }: AdminShellProps) {
 
     loadSession();
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
         setUserEmail(session.user.email ?? null);
       } else {
         setUserEmail(null);
         setUserRole(null);
+        if (event === 'SIGNED_OUT') {
+          router.push('/login?alert=all_sessions_revoked');
+        }
       }
     });
 

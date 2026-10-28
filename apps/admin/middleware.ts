@@ -65,6 +65,11 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse;
   }
 
+  // Allow security revocation route /auth/logout-all to process immediately without redirects to dashboard
+  if (pathname.startsWith('/auth/logout-all')) {
+    return supabaseResponse;
+  }
+
   // getUser verifies the token against the Supabase Auth server.
   // This ensures disabled/banned users immediately lose access without waiting for JWT expiry.
   const { data: userData } = await supabase.auth.getUser();
@@ -80,14 +85,6 @@ export async function middleware(request: NextRequest) {
   }
 
   if (user) {
-    // If user is already authenticated and visits /login, redirect directly to dashboard
-    if (pathname === '/login' && !request.nextUrl.searchParams.get('alert')) {
-      const url = request.nextUrl.clone();
-      url.pathname = '/';
-      url.search = '';
-      return NextResponse.redirect(url);
-    }
-
     // Check MFA requirement and active status
     const { data: profile, error: profileError } = await supabase.from('profiles').select('role_key, status').eq('id', user.id).single();
     
@@ -112,6 +109,11 @@ export async function middleware(request: NextRequest) {
         }
         
         if (aalData.currentLevel !== 'aal2') {
+          // If the user is on /login, let them remain on /login to authenticate
+          if (pathname === '/login') {
+            return supabaseResponse;
+          }
+
           const url = request.nextUrl.clone();
           
           const { data: factors, error: factorsError } = await supabase.auth.mfa.listFactors();
@@ -130,9 +132,11 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    if (isAuthRoute) {
+    // If user is already fully authenticated (including AAL2 if required) and visits /login, redirect directly to dashboard
+    if (pathname === '/login' && !request.nextUrl.searchParams.get('alert')) {
       const url = request.nextUrl.clone();
       url.pathname = '/';
+      url.search = '';
       return NextResponse.redirect(url);
     }
   }

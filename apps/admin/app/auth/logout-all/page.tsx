@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 
 function LogoutAllDevicesContent() {
   const searchParams = useSearchParams();
-  const [countdown, setCountdown] = useState(4);
+  const [countdown, setCountdown] = useState(2);
   const [status, setStatus] = useState<'revoking' | 'completed' | 'error'>('revoking');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -51,6 +51,9 @@ function LogoutAllDevicesContent() {
         try {
           localStorage.clear();
           sessionStorage.clear();
+          document.cookie.split(';').forEach((c) => {
+            document.cookie = c.replace(/^ +/, '').replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
+          });
         } catch {
           // Ignore
         }

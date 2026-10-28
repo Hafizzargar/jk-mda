@@ -4,6 +4,7 @@ import { FormEvent, useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/Button';
+import { requiresMfa } from '@/lib/mfa';
 
 function LoginForm() {
   const searchParams = useSearchParams();
@@ -12,14 +13,37 @@ function LoginForm() {
   const [status, setStatus] = useState('Enter your editor credentials to continue.');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // If already authenticated and not viewing an explicit logout alert, auto-forward to Dashboard
+  // If already authenticated with AAL2 and not viewing an explicit logout alert, auto-forward to Dashboard
   useEffect(() => {
     async function checkExistingSession() {
       if (searchParams.get('alert')) return;
       const { data } = await supabase.auth.getSession();
-      if (data.session?.user) {
-        window.location.href = '/';
+      if (!data.session?.user) return;
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role_key')
+        .eq('id', data.session.user.id)
+        .single();
+
+      const userRole = profile?.role_key || 'author';
+      if (requiresMfa(userRole)) {
+        const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (aalData?.currentLevel !== 'aal2') {
+          // Incomplete MFA session: prompt for challenge or enrollment immediately
+          const { data: factorsData } = await supabase.auth.mfa.listFactors();
+          const allFactors = [...(factorsData?.all ?? []), ...(factorsData?.totp ?? [])];
+          const hasVerified = allFactors.some((f) => f.factor_type === 'totp' && f.status === 'verified');
+          if (hasVerified || aalData?.nextLevel === 'aal2') {
+            window.location.href = '/mfa/challenge?reauth=true&next=/';
+          } else {
+            window.location.href = '/mfa/enroll?next=/';
+          }
+          return;
+        }
       }
+
+      window.location.href = '/';
     }
     checkExistingSession();
   }, [searchParams]);
@@ -42,11 +66,11 @@ function LoginForm() {
       }
 
       setStatus('Checking authentication assurance level...');
-      const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      const { data: sessionData } = await supabase.auth.getSession();
+      const user = sessionData.session?.user;
+      const token = sessionData.session?.access_token;
 
       // Dispatch login security alert email asynchronously (zero wait time, does not delay dashboard entry)
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData.session?.access_token;
       fetch('/api/auth/notify-login', {
         method: 'POST',
         keepalive: true,
@@ -57,13 +81,42 @@ function LoginForm() {
         body: JSON.stringify({ email }),
       }).catch(() => {});
 
-      if (aalData?.nextLevel === 'aal2') {
-        setStatus('Two-factor verification required. Redirecting...');
-        window.location.href = '/mfa/challenge?next=/';
+      if (!user) {
+        setStatus('Signed in successfully. Opening dashboard...');
+        window.location.href = '/';
         return;
       }
 
-      // Always launch directly into the main Dashboard page
+      // Fetch user profile to verify role
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role_key')
+        .eq('id', user.id)
+        .single();
+
+      const userRole = profile?.role_key || 'author';
+
+      if (requiresMfa(userRole)) {
+        const { data: factorsData } = await supabase.auth.mfa.listFactors();
+        const allFactors = [...(factorsData?.all ?? []), ...(factorsData?.totp ?? [])];
+        const hasVerifiedFactor = allFactors.some(
+          (f) => f.factor_type === 'totp' && f.status === 'verified'
+        );
+
+        const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
+        if (hasVerifiedFactor || aalData?.nextLevel === 'aal2') {
+          setStatus('Two-factor verification required. Redirecting to 6-digit code verification...');
+          window.location.href = '/mfa/challenge?reauth=true&next=/';
+          return;
+        } else {
+          setStatus('Two-factor setup required. Redirecting to authenticator enrollment...');
+          window.location.href = '/mfa/enroll?next=/';
+          return;
+        }
+      }
+
+      // Editorial / author roles without mandatory MFA go directly to dashboard
       setStatus('Signed in successfully. Opening dashboard...');
       window.location.href = '/';
     } catch (error) {

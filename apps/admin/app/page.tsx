@@ -76,13 +76,17 @@ export default function DashboardPage() {
         if (mfaRequired) {
           const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
           if (aalData?.currentLevel !== 'aal2') {
-            if (aalData?.nextLevel === 'aal2') {
+            const { data: factorsData } = await supabase.auth.mfa.listFactors();
+            const allFactors = [...(factorsData?.all ?? []), ...(factorsData?.totp ?? [])];
+            const hasVerifiedFactor = allFactors.some((f) => f.factor_type === 'totp' && f.status === 'verified');
+
+            if (hasVerifiedFactor || aalData?.nextLevel === 'aal2') {
               setStatus('MFA is required. Redirecting to verification...');
-              router.push('/mfa/challenge');
+              window.location.href = '/mfa/challenge?reauth=true&next=/';
               return;
             } else {
               setStatus('MFA setup is required. Redirecting to enrollment...');
-              router.push('/mfa/enroll');
+              window.location.href = '/mfa/enroll?next=/';
               return;
             }
           }
