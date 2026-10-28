@@ -83,6 +83,12 @@ export function Sidebar({
           exact: true,
         },
         {
+          name: 'Audience & Views',
+          description: 'Real-time reader view counts & regional analytics',
+          href: '/analytics',
+          icon: '📈',
+        },
+        {
           name: 'Articles & Stories',
           description: 'News reports, new story drafts & civic problems',
           href: '/articles',
