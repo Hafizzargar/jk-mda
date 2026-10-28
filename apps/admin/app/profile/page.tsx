@@ -41,6 +41,24 @@ export default function ProfilePage() {
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
 
+  // Global logout state
+  const [loggingOutAll, setLoggingOutAll] = useState(false);
+
+  const handleLogoutAllDevices = async () => {
+    const confirmed = window.confirm(
+      'Are you sure you want to log out of all devices? This will invalidate all active sessions across all computers, tablets, and phones.'
+    );
+    if (!confirmed) return;
+
+    setLoggingOutAll(true);
+    try {
+      await supabase.auth.signOut({ scope: 'global' });
+      router.push('/auth/logout-all');
+    } catch {
+      router.push('/login');
+    }
+  };
+
   useEffect(() => {
     async function loadProfile() {
       try {
@@ -369,6 +387,35 @@ export default function ProfilePage() {
                 </Button>
               </div>
             </form>
+          </div>
+
+          {/* Active Sessions & Global Logout Card */}
+          <div className="rounded-2xl border border-red-500/20 bg-slate-900/60 p-6 shadow-xl backdrop-blur-md">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-lg">🛡️</span>
+              <h2 className="text-base font-bold text-white">Active Sessions & Global Logout</h2>
+            </div>
+            <p className="text-xs text-slate-400 leading-relaxed mb-4">
+              Terminate all active logins and revoke authentication tokens across all browsers, mobile devices, and computers.
+            </p>
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-red-950 bg-red-950/20 p-4">
+              <div>
+                <p className="text-xs font-bold text-red-200">Revoke All Device Sessions</p>
+                <p className="text-[11px] text-red-300/70 mt-0.5">
+                  Useful if you logged in on a public or shared computer, or received an unexpected login alert.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleLogoutAllDevices}
+                disabled={loggingOutAll}
+                className="shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-red-500/60 bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-md shadow-red-950/50 active:scale-95 transition disabled:opacity-50 cursor-pointer"
+              >
+                <span>{loggingOutAll ? '⏳' : '🚪'}</span>
+                <span>{loggingOutAll ? 'Revoking Sessions...' : 'Log Out From All Devices'}</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

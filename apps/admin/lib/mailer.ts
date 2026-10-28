@@ -212,3 +212,167 @@ KJIN Newsroom Administration
     };
   }
 }
+
+export interface SendLoginAlertParams {
+  to: string;
+  displayName?: string;
+  loginTime?: Date;
+  ipAddress?: string;
+  userAgent?: string;
+  logoutUrl?: string;
+}
+
+/**
+ * Sends a security alert email whenever a user signs into the administrative newsroom.
+ * Includes exact IST & UTC timestamp, IP/User-Agent telemetry, and a one-click
+ * action button to revoke and log out from all devices.
+ */
+export async function sendLoginAlertEmail(params: SendLoginAlertParams): Promise<MailerResult> {
+  const transporter = getMailTransporter();
+
+  if (!transporter) {
+    console.warn('[Mailer] SMTP credentials not configured. Login alert skipped.');
+    return {
+      success: false,
+      skipped: true,
+      error: 'SMTP credentials not configured in environment variables.',
+    };
+  }
+
+  const defaultAdminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001';
+  const logoutUrl = params.logoutUrl || `${defaultAdminUrl}/auth/logout-all`;
+  const fromAddress = process.env.SMTP_FROM?.trim() || `"KCPJLN Newsroom" <${process.env.SMTP_USER}>`;
+  const now = params.loginTime || new Date();
+  const timeIST = now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'full', timeStyle: 'medium' });
+  const timeUTC = now.toUTCString();
+  const name = params.displayName || params.to.split('@')[0];
+
+  const subject = `Security Alert: New Sign-in to KCPJLN Newsroom (${timeIST})`;
+
+  const textContent = `
+Hello ${name},
+
+A new sign-in was detected on your KCPJLN Newsroom account.
+
+Login Details:
+- Time (IST): ${timeIST}
+- Time (UTC): ${timeUTC}
+- IP Address: ${params.ipAddress || 'Unavailable'}
+- Device / Browser: ${params.userAgent || 'Standard Browser'}
+
+If this was you, you can safely ignore this email.
+
+DID NOT SIGN IN?
+If you did not authorize this login, your account may be compromised. Click the link below immediately to revoke all active sessions and log out of all devices:
+${logoutUrl}
+
+After logging out, please sign in again and change your account password.
+
+Best regards,
+KCPJLN Newsroom Security
+`.trim();
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${subject}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #020617; color: #f8fafc; margin: 0; padding: 24px; }
+    .card { max-width: 580px; margin: 0 auto; background-color: #0f172a; border: 1px solid #1e293b; border-radius: 16px; padding: 32px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5); }
+    .badge { display: inline-block; padding: 4px 12px; background: rgba(245, 158, 11, 0.1); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 9999px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+    h1 { font-size: 22px; font-weight: 700; color: #ffffff; margin: 16px 0 8px 0; }
+    p { font-size: 14px; line-height: 1.6; color: #cbd5e1; margin: 0 0 16px 0; }
+    .info-box { background-color: #020617; border: 1px solid #334155; border-radius: 12px; padding: 18px; margin: 20px 0; }
+    .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #1e293b; font-size: 13px; }
+    .info-row:last-child { border-bottom: none; }
+    .label { color: #94a3b8; font-weight: 500; }
+    .value { color: #f8fafc; font-weight: 600; text-align: right; }
+    .btn-danger { display: inline-block; background-color: #ef4444; color: #ffffff; font-weight: 700; font-size: 14px; padding: 12px 28px; border-radius: 9999px; text-decoration: none; margin: 8px 0 20px 0; text-align: center; }
+    .btn-danger:hover { background-color: #dc2626; }
+    .notice { font-size: 12px; color: #94a3b8; border-top: 1px solid #1e293b; padding-top: 16px; margin-top: 20px; line-height: 1.5; }
+    .footer { text-align: center; font-size: 12px; color: #64748b; margin-top: 24px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <span class="badge">🔔 Security Notification</span>
+    <h1>New Sign-in Detected</h1>
+    <p>Hello <strong>${name}</strong>,</p>
+    <p>A new sign-in was recorded on your <strong>KCPJLN Newsroom</strong> administrative portal.</p>
+    
+    <div class="info-box">
+      <div class="info-row">
+        <span class="label">Date & Time (IST)</span>
+        <span class="value" style="color: #38bdf8;">${timeIST}</span>
+      </div>
+      <div class="info-row">
+        <span class="label">Date & Time (UTC)</span>
+        <span class="value">${timeUTC}</span>
+      </div>
+      <div class="info-row">
+        <span class="label">IP Address</span>
+        <span class="value">${params.ipAddress || 'Unavailable'}</span>
+      </div>
+      <div class="info-row">
+        <span class="label">Browser / Device</span>
+        <span class="value" style="font-family: ui-monospace, monospace; font-size: 11px; max-width: 280px; word-break: break-all;">${params.userAgent || 'Web Browser'}</span>
+      </div>
+      <div class="info-row">
+        <span class="label">Account Email</span>
+        <span class="value">${params.to}</span>
+      </div>
+    </div>
+
+    <p style="font-size: 13px; color: #94a3b8;">
+      If this was you, you can safely disregard this message.
+    </p>
+
+    <div style="background-color: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 12px; padding: 20px; margin: 20px 0; text-align: center;">
+      <p style="color: #fca5a5; font-size: 13px; font-weight: 600; margin-bottom: 12px;">
+        Don't recognize this sign-in? Your account may be compromised.
+      </p>
+      <a href="${logoutUrl}" class="btn-danger">
+        🚪 Log Out of All Devices
+      </a>
+      <p style="font-size: 11px; color: #94a3b8; margin: 8px 0 0 0;">
+        Clicking will immediately terminate all active sessions across all devices and phones.
+      </p>
+    </div>
+
+    <div class="notice">
+      After signing out of all devices, please sign in with your password and immediately navigate to <strong>Profile & Settings</strong> to update your password.
+    </div>
+  </div>
+  <div class="footer">
+    &copy; ${now.getFullYear()} KCPJLN Newsroom Security &bull; Automated Telemetry Alert
+  </div>
+</body>
+</html>
+`.trim();
+
+  try {
+    const info = await transporter.sendMail({
+      from: fromAddress,
+      to: params.to,
+      subject,
+      text: textContent,
+      html: htmlContent,
+    });
+
+    console.info(`[Mailer] Login alert email sent to ${params.to} (MessageId: ${info.messageId})`);
+    return {
+      success: true,
+      messageId: info.messageId,
+    };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown mailer error';
+    console.error(`[Mailer] Failed to send login alert email to ${params.to}:`, errorMessage);
+    return {
+      success: false,
+      error: errorMessage,
+    };
+  }
+}
+

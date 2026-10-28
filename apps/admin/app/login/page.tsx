@@ -34,6 +34,18 @@ function LoginForm() {
       const nextUrl = searchParams.get('next');
       const target = nextUrl && nextUrl.startsWith('/') && !nextUrl.startsWith('//') ? nextUrl : '/';
 
+      // Dispatch login security alert email with device telemetry
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      fetch('/api/auth/notify-login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ email }),
+      }).catch(() => {});
+
       if (aalData?.nextLevel === 'aal2') {
         setStatus('Two-factor verification required. Redirecting...');
         window.location.href = `/mfa/challenge?next=${encodeURIComponent(target)}`;

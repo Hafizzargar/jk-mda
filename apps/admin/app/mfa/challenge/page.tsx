@@ -145,6 +145,18 @@ function MFAChallengeForm() {
       }
       
       setStatus('Verification successful! Redirecting...');
+      
+      // Dispatch security notification for 2FA session verification
+      const token = updatedSessionData.session?.access_token;
+      fetch('/api/auth/notify-login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ email: updatedSessionData.session?.user?.email }),
+      }).catch(() => {});
+
       const nextUrl = searchParams.get('next');
       const target = nextUrl && nextUrl.startsWith('/') && !nextUrl.startsWith('//') ? nextUrl : '/';
       setTimeout(() => {
