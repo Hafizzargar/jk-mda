@@ -146,10 +146,11 @@ function MFAChallengeForm() {
       
       setStatus('Verification successful! Redirecting...');
       
-      // Dispatch security notification for 2FA session verification
+      // Dispatch security notification for 2FA session verification (survives page navigation)
       const token = updatedSessionData.session?.access_token;
       fetch('/api/auth/notify-login', {
         method: 'POST',
+        keepalive: true,
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),

@@ -34,17 +34,25 @@ function LoginForm() {
       const nextUrl = searchParams.get('next');
       const target = nextUrl && nextUrl.startsWith('/') && !nextUrl.startsWith('//') ? nextUrl : '/';
 
-      // Dispatch login security alert email with device telemetry
+      // Dispatch login security alert email with device telemetry (survives page navigation)
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
-      fetch('/api/auth/notify-login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ email }),
-      }).catch(() => {});
+      try {
+        await Promise.race([
+          fetch('/api/auth/notify-login', {
+            method: 'POST',
+            keepalive: true,
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+            body: JSON.stringify({ email }),
+          }),
+          new Promise((resolve) => setTimeout(resolve, 600)),
+        ]);
+      } catch {
+        // Telemetry failure should not block dashboard access
+      }
 
       if (aalData?.nextLevel === 'aal2') {
         setStatus('Two-factor verification required. Redirecting...');
