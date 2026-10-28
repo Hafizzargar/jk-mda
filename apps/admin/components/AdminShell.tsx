@@ -199,8 +199,8 @@ export function AdminShell({ children }: AdminShellProps) {
     }
   };
 
-  // If on login or MFA auth routes, don't show the dashboard sidebar/navbar shell
-  const isAuthRoute = pathname === '/login' || pathname.startsWith('/mfa/');
+  // If on login, MFA, or public auth security routes, don't show the dashboard sidebar/navbar shell
+  const isAuthRoute = pathname === '/login' || pathname.startsWith('/mfa/') || pathname.startsWith('/auth/');
   if (isAuthRoute) {
     return (
       <>

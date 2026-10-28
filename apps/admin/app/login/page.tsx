@@ -76,6 +76,18 @@ function LoginForm() {
           <h1 className="mt-4 text-3xl font-bold">Sign in</h1>
         </div>
 
+        {searchParams.get('alert') === 'all_sessions_revoked' && (
+          <div className="mb-6 rounded-2xl border border-emerald-500/40 bg-emerald-950/40 p-4 text-emerald-200">
+            <div className="flex items-center gap-2 font-bold text-sm text-emerald-400">
+              <span>🛡️</span>
+              <span>All Sessions Revoked</span>
+            </div>
+            <p className="mt-1 text-xs text-emerald-300/80 leading-relaxed">
+              You have been successfully signed out across all devices and active browser sessions. Please log in with your credentials.
+            </p>
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label htmlFor="email" className="mb-2 block text-sm text-slate-300">
