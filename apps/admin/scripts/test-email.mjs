@@ -9,7 +9,7 @@ async function testEmail() {
   const user = process.env.SMTP_USER?.trim();
   const pass = process.env.SMTP_PASS?.replace(/\s+/g, '').trim();
   const from = process.env.SMTP_FROM?.trim() || `"KJIN Newsroom" <${user}>`;
-  const recipient = 'hafezzargar987@gmail.com';
+  const recipient = process.env.TEST_EMAIL_RECIPIENT || user || 'hafizzargar6@gmail.com';
 
   console.log(`Configured Host: ${host}`);
   console.log(`Configured Port: ${port}`);

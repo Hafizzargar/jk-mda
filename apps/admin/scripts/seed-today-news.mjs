@@ -21,7 +21,7 @@ function createOwnerJwt() {
       iss: 'supabase-demo',
       sub: OWNER_UID,
       role: 'authenticated',
-      email: 'hafezzargar987@gmail.com',
+      email: 'hafizzargar6@gmail.com',
       aal: 'aal2',
       exp: Math.floor(Date.now() / 1000) + 86400,
     })
