@@ -80,6 +80,14 @@ export async function middleware(request: NextRequest) {
   }
 
   if (user) {
+    // If user is already authenticated and visits /login, redirect directly to dashboard
+    if (pathname === '/login' && !request.nextUrl.searchParams.get('alert')) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/';
+      url.search = '';
+      return NextResponse.redirect(url);
+    }
+
     // Check MFA requirement and active status
     const { data: profile, error: profileError } = await supabase.from('profiles').select('role_key, status').eq('id', user.id).single();
     

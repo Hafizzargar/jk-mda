@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useState, Suspense } from 'react';
+import { FormEvent, useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/Button';
@@ -11,6 +11,18 @@ function LoginForm() {
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState('Enter your editor credentials to continue.');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // If already authenticated and not viewing an explicit logout alert, auto-forward to Dashboard
+  useEffect(() => {
+    async function checkExistingSession() {
+      if (searchParams.get('alert')) return;
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.user) {
+        window.location.href = '/';
+      }
+    }
+    checkExistingSession();
+  }, [searchParams]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -31,8 +43,6 @@ function LoginForm() {
 
       setStatus('Checking authentication assurance level...');
       const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-      const nextUrl = searchParams.get('next');
-      const target = nextUrl && nextUrl.startsWith('/') && !nextUrl.startsWith('//') ? nextUrl : '/';
 
       // Dispatch login security alert email with device telemetry (survives page navigation)
       const { data: sessionData } = await supabase.auth.getSession();
@@ -56,12 +66,13 @@ function LoginForm() {
 
       if (aalData?.nextLevel === 'aal2') {
         setStatus('Two-factor verification required. Redirecting...');
-        window.location.href = `/mfa/challenge?next=${encodeURIComponent(target)}`;
+        window.location.href = '/mfa/challenge?next=/';
         return;
       }
 
-      setStatus('Signed in successfully. Redirecting...');
-      window.location.href = target;
+      // Always launch directly into the main Dashboard page
+      setStatus('Signed in successfully. Opening dashboard...');
+      window.location.href = '/';
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'Unable to sign in right now.');
       setIsSubmitting(false);

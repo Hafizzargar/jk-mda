@@ -159,7 +159,7 @@ function MFAChallengeForm() {
       }).catch(() => {});
 
       const nextUrl = searchParams.get('next');
-      const target = nextUrl && nextUrl.startsWith('/') && !nextUrl.startsWith('//') ? nextUrl : '/';
+      const target = nextUrl && nextUrl.startsWith('/') && !nextUrl.startsWith('//') && !nextUrl.startsWith('/auth') && nextUrl !== '/login' ? nextUrl : '/';
       setTimeout(() => {
         window.location.href = target;
       }, 500);
