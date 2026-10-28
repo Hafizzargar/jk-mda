@@ -245,8 +245,16 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
       );
 
     if (matchedArticle) {
-      const translation = (matchedArticle as any).article_translations?.find(
-        (t: { language_code: string; title?: string }) => t.language_code === lang
+      interface CorridorArticleShape {
+        title: string;
+        district?: string | null;
+        view_count?: number | null;
+        reading_time_minutes?: number | null;
+        article_translations?: Array<{ language_code: string; title?: string }> | null;
+      }
+      const artObj = matchedArticle as unknown as CorridorArticleShape;
+      const translation = artObj.article_translations?.find(
+        (t) => t.language_code === lang
       );
       const headline = translation?.title || matchedArticle.title;
       const districtName = matchedArticle.district
@@ -254,7 +262,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
         : regionDef?.shortName || corridor.name;
       const stats = matchedArticle.view_count && matchedArticle.view_count > 0
         ? `${districtName} • ${matchedArticle.view_count.toLocaleString()} Readers • Trending`
-        : `${districtName} • Verified Field Dispatch • ${(matchedArticle as any).reading_time_minutes || 3}m read`;
+        : `${districtName} • Verified Field Dispatch • ${artObj.reading_time_minutes || 3}m read`;
 
       return {
         ...corridor,
