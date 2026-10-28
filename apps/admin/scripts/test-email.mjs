@@ -7,7 +7,7 @@ async function testEmail() {
   const port = process.env.SMTP_PORT ? Number(process.env.SMTP_PORT) : 465;
   const secure = process.env.SMTP_SECURE !== undefined ? process.env.SMTP_SECURE === 'true' : port === 465;
   const user = process.env.SMTP_USER?.trim();
-  const pass = process.env.SMTP_PASS?.trim();
+  const pass = process.env.SMTP_PASS?.replace(/\s+/g, '').trim();
   const from = process.env.SMTP_FROM?.trim() || `"KJIN Newsroom" <${user}>`;
   const recipient = 'hafezzargar987@gmail.com';
 
