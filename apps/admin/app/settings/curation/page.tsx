@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
@@ -101,7 +101,7 @@ export default function HomepageCuratorPage() {
       const data = await res.json();
       setCuration(data.curation || DEFAULT_CURATION_SETTINGS);
       setArticles(data.articles || []);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.warn('[Curation] fetch error, using client fallback:', err);
       // Fallback query directly via Supabase client
       try {
@@ -120,8 +120,9 @@ export default function HomepageCuratorPage() {
 
         setCuration(settingData?.value ? (settingData.value as HomepageCurationSettings) : DEFAULT_CURATION_SETTINGS);
         setArticles(dbArticles || []);
-      } catch (innerErr: any) {
-        setFeedback({ type: 'error', message: innerErr.message || 'Error loading curation data' });
+      } catch (innerErr: unknown) {
+        const msg = innerErr instanceof Error ? innerErr.message : 'Error loading curation data';
+        setFeedback({ type: 'error', message: msg });
       }
 
       try {
@@ -130,7 +131,12 @@ export default function HomepageCuratorPage() {
           .select('value')
           .eq('key', 'navbar_settings')
           .maybeSingle();
-        const brandVal = (navData?.value as Record<string, any>)?.brand;
+        const brandVal = ((navData?.value as Record<string, unknown> | null)?.brand) as {
+          name?: string;
+          est_badge_text?: string;
+          show_est_badge?: boolean;
+          tagline?: string;
+        } | undefined;
         if (brandVal) {
           setBrand({
             name: brandVal.name || 'KCPJLN',
@@ -192,8 +198,9 @@ export default function HomepageCuratorPage() {
       }
 
       setFeedback({ type: 'success', message: 'Homepage layout and story slotting published live!' });
-    } catch (err: any) {
-      setFeedback({ type: 'error', message: err.message || 'Error saving layout' });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Error saving layout';
+      setFeedback({ type: 'error', message: msg });
     } finally {
       setSaving(false);
     }
@@ -343,7 +350,6 @@ export default function HomepageCuratorPage() {
     );
   }
 
-  const activeCuration = curation || DEFAULT_CURATION_SETTINGS;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">

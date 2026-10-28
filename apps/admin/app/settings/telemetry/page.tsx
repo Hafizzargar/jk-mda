@@ -9,10 +9,7 @@ import {
   type TelemetrySettings,
   type MountainPassItem,
   type MandiCommodityItem,
-  type EmergencyHotline,
   type CorridorGlanceItem,
-  type CorridorVoiceItem,
-  type CivicInitiativeItem,
   type ConvoySlotItem,
   type FieldSensorItem,
 } from '@/lib/telemetry';
@@ -37,7 +34,7 @@ export default function TelemetrySettingsPage() {
       const params = new URLSearchParams(window.location.search);
       const tabParam = params.get('tab');
       if (tabParam && ['passes', 'convoy', 'sensors', 'mandi', 'corridors', 'voices', 'civic'].includes(tabParam)) {
-        setActiveTab(tabParam as any);
+        setActiveTab(tabParam as 'passes' | 'convoy' | 'sensors' | 'mandi' | 'corridors' | 'voices' | 'civic');
       }
     }
 
@@ -107,8 +104,9 @@ export default function TelemetrySettingsPage() {
         },
       }));
       toast.success('AI Developing Wire synthesized with Gemini!', { title: 'AI Wire Ready' });
-    } catch (err: any) {
-      toast.error(err.message || 'AI generation failed');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'AI generation failed';
+      toast.error(msg);
     } finally {
       setIsGeneratingAI(false);
     }
@@ -177,7 +175,7 @@ export default function TelemetrySettingsPage() {
     }));
   };
 
-  const updatePassField = (passId: string, field: keyof MountainPassItem, value: any) => {
+  const updatePassField = <K extends keyof MountainPassItem>(passId: string, field: K, value: MountainPassItem[K]) => {
     setTelemetry(prev => ({
       ...prev,
       mountain_passes: prev.mountain_passes.map(p =>
@@ -186,7 +184,7 @@ export default function TelemetrySettingsPage() {
     }));
   };
 
-  const updateMandiCommodity = (id: string, field: keyof MandiCommodityItem, value: any) => {
+  const updateMandiCommodity = <K extends keyof MandiCommodityItem>(id: string, field: K, value: MandiCommodityItem[K]) => {
     setTelemetry(prev => ({
       ...prev,
       mandi_commodities: prev.mandi_commodities.map(item =>
@@ -222,7 +220,7 @@ export default function TelemetrySettingsPage() {
     }));
   };
 
-  const updateCorridorGlance = (id: string, field: keyof CorridorGlanceItem, value: any) => {
+  const updateCorridorGlance = <K extends keyof CorridorGlanceItem>(id: string, field: K, value: CorridorGlanceItem[K]) => {
     setTelemetry(prev => ({
       ...prev,
       corridors_at_a_glance: prev.corridors_at_a_glance.map(item =>
@@ -231,7 +229,7 @@ export default function TelemetrySettingsPage() {
     }));
   };
 
-  const updateConvoySlot = (id: string, field: keyof ConvoySlotItem, value: any) => {
+  const updateConvoySlot = <K extends keyof ConvoySlotItem>(id: string, field: K, value: ConvoySlotItem[K]) => {
     setTelemetry(prev => ({
       ...prev,
       convoy_slots: (prev.convoy_slots || []).map(slot =>
@@ -240,7 +238,7 @@ export default function TelemetrySettingsPage() {
     }));
   };
 
-  const updateFieldSensor = (id: string, field: keyof FieldSensorItem, value: any) => {
+  const updateFieldSensor = <K extends keyof FieldSensorItem>(id: string, field: K, value: FieldSensorItem[K]) => {
     setTelemetry(prev => ({
       ...prev,
       field_sensors: (prev.field_sensors || []).map(sensor =>
@@ -635,7 +633,7 @@ export default function TelemetrySettingsPage() {
                   <div className="flex items-center gap-2">
                     <select
                       value={slot.clearance_status}
-                      onChange={(e) => updateConvoySlot(slot.id, 'clearance_status', e.target.value as any)}
+                      onChange={(e) => updateConvoySlot(slot.id, 'clearance_status', e.target.value as ConvoySlotItem['clearance_status'])}
                       className="px-3 py-1.5 text-xs font-bold uppercase rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                     >
                       <option value="verified">Verified Pass</option>
@@ -729,7 +727,7 @@ export default function TelemetrySettingsPage() {
 
                   <select
                     value={sensor.status}
-                    onChange={(e) => updateFieldSensor(sensor.id, 'status', e.target.value as any)}
+                    onChange={(e) => updateFieldSensor(sensor.id, 'status', e.target.value as FieldSensorItem['status'])}
                     className="px-2 py-1 text-xs font-bold uppercase rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                   >
                     <option value="calibrated">Calibrated</option>
