@@ -139,3 +139,20 @@ test('careers: POST admin/superadmin successfully updates careers and writes aud
   assert.equal(body.careers_settings.jobs.length, 1);
   assert.equal(body.careers_settings.jobs[0].title, 'Senior Fact-Checking Editor');
 });
+
+test('careers: POST editor role is allowed to update careers settings (200)', async () => {
+  configure({ role: 'editor' });
+  const res = await careersRoute.POST(
+    jsonRequest('http://localhost/api/careers', {
+      token: MFA_VALID_TOKEN,
+      body: {
+        contact_email: 'editor-hiring@kjin.org',
+        hiring_status: 'open',
+      },
+    })
+  );
+  assert.equal(res.status, 200);
+  const body = (await res.json()) as { success: boolean; careers_settings: typeof DEFAULT_CAREERS_SETTINGS };
+  assert.equal(body.success, true);
+  assert.equal(body.careers_settings.contact_email, 'editor-hiring@kjin.org');
+});

@@ -19,21 +19,7 @@ export function CareersPortal({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeJobForModal, setActiveJobForModal] = useState<JobPosting | null>(null);
   const [isGeneralModalOpen, setIsGeneralModalOpen] = useState(false);
-
-  // Form submission state
-  const [formData, setFormData] = useState({
-    full_name: '',
-    email: '',
-    phone: '',
-    city: '',
-    experience_years: '1-3 Years',
-    current_role: '',
-    portfolio_url: '',
-    cover_letter: '',
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [successSubmitted, setSuccessSubmitted] = useState(false);
+  const [copiedEmail, setCopiedEmail] = useState(false);
 
   const departments = [
     'all',
@@ -42,7 +28,9 @@ export function CareersPortal({
 
   const filteredJobs = careersSettings.jobs.filter((job) => {
     if (job.status !== 'active') return false;
-    const matchDept = selectedDepartment === 'all' || job.department.toLowerCase() === selectedDepartment.toLowerCase();
+    const matchDept =
+      selectedDepartment === 'all' ||
+      job.department.toLowerCase() === selectedDepartment.toLowerCase();
     const matchSearch =
       searchQuery.trim() === '' ||
       job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -51,77 +39,46 @@ export function CareersPortal({
     return matchDept && matchSearch;
   });
 
+  const handleCopyEmail = async () => {
+    try {
+      await navigator.clipboard.writeText(careersSettings.contact_email);
+      setCopiedEmail(true);
+      setTimeout(() => setCopiedEmail(false), 2500);
+    } catch {
+      // Fallback
+    }
+  };
+
+  const getMailtoUrl = (job?: JobPosting | null) => {
+    const subject = job
+      ? `Job Application: ${job.title} - [Your Full Name]`
+      : `Newsroom Application & Contributor Pitch - [Your Full Name]`;
+    const body = `Dear KJIN Editorial Board,\n\nI am writing to submit my application for the role of "${
+      job ? job.title : 'Newsroom Contributor / Author'
+    }".\n\nPlease find attached my updated Resume / CV and links to my work.\n\nFull Name: \nContact Number / WhatsApp: \nCurrent Location (City/District): \nYears of Experience: \nPortfolio / Publication Links: \nEarliest Available Start Date: \n\nThank you for considering my application.\n\nBest regards,\n`;
+
+    return `mailto:${careersSettings.contact_email}?subject=${encodeURIComponent(
+      subject
+    )}&body=${encodeURIComponent(body)}`;
+  };
+
   const openApplyModal = (job: JobPosting) => {
     setActiveJobForModal(job);
     setIsGeneralModalOpen(false);
-    setErrorMessage(null);
-    setSuccessSubmitted(false);
   };
 
   const openGeneralApply = () => {
     setActiveJobForModal(null);
     setIsGeneralModalOpen(true);
-    setErrorMessage(null);
-    setSuccessSubmitted(false);
   };
 
   const closeModal = () => {
     setActiveJobForModal(null);
     setIsGeneralModalOpen(false);
-    setErrorMessage(null);
-    setSuccessSubmitted(false);
-  };
-
-  const handleSubmitApplication = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    setErrorMessage(null);
-
-    const payload = {
-      job_id: activeJobForModal ? activeJobForModal.id : 'general',
-      job_title: activeJobForModal ? activeJobForModal.title : 'General Contributor / Author',
-      full_name: formData.full_name,
-      email: formData.email,
-      phone: formData.phone,
-      city: formData.city,
-      experience_years: formData.experience_years,
-      current_role: formData.current_role,
-      portfolio_url: formData.portfolio_url,
-      cover_letter: formData.cover_letter,
-    };
-
-    try {
-      const res = await fetch('/api/careers/apply', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to submit application.');
-      }
-
-      setSuccessSubmitted(true);
-      setFormData({
-        full_name: '',
-        email: '',
-        phone: '',
-        city: '',
-        experience_years: '1-3 Years',
-        current_role: '',
-        portfolio_url: '',
-        cover_letter: '',
-      });
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'An error occurred while submitting your application.';
-      setErrorMessage(msg);
-    } finally {
-      setIsSubmitting(false);
-    }
   };
 
   const isModalOpen = Boolean(activeJobForModal || isGeneralModalOpen);
+  const currentModalJob = activeJobForModal;
 
   return (
     <div className="min-h-screen bg-stone-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
@@ -130,7 +87,9 @@ export function CareersPortal({
         <div className="max-w-5xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-emerald-100 dark:bg-emerald-500/10 text-emerald-800 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-500/30 mb-6">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            {careersSettings.hiring_status === 'open' ? 'We Are Hiring • Join Our Newsroom' : 'Newsroom Applications Paused'}
+            {careersSettings.hiring_status === 'open'
+              ? 'We Are Hiring • Join Our Newsroom'
+              : 'Newsroom Applications Paused'}
           </div>
 
           <h1 className="font-serif text-3xl sm:text-5xl font-extrabold tracking-tight text-slate-950 dark:text-white max-w-4xl mx-auto leading-tight">
@@ -145,19 +104,60 @@ export function CareersPortal({
             {careersSettings.culture_statement}
           </p>
 
+          {/* Quick Resume Direct Email Banner */}
+          <div className="max-w-4xl mx-auto mt-10 p-6 rounded-2xl bg-gradient-to-r from-cyan-50 via-white to-emerald-50 dark:from-cyan-950/40 dark:via-slate-900 dark:to-emerald-950/30 border border-cyan-200 dark:border-cyan-800/60 shadow-sm text-left">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+              <div className="space-y-1.5 flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">📧</span>
+                  <span className="text-xs font-bold uppercase tracking-wider text-cyan-800 dark:text-cyan-300">
+                    Direct Resume Submissions
+                  </span>
+                </div>
+                <h2 className="text-base font-bold text-slate-950 dark:text-white">
+                  No forms required. Send your Resume & CV directly to our newsroom.
+                </h2>
+                <p className="text-xs text-slate-600 dark:text-slate-300">
+                  Review open vacancies below and send your resume, portfolio links, and clips directly to:
+                </p>
+                <div className="pt-1 flex items-center gap-2">
+                  <span className="font-mono text-xs sm:text-sm font-bold text-cyan-700 dark:text-cyan-300 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-cyan-300 dark:border-cyan-700 shadow-xs">
+                    {careersSettings.contact_email}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex sm:flex-col items-center sm:items-end gap-2.5 shrink-0">
+                <a
+                  href={getMailtoUrl()}
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl font-bold text-xs bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100 text-white shadow-sm transition text-center flex items-center justify-center gap-1.5"
+                >
+                  <span>✉️ Email Your Resume</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={handleCopyEmail}
+                  className="w-full sm:w-auto px-4 py-2 rounded-xl font-semibold text-xs border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-stone-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition text-center"
+                >
+                  {copiedEmail ? '✓ Copied Email!' : '📋 Copy Email'}
+                </button>
+              </div>
+            </div>
+          </div>
+
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <a
               href="#openings"
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100 text-white font-medium text-sm shadow-sm transition"
             >
-              <span>Explore Open Roles</span>
+              <span>Explore Open Roles ({filteredJobs.length})</span>
               <span>↓</span>
             </a>
             <button
               onClick={openGeneralApply}
               className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 font-medium text-sm transition"
             >
-              <span>Submit General Pitch / Work Experience</span>
+              <span>General Contributor / Pitch</span>
               <span>✍️</span>
             </button>
           </div>
@@ -206,11 +206,16 @@ export function CareersPortal({
       <section id="openings" className="py-12 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-stone-200 dark:border-slate-800 pb-6 mb-8">
           <div>
-            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-slate-950 dark:text-white">
-              Open Positions ({filteredJobs.length})
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="font-serif text-2xl sm:text-3xl font-bold text-slate-950 dark:text-white">
+                Current Newsroom Vacancies ({filteredJobs.length})
+              </h2>
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300">
+                Active Roles
+              </span>
+            </div>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Filter by newsroom department or search by title, bureau location, or responsibilities.
+              Select a position below to view details and email your resume directly to our editorial board.
             </p>
           </div>
 
@@ -218,7 +223,7 @@ export function CareersPortal({
           <div className="w-full sm:w-72">
             <input
               type="text"
-              placeholder="Search roles or locations..."
+              placeholder="Search roles, bureaus, skills..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full px-3.5 py-2 rounded-xl text-xs bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-cyan-500"
@@ -247,16 +252,20 @@ export function CareersPortal({
         {filteredJobs.length === 0 ? (
           <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-2xl border border-dashed border-slate-300 dark:border-slate-800">
             <p className="text-3xl mb-2">🔍</p>
-            <h3 className="text-base font-bold text-slate-900 dark:text-white">No active postings match your search</h3>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              No active postings match your search
+            </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
-              We frequently hire for reporters, editors, and stringers. You can also submit an open expression of interest below.
+              We frequently hire for reporters, copy editors, and district stringers. You can send a spontaneous resume submission anytime.
             </p>
-            <button
-              onClick={openGeneralApply}
-              className="mt-4 px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold"
-            >
-              Submit General Application
-            </button>
+            <div className="mt-4 flex justify-center gap-3">
+              <a
+                href={getMailtoUrl()}
+                className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold"
+              >
+                Email Resume to {careersSettings.contact_email}
+              </a>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-6">
@@ -265,7 +274,7 @@ export function CareersPortal({
                 key={job.id}
                 className="p-6 sm:p-8 rounded-2xl bg-white dark:bg-slate-900 border border-stone-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow"
               >
-                <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+                <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-6">
                   <div className="space-y-3 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-cyan-100 dark:bg-cyan-500/10 text-cyan-800 dark:text-cyan-400 border border-cyan-300 dark:border-cyan-500/30">
@@ -307,38 +316,59 @@ export function CareersPortal({
                       {job.description}
                     </p>
 
-                    {/* Requirements & Responsibilities Expandable / Preview */}
+                    {/* Requirements & Responsibilities Preview */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 text-xs text-slate-600 dark:text-slate-400 border-t border-stone-100 dark:border-slate-800/80">
-                      <div>
-                        <h4 className="font-bold text-slate-900 dark:text-slate-200 mb-1.5">Key Responsibilities:</h4>
-                        <ul className="list-disc pl-4 space-y-1">
-                          {job.responsibilities.slice(0, 3).map((resp, idx) => (
-                            <li key={idx}>{resp}</li>
-                          ))}
-                        </ul>
-                      </div>
-                      <div>
-                        <h4 className="font-bold text-slate-900 dark:text-slate-200 mb-1.5">Requirements:</h4>
-                        <ul className="list-disc pl-4 space-y-1">
-                          {job.requirements.slice(0, 3).map((req, idx) => (
-                            <li key={idx}>{req}</li>
-                          ))}
-                        </ul>
-                      </div>
+                      {job.responsibilities && job.responsibilities.length > 0 && (
+                        <div>
+                          <h4 className="font-bold text-slate-900 dark:text-slate-200 mb-1.5">
+                            Key Responsibilities:
+                          </h4>
+                          <ul className="list-disc pl-4 space-y-1">
+                            {job.responsibilities.slice(0, 3).map((resp, idx) => (
+                              <li key={idx}>{resp}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {job.requirements && job.requirements.length > 0 && (
+                        <div>
+                          <h4 className="font-bold text-slate-900 dark:text-slate-200 mb-1.5">
+                            Key Requirements:
+                          </h4>
+                          <ul className="list-disc pl-4 space-y-1">
+                            {job.requirements.slice(0, 3).map((req, idx) => (
+                              <li key={idx}>{req}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  {/* Action CTA */}
-                  <div className="lg:w-48 flex lg:flex-col items-center justify-end gap-3 pt-4 lg:pt-0 border-t lg:border-t-0 border-stone-100 dark:border-slate-800">
-                    <button
-                      onClick={() => openApplyModal(job)}
-                      className="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-cyan-600 hover:bg-cyan-500 text-white shadow-sm transition text-center"
+                  {/* Direct Action Box */}
+                  <div className="lg:w-60 flex flex-col items-stretch justify-center gap-2.5 pt-4 lg:pt-0 border-t lg:border-t-0 border-stone-100 dark:border-slate-800 shrink-0">
+                    <a
+                      href={getMailtoUrl(job)}
+                      className="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-cyan-600 hover:bg-cyan-500 text-white shadow-sm transition text-center flex items-center justify-center gap-1.5"
                     >
-                      Apply Now →
+                      <span>📧 Send Resume via Email</span>
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={() => openApplyModal(job)}
+                      className="w-full py-2 px-3 rounded-xl font-semibold text-xs border border-slate-200 dark:border-slate-800 bg-stone-50 dark:bg-slate-800/80 hover:bg-stone-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition text-center flex items-center justify-center gap-1"
+                    >
+                      <span>ℹ️ Application Details</span>
                     </button>
-                    <span className="text-[11px] text-slate-400 text-center block">
-                      Fast-track review
-                    </span>
+
+                    <button
+                      type="button"
+                      onClick={handleCopyEmail}
+                      className="text-[11px] text-slate-500 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 text-center transition pt-0.5"
+                    >
+                      {copiedEmail ? '✓ Email copied!' : `Send to ${careersSettings.contact_email}`}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -357,23 +387,32 @@ export function CareersPortal({
                 Don’t see your exact role listed?
               </h3>
               <p className="text-xs sm:text-sm text-slate-300 max-w-xl leading-relaxed">
-                We are continually looking for freelance authors, investigative researchers, photojournalists, and district stringers across all 22 districts of Jammu, Kashmir, and Ladakh. Share your portfolio and past work experience with our editorial board.
+                We are continually looking for freelance authors, investigative researchers, photojournalists, and district stringers across all 22 districts of Jammu, Kashmir, and Ladakh. Send your portfolio and past clips directly to our desk: <strong className="text-cyan-300">{careersSettings.contact_email}</strong>.
               </p>
             </div>
-            <button
-              onClick={openGeneralApply}
-              className="px-6 py-3 rounded-xl bg-white hover:bg-stone-100 text-slate-950 font-bold text-xs whitespace-nowrap shadow-sm transition"
-            >
-              Submit Pitch / Portfolio
-            </button>
+            <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0">
+              <a
+                href={getMailtoUrl()}
+                className="px-6 py-3 rounded-xl bg-white hover:bg-stone-100 text-slate-950 font-bold text-xs whitespace-nowrap shadow-sm transition flex items-center gap-1.5"
+              >
+                <span>✉️ Email Your CV & Clips</span>
+              </a>
+              <button
+                type="button"
+                onClick={handleCopyEmail}
+                className="px-4 py-3 rounded-xl border border-slate-700 hover:bg-slate-800 text-white font-semibold text-xs transition"
+              >
+                {copiedEmail ? '✓ Copied!' : 'Copy Email'}
+              </button>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* 5. Application Modal / Drawer */}
+      {/* 5. Direct Email Application Instructions Modal (No form needed to fill) */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
-          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto bg-white dark:bg-slate-900 rounded-3xl border border-stone-200 dark:border-slate-800 shadow-2xl p-6 sm:p-8">
+          <div className="relative w-full max-w-xl bg-white dark:bg-slate-900 rounded-3xl border border-stone-200 dark:border-slate-800 shadow-2xl p-6 sm:p-8 space-y-6">
             {/* Close Button */}
             <button
               onClick={closeModal}
@@ -383,193 +422,81 @@ export function CareersPortal({
               ✕
             </button>
 
-            {successSubmitted ? (
-              <div className="text-center py-8 space-y-4">
-                <div className="w-16 h-16 rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-3xl mx-auto">
-                  ✓
-                </div>
-                <h3 className="font-serif text-2xl font-bold text-slate-950 dark:text-white">
-                  Application Received!
-                </h3>
-                <p className="text-sm text-slate-600 dark:text-slate-300 max-w-md mx-auto leading-relaxed">
-                  Thank you for applying to {brandFullName}. Our editorial review team will evaluate your work experience and portfolio. If shortlisted, a bureau editor will reach out directly.
-                </p>
-                <div className="pt-4">
-                  <button
-                    onClick={closeModal}
-                    className="px-6 py-2.5 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-950 font-bold text-xs shadow-sm"
-                  >
-                    Close Window
-                  </button>
-                </div>
+            {/* Modal Header */}
+            <div>
+              <span className="text-xs font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400">
+                Direct Newsroom Application
+              </span>
+              <h3 className="font-serif text-2xl font-bold text-slate-950 dark:text-white mt-1">
+                {currentModalJob ? currentModalJob.title : 'General Expression of Interest'}
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                {currentModalJob
+                  ? `${currentModalJob.department} • ${currentModalJob.location} • ${currentModalJob.role_type}`
+                  : `Join ${brandFullName} (${brandName}) as a reporter, writer, or district contributor.`}
+              </p>
+            </div>
+
+            {/* Email Destination Card */}
+            <div className="p-4 rounded-2xl bg-cyan-50/70 dark:bg-cyan-950/30 border border-cyan-200 dark:border-cyan-800/60 space-y-2">
+              <div className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Official Hiring & Resume Email:
               </div>
-            ) : (
-              <div>
-                <div className="mb-6">
-                  <span className="text-xs font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400">
-                    Candidate Application
-                  </span>
-                  <h3 className="font-serif text-2xl font-bold text-slate-950 dark:text-white mt-1">
-                    {activeJobForModal ? activeJobForModal.title : 'General Expression of Interest'}
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                    {activeJobForModal
-                      ? `${activeJobForModal.department} • ${activeJobForModal.location} • ${activeJobForModal.role_type}`
-                      : `Tell us about your background, previous publications, and how you wish to contribute to ${brandName}.`}
-                  </p>
-                </div>
-
-                {errorMessage && (
-                  <div className="mb-4 p-3 rounded-xl bg-rose-100 dark:bg-rose-500/20 border border-rose-300 dark:border-rose-500/40 text-rose-800 dark:text-rose-300 text-xs">
-                    {errorMessage}
-                  </div>
-                )}
-
-                <form onSubmit={handleSubmitApplication} className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        Full Legal Name *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={formData.full_name}
-                        onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                        placeholder="e.g. Farooq Ahmad"
-                        className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-stone-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        Email Address *
-                      </label>
-                      <input
-                        type="email"
-                        required
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        placeholder="journalist@example.com"
-                        className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-stone-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        Phone / WhatsApp
-                      </label>
-                      <input
-                        type="tel"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        placeholder="+91 94190..."
-                        className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-stone-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        City / District
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.city}
-                        onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                        placeholder="e.g. Srinagar, Jammu, Anantnag"
-                        className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-stone-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                        Years of Experience
-                      </label>
-                      <select
-                        value={formData.experience_years}
-                        onChange={(e) => setFormData({ ...formData, experience_years: e.target.value })}
-                        className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-stone-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                      >
-                        <option value="0-1 Years">0–1 Years (Entry / Student)</option>
-                        <option value="1-3 Years">1–3 Years (Junior Reporter)</option>
-                        <option value="3-5 Years">3–5 Years (Mid-level Journalist)</option>
-                        <option value="5+ Years">5+ Years (Senior / Bureau Lead)</option>
-                        <option value="Published Author">Published Author / Scholar</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Current Role / Publication (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.current_role}
-                      onChange={(e) => setFormData({ ...formData, current_role: e.target.value })}
-                      placeholder="e.g. Freelance Columnist at Kashmir Times / Graduate Scholar"
-                      className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-stone-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Portfolio / Published Clips / Resume URL (Optional)
-                    </label>
-                    <input
-                      type="url"
-                      value={formData.portfolio_url}
-                      onChange={(e) => setFormData({ ...formData, portfolio_url: e.target.value })}
-                      placeholder="https://drive.google.com/... or https://muckrack.com/..."
-                      className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-stone-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500"
-                    />
-                    <span className="text-[10px] text-slate-400 mt-1 block">
-                      Google Drive, Dropbox, LinkedIn, personal website, or published article link.
-                    </span>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Cover Note, Pitch & Work Experience Summary *
-                    </label>
-                    <textarea
-                      required
-                      rows={5}
-                      value={formData.cover_letter}
-                      onChange={(e) => setFormData({ ...formData, cover_letter: e.target.value })}
-                      placeholder="Describe your journalistic background, areas of reporting interest, relevant beats (investigative, civic, agriculture, politics), and why you want to join our newsroom..."
-                      className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-stone-50 dark:bg-slate-800/80 border border-slate-300 dark:border-slate-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 leading-relaxed"
-                    />
-                  </div>
-
-                  <div className="pt-2 flex items-center justify-end gap-3">
-                    <button
-                      type="button"
-                      onClick={closeModal}
-                      className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-stone-100 dark:hover:bg-slate-800"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="px-6 py-2.5 rounded-xl text-xs font-bold bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white shadow-sm flex items-center gap-2"
-                    >
-                      {isSubmitting ? (
-                        <>
-                          <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          <span>Submitting Application...</span>
-                        </>
-                      ) : (
-                        <span>Submit Application →</span>
-                      )}
-                    </button>
-                  </div>
-                </form>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <span className="font-mono text-base font-bold text-cyan-700 dark:text-cyan-300 select-all">
+                  {careersSettings.contact_email}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleCopyEmail}
+                  className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-white dark:bg-slate-800 border border-cyan-300 dark:border-cyan-700 text-slate-800 dark:text-slate-200 shadow-xs hover:bg-stone-50"
+                >
+                  {copiedEmail ? '✓ Copied to Clipboard!' : '📋 Copy Address'}
+                </button>
               </div>
-            )}
+            </div>
+
+            {/* Instructions */}
+            <div className="space-y-3">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-900 dark:text-white">
+                How to Submit Your Application:
+              </h4>
+              <ol className="text-xs text-slate-600 dark:text-slate-300 space-y-2 list-decimal pl-4 leading-relaxed">
+                <li>
+                  Click the <strong>&quot;Open in Email Client&quot;</strong> button below to open your default mail app with the subject and outline pre-filled.
+                </li>
+                <li>
+                  Attach your updated <strong>Resume / Curriculum Vitae (CV)</strong> in PDF or DOCX format.
+                </li>
+                <li>
+                  Include links to <strong>2–3 published articles, news reports, or clips</strong> showcasing your reporting quality.
+                </li>
+                <li>
+                  Mention your current <strong>district / city</strong> and your earliest available start date.
+                </li>
+                <li>
+                  Send directly to <strong className="text-cyan-600 dark:text-cyan-400">{careersSettings.contact_email}</strong>. Our editorial board reviews submissions on a rolling basis.
+                </li>
+              </ol>
+            </div>
+
+            {/* Actions */}
+            <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
+              <a
+                href={getMailtoUrl(currentModalJob)}
+                className="w-full sm:flex-1 py-3 px-4 rounded-xl font-bold text-xs bg-cyan-600 hover:bg-cyan-500 text-white shadow-sm transition text-center flex items-center justify-center gap-2"
+              >
+                <span>✉️ Open in Email Client</span>
+                <span>→</span>
+              </a>
+              <button
+                type="button"
+                onClick={closeModal}
+                className="w-full sm:w-auto px-5 py-3 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-stone-100 dark:hover:bg-slate-800 transition"
+              >
+                Done
+              </button>
+            </div>
           </div>
         </div>
       )}

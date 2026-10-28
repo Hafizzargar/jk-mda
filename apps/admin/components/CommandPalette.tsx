@@ -84,7 +84,7 @@ const COMMANDS: CommandItem[] = [
     description: 'Post job openings, hire reporters/editors, and review candidate portfolios',
     href: '/careers',
     icon: '💼',
-    roles: ['owner', 'superadmin', 'admin'],
+    roles: ['owner', 'superadmin', 'admin', 'editor'],
   },
   {
     id: 'my-profile',

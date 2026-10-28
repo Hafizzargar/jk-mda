@@ -47,6 +47,8 @@ export default function CareersAdminPage() {
   // Selected candidate for detailed view drawer
   const [selectedApp, setSelectedApp] = useState<JobApplication | null>(null);
   const [editingNote, setEditingNote] = useState<string>('');
+  const [quickEmail, setQuickEmail] = useState<string>('careers@kjin.org');
+  const [jobVisibilityFilter, setJobVisibilityFilter] = useState<'all' | 'active' | 'paused'>('all');
 
   useEffect(() => {
     async function loadCareers() {
@@ -70,7 +72,7 @@ export default function CareersAdminPage() {
         }
 
         const role = profile.role_key;
-        if (!['owner', 'superadmin', 'admin'].includes(role)) {
+        if (!['owner', 'superadmin', 'admin', 'editor'].includes(role)) {
           router.push('/');
           return;
         }
@@ -95,10 +97,11 @@ export default function CareersAdminPage() {
           const json = await res.json();
           if (json.careers_settings) {
             setCareers(json.careers_settings);
+            setQuickEmail(json.careers_settings.contact_email || 'careers@kjin.org');
           }
           setCanManage(Boolean(json.can_manage));
         } else {
-          setCanManage(['owner', 'superadmin', 'admin'].includes(role));
+          setCanManage(['owner', 'superadmin', 'admin', 'editor'].includes(role));
         }
       } catch (err) {
         console.error('Failed to load careers configuration:', err);
@@ -324,10 +327,33 @@ export default function CareersAdminPage() {
     setEditingNote(app.admin_notes || '');
   };
 
+  // Quick Save Application / Resume Email
+  const handleSaveQuickEmail = async () => {
+    const trimmed = quickEmail.trim();
+    if (!trimmed || !trimmed.includes('@')) {
+      toast.error('Please enter a valid email address.');
+      return;
+    }
+    const updated = {
+      ...careers,
+      contact_email: trimmed,
+    };
+    const success = await saveCareersToServer(
+      updated,
+      `Hiring and resume email updated to ${trimmed}`
+    );
+    if (success) {
+      setCareers(updated);
+    }
+  };
+
   // Save Settings Tab
   const handleSaveSettingsTab = async (e: FormEvent) => {
     e.preventDefault();
-    await saveCareersToServer(careers, 'Careers page settings saved.');
+    const success = await saveCareersToServer(careers, 'Careers page settings saved.');
+    if (success) {
+      setQuickEmail(careers.contact_email);
+    }
   };
 
   // Filtered Applications list
@@ -436,6 +462,46 @@ export default function CareersAdminPage() {
         </div>
       </div>
 
+      {/* 2b. Quick Hiring Email Control Card */}
+      <div className="p-5 rounded-2xl bg-gradient-to-r from-cyan-50 via-white to-slate-50 dark:from-cyan-950/20 dark:via-slate-900 dark:to-slate-900 border border-cyan-200 dark:border-cyan-800/40 shadow-sm">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xl">📧</span>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                Hiring & Resume Receiving Email
+              </h2>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300">
+                Connected to Public Website
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-2xl">
+              Candidates applying on <a href="http://localhost:3000/careers" target="_blank" rel="noopener noreferrer" className="text-cyan-600 dark:text-cyan-400 underline font-medium">http://localhost:3000/careers</a> will be instructed to email their CV & resume to this address. Update or change it here anytime.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <input
+              type="email"
+              value={quickEmail}
+              onChange={(e) => setQuickEmail(e.target.value)}
+              placeholder="e.g. careers@kjin.org"
+              className="px-3.5 py-2 rounded-xl text-xs bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 min-w-[240px] sm:min-w-[280px]"
+            />
+            {canManage && (
+              <button
+                type="button"
+                onClick={handleSaveQuickEmail}
+                disabled={saving || !quickEmail.trim() || quickEmail.trim() === careers.contact_email}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-cyan-600 hover:bg-cyan-500 text-white shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+              >
+                {saving ? 'Updating...' : 'Save Email'}
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* 3. Section Tabs */}
       <div className="flex border-b border-slate-200 dark:border-slate-800">
         <button
@@ -446,7 +512,7 @@ export default function CareersAdminPage() {
               : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
           }`}
         >
-          <span>📰 Job Postings</span>
+          <span>📰 Job Postings & Vacancies</span>
           <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
             {careers.jobs.length}
           </span>
@@ -486,113 +552,166 @@ export default function CareersAdminPage() {
       {activeTab === 'jobs' && (
         <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <h2 className="text-base font-bold text-slate-900 dark:text-white">
-              All Newsroom Roles ({careers.jobs.length})
-            </h2>
-            <div className="text-xs text-slate-500 dark:text-slate-400">
-              Active postings appear instantly on the public website.
+            <div>
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">
+                Newsroom Vacancies ({activeJobsCount} Active on Website / {careers.jobs.length} Total)
+              </h2>
+              <div className="text-xs text-slate-500 dark:text-slate-400">
+                Only active vacancies appear on the public website. Paused vacancies are hidden from readers.
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setJobVisibilityFilter('all')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
+                  jobVisibilityFilter === 'all'
+                    ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900'
+                    : 'bg-stone-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 hover:bg-stone-200'
+                }`}
+              >
+                All ({careers.jobs.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setJobVisibilityFilter('active')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
+                  jobVisibilityFilter === 'active'
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-stone-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 hover:bg-stone-200'
+                }`}
+              >
+                Active on Site ({activeJobsCount})
+              </button>
+              <button
+                type="button"
+                onClick={() => setJobVisibilityFilter('paused')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
+                  jobVisibilityFilter === 'paused'
+                    ? 'bg-slate-700 text-white'
+                    : 'bg-stone-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 hover:bg-stone-200'
+                }`}
+              >
+                Paused / Hidden ({careers.jobs.length - activeJobsCount})
+              </button>
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-4">
-            {careers.jobs.map((job) => {
-              const jobApps = careers.applications.filter((a) => a.job_id === job.id);
-              const isActive = job.status === 'active';
+            {careers.jobs
+              .filter((j) => {
+                if (jobVisibilityFilter === 'active') return j.status === 'active';
+                if (jobVisibilityFilter === 'paused') return j.status !== 'active';
+                return true;
+              })
+              .map((job) => {
+                const jobApps = careers.applications.filter((a) => a.job_id === job.id);
+                const isActive = job.status === 'active';
 
-              return (
-                <div
-                  key={job.id}
-                  className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4"
-                >
-                  <div className="space-y-2 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span
-                        className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                          isActive
-                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300'
-                            : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-                        }`}
-                      >
-                        {job.status}
-                      </span>
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-cyan-100 text-cyan-800 dark:bg-cyan-500/20 dark:text-cyan-300">
-                        {job.department}
-                      </span>
-                      <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-                        {job.role_type}
-                      </span>
-                      {job.featured && (
-                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300">
-                          ★ Priority
-                        </span>
-                      )}
-                    </div>
-
-                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                      {job.title}
-                    </h3>
-
-                    <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
-                      <span>📍 {job.location}</span>
-                      <span>•</span>
-                      <span>⏱️ {job.experience_level}</span>
-                      {job.salary_range && (
-                        <>
-                          <span>•</span>
-                          <span className="font-semibold text-slate-700 dark:text-slate-300">
-                            💼 {job.salary_range}
+                return (
+                  <div
+                    key={job.id}
+                    className={`p-5 rounded-2xl bg-white dark:bg-slate-900 border ${
+                      isActive
+                        ? 'border-emerald-300/70 dark:border-emerald-500/30 shadow-sm'
+                        : 'border-slate-200 dark:border-slate-800 opacity-90'
+                    } flex flex-col md:flex-row md:items-center justify-between gap-4`}
+                  >
+                    <div className="space-y-2 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {isActive ? (
+                          <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30 flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            Live on Website
                           </span>
-                        </>
-                      )}
+                        ) : (
+                          <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-300 dark:border-slate-700">
+                            Hidden / Paused
+                          </span>
+                        )}
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-cyan-100 text-cyan-800 dark:bg-cyan-500/20 dark:text-cyan-300">
+                          {job.department}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                          {job.role_type}
+                        </span>
+                        {job.featured && (
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300">
+                            ★ Priority Role
+                          </span>
+                        )}
+                      </div>
+
+                      <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                        {job.title}
+                      </h3>
+
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-slate-400">
+                        <span>📍 {job.location}</span>
+                        <span>•</span>
+                        <span>⏱️ {job.experience_level}</span>
+                        {job.salary_range && (
+                          <>
+                            <span>•</span>
+                            <span className="font-semibold text-slate-700 dark:text-slate-300">
+                              💼 {job.salary_range}
+                            </span>
+                          </>
+                        )}
+                      </div>
+
+                      <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 max-w-3xl">
+                        {job.description}
+                      </p>
                     </div>
 
-                    <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 max-w-3xl">
-                      {job.description}
-                    </p>
-                  </div>
+                    {/* Actions & Applicant Count */}
+                    <div className="flex flex-row md:flex-col items-center md:items-end justify-between gap-3 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-800">
+                      <button
+                        onClick={() => {
+                          setAppJobFilter(job.id);
+                          setActiveTab('applications');
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-cyan-50 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 hover:bg-cyan-100 text-xs font-semibold flex items-center gap-1.5 transition"
+                      >
+                        <span>👥 {jobApps.length} Applicants</span>
+                      </button>
 
-                  {/* Actions & Applicant Count */}
-                  <div className="flex flex-row md:flex-col items-center md:items-end justify-between gap-3 pt-3 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-800">
-                    <button
-                      onClick={() => {
-                        setAppJobFilter(job.id);
-                        setActiveTab('applications');
-                      }}
-                      className="px-3 py-1.5 rounded-xl bg-cyan-50 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 hover:bg-cyan-100 text-xs font-semibold flex items-center gap-1.5 transition"
-                    >
-                      <span>👥 {jobApps.length} Applicants</span>
-                    </button>
-
-                    {canManage && (
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleToggleJobStatus(job.id)}
-                          className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
-                            isActive
-                              ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'
-                              : 'bg-emerald-600 text-white hover:bg-emerald-500'
-                          }`}
-                        >
-                          {isActive ? 'Pause' : 'Activate'}
-                        </button>
-                        <button
-                          onClick={() => handleOpenEditJob(job)}
-                          className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-stone-100 hover:bg-stone-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDeleteJob(job.id)}
-                          className="px-2.5 py-1.5 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    )}
+                      {canManage && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleToggleJobStatus(job.id)}
+                            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition ${
+                              isActive
+                                ? 'bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-500/20 dark:text-amber-300'
+                                : 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-sm'
+                            }`}
+                          >
+                            {isActive ? 'Hide from Site' : '✓ Publish to Site'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditJob(job)}
+                            className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-stone-100 hover:bg-stone-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteJob(job.id)}
+                            className="px-2.5 py-1.5 rounded-xl text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10"
+                            title="Delete vacancy"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
           </div>
         </div>
       )}

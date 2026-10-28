@@ -172,7 +172,7 @@ export function Sidebar({
               name: 'Careers & Hiring',
               href: '/careers',
               icon: '💼',
-              roles: ['owner', 'superadmin', 'admin'],
+              roles: ['owner', 'superadmin', 'admin', 'editor'],
               badge: 'Jobs',
               badgeColor:
                 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40 font-bold',
