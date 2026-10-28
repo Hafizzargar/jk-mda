@@ -816,7 +816,7 @@ export default function TelemetrySettingsPage() {
                   <div className="flex items-center gap-2">
                     <select
                       value={item.corridor}
-                      onChange={(e) => updateMandiCommodity(item.id, 'corridor', e.target.value)}
+                      onChange={(e) => updateMandiCommodity(item.id, 'corridor', e.target.value as MandiCommodityItem['corridor'])}
                       className="text-xs font-bold uppercase px-2 py-1 rounded bg-slate-100 dark:bg-slate-800 border-none text-slate-700 dark:text-slate-300"
                     >
                       <option value="kashmir">Kashmir Valley</option>
@@ -876,7 +876,7 @@ export default function TelemetrySettingsPage() {
                     <div className="flex items-center gap-1">
                       <select
                         value={item.trend}
-                        onChange={(e) => updateMandiCommodity(item.id, 'trend', e.target.value)}
+                        onChange={(e) => updateMandiCommodity(item.id, 'trend', e.target.value as MandiCommodityItem['trend'])}
                         className="px-1 py-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-bold"
                       >
                         <option value="up">▲ Up</option>
