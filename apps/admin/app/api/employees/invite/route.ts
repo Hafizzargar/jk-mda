@@ -15,6 +15,7 @@ type InviteRequest = {
   role_key?: string;
   request_id?: string;
   reason?: string;
+  custom_password?: string;
 };
 
 export async function POST(request: Request) {
@@ -35,8 +36,13 @@ export async function POST(request: Request) {
   let displayName = body.display_name?.trim() ?? '';
   let roleKey = body.role_key ?? '';
   const reason = body.reason?.trim() ?? '';
+  const customPassword = body.custom_password?.trim() ?? '';
 
   if (!reason) return Response.json({ error: 'A reason is required for an employee invitation.' }, { status: 400 });
+
+  if (customPassword && customPassword.length < 8) {
+    return Response.json({ error: 'Custom password must be at least 8 characters long.' }, { status: 400 });
+  }
 
   if (body.request_id) {
     const { data: inviteRequest, error } = await authorization.service
@@ -252,8 +258,8 @@ export async function POST(request: Request) {
       .eq('status', 'pending');
   }
 
-  // Provision a secure temporary password and set it on the user account
-  const temporaryPassword = generateSecurePassword();
+  // Provision initial password (superadmin custom password or cryptographically secure generated)
+  const temporaryPassword = customPassword || generateSecurePassword();
   try {
     await authorization.service.auth.admin.updateUserById(invited.user.id, {
       password: temporaryPassword,

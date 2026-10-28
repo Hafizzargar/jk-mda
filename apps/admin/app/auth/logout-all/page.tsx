@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { clearAuthStorage } from '@/lib/auth-storage';
 
 function LogoutAllDevicesContent() {
   const searchParams = useSearchParams();
@@ -49,11 +50,7 @@ function LogoutAllDevicesContent() {
         }
 
         try {
-          localStorage.clear();
-          sessionStorage.clear();
-          document.cookie.split(';').forEach((c) => {
-            document.cookie = c.replace(/^ +/, '').replace(/=.*/, '=;expires=' + new Date().toUTCString() + ';path=/');
-          });
+          clearAuthStorage();
         } catch {
           // Ignore
         }
@@ -63,10 +60,9 @@ function LogoutAllDevicesContent() {
         console.error('Session revocation error:', err);
         const msg = err instanceof Error ? err.message : 'Error revoking sessions.';
         setErrorMsg(msg);
-        // Still clear local tokens so this browser is safe
+        // Still clear local auth tokens so this browser is safe
         try {
-          localStorage.clear();
-          sessionStorage.clear();
+          clearAuthStorage();
         } catch {}
         setStatus('error');
       }

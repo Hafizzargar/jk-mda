@@ -139,6 +139,16 @@ export default function EmployeesPage() {
   const [modalName, setModalName] = useState('');
   const [confirmDeleteText, setConfirmDeleteText] = useState('');
   const [modalError, setModalError] = useState<string | null>(null);
+  const [customPassword, setCustomPassword] = useState('');
+
+  const generateRandomPassword = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*';
+    let pwd = '';
+    for (let i = 0; i < 16; i++) {
+      pwd += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return pwd;
+  };
 
   const openModal = (modal: ActionModal) => {
     setActionModal(modal);
@@ -330,6 +340,7 @@ export default function EmployeesPage() {
         display_name: form.get('display_name'),
         role_key: form.get('role_key'),
         reason: form.get('reason'),
+        custom_password: customPassword.trim() || undefined,
       }),
     });
     const result = (await response.json()) as { error?: string; temporary_password?: string; email_sent?: boolean; code?: string };
@@ -337,6 +348,7 @@ export default function EmployeesPage() {
       const emailNotice = result.email_sent ? 'Invitation email sent to employee.' : 'Invitation created.';
       const pwdNotice = result.temporary_password ? ` Initial password: ${result.temporary_password}` : '';
       setFeedback({ type: 'success', message: `${emailNotice}${pwdNotice}` });
+      setCustomPassword('');
       formElement.reset();
     } else {
       if (response.status === 403 && (result.code === 'reauth_required' || result.error?.includes('Recent authentication'))) {
@@ -739,19 +751,59 @@ export default function EmployeesPage() {
                   <h2 className="text-xl font-semibold">Invite employee</h2>
                   <p className="mt-1 text-sm text-slate-400">Invites are limited to roles below your own.</p>
                 </div>
-                <label className="block text-sm text-slate-300">Name
-                  <input name="display_name" required maxLength={120} className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2.5 text-white" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Name
+                  <input name="display_name" required maxLength={120} className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-white" />
                 </label>
-                <label className="block text-sm text-slate-300">Work email
-                  <input name="email" type="email" required className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2.5 text-white" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Work email
+                  <input name="email" type="email" required className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-white" />
                 </label>
-                <label className="block text-sm text-slate-300">Role
-                  <select name="role_key" required className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2.5 text-white">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Role
+                  <select name="role_key" required className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-white">
                     {assignableRoles.map((assignableRole) => <option key={assignableRole} value={assignableRole}>{assignableRole}</option>)}
                   </select>
                 </label>
-                <label className="block text-sm text-slate-300">Reason for invitation
-                  <textarea name="reason" required rows={3} className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2.5 text-white" />
+
+                <div>
+                  <div className="flex items-center justify-between">
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                      Initial Password <span className="text-xs text-slate-500 font-normal">(Optional — auto-generated if left empty)</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setCustomPassword(generateRandomPassword())}
+                      className="text-xs font-semibold text-cyan-600 hover:text-cyan-700 dark:text-cyan-400 dark:hover:text-cyan-300"
+                    >
+                      🎲 Generate Random
+                    </button>
+                  </div>
+                  <div className="mt-1.5 flex gap-2">
+                    <input
+                      name="custom_password"
+                      type="text"
+                      value={customPassword}
+                      onChange={(e) => setCustomPassword(e.target.value)}
+                      placeholder="Leave blank to auto-generate password"
+                      minLength={8}
+                      className="w-full rounded-lg border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-white font-mono text-sm placeholder-slate-400 dark:placeholder-slate-500 focus:border-cyan-500 focus:outline-none"
+                    />
+                    {customPassword && (
+                      <button
+                        type="button"
+                        onClick={() => setCustomPassword('')}
+                        className="px-2.5 py-1.5 text-xs font-bold text-slate-500 hover:text-slate-700 dark:hover:text-white rounded-lg border border-slate-300 dark:border-slate-700"
+                        title="Clear custom password to use auto-generated"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    This password will be assigned to the account and emailed directly to the employee.
+                  </p>
+                </div>
+
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Reason for invitation
+                  <textarea name="reason" required rows={3} className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-white" />
                 </label>
                 <Button
                   type="submit"
@@ -1429,10 +1481,10 @@ export default function EmployeesPage() {
 
       {actionModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm" role="dialog" aria-modal="true">
-          <div className="w-full max-w-lg rounded-2xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
-            <div className="flex items-start justify-between border-b border-slate-800 pb-4">
+          <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-6 shadow-2xl">
+            <div className="flex items-start justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
               <div>
-                <h2 className="text-xl font-bold text-white">
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white">
                   {actionModal.type === 'change-role' && 'Change Employee Role'}
                   {actionModal.type === 'update-name' && 'Update Employee Name'}
                   {actionModal.type === 'change-status' && (actionModal.nextStatus === 'disabled' ? 'Disable Employee Login' : 'Enable Employee Login')}
@@ -1444,38 +1496,38 @@ export default function EmployeesPage() {
                   {actionModal.type === 'reject-invite-request' && 'Decline Invitation Request'}
                   {actionModal.type === 'resend-invite' && 'Resend Employee Invitation'}
                 </h2>
-                <p className="mt-1 text-sm text-slate-400">
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
                   {actionModal.type === 'change-role' && (
-                    <>Change role of <strong className="text-white">{actionModal.employee.display_name || actionModal.employee.email}</strong> from <span className="capitalize text-slate-300">{actionModal.employee.role_key}</span> to <span className="font-semibold capitalize text-cyan-400">{actionModal.nextRole}</span>.</>
+                    <>Change role of <strong className="font-semibold text-slate-900 dark:text-white">{actionModal.employee.display_name || actionModal.employee.email}</strong> from <span className="capitalize text-slate-700 dark:text-slate-300">{actionModal.employee.role_key}</span> to <span className="font-semibold capitalize text-cyan-600 dark:text-cyan-400">{actionModal.nextRole}</span>.</>
                   )}
                   {actionModal.type === 'update-name' && `Updating details for ${actionModal.employee.email}.`}
                   {actionModal.type === 'change-status' && (
                     actionModal.nextStatus === 'disabled' ? (
-                      <>Disabling this account will revoke their sessions and <strong className="text-white">block them from logging in</strong> to KJIN ({actionModal.employee.display_name || actionModal.employee.email}). You can enable them again at any time.</>
+                      <>Disabling this account will revoke their sessions and <strong className="font-semibold text-slate-900 dark:text-white">block them from logging in</strong> to KJIN ({actionModal.employee.display_name || actionModal.employee.email}). You can enable them again at any time.</>
                     ) : (
-                      <>Enabling this account will remove the login ban and <strong className="text-white">allow them to log in</strong> to KJIN again ({actionModal.employee.display_name || actionModal.employee.email}).</>
+                      <>Enabling this account will remove the login ban and <strong className="font-semibold text-slate-900 dark:text-white">allow them to log in</strong> to KJIN again ({actionModal.employee.display_name || actionModal.employee.email}).</>
                     )
                   )}
                   {actionModal.type === 'permanent-delete' && (
-                    <>Permanently erase <strong className="text-white">{actionModal.employee.display_name || actionModal.employee.email}</strong> from the database and authentication system.</>
+                    <>Permanently erase <strong className="font-semibold text-slate-900 dark:text-white">{actionModal.employee.display_name || actionModal.employee.email}</strong> from the database and authentication system.</>
                   )}
                   {actionModal.type === 'permanent-delete-request' && (
-                    <>Permanently erase <strong className="text-white">{actionModal.request.target_name || 'this employee'}</strong> from the database and authentication system.</>
+                    <>Permanently erase <strong className="font-semibold text-slate-900 dark:text-white">{actionModal.request.target_name || 'this employee'}</strong> from the database and authentication system.</>
                   )}
                   {actionModal.type === 'request-deletion' && (
                     can('employee.deletion.resolve')
-                      ? <>Permanently revoke login and disable account for <strong className="text-white">{actionModal.employee.display_name || actionModal.employee.email}</strong>.</>
-                      : <>Submit a formal deprovisioning request for <strong className="text-white">{actionModal.employee.display_name || actionModal.employee.email}</strong>.</>
+                      ? <>Permanently revoke login and disable account for <strong className="font-semibold text-slate-900 dark:text-white">{actionModal.employee.display_name || actionModal.employee.email}</strong>.</>
+                      : <>Submit a formal deprovisioning request for <strong className="font-semibold text-slate-900 dark:text-white">{actionModal.employee.display_name || actionModal.employee.email}</strong>.</>
                   )}
                   {actionModal.type === 'resolve-deletion' && (
                     actionModal.decision === 'approved'
-                      ? <>Revoke login and disable account for <strong className="text-white">{actionModal.request.target_name || 'this employee'}</strong>.</>
-                      : <>Cancel and withdraw the pending deletion request for <strong className="text-white">{actionModal.request.target_name || 'this employee'}</strong>.</>
+                      ? <>Revoke login and disable account for <strong className="font-semibold text-slate-900 dark:text-white">{actionModal.request.target_name || 'this employee'}</strong>.</>
+                      : <>Cancel and withdraw the pending deletion request for <strong className="font-semibold text-slate-900 dark:text-white">{actionModal.request.target_name || 'this employee'}</strong>.</>
                   )}
                   {actionModal.type === 'approve-invite-request' && `Send invitation to ${actionModal.request.display_name} (${actionModal.request.email}) as ${actionModal.request.requested_role}.`}
                   {actionModal.type === 'reject-invite-request' && `Decline invitation request for ${actionModal.request.display_name} (${actionModal.request.email}).`}
                   {actionModal.type === 'resend-invite' && (
-                    <>Resend invitation email and fresh login credentials to <strong className="text-white">{actionModal.employee.display_name || actionModal.employee.email}</strong> (<span className="text-slate-300">{actionModal.employee.email}</span>)?</>
+                    <>Resend invitation email and fresh login credentials to <strong className="font-semibold text-slate-900 dark:text-white">{actionModal.employee.display_name || actionModal.employee.email}</strong> (<span className="text-slate-600 dark:text-slate-300">{actionModal.employee.email}</span>)?</>
                   )}
                 </p>
               </div>
@@ -1483,7 +1535,7 @@ export default function EmployeesPage() {
                 type="button"
                 onClick={closeModal}
                 disabled={isSubmitting}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white"
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-white transition-colors"
                 aria-label="Close dialog"
               >
                 ✕
@@ -1492,29 +1544,29 @@ export default function EmployeesPage() {
 
             <form onSubmit={handleModalConfirm} className="mt-5 space-y-4">
               {(actionModal.type === 'permanent-delete' || actionModal.type === 'permanent-delete-request') && (
-                <div className="space-y-3 rounded-xl border border-red-500/50 bg-red-950/40 p-4 text-sm text-red-200">
-                  <div className="flex items-center gap-2 font-bold text-red-300">
+                <div className="space-y-3 rounded-xl border border-red-200 bg-red-50 text-sm text-red-900 dark:border-red-500/50 dark:bg-red-950/40 dark:text-red-200 p-4">
+                  <div className="flex items-center gap-2 font-bold text-red-700 dark:text-red-300">
                     <span>⚠️</span> PERMANENT DATABASE DELETION (CANNOT BE UNDONE)
                   </div>
-                  <p className="text-xs text-red-200/90 leading-relaxed">
+                  <p className="text-xs text-red-800/90 dark:text-red-200/90 leading-relaxed">
                     This will permanently erase this employee from Supabase Authentication and the database. Historical articles they authored will remain published with their display name credit, but their user credentials and profile will be completely purged.
                   </p>
-                  <label className="block text-xs font-semibold text-red-300 pt-1">
-                    Type <span className="font-mono text-white underline">DELETE</span> to confirm permanent erasure:
+                  <label className="block text-xs font-semibold text-red-800 dark:text-red-300 pt-1">
+                    Type <span className="font-mono font-bold text-red-900 dark:text-white underline">DELETE</span> to confirm permanent erasure:
                     <input
                       type="text"
                       required
                       value={confirmDeleteText}
                       onChange={(e) => setConfirmDeleteText(e.target.value)}
                       placeholder="DELETE"
-                      className="mt-1 w-full rounded-lg border border-red-500/60 bg-slate-950 px-3 py-2 text-white font-mono placeholder-slate-600 focus:border-red-400 focus:outline-none"
+                      className="mt-1 w-full rounded-lg border border-red-300 bg-white dark:border-red-500/60 dark:bg-slate-950 px-3 py-2 text-slate-900 dark:text-white font-mono placeholder-slate-400 dark:placeholder-slate-600 focus:border-red-500 focus:outline-none"
                     />
                   </label>
                 </div>
               )}
 
               {actionModal.type === 'update-name' && (
-                <label className="block text-sm text-slate-300">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
                   Display name
                   <input
                     type="text"
@@ -1522,21 +1574,21 @@ export default function EmployeesPage() {
                     maxLength={120}
                     value={modalName}
                     onChange={(e) => setModalName(e.target.value)}
-                    className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white placeholder-slate-500 focus:border-cyan-400 focus:outline-none"
+                    className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-950 px-3 py-2 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:border-cyan-500 focus:outline-none"
                     placeholder="e.g. John Doe"
                   />
                 </label>
               )}
 
-              <label className="block text-sm text-slate-300">
-                Reason <span className="text-xs text-slate-500">(Required for audit trail)</span>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                Reason <span className="text-xs text-slate-500 dark:text-slate-400">(Required for audit trail)</span>
                 <textarea
                   required
                   rows={3}
                   maxLength={1000}
                   value={modalReason}
                   onChange={(e) => setModalReason(e.target.value)}
-                  className="mt-1.5 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white placeholder-slate-500 focus:border-cyan-400 focus:outline-none"
+                  className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-950 px-3 py-2 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:border-cyan-500 focus:outline-none"
                   placeholder="Explain why this action is being taken..."
                 />
               </label>

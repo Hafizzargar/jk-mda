@@ -626,7 +626,9 @@ export function Sidebar({
             target="_blank"
             rel="noopener noreferrer"
             title="Open Live Public Site"
-            className="group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-cyan-900 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-cyan-300 transition-all border-l-4 border-transparent"
+            className={`group flex items-center rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-cyan-900 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-cyan-300 transition-all ${
+              isCollapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2 border-l-4 border-transparent'
+            }`}
           >
             <span className="text-lg shrink-0 group-hover:scale-110 transition-transform">🌐</span>
             {!isCollapsed && (
@@ -642,17 +644,17 @@ export function Sidebar({
       </nav>
 
       {/* Bottom User Profile Section */}
-      <div className="shrink-0 border-t border-slate-200 dark:border-slate-800 p-2.5 bg-slate-50/80 dark:bg-slate-900/60">
+      <div className={`shrink-0 border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 ${isCollapsed ? 'p-1.5' : 'p-2.5'}`}>
         <div
-          className={`flex items-center gap-2 rounded-xl border border-slate-200 bg-white p-2 shadow-xs dark:border-slate-800 dark:bg-slate-900 transition-all ${
-            isCollapsed ? 'justify-center p-2' : ''
+          className={`flex items-center rounded-xl border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900 transition-all ${
+            isCollapsed ? 'flex-col gap-2 p-1.5 justify-center' : 'gap-2 p-2'
           }`}
         >
           {/* Avatar - Clickable Link to Profile */}
           <Link
             href="/profile"
             onClick={onCloseMobile}
-            title="My Profile & Author Settings"
+            title={`Signed in as ${userEmail || 'Editor'} (${userRole || 'Role'})`}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-600 to-blue-700 text-xs font-black text-white shadow-xs hover:scale-105 transition-transform"
           >
             {userInitials}

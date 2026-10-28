@@ -169,11 +169,8 @@ html:not([data-theme='dark']) {
   .bg-purple-600,
   .bg-purple-600 *,
   button[class*="bg-[#0F172A]"],
-  button[class*="bg-slate-900"],
   [class*="bg-[#0F172A]"] .text-white,
-  [class*="bg-[#0f172a]"] .text-white,
-  [class*="bg-slate-900"] .text-white,
-  [class*="bg-slate-800"] .text-white {
+  [class*="bg-[#0f172a]"] .text-white {
     color: #ffffff !important;
   }
 }

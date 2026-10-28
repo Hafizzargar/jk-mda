@@ -155,6 +155,14 @@ export function PassTransitTopography({ telemetry, brandName, brandFullName }: P
   const [cacheRefreshing, setCacheRefreshing] = useState(false);
   const [showFieldReport, setShowFieldReport] = useState(false);
   const [copiedSmsSyntax, setCopiedSmsSyntax] = useState(false);
+  const [hudToast, setHudToast] = useState<{ message: string; title?: string } | null>(null);
+
+  const showHudToast = (message: string, title = 'Topographic Cache') => {
+    setHudToast({ message, title });
+    setTimeout(() => {
+      setHudToast((prev) => (prev?.message === message ? null : prev));
+    }, 4500);
+  };
 
   const passes = telemetry.mountain_passes || [];
   const filteredPasses = passes.filter((p) => {
@@ -322,7 +330,7 @@ export function PassTransitTopography({ telemetry, brandName, brandFullName }: P
     setCacheRefreshing(true);
     setTimeout(() => {
       setCacheRefreshing(false);
-      alert('Offline Topographic Cache validated. 64.2 MB encrypted vector package intact.');
+      showHudToast('Offline Topographic Cache validated. 64.2 MB encrypted vector package intact.');
     }, 800);
   };
 
@@ -1173,7 +1181,7 @@ export function PassTransitTopography({ telemetry, brandName, brandFullName }: P
                 </button>
 
                 <button
-                  onClick={() => alert('Offline Vector Map Package (64.2 MB) cached successfully for 48h offline navigation.')}
+                  onClick={() => showHudToast('Offline Vector Map Package (64.2 MB) cached successfully for 48h offline navigation.')}
                   className="w-full bg-[#0891B2] hover:bg-cyan-600 text-slate-900 font-mono text-xs uppercase tracking-wider font-bold py-2.5 rounded-xl transition flex items-center justify-center space-x-2 shadow-md active:scale-95"
                 >
                   <IconDownload className="w-4 h-4" />
@@ -1267,6 +1275,29 @@ export function PassTransitTopography({ telemetry, brandName, brandFullName }: P
           </div>
         </div>
       </footer>
+      {hudToast && (
+        <div className="fixed bottom-6 right-6 z-[9999] max-w-sm rounded-2xl border border-cyan-500/50 bg-slate-900/95 p-4 text-white shadow-2xl shadow-cyan-950/70 backdrop-blur-md animate-in slide-in-from-bottom-5 duration-300 flex items-start gap-3">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-cyan-950 border border-cyan-700 text-cyan-300 font-bold text-sm">
+            ✓
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[11px] font-mono font-bold text-cyan-400 uppercase tracking-wider">
+              {hudToast.title}
+            </p>
+            <p className="mt-1 text-xs text-slate-200 leading-relaxed font-sans">
+              {hudToast.message}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setHudToast(null)}
+            className="text-slate-400 hover:text-white text-xs font-mono p-1 rounded-md hover:bg-slate-800 transition"
+            aria-label="Dismiss notification"
+          >
+            ✕
+          </button>
+        </div>
+      )}
     </div>
   );
 }

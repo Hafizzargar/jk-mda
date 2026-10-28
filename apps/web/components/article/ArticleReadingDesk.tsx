@@ -55,6 +55,7 @@ export function ArticleReadingDesk({
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState(false);
+  const [subscribed, setSubscribed] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -643,26 +644,33 @@ export function ArticleReadingDesk({
               <p className="text-xs text-slate-300 mb-4 leading-relaxed font-sans">
                 Delivered daily to over 48,000 policy analysts, horticulturists, and civic leaders across all five regional territories.
               </p>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  alert('Thank you for subscribing to The Corridor Journal!');
-                }}
-                className="space-y-2"
-              >
-                <input
-                  type="email"
-                  required
-                  placeholder="bureau.subscriber@domain.com"
-                  className="w-full bg-[#1E293B] border border-slate-700 text-white placeholder:text-slate-500 px-3.5 py-2 text-xs rounded-xl focus:outline-none focus:ring-1 focus:ring-cyan-500"
-                />
-                <button
-                  type="submit"
-                  className="w-full bg-white hover:bg-slate-100 text-[#0F172A] py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition shadow-sm"
+              {subscribed ? (
+                <div className="rounded-xl border border-emerald-500/40 bg-emerald-950/60 p-3 text-center text-xs text-emerald-300 font-sans animate-in fade-in">
+                  <div className="font-bold text-white mb-0.5">✓ Subscription Confirmed</div>
+                  Thank you for subscribing to The Corridor Journal.
+                </div>
+              ) : (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    setSubscribed(true);
+                  }}
+                  className="space-y-2"
                 >
-                  Confirm Subscription
-                </button>
-              </form>
+                  <input
+                    type="email"
+                    required
+                    placeholder="bureau.subscriber@domain.com"
+                    className="w-full bg-[#1E293B] border border-slate-700 text-white placeholder:text-slate-500 px-3.5 py-2 text-xs rounded-xl focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                  />
+                  <button
+                    type="submit"
+                    className="w-full bg-white hover:bg-slate-100 text-[#0F172A] py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition shadow-sm"
+                  >
+                    Confirm Subscription
+                  </button>
+                </form>
+              )}
               <p className="text-[10px] text-slate-400 mt-2 text-center font-sans">
                 Independent institutional journalism. No spam. Unsubscribe anytime.
               </p>

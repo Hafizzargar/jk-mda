@@ -46,9 +46,8 @@ export default function DashboardPage() {
         }
 
         if (!data.session) {
-          setStatus('No active session. Redirecting to sign in.');
-          setIsAuthorized(false);
-          router.push('/login');
+          setStatus('Redirecting to sign in...');
+          window.location.replace('/login');
           return;
         }
 
@@ -58,8 +57,15 @@ export default function DashboardPage() {
           .eq('id', data.session.user.id)
           .single();
 
-        if (profileError || profile.status !== 'active') {
-          setStatus('No active KJIN profile is associated with this account.');
+        if (profileError || !profile) {
+          setStatus('Profile not found. Redirecting to sign in...');
+          window.location.replace('/login?alert=profile_error');
+          return;
+        }
+
+        if (profile.status !== 'active') {
+          setStatus('Your account is deactivated. Please contact an administrator.');
+          setUserRole(profile.role_key || null);
           setIsAuthorized(false);
           return;
         }
@@ -140,7 +146,7 @@ export default function DashboardPage() {
         // Query the most recent articles for the editorial queue
         const { data: recentArticles } = await supabase
           .from('articles')
-          .select('id, title, summary, excerpt, status, category, updated_at')
+          .select('id, title, excerpt, status, category, updated_at')
           .order('updated_at', { ascending: false })
           .limit(6);
 
@@ -192,9 +198,13 @@ export default function DashboardPage() {
       <main className="flex min-h-screen items-center justify-center bg-slate-50 p-8 text-slate-900 dark:bg-slate-950 dark:text-white">
         <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-lg dark:border-slate-800 dark:bg-slate-900">
           <p className="text-xs uppercase tracking-[0.2em] text-cyan-600 font-bold dark:text-cyan-300">Access required</p>
-          <h1 className="mt-4 text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">Signed in, but not authorized.</h1>
+          <h1 className="mt-4 text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white">
+            {userRole ? 'Role Unauthorized' : 'Access Required'}
+          </h1>
           <p className="mt-4 text-slate-600 dark:text-slate-300 text-sm">
-            {userRole ? `Current role: ${userRole}.` : 'No valid editor role is associated with this account.'}
+            {userRole
+              ? `Current role: ${userRole}. This account does not have editorial permissions.`
+              : 'Please sign in with an authorized editor or administrator account.'}
           </p>
           <div className="mt-6 flex justify-center">
             <Button
@@ -240,37 +250,37 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Action Buttons: Prominent CTA + 2-col Secondary on Mobile */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+        {/* Quick Action Navigation Bar */}
+        <div className="grid grid-cols-3 sm:flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
           <Button
             href="/articles/new"
             variant="primary"
             size="sm"
             icon="✍️"
-            className="w-full sm:w-auto justify-center shadow-sm order-1 sm:order-3 font-bold py-2 sm:py-1.5"
+            className="justify-center font-bold px-1.5 sm:px-3 text-[11px] sm:text-xs truncate shadow-xs"
           >
-            New Story
+            <span>New Story</span>
           </Button>
-          <div className="grid grid-cols-2 gap-2 w-full sm:flex sm:w-auto order-2 sm:order-1">
-            <Button
-              href="/articles?category=Local"
-              variant="amber"
-              size="sm"
-              icon="🏛️"
-              className="justify-center truncate text-[11px] sm:text-xs"
-            >
-              Area Problems
-            </Button>
-            <Button
-              href="/articles"
-              variant="secondary"
-              size="sm"
-              icon="📰"
-              className="justify-center truncate text-[11px] sm:text-xs"
-            >
-              Manage Stories
-            </Button>
-          </div>
+          <Button
+            href="/articles?category=Local"
+            variant="amber"
+            size="sm"
+            icon="🏛️"
+            className="justify-center px-1.5 sm:px-3 text-[11px] sm:text-xs truncate font-medium"
+          >
+            <span className="inline sm:hidden">Problems</span>
+            <span className="hidden sm:inline">Area Problems</span>
+          </Button>
+          <Button
+            href="/articles"
+            variant="secondary"
+            size="sm"
+            icon="📰"
+            className="justify-center px-1.5 sm:px-3 text-[11px] sm:text-xs truncate font-medium"
+          >
+            <span className="inline sm:hidden">Stories</span>
+            <span className="hidden sm:inline">Manage Stories</span>
+          </Button>
         </div>
       </div>
 

@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { verifyLogoutToken } from '@/lib/auth-tokens';
 
@@ -13,7 +13,7 @@ function getServiceSupabase() {
   });
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const sb = getServiceSupabase();
     let targetUserId: string | null = null;
@@ -86,15 +86,45 @@ export async function POST(request: Request) {
       details: rpcResult,
     });
 
-    // Clear standard Supabase auth cookies
-    const cookieNames = [
+    // Clear all server-managed HttpOnly auth cookies (including chunked cookies)
+    const requestCookies = request.cookies.getAll();
+    const isAuthCookie = (name: string) =>
+      name.startsWith('sb-') ||
+      name.includes('auth-token') ||
+      name.includes('supabase') ||
+      name === 'sb-access-token' ||
+      name === 'sb-refresh-token';
+
+    for (const cookie of requestCookies) {
+      if (isAuthCookie(cookie.name)) {
+        response.cookies.set(cookie.name, '', {
+          path: '/',
+          maxAge: 0,
+          expires: new Date(0),
+          httpOnly: true,
+          sameSite: 'lax',
+          secure: process.env.NODE_ENV === 'production',
+        });
+        response.cookies.delete(cookie.name);
+      }
+    }
+
+    const fallbackCookieNames = [
       'sb-access-token',
       'sb-refresh-token',
       'sb-127-auth-token',
       'sb-localhost-auth-token',
       'supabase-auth-token',
     ];
-    for (const name of cookieNames) {
+    for (const name of fallbackCookieNames) {
+      response.cookies.set(name, '', {
+        path: '/',
+        maxAge: 0,
+        expires: new Date(0),
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: process.env.NODE_ENV === 'production',
+      });
       response.cookies.delete(name);
     }
 

@@ -27,22 +27,25 @@ export function Navbar({
   return (
     <header className="sticky top-0 z-30 flex h-13 w-full items-center justify-between border-b border-slate-200/90 bg-white/95 px-3 sm:px-4 md:px-6 shadow-2xs backdrop-blur-md dark:bg-slate-950/95 dark:border-slate-800 transition-all">
       {/* Left: Prominent Top Menu Button & Brand Identity */}
-      <div className="flex items-center gap-2 sm:gap-3">
-        {/* Prominent Mobile/Tablet Menu Button with Icon + Text */}
+      <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        {/* Clean SVG Mobile Menu Button */}
         <button
           type="button"
           onClick={onOpenMobile}
           aria-label="Open navigation menu"
-          className="flex lg:hidden items-center gap-1.5 h-8 px-2.5 rounded-lg border border-slate-300 bg-white text-slate-800 hover:bg-slate-100 hover:border-cyan-500 active:scale-95 shadow-2xs transition dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          className="flex lg:hidden items-center justify-center h-8.5 w-8.5 shrink-0 rounded-lg border border-slate-200 bg-white text-slate-700 hover:bg-slate-100 hover:border-cyan-500 active:scale-95 shadow-2xs transition dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
         >
-          <span className="text-sm font-bold leading-none">☰</span>
-          <span className="text-xs font-bold tracking-tight">Menu</span>
+          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
         </button>
 
-        {/* Brand Logo & Name */}
+        {/* Brand Logo & Name (Shown on mobile/tablet when sidebar drawer is hidden) */}
         <Link
           href="/"
-          className="flex items-center gap-2 active:opacity-80 transition"
+          className="flex lg:hidden items-center gap-2 active:opacity-80 transition shrink-0"
         >
           {brandLogo && (
             <div className="relative h-7 w-7 rounded-lg overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shrink-0 p-0.5">
@@ -58,7 +61,7 @@ export function Navbar({
           <span className="font-extrabold text-sm sm:text-base text-slate-900 dark:text-white uppercase tracking-tight">
             {brandName}
           </span>
-          <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-cyan-800 dark:text-cyan-300 bg-cyan-100 dark:bg-cyan-950/80 px-1.5 py-0.2 rounded border border-cyan-300 dark:border-cyan-700">
+          <span className="hidden sm:inline-block text-[9px] font-mono font-bold uppercase tracking-wider text-cyan-800 dark:text-cyan-300 bg-cyan-100 dark:bg-cyan-950/80 px-1.5 py-0.2 rounded border border-cyan-300 dark:border-cyan-700">
             Desk
           </span>
         </Link>
@@ -80,15 +83,15 @@ export function Navbar({
       </div>
 
       {/* Right: Actions & Controls */}
-      <div className="flex items-center gap-1.5 sm:gap-2">
-        {/* Top + New Story Button (Standard Web Action) */}
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        {/* Top + New Story Button (Hidden on mobile where primary action is directly on page) */}
         <Link
           href="/articles/new"
           title="Create New Story"
-          className="flex items-center gap-1.5 h-8 px-2.5 sm:px-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs shadow-xs active:scale-95 transition"
+          className="hidden sm:flex items-center gap-1.5 h-8 px-2.5 sm:px-3 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white font-bold text-xs shadow-xs active:scale-95 transition"
         >
           <span className="text-sm font-bold leading-none">+</span>
-          <span className="hidden sm:inline">New Story</span>
+          <span>New Story</span>
         </Link>
 
         {/* Mobile Search Trigger Icon */}
