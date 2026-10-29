@@ -34,6 +34,13 @@ export function buildCspHeader(options: CspOptions): string {
     'https://lh5.googleusercontent.com',
     'https://lh6.googleusercontent.com',
     'https://tiles.openfreemap.org',
+    'https://i.ytimg.com',
+    'https://i1.ytimg.com',
+    'https://i2.ytimg.com',
+    'https://i3.ytimg.com',
+    'https://i4.ytimg.com',
+    'https://img.youtube.com',
+    'https://ytimg.googleusercontent.com',
   ];
 
   const trustedConnectHosts = [

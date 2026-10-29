@@ -9,6 +9,21 @@ const configuredSupabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL
 const nextConfig = {
   reactStrictMode: true,
   devIndicators: false,
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: configuredSupabaseHost },
+      { protocol: 'https', hostname: 'images.unsplash.com' },
+      { protocol: 'https', hostname: 'i.ytimg.com' },
+      { protocol: 'https', hostname: 'i1.ytimg.com' },
+      { protocol: 'https', hostname: 'i2.ytimg.com' },
+      { protocol: 'https', hostname: 'i3.ytimg.com' },
+      { protocol: 'https', hostname: 'i4.ytimg.com' },
+      { protocol: 'https', hostname: 'img.youtube.com' },
+      { protocol: 'https', hostname: 'ytimg.googleusercontent.com' },
+      { protocol: 'http', hostname: 'localhost' },
+      { protocol: 'http', hostname: '127.0.0.1' },
+    ],
+  },
   async headers() {
     return [
       {

@@ -157,6 +157,13 @@ export function isAllowedImageSrc(
       'lh4.googleusercontent.com',
       'lh5.googleusercontent.com',
       'lh6.googleusercontent.com',
+      'i.ytimg.com',
+      'i1.ytimg.com',
+      'i2.ytimg.com',
+      'i3.ytimg.com',
+      'i4.ytimg.com',
+      'img.youtube.com',
+      'ytimg.googleusercontent.com',
     ]);
 
     // Additional allowed image hosts from environment configuration (strictly plain hostnames or validated HTTPS URLs only)

@@ -1,3 +1,4 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   DEFAULT_NAVBAR_SETTINGS,
   type NavbarBrandConfig,

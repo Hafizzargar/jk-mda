@@ -41,6 +41,13 @@ export function buildAdminCspHeader(options: AdminCspOptions): string {
     'blob:',
     `https://${supabaseHost}/storage/v1/object/public/`,
     'https://images.unsplash.com',
+    'https://i.ytimg.com',
+    'https://i1.ytimg.com',
+    'https://i2.ytimg.com',
+    'https://i3.ytimg.com',
+    'https://i4.ytimg.com',
+    'https://img.youtube.com',
+    'https://ytimg.googleusercontent.com',
     ...(isDev ? ['http://localhost:*', 'http://127.0.0.1:*'] : []),
   ].join(' ');
 
