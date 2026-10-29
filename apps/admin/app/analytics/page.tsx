@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Button } from '@/components/Button';
 
 interface ViewAnalytics {
   overview: {
@@ -90,20 +91,14 @@ export default function AnalyticsPage() {
 
   return (
     <div className="p-3 sm:p-6 space-y-6 max-w-7xl w-full mx-auto min-w-0">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/90 dark:border-slate-800 pb-4">
+      {/* Streamlined Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/90 dark:border-slate-800 pb-3 sm:pb-4">
         <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="flex h-2.5 w-2.5 rounded-full bg-cyan-500 animate-pulse" />
-            <span className="text-xs font-mono font-bold uppercase tracking-wider text-cyan-700 dark:text-cyan-400">
-              Real-time Traffic & Telemetry
-            </span>
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-            Audience & Website Views
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            Audience &amp; Website Views
           </h1>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Tracking verified reader page views, regional corridor engagement, and top stories.
+          <p className="mt-0.5 text-xs font-medium text-slate-500 dark:text-slate-400">
+            Tracking verified reader page views, regional corridor engagement, and top stories
           </p>
         </div>
 
@@ -111,24 +106,16 @@ export default function AnalyticsPage() {
           <span className="text-[11px] font-mono text-slate-400 hidden sm:inline">
             Updated: {lastRefreshed.toLocaleTimeString()}
           </span>
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            size="sm"
+            icon={isLoading ? '⏳' : '🔄'}
             onClick={fetchAnalytics}
             disabled={isLoading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-200 text-xs font-bold hover:bg-slate-50 active:scale-95 transition shadow-2xs"
           >
-            <span>{isLoading ? '⏳' : '🔄'}</span>
-            <span>Refresh</span>
-          </button>
-          <a
-            href="http://localhost:3000"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold shadow-2xs transition"
-          >
-            <span>🌐 View Public Site</span>
-            <span>↗</span>
-          </a>
+            Refresh
+          </Button>
         </div>
       </div>
 

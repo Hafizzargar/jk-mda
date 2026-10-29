@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { formatArticleDate } from '@/lib/date';
 import { TemplateProps } from './types';
 
 export function HyperlocalCommunityTemplate({
@@ -101,7 +102,7 @@ export function HyperlocalCommunityTemplate({
               <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 uppercase tracking-wider mb-2">
                 <span>{heroArticle.category}</span>
                 <span>&bull;</span>
-                <span className="text-slate-400">{new Date(heroArticle.published_at).toLocaleDateString()}</span>
+                <span className="text-slate-400" suppressHydrationWarning>{formatArticleDate(heroArticle.published_at)}</span>
               </div>
 
               <Link href={`${langPrefix}/${heroArticle.category.toLowerCase()}/${heroArticle.slug}`}>
@@ -177,7 +178,7 @@ export function HyperlocalCommunityTemplate({
 
                   <div className="text-[11px] text-slate-400 pt-3 border-t border-slate-100 flex justify-between items-center mt-auto">
                     <span>{article.author_display_name || `${brandName} Bureau`}</span>
-                    <span className="text-slate-400">{new Date(article.published_at).toLocaleDateString()}</span>
+                    <span className="text-slate-400" suppressHydrationWarning>{formatArticleDate(article.published_at)}</span>
                   </div>
                 </div>
               ))}

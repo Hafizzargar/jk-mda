@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { type TelemetrySettings, DEFAULT_TELEMETRY_SETTINGS } from '@/lib/telemetry';
+import { formatArticleDate } from '@/lib/date';
 
 interface ArticleReadingDeskProps {
   article: {
@@ -176,7 +177,7 @@ export function ArticleReadingDesk({
                     <div className="text-slate-500 text-[11px] flex items-center gap-2 mt-0.5">
                       <span>{districtName || 'J&K Desk'} Dispatch</span>
                       <span>•</span>
-                      <span>{new Date(article.published_at).toLocaleDateString(undefined, { dateStyle: 'medium' })}</span>
+                      <span suppressHydrationWarning>{formatArticleDate(article.published_at)}</span>
                       <span>•</span>
                       <span className="text-[#0891B2] font-semibold">{readTimeMinutes} Min Read ({wordCount} Words)</span>
                     </div>
@@ -712,8 +713,8 @@ export function ArticleReadingDesk({
                       <span className="px-2 py-0.5 rounded font-bold text-[10px] uppercase bg-emerald-100 text-emerald-800">
                         {item.category} • {item.district ? item.district.toUpperCase() : 'CORRIDOR'}
                       </span>
-                      <span className="text-slate-400 text-[11px]">
-                        {new Date(item.published_at).toLocaleDateString()}
+                      <span className="text-slate-400 text-[11px]" suppressHydrationWarning>
+                        {formatArticleDate(item.published_at)}
                       </span>
                     </div>
 

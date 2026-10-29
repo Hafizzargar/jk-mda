@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { NewsletterForm } from '@/components/NewsletterForm';
 import { SITE_SHORT_NAME } from '@/lib/config';
+import { formatArticleDate } from '@/lib/date';
 import { TemplateProps } from './types';
 
 export function BentoGridTemplate({
@@ -85,8 +86,8 @@ export function BentoGridTemplate({
                     className="object-cover group-hover:scale-105 transition duration-500"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80" />
-                  <div className="absolute bottom-4 left-6 text-xs text-slate-400">
-                    By {heroArticle.author_display_name || 'Staff Reporter'} · {new Date(heroArticle.published_at).toLocaleDateString()}
+                  <div className="absolute bottom-4 left-6 text-xs text-slate-400" suppressHydrationWarning>
+                    By {heroArticle.author_display_name || 'Staff Reporter'} · {formatArticleDate(heroArticle.published_at)}
                   </div>
                 </div>
               )}
@@ -108,8 +109,8 @@ export function BentoGridTemplate({
                     {secondary1.excerpt}
                   </p>
                 </Link>
-                <div className="text-[11px] text-slate-500 pt-3 border-t border-slate-800/80 mt-4">
-                  {new Date(secondary1.published_at).toLocaleDateString()}
+                <div className="text-[11px] text-slate-500 pt-3 border-t border-slate-800/80 mt-4" suppressHydrationWarning>
+                  {formatArticleDate(secondary1.published_at)}
                 </div>
               </div>
             )}
@@ -127,8 +128,8 @@ export function BentoGridTemplate({
                     {secondary2.excerpt}
                   </p>
                 </Link>
-                <div className="text-[11px] text-slate-500 pt-3 border-t border-slate-800/80 mt-4">
-                  {new Date(secondary2.published_at).toLocaleDateString()}
+                <div className="text-[11px] text-slate-500 pt-3 border-t border-slate-800/80 mt-4" suppressHydrationWarning>
+                  {formatArticleDate(secondary2.published_at)}
                 </div>
               </div>
             )}
@@ -165,8 +166,8 @@ export function BentoGridTemplate({
                     {secondary3.excerpt}
                   </p>
                 </Link>
-                <div className="text-[11px] text-slate-500 mt-4 pt-3 border-t border-slate-800">
-                  {new Date(secondary3.published_at).toLocaleDateString()}
+                <div className="text-[11px] text-slate-500 mt-4 pt-3 border-t border-slate-800" suppressHydrationWarning>
+                  {formatArticleDate(secondary3.published_at)}
                 </div>
               </div>
             </div>

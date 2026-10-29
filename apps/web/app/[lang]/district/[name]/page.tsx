@@ -14,6 +14,7 @@ import { SiteFooter } from '@/components/navigation/SiteFooter';
 import { Breadcrumbs } from '@/components/navigation/Breadcrumbs';
 import { PaginationControls } from '@/components/navigation/PaginationControls';
 import { getFooterContactSettings } from '@/lib/contact';
+import { formatArticleDate } from '@/lib/date';
 
 interface DistrictPageProps {
   params: Promise<{
@@ -169,8 +170,8 @@ export default async function DistrictPage({ params, searchParams }: DistrictPag
                     <div className={`text-xs font-bold uppercase tracking-widest ${theme.accentTextClass}`}>
                       {article.category}
                     </div>
-                    <div className={`text-xs font-medium ${theme.textMutedClass}`}>
-                      {new Date(article.published_at).toLocaleDateString()}
+                    <div className={`text-xs font-medium ${theme.textMutedClass}`} suppressHydrationWarning>
+                      {formatArticleDate(article.published_at)}
                     </div>
                   </div>
                   <h3 className={`text-xl font-bold leading-snug ${theme.textPrimaryClass} group-hover:opacity-80 transition mb-3`}>

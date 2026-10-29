@@ -118,6 +118,10 @@ type ActionModal =
       type: 'resend-invite';
       employee: Employee;
     }
+  | {
+      type: 'reset-mfa';
+      employee: Employee;
+    }
   | null;
 
 export default function EmployeesPage() {
@@ -165,6 +169,8 @@ export default function EmployeesPage() {
       );
     } else if (modal?.type === 'permanent-delete' || modal?.type === 'permanent-delete-request') {
       setModalReason('Permanently deprovision and purge employee from database');
+    } else if (modal?.type === 'reset-mfa') {
+      setModalReason('Reset authenticator factor (lost device or authenticator uninstalled)');
     } else {
       setModalReason('');
     }
@@ -613,6 +619,29 @@ export default function EmployeesPage() {
         const emailNotice = result.email_sent ? 'Invitation email resent.' : 'Invitation credentials refreshed.';
         const pwdNotice = result.temporary_password ? ` Initial password: ${result.temporary_password}` : '';
         setFeedback({ type: 'success', message: `${emailNotice}${pwdNotice}` });
+      } else if (actionModal.type === 'reset-mfa') {
+        const { data } = await supabase.auth.getSession();
+        const response = await fetch('/api/employees/mfa/admin-reset', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(data.session?.access_token ? { Authorization: `Bearer ${data.session.access_token}` } : {}),
+          },
+          body: JSON.stringify({
+            target_id: actionModal.employee.id,
+            reason,
+          }),
+        });
+        const result = (await response.json()) as { error?: string; message?: string };
+        if (!response.ok) {
+          setModalError(result.error ?? 'Failed to reset MFA.');
+          setIsSubmitting(false);
+          return;
+        }
+        setFeedback({
+          type: 'success',
+          message: result.message || `MFA reset successfully for ${actionModal.employee.display_name}.`,
+        });
       }
 
       closeModal();
@@ -1071,6 +1100,20 @@ export default function EmployeesPage() {
                         </select>
                       ) : null}
 
+                      {(role === 'owner' || role === 'superadmin') && (role === 'owner' || employee.role_key !== 'owner') ? (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="amber"
+                          disabled={isSubmitting}
+                          onClick={() => openModal({ type: 'reset-mfa', employee })}
+                          className="text-xs"
+                          title="Reset 2FA factor so employee can scan a new QR code on next sign-in"
+                        >
+                          Reset MFA
+                        </Button>
+                      ) : null}
+
                       {pendingReq ? (
                         <div className="flex items-center gap-1.5">
                           {can('employee.deletion.resolve') ? (
@@ -1313,6 +1356,19 @@ export default function EmployeesPage() {
                               ))}
                             </select>
                           ) : null}
+                          {(role === 'owner' || role === 'superadmin') && (role === 'owner' || employee.role_key !== 'owner') ? (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="amber"
+                              disabled={isSubmitting}
+                              onClick={() => openModal({ type: 'reset-mfa', employee })}
+                              className="text-xs"
+                              title="Reset 2FA factor so employee can scan a new QR code on next sign-in"
+                            >
+                              Reset MFA
+                            </Button>
+                          ) : null}
                           {(() => {
                             const pendingReq = deletionRequests.find((req) => req.target_profile_id === employee.id);
                             if (pendingReq) {
@@ -1495,6 +1551,7 @@ export default function EmployeesPage() {
                   {actionModal.type === 'approve-invite-request' && 'Approve Invitation Request'}
                   {actionModal.type === 'reject-invite-request' && 'Decline Invitation Request'}
                   {actionModal.type === 'resend-invite' && 'Resend Employee Invitation'}
+                  {actionModal.type === 'reset-mfa' && 'Reset Employee Authenticator (MFA)'}
                 </h2>
                 <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
                   {actionModal.type === 'change-role' && (
@@ -1528,6 +1585,9 @@ export default function EmployeesPage() {
                   {actionModal.type === 'reject-invite-request' && `Decline invitation request for ${actionModal.request.display_name} (${actionModal.request.email}).`}
                   {actionModal.type === 'resend-invite' && (
                     <>Resend invitation email and fresh login credentials to <strong className="font-semibold text-slate-900 dark:text-white">{actionModal.employee.display_name || actionModal.employee.email}</strong> (<span className="text-slate-600 dark:text-slate-300">{actionModal.employee.email}</span>)?</>
+                  )}
+                  {actionModal.type === 'reset-mfa' && (
+                    <>Unlink existing authenticator factors for <strong className="font-semibold text-slate-900 dark:text-white">{actionModal.employee.display_name || actionModal.employee.email}</strong>. When they next log in, they will be presented with a brand new QR code to scan.</>
                   )}
                 </p>
               </div>
@@ -1633,6 +1693,8 @@ export default function EmployeesPage() {
                       ? 'danger'
                       : (actionModal.type === 'change-status' && actionModal.nextStatus === 'active')
                       ? 'emerald'
+                      : actionModal.type === 'reset-mfa'
+                      ? 'amber'
                       : 'primary'
                   }
                   disabled={
@@ -1652,6 +1714,8 @@ export default function EmployeesPage() {
                     ? (can('employee.deletion.resolve') ? 'Deprovision employee' : 'Submit request')
                     : actionModal.type === 'resolve-deletion'
                     ? (actionModal.decision === 'approved' ? 'Disable login' : 'Cancel request')
+                    : actionModal.type === 'reset-mfa'
+                    ? 'Confirm Reset MFA'
                     : 'Confirm'}
                 </Button>
               </div>

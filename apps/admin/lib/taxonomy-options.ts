@@ -7,9 +7,10 @@ export interface CategoryOption {
 }
 
 export const CATEGORY_OPTIONS: CategoryOption[] = [
+  { value: 'Local News', label: 'Local News — J&K Daily Ground Dispatches & Regional Events', description: 'Daily district news, local developments, community bulletins, and grassroots reporting across J&K' },
+  { value: 'Problems', label: 'Problems — Editorial Investigations & Civic Grievances (By Editor)', description: 'In-depth citizen issues, road/water/power breakdowns, hospital shortages, and ground grievances raised on J&K issues' },
   { value: 'National', label: 'National — Union Affairs & Pan-India Policy', description: 'National governance, union ministry directives, Supreme Court rulings, and national security' },
   { value: 'International', label: 'International — Global & Diaspora Relations', description: 'Global developments, diaspora connections, trade diplomacy, and cross-border relations' },
-  { value: 'Local', label: 'Local — Civic Issues & Ground Reporting', description: 'Area problems, roads, water, electricity, civic grievances, and grassroots district reporting' },
   { value: 'Investigation', label: 'Investigation — In-Depth & Accountability', description: 'Investigative reporting, policy audits, and environmental/public funds investigations' },
   { value: 'Politics', label: 'Politics — Governance & Assemblies', description: 'Elections, legislative deliberations, administrative policy, and public affairs' },
   { value: 'Economy', label: 'Economy — Agriculture, Trade & Industry', description: 'Apple harvests, saffron, horticulture, trade corridors, and tourism' },
@@ -36,7 +37,7 @@ export function formatCategoryOptions(
     return CATEGORY_OPTIONS.map((c) => ({
       value: c.value,
       label: c.label,
-      slug: c.value.toLowerCase(),
+      slug: c.value.toLowerCase().replace(/\s+/g, '-'),
       description: c.description,
       is_active: true,
     }));
@@ -47,11 +48,12 @@ export function formatCategoryOptions(
     const existing = CATEGORY_OPTIONS.find(
       (o) =>
         o.value.toLowerCase() === (c.slug || '').toLowerCase() ||
-        o.value.toLowerCase() === name.toLowerCase()
+        o.value.toLowerCase() === name.toLowerCase() ||
+        (c.slug === 'local' && (o.value.toLowerCase() === 'local news' || o.value.toLowerCase() === 'local'))
     );
     return {
       id: c.id,
-      value: name,
+      value: existing ? existing.value : name,
       label: existing ? existing.label : `${name} — News Desk`,
       slug: (c.slug || name).toLowerCase().trim(),
       description: c.description || (existing ? existing.description : `${name} reporting and ground coverage`),

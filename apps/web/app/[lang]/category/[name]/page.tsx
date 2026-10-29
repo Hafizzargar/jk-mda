@@ -14,6 +14,7 @@ import { SiteFooter } from '@/components/navigation/SiteFooter';
 import { Breadcrumbs } from '@/components/navigation/Breadcrumbs';
 import { PaginationControls } from '@/components/navigation/PaginationControls';
 import { getFooterContactSettings } from '@/lib/contact';
+import { formatArticleDate } from '@/lib/date';
 
 interface CategoryPageProps {
   params: Promise<{
@@ -114,7 +115,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
         description: dbCat.description || `${dbCat.name_en} news and dispatches across Jammu and Kashmir.`,
       };
     } else {
-      notFound();
+      redirect(langPrefix || '/');
     }
   }
 
@@ -202,8 +203,8 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
                   ) : (
                     <div className={`w-full h-2 ${theme.accentBgClass} opacity-60 group-hover:opacity-100 transition mb-4 rounded-full`} />
                   )}
-                  <div className={`text-xs font-bold uppercase tracking-widest ${theme.accentTextClass} mb-2`}>
-                    {new Date(article.published_at).toLocaleDateString()}
+                  <div className={`text-xs font-bold uppercase tracking-widest ${theme.accentTextClass} mb-2`} suppressHydrationWarning>
+                    {formatArticleDate(article.published_at)}
                   </div>
                   <h3 className={`text-xl font-bold leading-snug ${theme.textPrimaryClass} group-hover:opacity-80 transition mb-3`}>
                     {article.title}

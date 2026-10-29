@@ -1,4 +1,4 @@
-import { notFound, redirect } from 'next/navigation';
+import { redirect } from 'next/navigation';
 import { Metadata } from 'next';
 import { createServerAnonClient } from '@/lib/supabase-server';
 import { ViewTracker } from '@/components/ViewTracker';
@@ -34,10 +34,8 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
     .single();
 
   if (!article) {
-    return {
-      title: `Article Not Found | ${brandSettings.name}`,
-      robots: { index: false, follow: false },
-    };
+    const langPrefix = resolvedParams.lang && resolvedParams.lang !== 'en' ? `/${resolvedParams.lang}` : '';
+    redirect(langPrefix || '/');
   }
 
   let title = article.title;
@@ -142,12 +140,15 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     .single();
 
   if (error || !article) {
-    notFound();
+    const langPrefix = resolvedParams.lang && resolvedParams.lang !== 'en' ? `/${resolvedParams.lang}` : '';
+    redirect(langPrefix || '/');
   }
 
   // Canonical URL redirect if category in path does not match database
-  if (article.category.toLowerCase() !== resolvedParams.category.toLowerCase()) {
-    redirect(`/${resolvedParams.lang === 'en' ? '' : `${resolvedParams.lang}/`}${article.category.toLowerCase()}/${article.slug}`);
+  const decodedParamCategory = decodeURIComponent(resolvedParams.category).toLowerCase();
+  if (article.category.toLowerCase() !== decodedParamCategory) {
+    const langPrefix = resolvedParams.lang && resolvedParams.lang !== 'en' ? `/${resolvedParams.lang}` : '';
+    redirect(`${langPrefix}/${encodeURIComponent(article.category.toLowerCase())}/${article.slug}`);
   }
 
   const displayArticle = { ...article };

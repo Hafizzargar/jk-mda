@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { NewsletterForm } from '@/components/NewsletterForm';
 import { SITE_SHORT_NAME } from '@/lib/config';
+import { formatArticleDate } from '@/lib/date';
 import { TemplateProps } from './types';
 
 export function MinimalFocusTemplate({
@@ -73,7 +74,7 @@ export function MinimalFocusTemplate({
 
               <div className="pt-2 flex items-center justify-between text-xs text-stone-400">
                 <span>By {heroArticle.author_display_name || 'Staff Writer'}</span>
-                <span>{new Date(heroArticle.published_at).toLocaleDateString()}</span>
+                <span suppressHydrationWarning>{formatArticleDate(heroArticle.published_at)}</span>
               </div>
             </Link>
           </article>
@@ -105,7 +106,7 @@ export function MinimalFocusTemplate({
 
                   <div className="text-xs text-stone-400 flex items-center justify-between pt-1">
                     <span>{article.author_display_name || `${brandName} Bureau`}</span>
-                    <span>{new Date(article.published_at).toLocaleDateString()}</span>
+                    <span suppressHydrationWarning>{formatArticleDate(article.published_at)}</span>
                   </div>
                 </Link>
               </article>

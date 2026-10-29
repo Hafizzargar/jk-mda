@@ -13,6 +13,7 @@ import { createServerAnonClient } from '@/lib/supabase-server';
 import { getTemplateTheme, type TemplateId } from '@/lib/templates';
 import { ScrollToTop } from '@/components/navigation/ScrollToTop';
 import { getBrandSettings } from '@/lib/brand';
+import { getCachedSiteSetting } from '@/lib/site-settings-cache';
 
 export async function generateMetadata(): Promise<Metadata> {
   const supabase = createServerAnonClient();
@@ -56,13 +57,8 @@ export default async function RootLayout({
   const dir = lang === 'ur' ? 'rtl' : 'ltr';
 
   const supabase = createServerAnonClient();
-  const { data: settingRow } = await supabase
-    .from('site_settings')
-    .select('value')
-    .eq('key', 'active_template')
-    .maybeSingle();
-
-  const dbTemplateId = (settingRow?.value as { template_id?: string } | null)?.template_id as TemplateId | undefined;
+  const settingValue = await getCachedSiteSetting<{ template_id?: string }>(supabase, 'active_template');
+  const dbTemplateId = settingValue?.template_id as TemplateId | undefined;
   const activeTemplateId: TemplateId = dbTemplateId || 'classic-editorial';
   const theme = getTemplateTheme(activeTemplateId);
 
@@ -73,6 +69,7 @@ export default async function RootLayout({
       data-scroll-behavior="smooth"
       data-theme={theme.isDark ? 'dark' : 'light'}
       style={{ backgroundColor: theme.pageBgHex }}
+      suppressHydrationWarning
     >
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -83,6 +80,7 @@ export default async function RootLayout({
         />
       </head>
       <body
+        suppressHydrationWarning
         className={`min-h-screen w-full max-w-full overflow-x-hidden ${theme.pageBgClass} ${theme.textPrimaryClass} ${theme.fontFamilyClass} ${theme.selectionClass} antialiased transition-colors duration-200`}
       >
         <ScrollToTop />

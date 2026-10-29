@@ -319,44 +319,29 @@ test('operations: recent password but old TOTP is rejected for MFA-protected rol
   assert.equal(body.error, 'Recent authentication required.');
 });
 
-test('operations: recent password but old TOTP is allowed for non-MFA roles', async () => {
-  configure({ role: 'editor', grants: ['employee.role.change'] }); // Assuming editor has the grant for test purposes
-  const oldTotpToken = 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6MTAwMDAwMDAwMH1dfQ.dummy';
-  
-  const res = await operationsRoute.POST(
-    jsonRequest('http://localhost/api/employees/operations', {
-      token: oldTotpToken,
-      body: { operation: 'change-role', target_id: VALID_UUID, role_key: 'author', reason: 'Testing' },
-    })
-  );
-  
-  // It shouldn't return 403 reauth required. It should succeed (200).
-  assert.equal(res.status, 200);
-});
-
-test('operations: editor password old + token refresh recent is rejected for non-MFA roles', async () => {
+test('operations: editor requests without AAL2 are rejected with MFA required', async () => {
   configure({ role: 'editor', grants: ['employee.role.change'] });
-  const tokenRefreshOnlyToken = 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoidG9rZW5fcmVmcmVzaCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX0seyJtZXRob2QiOiJwYXNzd29yZCIsInRpbWVzdGFtcCI6MTAwMDAwMDAwMH1dfQ.dummy';
+  const aal1Token = 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoidG9rZW5fcmVmcmVzaCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX0seyJtZXRob2QiOiJwYXNzd29yZCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy';
   
   const res = await operationsRoute.POST(
     jsonRequest('http://localhost/api/employees/operations', {
-      token: tokenRefreshOnlyToken,
+      token: aal1Token,
       body: { operation: 'change-role', target_id: VALID_UUID, role_key: 'author', reason: 'Testing' },
     })
   );
   
   assert.equal(res.status, 403);
   const body = (await res.json()) as { error?: string };
-  assert.equal(body.error, 'Recent authentication required.');
+  assert.equal(body.error, 'Multi-factor authentication is required.');
 });
 
-test('operations: editor legitimate recent password is allowed for non-MFA roles', async () => {
+test('operations: editor with AAL2 and recent TOTP authentication is allowed', async () => {
   configure({ role: 'editor', grants: ['employee.role.change'] });
-  const recentPasswordToken = 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoidG9rZW5fcmVmcmVzaCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX0seyJtZXRob2QiOiJwYXNzd29yZCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy';
+  const validMfaToken = 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMiIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy';
   
   const res = await operationsRoute.POST(
     jsonRequest('http://localhost/api/employees/operations', {
-      token: recentPasswordToken,
+      token: validMfaToken,
       body: { operation: 'change-role', target_id: VALID_UUID, role_key: 'author', reason: 'Testing' },
     })
   );
@@ -663,36 +648,19 @@ test('contact: valid request stays deferred with 501 and audited intent', async 
 // MFA Enforcement
 // ---------------------------------------------------------------------------
 
-test('mfa: owner, superadmin, and admin requests without AAL2 are rejected with 403', async () => {
-  for (const role of ['owner', 'superadmin', 'admin']) {
-    configure({ role, grants: ['employee.invite'] });
-    const res = await inviteRoute.POST(
-      jsonRequest('http://localhost/api/employees/invite', {
-        token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
-        body: { email: 'new@example.com', display_name: 'New', role_key: 'author', reason: 'Test' },
-      })
-    );
-    assert.equal(res.status, 403, `Role ${role} should be rejected`);
-    const body = (await res.json()) as { error?: string };
-    assert.equal(body.error, 'Multi-factor authentication is required.');
-    assert.ok(harness.audits.some((row) => row.action === 'employee.mfa_denied'));
-  }
-});
-
-test('mfa: editor and author requests without AAL2 are allowed', async () => {
-  for (const role of ['editor', 'author']) {
-    configure({ role, grants: ['employee.basic.update'] });
-    // We mock a deliberate error from the RPC just to verify it reached the RPC phase instead of 403ing
-    harness.rpcErrors.update_employee_basic = { message: 'Passed MFA check', code: 'P0001' };
+test('mfa: all staff roles (owner, superadmin, admin, editor, author) without AAL2 are rejected with 403', async () => {
+  for (const role of ['owner', 'superadmin', 'admin', 'editor', 'author']) {
+    configure({ role, grants: ['employee.invite', 'employee.basic.update'] });
     const res = await operationsRoute.POST(
       jsonRequest('http://localhost/api/employees/operations', {
         token: 'dummy.eyJzZXNzaW9uX2lkIjoibW9jay1zZXNzaW9uIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoicGFzc3dvcmQiLCJ0aW1lc3RhbXAiOjk5OTk5OTk5OTl9LHsibWV0aG9kIjoidG90cCIsInRpbWVzdGFtcCI6OTk5OTk5OTk5OX1dfQ.dummy',
         body: { operation: 'update-basic', target_id: VALID_UUID, display_name: 'Test', reason: 'Test' },
       })
     );
-    assert.equal(res.status, 400); // Because of the mocked RPC error, NOT 403
+    assert.equal(res.status, 403, `Role ${role} should be rejected`);
     const body = (await res.json()) as { error?: string };
-    assert.equal(body.error, 'Passed MFA check');
+    assert.equal(body.error, 'Multi-factor authentication is required.');
+    assert.ok(harness.audits.some((row) => row.action === 'employee.mfa_denied'));
   }
 });
 

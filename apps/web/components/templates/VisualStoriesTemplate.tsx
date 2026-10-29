@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { formatArticleDate } from '@/lib/date';
 import { TemplateProps } from './types';
 
 export function VisualStoriesTemplate({
@@ -89,8 +90,8 @@ export function VisualStoriesTemplate({
             </div>
 
             <div className="absolute bottom-8 left-6 right-6 md:max-w-3xl">
-              <div className="text-xs font-bold uppercase tracking-widest text-rose-400 mb-2">
-                {heroArticle.category} &bull; {new Date(heroArticle.published_at).toLocaleDateString()}
+              <div className="text-xs font-bold uppercase tracking-widest text-rose-400 mb-2" suppressHydrationWarning>
+                {heroArticle.category} &bull; {formatArticleDate(heroArticle.published_at)}
               </div>
               <Link href={`${langPrefix}/${heroArticle.category.toLowerCase()}/${heroArticle.slug}`}>
                 <h1 className="text-2xl md:text-4xl font-extrabold text-white leading-tight mb-4 hover:text-rose-300 transition">
@@ -166,7 +167,7 @@ export function VisualStoriesTemplate({
                     {article.title}
                   </h3>
                   <div className="flex items-center justify-between text-[10px] text-stone-400 border-t border-stone-800/60 pt-2">
-                    <span>{new Date(article.published_at).toLocaleDateString()}</span>
+                    <span suppressHydrationWarning>{formatArticleDate(article.published_at)}</span>
                     <span className="text-rose-400 font-semibold group-hover:translate-x-1 transition">
                       Read &rarr;
                     </span>

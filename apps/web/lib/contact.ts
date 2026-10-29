@@ -77,16 +77,13 @@ export function sanitizeContactSettings(input: Partial<FooterContactSettings>): 
   };
 }
 
+import { getCachedSiteSetting } from './site-settings-cache';
+
 export async function getFooterContactSettings(supabase: SupabaseClient): Promise<FooterContactSettings> {
   try {
-    const { data } = await supabase
-      .from('site_settings')
-      .select('value')
-      .eq('key', 'footer_contact')
-      .maybeSingle();
-
-    if (data?.value) {
-      return sanitizeContactSettings(data.value as Partial<FooterContactSettings>);
+    const value = await getCachedSiteSetting<Partial<FooterContactSettings>>(supabase, 'footer_contact');
+    if (value) {
+      return sanitizeContactSettings(value);
     }
   } catch (err) {
     console.error('Failed to load footer contact settings from DB:', err);

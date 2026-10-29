@@ -19,6 +19,77 @@ function MFAChallengeForm() {
   const [verificationCode, setVerificationCode] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
 
+  // Self-service recovery state for lost authenticator app
+  const [showRecovery, setShowRecovery] = useState(false);
+  const [recoveryCode, setRecoveryCode] = useState('');
+  const [recoverySent, setRecoverySent] = useState(false);
+  const [isSendingCode, setIsSendingCode] = useState(false);
+  const [isResetting, setIsResetting] = useState(false);
+  const [recoveryFeedback, setRecoveryFeedback] = useState<string | null>(null);
+
+  const handleRequestRecoveryCode = async () => {
+    setIsSendingCode(true);
+    setErrorMsg(null);
+    setRecoveryFeedback(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Session expired. Please log in again.');
+
+      const res = await fetch('/api/employees/mfa/self-reset', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ action: 'request-code' }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send recovery code.');
+
+      setRecoverySent(true);
+      setRecoveryFeedback(data.message || 'Recovery code sent to your email.');
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to send recovery code.');
+    } finally {
+      setIsSendingCode(false);
+    }
+  };
+
+  const handleVerifyRecoveryCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (recoveryCode.length !== 6) return;
+
+    setIsResetting(true);
+    setErrorMsg(null);
+    setRecoveryFeedback(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Session expired. Please log in again.');
+
+      const res = await fetch('/api/employees/mfa/self-reset', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ action: 'verify-and-reset', code: recoveryCode }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Recovery verification failed.');
+
+      setRecoveryFeedback(data.message || 'Authenticator unlinked successfully!');
+      setTimeout(() => {
+        window.location.href = data.redirect || '/mfa/enroll';
+      }, 1000);
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Invalid code or recovery failed.');
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   useEffect(() => {
     async function initChallenge() {
       try {
@@ -258,8 +329,116 @@ function MFAChallengeForm() {
                 {isVerifying ? 'Verifying...' : 'Verify'}
               </Button>
             </form>
+
+            {/* Lost Authenticator / Reset MFA Option */}
+            <div className="mt-6 w-full border-t border-slate-800/80 pt-4 text-center">
+              <p className="text-xs text-slate-400">
+                Deleted your authenticator app or lost your phone?
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowRecovery(true);
+                  setErrorMsg(null);
+                }}
+                className="mt-1.5 text-xs font-bold text-cyan-400 hover:text-cyan-300 underline transition"
+              >
+                Reset Authenticator via Registered Email →
+              </button>
+            </div>
           </div>
         )}
+
+        {/* Self-Service Email Recovery Panel */}
+        {showRecovery && (
+          <div className="mt-6 rounded-xl border border-cyan-500/30 bg-slate-950 p-5">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-base">📧</span>
+                <h3 className="text-sm font-bold text-white">Reset Authenticator via Email</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowRecovery(false);
+                  setRecoveryFeedback(null);
+                  setErrorMsg(null);
+                }}
+                className="text-xs text-slate-400 hover:text-white"
+              >
+                Back to Code
+              </button>
+            </div>
+
+            <p className="mt-3 text-xs text-slate-300 leading-relaxed">
+              We can send a secure 6-digit recovery code to your registered staff email address to unlink your old device and generate a fresh QR scanner.
+            </p>
+
+            {recoveryFeedback && (
+              <div className="mt-3 rounded-lg bg-cyan-950/40 border border-cyan-500/30 p-2.5 text-xs text-cyan-300">
+                {recoveryFeedback}
+              </div>
+            )}
+
+            {!recoverySent ? (
+              <div className="mt-4">
+                <Button
+                  type="button"
+                  variant="cyan"
+                  size="md"
+                  className="w-full justify-center text-xs font-bold"
+                  disabled={isSendingCode}
+                  isLoading={isSendingCode}
+                  onClick={handleRequestRecoveryCode}
+                >
+                  Send 6-Digit Code to My Email
+                </Button>
+              </div>
+            ) : (
+              <form onSubmit={handleVerifyRecoveryCode} className="mt-4 space-y-3">
+                <div>
+                  <label htmlFor="recovery-code" className="block text-xs font-medium text-slate-300">
+                    Enter 6-Digit Email Code
+                  </label>
+                  <input
+                    id="recovery-code"
+                    type="text"
+                    maxLength={6}
+                    value={recoveryCode}
+                    onChange={(e) => setRecoveryCode(e.target.value.replace(/\D/g, ''))}
+                    placeholder="000000"
+                    className="mt-1.5 block w-full rounded-lg border border-slate-700 bg-slate-900 p-2.5 text-center text-xl font-mono tracking-widest text-white placeholder-slate-600 outline-none focus:border-cyan-500"
+                    required
+                    autoFocus
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={isResetting || recoveryCode.length !== 6}
+                  isLoading={isResetting}
+                  variant="primary"
+                  size="md"
+                  className="w-full justify-center text-xs font-bold"
+                >
+                  Verify Code & Show New QR Code
+                </Button>
+
+                <div className="text-center pt-1">
+                  <button
+                    type="button"
+                    disabled={isSendingCode}
+                    onClick={handleRequestRecoveryCode}
+                    className="text-[11px] text-slate-400 hover:text-cyan-400 underline"
+                  >
+                    Resend email code
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        )}
+
         <LogoutModal isOpen={isLoggingOut} />
       </div>
     </main>

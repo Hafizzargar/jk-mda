@@ -44,7 +44,16 @@ function weatherCodeToDesc(code: number): string {
   return 'Stable';
 }
 
+let cachedWeather: RegionalStationWeather[] | null = null;
+let lastWeatherFetchTime = 0;
+const WEATHER_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes in-memory cache
+
 export async function getRegionalWeather(): Promise<RegionalStationWeather[]> {
+  const now = Date.now();
+  if (cachedWeather && now - lastWeatherFetchTime < WEATHER_CACHE_TTL_MS) {
+    return cachedWeather;
+  }
+
   try {
     const weatherPromises = REGIONAL_STATIONS.map(async (st) => {
       try {
@@ -52,7 +61,7 @@ export async function getRegionalWeather(): Promise<RegionalStationWeather[]> {
         const res = await fetch(url, {
           next: { revalidate: 300 }, // Cache for 5 minutes
           headers: { 'User-Agent': 'KJIN-Regional-Telemetry/1.0' },
-          signal: AbortSignal.timeout(3000), // 3-second hard timeout
+          signal: AbortSignal.timeout(1200), // Fast 1.2s timeout to avoid blocking page renders
         });
 
         if (!res.ok) {
@@ -96,9 +105,13 @@ export async function getRegionalWeather(): Promise<RegionalStationWeather[]> {
       }
     });
 
-    return await Promise.all(weatherPromises);
+    const results = await Promise.all(weatherPromises);
+    cachedWeather = results;
+    lastWeatherFetchTime = Date.now();
+    return results;
   } catch (err) {
     console.warn('[Weather] Regional telemetry fallback triggered:', err);
+    if (cachedWeather) return cachedWeather;
     return REGIONAL_STATIONS.map((st) => ({
       station_id: st.id,
       name: st.name,

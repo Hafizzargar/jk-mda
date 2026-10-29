@@ -72,19 +72,16 @@ export const DEFAULT_ADS_SETTINGS: CustomAdsSettings = {
   ],
 };
 
+import { getCachedSiteSetting } from './site-settings-cache';
+
 export async function getCustomAdsSettings(supabase: SupabaseClient): Promise<CustomAdsSettings> {
   try {
-    const { data, error } = await supabase
-      .from('site_settings')
-      .select('value')
-      .eq('key', 'custom_ads')
-      .maybeSingle();
+    const value = await getCachedSiteSetting<Partial<CustomAdsSettings>>(supabase, 'custom_ads');
 
-    if (error || !data?.value) {
+    if (!value) {
       return DEFAULT_ADS_SETTINGS;
     }
 
-    const value = data.value as Partial<CustomAdsSettings>;
     return {
       monetization_enabled: value.monetization_enabled ?? true,
       contact_email_for_ads: value.contact_email_for_ads || DEFAULT_ADS_SETTINGS.contact_email_for_ads,

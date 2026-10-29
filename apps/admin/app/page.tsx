@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { canAccessRole } from '@kjin/auth';
-import { summarizeArticleQueue } from '@kjin/db';
 import { supabase } from '@/lib/supabase';
 import { requiresMfa } from '@/lib/mfa';
 import { Button } from '@/components/Button';
@@ -16,7 +15,6 @@ export default function DashboardPage() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
-  const [queue, setQueue] = useState<Array<{ id?: string; title: string; status: string; summary: string }>>([]);
   const [stats, setStats] = useState([
     { label: 'Drafts', value: 0 },
     { label: 'Pending review', value: 0 },
@@ -142,20 +140,6 @@ export default function DashboardPage() {
             { label: 'Alerts', value: counts.archived },
           ]);
         }
-
-        // Query the most recent articles for the editorial queue
-        const { data: recentArticles } = await supabase
-          .from('articles')
-          .select('id, title, excerpt, status, category, updated_at')
-          .order('updated_at', { ascending: false })
-          .limit(6);
-
-        if (recentArticles && recentArticles.length > 0) {
-          const summary = summarizeArticleQueue(recentArticles);
-          setQueue(summary.queue);
-        } else {
-          setQueue([]);
-        }
       } catch {
         // Clean error handling, leave at authentic zeros
       }
@@ -234,53 +218,15 @@ export default function DashboardPage() {
 
   return (
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 max-w-7xl w-full mx-auto min-w-0">
-      {/* Compact Action & Status Header */}
+      {/* Streamlined Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/90 dark:border-slate-800 pb-3 sm:pb-4 min-w-0">
-        <div className="flex items-center justify-between sm:justify-start gap-2.5 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
-              Newsdesk Live
-            </span>
-          </div>
-          {userRole && (
-            <span className="rounded-full bg-cyan-50 border border-cyan-200/80 px-2.5 py-0.5 font-mono text-[10px] font-bold text-cyan-800 uppercase dark:bg-cyan-500/10 dark:border-cyan-500/30 dark:text-cyan-300">
-              Role: {userRole}
-            </span>
-          )}
-        </div>
-
-        {/* Quick Action Navigation Bar */}
-        <div className="grid grid-cols-3 sm:flex items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
-          <Button
-            href="/articles/new"
-            variant="primary"
-            size="sm"
-            icon="✍️"
-            className="justify-center font-bold px-1.5 sm:px-3 text-[11px] sm:text-xs truncate shadow-xs"
-          >
-            <span>New Story</span>
-          </Button>
-          <Button
-            href="/articles?category=Local"
-            variant="amber"
-            size="sm"
-            icon="🏛️"
-            className="justify-center px-1.5 sm:px-3 text-[11px] sm:text-xs truncate font-medium"
-          >
-            <span className="inline sm:hidden">Problems</span>
-            <span className="hidden sm:inline">Area Problems</span>
-          </Button>
-          <Button
-            href="/articles"
-            variant="secondary"
-            size="sm"
-            icon="📰"
-            className="justify-center px-1.5 sm:px-3 text-[11px] sm:text-xs truncate font-medium"
-          >
-            <span className="inline sm:hidden">Stories</span>
-            <span className="hidden sm:inline">Manage Stories</span>
-          </Button>
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+            Dashboard
+          </h1>
+          <p className="mt-0.5 text-xs font-medium text-slate-500 dark:text-slate-400">
+            Newsroom editorial overview, real-time metrics, and reader traffic
+          </p>
         </div>
       </div>
 
@@ -446,157 +392,6 @@ export default function DashboardPage() {
         )}
       </section>
 
-      {/* Editorial Queue & Operational Checks */}
-      <section className="grid gap-4 sm:gap-6 grid-cols-1 xl:grid-cols-12 min-w-0 w-full">
-        {/* Editorial Queue */}
-        <div className="xl:col-span-7 2xl:col-span-8 min-w-0 w-full rounded-xl sm:rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-6 shadow-2xs dark:border-slate-800 dark:bg-slate-900 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-3 sm:pb-4">
-              <div className="flex items-center gap-2 sm:gap-2.5">
-                <span className="text-base sm:text-lg">📋</span>
-                <h2 className="text-base sm:text-xl font-bold text-slate-900 dark:text-white">Editorial queue</h2>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="rounded-full bg-slate-100 dark:bg-slate-800 px-2 sm:px-2.5 py-0.5 text-[10px] sm:text-xs font-semibold text-slate-600 dark:text-slate-300">
-                  {queue.length} articles
-                </span>
-                <Link
-                  href="/articles"
-                  className="text-xs font-bold text-cyan-700 hover:text-cyan-800 dark:text-cyan-400 dark:hover:text-cyan-300 hover:underline"
-                >
-                  View all →
-                </Link>
-              </div>
-            </div>
-
-            {queue.length === 0 ? (
-              <div className="mt-4 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 p-6 text-center">
-                <span className="text-2xl">📰</span>
-                <p className="mt-2 text-sm font-semibold text-slate-700 dark:text-slate-300">
-                  No articles currently in the editorial queue
-                </p>
-                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  New drafts and regional bureau submissions will appear here for review.
-                </p>
-                <div className="mt-4 flex justify-center">
-                  <Button href="/articles/new" variant="primary" size="sm" icon="✍️">
-                    Create New Story
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <ul className="mt-3 sm:mt-4 space-y-2 sm:space-y-3 min-w-0">
-                {queue.map((item) => {
-                  const badgeConfig =
-                    item.status === 'review'
-                      ? {
-                          pill: 'bg-amber-100 text-amber-900 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40',
-                          dot: 'bg-amber-500',
-                        }
-                      : item.status === 'published'
-                        ? {
-                            pill: 'bg-emerald-100 text-emerald-900 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40',
-                            dot: 'bg-emerald-500',
-                          }
-                        : {
-                            pill: 'bg-cyan-100 text-cyan-900 border-cyan-200 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/40',
-                            dot: 'bg-cyan-500',
-                          };
-
-                  return (
-                    <li
-                      key={`${item.id ?? item.title}-${item.status}`}
-                      className="group rounded-xl border border-slate-200/90 bg-slate-50/70 p-3 sm:p-4 hover:bg-white hover:border-cyan-300/80 hover:shadow-xs active:scale-[0.99] transition-all dark:border-slate-800 dark:bg-slate-900/60 dark:hover:bg-slate-800/80 dark:hover:border-cyan-500/40 min-w-0"
-                    >
-                      <div className="flex items-start justify-between gap-2.5 min-w-0">
-                        <div className="min-w-0 flex-1">
-                          <Link
-                            href={item.id ? `/articles/${item.id}/review` : '/articles'}
-                            className="font-bold text-xs sm:text-base text-slate-900 dark:text-white group-hover:text-cyan-700 dark:group-hover:text-cyan-300 transition-colors line-clamp-2 block leading-snug"
-                          >
-                            {item.title}
-                          </Link>
-                          <p className="mt-0.5 sm:mt-1 text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 line-clamp-1">
-                            {item.summary}
-                          </p>
-                        </div>
-
-                        <div className="flex shrink-0 items-center gap-1.5 pt-0.5">
-                          <span
-                            className={`inline-flex items-center gap-1 sm:gap-1.5 rounded-full px-2 sm:px-2.5 py-0.5 text-[10px] sm:text-[11px] font-bold capitalize border shadow-2xs ${badgeConfig.pill}`}
-                          >
-                            <span className={`h-1.5 w-1.5 rounded-full ${badgeConfig.dot}`} />
-                            <span>{item.status}</span>
-                          </span>
-                        </div>
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-        </div>
-
-        {/* Operational Checks */}
-        <div className="xl:col-span-5 2xl:col-span-4 min-w-0 w-full rounded-xl sm:rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-6 shadow-2xs dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-3 sm:pb-4">
-            <div className="flex items-center gap-2 sm:gap-2.5">
-              <span className="text-base sm:text-lg">⚙️</span>
-              <h2 className="text-base sm:text-xl font-bold text-slate-900 dark:text-white">Operational checks</h2>
-            </div>
-            <span className="rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 px-2 py-0.5 text-[10px] font-bold border border-emerald-200 dark:border-emerald-500/30">
-              Active
-            </span>
-          </div>
-
-          <div className="mt-3 sm:mt-4 space-y-2.5 sm:space-y-3.5 min-w-0">
-            {/* Editorial Verification Status */}
-            <div className="rounded-xl border border-slate-200/90 bg-slate-50/70 p-3 sm:p-4 dark:border-slate-800 dark:bg-slate-900/60">
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Editorial review pipeline</p>
-              <div className="flex items-center justify-between mt-1">
-                <p className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
-                  {stats.find((s) => s.label === 'Pending review')?.value ?? 0} awaiting review
-                </p>
-                {(stats.find((s) => s.label === 'Pending review')?.value ?? 0) > 0 ? (
-                  <span className="rounded-full bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 px-2 py-0.5 text-[10px] font-bold">
-                    Action Needed
-                  </span>
-                ) : (
-                  <span className="rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 px-2 py-0.5 text-[10px] font-bold">
-                    All Clear
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Published Catalog Status */}
-            <div className="rounded-xl border border-slate-200/90 bg-slate-50/70 p-3 sm:p-4 dark:border-slate-800 dark:bg-slate-900/60">
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Published reporting</p>
-              <div className="flex items-center justify-between mt-1">
-                <p className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
-                  {stats.find((s) => s.label === 'Published today')?.value ?? 0} stories live
-                </p>
-                <span className="rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 px-2 py-0.5 text-[10px] font-bold flex items-center gap-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Live in Public
-                </span>
-              </div>
-            </div>
-
-            {/* Security & Audit Telemetry */}
-            <div className="rounded-xl border border-slate-200/90 bg-slate-50/70 p-3 sm:p-4 dark:border-slate-800 dark:bg-slate-900/60">
-              <p className="text-xs font-semibold text-slate-500 dark:text-slate-400">Security & telemetry engine</p>
-              <div className="flex items-center justify-between mt-1">
-                <p className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">AAL2 & View Engine</p>
-                <span className="rounded-full bg-cyan-100 text-cyan-800 dark:bg-cyan-500/20 dark:text-cyan-300 px-2 py-0.5 text-[10px] font-bold">
-                  Enforced
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
     </div>
   );
 

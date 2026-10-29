@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { NewsletterForm } from '@/components/NewsletterForm';
 import { SITE_SHORT_NAME } from '@/lib/config';
+import { formatArticleDate } from '@/lib/date';
 import { TemplateProps } from './types';
 import { RegionalCoverageWidget } from './RegionalCoverageWidget';
 
@@ -78,8 +79,8 @@ export function ModernMagazineTemplate({
                         {heroArticle.district}
                       </span>
                     )}
-                    <span className="text-xs text-slate-400">
-                      {new Date(heroArticle.published_at).toLocaleDateString()}
+                    <span className="text-xs text-slate-400" suppressHydrationWarning>
+                      {formatArticleDate(heroArticle.published_at)}
                     </span>
                   </div>
 
@@ -154,7 +155,7 @@ export function ModernMagazineTemplate({
 
                     <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-500">
                       <span>{article.district ? `District: ${article.district}` : 'Jammu & Kashmir'}</span>
-                      <span>{new Date(article.published_at).toLocaleDateString()}</span>
+                      <span suppressHydrationWarning>{formatArticleDate(article.published_at)}</span>
                     </div>
                   </article>
                 ))}
@@ -269,7 +270,7 @@ export function ModernMagazineTemplate({
 
                   <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-500">
                     <span>{article.district ? `District: ${article.district}` : 'Jammu & Kashmir'}</span>
-                    <span>{new Date(article.published_at).toLocaleDateString()}</span>
+                    <span suppressHydrationWarning>{formatArticleDate(article.published_at)}</span>
                   </div>
                 </article>
               ))}

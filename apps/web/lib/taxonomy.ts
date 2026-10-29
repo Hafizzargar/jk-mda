@@ -111,7 +111,9 @@ export const JK_DISTRICTS: Record<string, { name: string; region: KJINRegionName
 
 export const NEWS_CATEGORIES: Record<string, { name: string; description: string }> = {
   politics: { name: 'Politics', description: 'Governance, policy, and public affairs reporting across J&K.' },
-  local: { name: 'Local', description: 'Ground reporting, civic issues, and grassroots updates from districts.' },
+  local: { name: 'Local News', description: 'Ground reporting, regional developments, and grassroots updates from districts.' },
+  'local-news': { name: 'Local News', description: 'Ground reporting, regional developments, and grassroots updates from districts.' },
+  problems: { name: 'Problems & Grievances', description: 'Civic grievances, public infrastructure issues, and ground investigative reports across J&K.' },
   economy: { name: 'Economy', description: 'Business, agriculture, tourism, and financial developments.' },
   culture: { name: 'Culture', description: 'Heritage, literature, arts, and traditions of Jammu and Kashmir.' },
   sports: { name: 'Sports', description: 'Athletics, youth sports, and regional championships.' },

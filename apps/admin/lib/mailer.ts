@@ -376,3 +376,56 @@ KCPJLN Newsroom Security
   }
 }
 
+export interface SendMfaResetEmailParams {
+  to: string;
+  displayName: string;
+  code: string;
+}
+
+export async function sendMfaResetEmail(params: SendMfaResetEmailParams): Promise<MailerResult> {
+  const transporter = getMailTransporter();
+  if (!transporter) {
+    return { success: false, error: 'SMTP transporter not configured' };
+  }
+
+  const fromAddress = process.env.SMTP_FROM || 'KCPJLN Newsroom <hafezzargar987@gmail.com>';
+  const subject = `Your KCPJLN MFA Reset Code: ${params.code}`;
+  const textContent = `Hello ${params.displayName},\n\nA request was made to reset your Two-Factor Authentication (MFA) device for your KCPJLN account.\n\nYour 6-digit recovery code is:\n\n${params.code}\n\nThis code expires in 15 minutes. If you did not request this, please notify newsroom security immediately.`;
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>MFA Reset Code</title></head>
+<body style="font-family: Arial, sans-serif; background-color: #f8fafc; padding: 24px; color: #1e293b;">
+  <div style="max-width: 500px; margin: 0 auto; background: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0; padding: 24px;">
+    <h2 style="color: #0f172a; margin-top: 0;">Two-Factor Authentication Reset</h2>
+    <p>Hello <strong>${params.displayName}</strong>,</p>
+    <p>A request was received to reset the authenticator app on your account (<strong>${params.to}</strong>).</p>
+    <div style="background: #f1f5f9; border-radius: 8px; padding: 16px; text-align: center; margin: 24px 0;">
+      <span style="font-size: 32px; font-weight: bold; font-family: monospace; letter-spacing: 6px; color: #0284c7;">${params.code}</span>
+      <p style="font-size: 11px; color: #64748b; margin: 8px 0 0 0;">Valid for 15 minutes</p>
+    </div>
+    <p style="font-size: 12px; color: #64748b;">
+      Entering this code will unlink your old authenticator device and present you with a fresh QR code to scan. If you did not request this, please contact your administrator immediately.
+    </p>
+  </div>
+</body>
+</html>
+  `.trim();
+
+  try {
+    const info = await transporter.sendMail({
+      from: fromAddress,
+      to: params.to,
+      subject,
+      text: textContent,
+      html: htmlContent,
+    });
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown mailer error';
+    return { success: false, error: errorMessage };
+  }
+}
+
+

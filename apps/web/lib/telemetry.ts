@@ -543,19 +543,17 @@ export const DEFAULT_TELEMETRY_SETTINGS: TelemetrySettings = {
   ],
 };
 
+import { getCachedSiteSetting } from './site-settings-cache';
+
 export async function getTelemetrySettings(supabase: SupabaseClient): Promise<TelemetrySettings> {
   try {
-    const { data, error } = await supabase
-      .from('site_settings')
-      .select('value')
-      .eq('key', 'telemetry_config')
-      .maybeSingle();
+    const data = await getCachedSiteSetting<Partial<TelemetrySettings>>(supabase, 'telemetry_config');
 
-    if (error || !data?.value) {
+    if (!data) {
       return DEFAULT_TELEMETRY_SETTINGS;
     }
 
-    const val = data.value as Partial<TelemetrySettings>;
+    const val = data;
     return {
       live_wire: {
         ...DEFAULT_TELEMETRY_SETTINGS.live_wire,

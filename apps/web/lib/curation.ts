@@ -28,19 +28,17 @@ export const DEFAULT_CURATION_SETTINGS: HomepageCurationSettings = {
   takeaways: [],
 };
 
+import { getCachedSiteSetting } from './site-settings-cache';
+
 export async function getCurationSettings(supabase: SupabaseClient): Promise<HomepageCurationSettings> {
   try {
-    const { data, error } = await supabase
-      .from('site_settings')
-      .select('value')
-      .eq('key', 'homepage_curation')
-      .maybeSingle();
+    const data = await getCachedSiteSetting<Partial<HomepageCurationSettings>>(supabase, 'homepage_curation');
 
-    if (error || !data?.value) {
+    if (!data) {
       return DEFAULT_CURATION_SETTINGS;
     }
 
-    const val = data.value as Partial<HomepageCurationSettings>;
+    const val = data;
     return {
       lead_hero_id: val.lead_hero_id ?? DEFAULT_CURATION_SETTINGS.lead_hero_id,
       sub_lead_ids: Array.isArray(val.sub_lead_ids) ? val.sub_lead_ids : [],

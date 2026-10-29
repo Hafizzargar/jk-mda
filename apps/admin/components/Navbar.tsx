@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
+import { NotificationBell } from './NotificationBell';
 
 interface NavbarProps {
   onOpenMobile: () => void;
@@ -128,6 +129,9 @@ export function Navbar({
           <span>🌐 Site</span>
           <span className="text-[10px] text-slate-400 font-bold">↗</span>
         </a>
+
+        {/* Real-time Notification Bell for Owners & Superadmins */}
+        <NotificationBell userRole={userRole} />
 
         {/* Role & Profile Badge */}
         <Link

@@ -33,11 +33,15 @@ export function buildCspHeader(options: CspOptions): string {
     'https://lh4.googleusercontent.com',
     'https://lh5.googleusercontent.com',
     'https://lh6.googleusercontent.com',
+    'https://tiles.openfreemap.org',
   ];
 
   const trustedConnectHosts = [
     `https://${PRODUCTION_SUPABASE_PROJECT_ID}.supabase.co`,
     `wss://${PRODUCTION_SUPABASE_PROJECT_ID}.supabase.co`,
+    'https://tiles.openfreemap.org',
+    'https://earthquake.usgs.gov',
+    'https://api.open-meteo.com',
   ];
 
   if (isDev) {

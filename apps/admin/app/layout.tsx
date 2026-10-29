@@ -24,8 +24,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const nonce = headersList.get('x-nonce') || undefined;
 
   return (
-    <html lang="en" data-scroll-behavior="smooth">
-      <body data-nonce={nonce ? 'present' : undefined}>
+    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
+      <body data-nonce={nonce ? 'present' : undefined} suppressHydrationWarning>
         <ScrollToTop />
         <AdminShell>{children}</AdminShell>
       </body>

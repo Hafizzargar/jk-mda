@@ -284,19 +284,17 @@ export function sanitizeNavbarSettings(raw: unknown): NavbarSettings {
   };
 }
 
+import { getCachedSiteSetting } from './site-settings-cache';
+
 export async function getNavbarSettings(supabase: SupabaseClient): Promise<NavbarSettings> {
   try {
-    const { data: settingRow, error } = await supabase
-      .from('site_settings')
-      .select('value')
-      .eq('key', 'navbar_settings')
-      .maybeSingle();
+    const value = await getCachedSiteSetting(supabase, 'navbar_settings');
 
-    if (error || !settingRow?.value) {
+    if (!value) {
       return DEFAULT_NAVBAR_SETTINGS;
     }
 
-    return sanitizeNavbarSettings(settingRow.value);
+    return sanitizeNavbarSettings(value);
   } catch (err) {
     console.error('[getNavbarSettings] Failed to fetch settings, using fallback default:', err);
     return DEFAULT_NAVBAR_SETTINGS;

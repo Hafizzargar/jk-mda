@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import { formatArticleDate } from '@/lib/date';
 import { TemplateProps } from './types';
 
 export function CleanNordicWhiteTemplate({
@@ -55,7 +55,7 @@ export function CleanNordicWhiteTemplate({
                 <span>/</span>
                 <span>{heroArticle.district || 'Regional'}</span>
                 <span>/</span>
-                <time>{new Date(heroArticle.published_at).toLocaleDateString()}</time>
+                <time suppressHydrationWarning>{formatArticleDate(heroArticle.published_at)}</time>
               </div>
 
               <Link href={`${langPrefix}/${heroArticle.category.toLowerCase()}/${heroArticle.slug}`}>
@@ -117,7 +117,7 @@ export function CleanNordicWhiteTemplate({
                     <span>&bull;</span>
                     <span>{article.district || 'J&K'}</span>
                     <span>&bull;</span>
-                    <span>{new Date(article.published_at).toLocaleDateString()}</span>
+                    <span suppressHydrationWarning>{formatArticleDate(article.published_at)}</span>
                   </div>
 
                   <Link href={`${langPrefix}/${article.category.toLowerCase()}/${article.slug}`}>

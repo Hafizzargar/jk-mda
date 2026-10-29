@@ -8,6 +8,7 @@ import { SidebarAd } from '@/components/ads/SidebarAd';
 import { TemplateProps } from './types';
 import { getDistrictDisplayName } from '@/lib/taxonomy';
 import { DEFAULT_TELEMETRY_SETTINGS } from '@/lib/telemetry';
+import { formatArticleDate } from '@/lib/date';
 
 export function ClassicEditorialTemplate({
   langPrefix,
@@ -27,6 +28,7 @@ export function ClassicEditorialTemplate({
   editorialArticle: propEditorialArticle,
   subArticles: propSubArticles,
   wireArticles: propWireArticles,
+  problemArticle,
   scope,
 }: TemplateProps) {
   const activeTelemetry = telemetry || DEFAULT_TELEMETRY_SETTINGS;
@@ -503,11 +505,11 @@ export function ClassicEditorialTemplate({
                       </span>
                     </div>
                   </div>
-                  <div className="text-right text-stone-500 font-mono text-[9px] sm:text-[10px] shrink-0">
+                  <div className="text-right text-stone-500 font-mono text-[9px] sm:text-[10px] shrink-0" suppressHydrationWarning>
                     <div>
                       {heroArticle
-                        ? new Date(heroArticle.published_at).toLocaleDateString('en-GB')
-                        : '24/10/2026'}
+                        ? formatArticleDate(heroArticle.published_at)
+                        : 'Oct 24, 2026'}
                     </div>
                     <div className="text-stone-400 text-[8px] sm:text-[9px]">06:00 IST Dispatch</div>
                   </div>
@@ -1112,8 +1114,8 @@ export function ClassicEditorialTemplate({
                           <span className="text-[10px]">{heroArticle.district ? getDistrictDisplayName(heroArticle.district) : 'Newsdesk'}</span>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <span className="block">{new Date(heroArticle.published_at).toLocaleDateString()}</span>
+                      <div className="text-right" suppressHydrationWarning>
+                        <span className="block">{formatArticleDate(heroArticle.published_at)}</span>
                         <span className="text-[10px] text-slate-400">06:00 IST Dispatch</span>
                       </div>
                     </div>
@@ -1200,6 +1202,61 @@ export function ClassicEditorialTemplate({
               {/* RIGHT COLUMN: OP-ED, TRANSIT STATUS & PARTNER (3 cols)  */}
               {/* ======================================================= */}
               <aside className="lg:col-span-3 space-y-6 font-sans">
+                {/* Problems & Civic Issues Desk (Top Right) */}
+                {(problemArticle || !scope || scope.type === 'home') && (
+                  <div className="bg-white p-5 rounded-2xl border border-amber-200/90 shadow-sm bg-gradient-to-br from-white via-amber-50/25 to-orange-50/30">
+                    <div className="flex items-center justify-between mb-2.5 pb-2 border-b border-amber-100">
+                      <span className="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded bg-amber-600/10 text-amber-700 border border-amber-600/20 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-pulse inline-block" />
+                        Problems • Civic Issues
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-400">Ground Grievances</span>
+                    </div>
+
+                    {problemArticle ? (
+                      <>
+                        <div className="flex items-center gap-2 mb-1.5">
+                          {problemArticle.district && (
+                            <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded bg-slate-100 text-slate-700">
+                              {getDistrictDisplayName(problemArticle.district)}
+                            </span>
+                          )}
+                          <span className="text-[10px] text-slate-400">By {problemArticle.author_display_name || 'Editor'}</span>
+                        </div>
+                        <h3 className="font-serif text-base font-bold text-[#0F172A] leading-snug mb-2 hover:text-[#0891B2] transition">
+                          <Link href={`${langPrefix}/${problemArticle.category.toLowerCase().replace(/\s+/g, '-')}/${problemArticle.slug}`}>
+                            {problemArticle.title}
+                          </Link>
+                        </h3>
+                        {problemArticle.excerpt && (
+                          <p className="text-xs text-slate-600 font-serif line-clamp-2 leading-relaxed mb-3">
+                            {problemArticle.excerpt}
+                          </p>
+                        )}
+                        <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[10px]">
+                          <span className="text-slate-400">{formatArticleDate(problemArticle.published_at)}</span>
+                          <Link
+                            href={`${langPrefix}/category/problems`}
+                            className="font-bold text-amber-700 hover:text-amber-800 transition flex items-center gap-1"
+                          >
+                            All J&amp;K Problems →
+                          </Link>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="py-2 text-center text-xs text-slate-500">
+                        <p className="italic">Editorial ground grievances &amp; civic issues desk.</p>
+                        <Link
+                          href={`${langPrefix}/category/problems`}
+                          className="mt-2 inline-block text-[11px] font-bold text-amber-700 hover:underline"
+                        >
+                          View Problems Archive →
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Editorial of Record (Op-Ed) */}
                 <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
                   <div className="flex items-center justify-between mb-2">
@@ -1489,7 +1546,7 @@ export function ClassicEditorialTemplate({
                     </div>
                     <div className="px-5 py-3 bg-[#f5f3f0] border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
                       <span>By {art.author_display_name || 'Correspondent'}</span>
-                      <span>{new Date(art.published_at).toLocaleDateString()}</span>
+                      <span suppressHydrationWarning>{formatArticleDate(art.published_at)}</span>
                     </div>
                   </article>
                 );

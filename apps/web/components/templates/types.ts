@@ -51,6 +51,7 @@ export interface TemplateProps {
   editorialArticle?: ArticleItem | null;
   subArticles?: ArticleItem[];
   wireArticles?: ArticleItem[];
+  problemArticle?: ArticleItem | null;
   scope?: TemplateScope;
 }
 

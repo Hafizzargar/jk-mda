@@ -227,7 +227,6 @@ export async function DELETE(
       return reauthResponse;
     }
 
-    const { userClient } = authorization;
     const { id } = await context.params;
 
     if (!id || typeof id !== 'string' || !UUID_PATTERN.test(id)) {
@@ -236,6 +235,35 @@ export async function DELETE(
         headers: { 'Content-Type': 'application/json' },
       });
     }
+
+    // Authors and editors are strictly forbidden from deleting articles. Only owner, superadmin, and admin.
+    const allowedDeleteRoles = ['owner', 'superadmin', 'admin'];
+    if (!allowedDeleteRoles.includes(authorization.profile.role_key)) {
+      await authorization.service.from('audit_logs').insert({
+        actor_profile_id: authorization.user.id,
+        action: 'article.delete_attempt_blocked',
+        target_type: 'article',
+        target_id: id,
+        result: 'denied',
+        reason: 'Authors and editors are strictly forbidden from deleting articles',
+        details: {
+          attempted_by_role: authorization.profile.role_key,
+        },
+        ...authorization.auditContext,
+      });
+
+      return new Response(
+        JSON.stringify({
+          error: 'Only owners, superadmins, and admins are authorized to delete articles.',
+        }),
+        {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    }
+
+    const { userClient } = authorization;
 
     let reason: string | null = null;
     try {

@@ -186,7 +186,7 @@ export function SiteNavbar({
                     alt={navSettings.brand.name || 'KCPJLN'}
                     fill
                     className="object-contain p-0.5 rounded-full"
-                    priority
+                    loading="eager"
                     sizes="44px"
                   />
                 </div>
@@ -331,17 +331,31 @@ export function SiteNavbar({
                   <div className="mt-2 pt-2 border-t border-slate-200/80 dark:border-slate-800/80 px-2 py-1 flex items-center justify-between text-[11px]">
                     <span className="text-slate-500 dark:text-slate-400">Looking for civic ground reports?</span>
                     <Link
-                      href={`${langPrefix}/category/local`}
+                      href={`${langPrefix}/map`}
                       onClick={() => setRegionsOpen(false)}
-                      className="font-bold text-cyan-700 dark:text-cyan-400 hover:underline"
+                      className="font-bold text-cyan-700 dark:text-cyan-400 hover:underline flex items-center gap-1"
                     >
-                      View All 22 Districts &rarr;
+                      <span>🗺️</span>
+                      <span>Map Overview &rarr;</span>
                     </Link>
                   </div>
                 </div>
               )}
             </div>
           )}
+
+          {/* Map Overview Link */}
+          <Link
+            href={`${langPrefix}/map`}
+            className={`px-2.5 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
+              pathname?.includes('/map')
+                ? `${accentText} font-extrabold ${subtleBg}`
+                : `${textMuted} hover:${textPrimary} hover:${subtleBg}`
+            }`}
+          >
+            <span>🗺️</span>
+            <span>Map</span>
+          </Link>
 
           {/* Latest Wire Pill */}
           {navSettings.actions.show_latest_wire_badge && (
@@ -433,17 +447,28 @@ export function SiteNavbar({
         <div
           className={`md:hidden border-t px-4 py-4 space-y-4 max-h-[80vh] overflow-y-auto ${navBg} ${navBorder}`}
         >
-          {/* Quick Wire Button */}
-          {navSettings.actions.show_latest_wire_badge && (
+          {/* Quick Action Buttons: Live Wire & Map Overview */}
+          <div className="grid grid-cols-2 gap-2">
+            {navSettings.actions.show_latest_wire_badge && (
+              <Link
+                href={`${langPrefix}/latest`}
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl bg-red-600 text-white font-bold text-xs shadow-sm uppercase tracking-wider"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                <span>Wire</span>
+              </Link>
+            )}
+
             <Link
-              href={`${langPrefix}/latest`}
+              href={`${langPrefix}/map`}
               onClick={() => setMobileMenuOpen(false)}
-              className="w-full flex items-center justify-center gap-2 py-2 rounded-xl bg-red-600 text-white font-bold text-xs shadow-sm uppercase tracking-wider"
+              className="flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold text-xs shadow-sm uppercase tracking-wider"
             >
-              <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-              <span>{navSettings.actions.latest_wire_label}</span>
+              <span>🗺️</span>
+              <span>Map Overview</span>
             </Link>
-          )}
+          </div>
 
           {/* Categories */}
           <div>

@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { formatArticleDate } from '@/lib/date';
 import { TemplateProps } from './types';
 
 export function GenZNeoBrutalistTemplate({
@@ -99,8 +100,8 @@ export function GenZNeoBrutalistTemplate({
                     <span className="bg-pink-300 text-black text-xs font-black uppercase px-2.5 py-0.5 border-2 border-black rounded-full">
                       {heroArticle.category}
                     </span>
-                    <span className="text-xs font-mono font-bold text-neutral-500">
-                      • {new Date(heroArticle.published_at).toLocaleDateString()}
+                    <span className="text-xs font-mono font-bold text-neutral-500" suppressHydrationWarning>
+                      • {formatArticleDate(heroArticle.published_at)}
                     </span>
                   </div>
 
@@ -246,8 +247,8 @@ export function GenZNeoBrutalistTemplate({
                     <span className="bg-cyan-200 text-black text-[10px] font-black uppercase px-2 py-0.5 border border-black rounded">
                       {article.category}
                     </span>
-                    <span className="text-[10px] font-mono text-neutral-500 font-bold">
-                      {new Date(article.published_at).toLocaleDateString()}
+                    <span className="text-[10px] font-mono text-neutral-500 font-bold" suppressHydrationWarning>
+                      {formatArticleDate(article.published_at)}
                     </span>
                   </div>
 

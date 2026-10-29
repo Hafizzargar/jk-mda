@@ -55,6 +55,7 @@ function ArticlesPageContent() {
   // Auth & Permissions State
   const [permissions, setPermissions] = useState<string[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [authStatus, setAuthStatus] = useState('Loading workspace...');
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);
 
@@ -114,6 +115,7 @@ function ArticlesPageContent() {
         setIsAuthorized(false);
         return;
       }
+      setUserRole(userRole);
       
       if (requiresMfa(userRole)) {
         const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
@@ -425,7 +427,8 @@ function ArticlesPageContent() {
           can('article.review') ||
           isOwnDraft ||
           (article.status === 'draft' && can('article.create'));
-        const canDelete = can('article.delete') || can('article.archive');
+        const isDeletePrivileged = !!userRole && ['owner', 'superadmin', 'admin'].includes(userRole);
+        const canDelete = isDeletePrivileged && can('article.delete');
 
         return (
           <div className="flex flex-wrap items-center gap-1.5">
@@ -505,7 +508,8 @@ function ArticlesPageContent() {
       can('article.review') ||
       isOwnDraft ||
       (article.status === 'draft' && can('article.create'));
-    const canDelete = can('article.delete') || can('article.archive');
+    const isDeletePrivileged = !!userRole && ['owner', 'superadmin', 'admin'].includes(userRole);
+    const canDelete = isDeletePrivileged && can('article.delete');
 
     const tagClass =
       article.status === 'review'
@@ -655,15 +659,72 @@ function ArticlesPageContent() {
   return (
     <div className="p-3 sm:p-6 md:p-8 pb-24 lg:pb-8">
       <div className="mx-auto max-w-7xl">
-        {/* Streamlined Header */}
-        <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200/90 pb-3 sm:pb-4 dark:border-slate-800">
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Articles</h1>
-            <p className="mt-0.5 text-xs font-medium text-slate-500 dark:text-slate-400">
-              Newsroom stories, ground civic grievances, and editorial drafts
-            </p>
+        {/* Streamlined Header with Integrated Topic Tabs */}
+        <div className="mb-3 sm:mb-4 flex flex-col xl:flex-row xl:items-center justify-between gap-3 border-b border-slate-200/90 pb-3 sm:pb-4 dark:border-slate-800">
+          <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-5 min-w-0">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">Articles</h1>
+              <p className="mt-0.5 text-xs font-medium text-slate-500 dark:text-slate-400">
+                Newsroom stories, ground civic grievances, and editorial drafts
+              </p>
+            </div>
+
+            {/* Topic Segmented Control */}
+            <div className="flex overflow-x-auto no-scrollbar gap-1 rounded-xl bg-slate-100 p-1 border border-slate-200/90 dark:bg-slate-900 dark:border-slate-800 w-full sm:w-auto shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setTopicFilter('news');
+                  setCategoryFilter('all');
+                  setPage(1);
+                }}
+                className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition whitespace-nowrap ${
+                  topicFilter === 'news'
+                    ? 'bg-white text-slate-900 shadow-2xs dark:bg-slate-800 dark:text-white'
+                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-400'
+                }`}
+              >
+                <span>📰</span>
+                <span>News Reports</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setTopicFilter('civic');
+                  setCategoryFilter('Local');
+                  setPage(1);
+                }}
+                className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition whitespace-nowrap ${
+                  topicFilter === 'civic'
+                    ? 'bg-white text-slate-900 shadow-2xs dark:bg-slate-800 dark:text-white'
+                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-400'
+                }`}
+              >
+                <span>🏛️</span>
+                <span>Civic Problems</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setTopicFilter('all');
+                  setCategoryFilter('all');
+                  setPage(1);
+                }}
+                className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition whitespace-nowrap ${
+                  topicFilter === 'all'
+                    ? 'bg-white text-slate-900 shadow-2xs dark:bg-slate-800 dark:text-white'
+                    : 'text-slate-600 hover:text-slate-900 dark:text-slate-400'
+                }`}
+              >
+                <span>📂</span>
+                <span>All ({totalCount})</span>
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+
+          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
             <Button
               type="button"
               variant="secondary"
@@ -688,124 +749,67 @@ function ArticlesPageContent() {
           </div>
         </div>
 
-        {/* Clean Topic Navigation & Status Filters Bar */}
-        <div className="mb-3 sm:mb-4 flex flex-col gap-2.5">
-          {/* Topic Segmented Control — Horizontal Scroll on mobile */}
-          <div className="flex overflow-x-auto no-scrollbar gap-1 rounded-xl bg-slate-100 p-1 border border-slate-200/90 dark:bg-slate-900 dark:border-slate-800 w-full sm:w-auto">
-            <button
-              type="button"
-              onClick={() => {
-                setTopicFilter('news');
-                setCategoryFilter('all');
-                setPage(1);
-              }}
-              className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition whitespace-nowrap ${
-                topicFilter === 'news'
-                  ? 'bg-white text-slate-900 shadow-2xs dark:bg-slate-800 dark:text-white'
-                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400'
-              }`}
-            >
-              <span>📰</span>
-              <span>News Reports</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setTopicFilter('civic');
-                setCategoryFilter('Local');
-                setPage(1);
-              }}
-              className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition whitespace-nowrap ${
-                topicFilter === 'civic'
-                  ? 'bg-white text-slate-900 shadow-2xs dark:bg-slate-800 dark:text-white'
-                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400'
-              }`}
-            >
-              <span>🏛️</span>
-              <span>Civic Problems</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setTopicFilter('all');
-                setCategoryFilter('all');
-                setPage(1);
-              }}
-              className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold transition whitespace-nowrap ${
-                topicFilter === 'all'
-                  ? 'bg-white text-slate-900 shadow-2xs dark:bg-slate-800 dark:text-white'
-                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400'
-              }`}
-            >
-              <span>📂</span>
-              <span>All ({totalCount})</span>
-            </button>
-          </div>
-
-          {/* Quick Status Filter Tabs with Horizontal Scroll */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-            <button
-              type="button"
-              onClick={() => {
-                setStatusFilter('all');
-                setPage(1);
-              }}
-              className={`shrink-0 whitespace-nowrap rounded-[8px] px-2.5 py-1 text-xs font-bold transition ${
-                statusFilter === 'all'
-                  ? 'bg-slate-900 text-white'
-                  : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              All Statuses
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setStatusFilter('published');
-                setPage(1);
-              }}
-              className={`shrink-0 whitespace-nowrap flex items-center gap-1.5 rounded-[8px] px-2.5 py-1 text-xs font-bold transition ${
-                statusFilter === 'published'
-                  ? 'bg-emerald-700 text-white'
-                  : 'bg-emerald-50 text-emerald-950 border border-emerald-300 hover:bg-emerald-100'
-              }`}
-            >
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              Live Published
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setStatusFilter('review');
-                setPage(1);
-              }}
-              className={`shrink-0 whitespace-nowrap flex items-center gap-1 rounded-[8px] px-2.5 py-1 text-xs font-bold transition ${
-                statusFilter === 'review'
-                  ? 'bg-amber-600 text-white'
-                  : 'bg-amber-50 text-amber-950 border border-amber-300 hover:bg-amber-100'
-              }`}
-            >
-              <span>⏳</span>
-              In Review
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setStatusFilter('archived');
-                setPage(1);
-              }}
-              className={`shrink-0 whitespace-nowrap flex items-center gap-1 rounded-[8px] px-2.5 py-1 text-xs font-bold transition ${
-                statusFilter === 'archived'
-                  ? 'bg-red-700 text-white'
-                  : 'bg-red-50 text-red-950 border border-red-300 hover:bg-red-100'
-              }`}
-            >
-              <span>🚫</span>
-              Inactive
-            </button>
-          </div>
+        {/* Quick Status Filter Tabs with Horizontal Scroll */}
+        <div className="mb-3 sm:mb-4 flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+          <button
+            type="button"
+            onClick={() => {
+              setStatusFilter('all');
+              setPage(1);
+            }}
+            className={`shrink-0 whitespace-nowrap rounded-[8px] px-2.5 py-1 text-xs font-bold transition ${
+              statusFilter === 'all'
+                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-950'
+                : 'bg-white text-slate-700 border border-slate-200 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-800 dark:hover:bg-slate-800'
+            }`}
+          >
+            All Statuses
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setStatusFilter('published');
+              setPage(1);
+            }}
+            className={`shrink-0 whitespace-nowrap flex items-center gap-1.5 rounded-[8px] px-2.5 py-1 text-xs font-bold transition ${
+              statusFilter === 'published'
+                ? 'bg-emerald-700 text-white'
+                : 'bg-emerald-50 text-emerald-950 border border-emerald-300 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-200 dark:border-emerald-800 dark:hover:bg-emerald-900/50'
+            }`}
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            Live Published
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setStatusFilter('review');
+              setPage(1);
+            }}
+            className={`shrink-0 whitespace-nowrap flex items-center gap-1 rounded-[8px] px-2.5 py-1 text-xs font-bold transition ${
+              statusFilter === 'review'
+                ? 'bg-amber-600 text-white'
+                : 'bg-amber-50 text-amber-950 border border-amber-300 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800 dark:hover:bg-amber-900/50'
+            }`}
+          >
+            <span>⏳</span>
+            In Review
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setStatusFilter('archived');
+              setPage(1);
+            }}
+            className={`shrink-0 whitespace-nowrap flex items-center gap-1 rounded-[8px] px-2.5 py-1 text-xs font-bold transition ${
+              statusFilter === 'archived'
+                ? 'bg-red-700 text-white'
+                : 'bg-red-50 text-red-950 border border-red-300 hover:bg-red-100 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800 dark:hover:bg-red-900/50'
+            }`}
+          >
+            <span>🚫</span>
+            Inactive
+          </button>
         </div>
 
         {/* Feedback Message */}

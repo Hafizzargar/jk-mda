@@ -135,6 +135,13 @@ export function Sidebar({
               exact: true,
             },
             {
+              name: 'YouTube Monitor',
+              href: '/newsroom/youtube',
+              icon: '📺',
+              badge: 'Surveillance',
+              badgeColor: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-500/20 dark:text-red-300 font-bold',
+            },
+            {
               name: 'Source Registry',
               href: '/newsroom/sources',
               icon: '🔗',
@@ -183,6 +190,16 @@ export function Sidebar({
               icon: '👤',
             },
           ],
+        },
+        {
+          name: 'Audit & Records',
+          description: 'Live surveillance of editor & author edits, deletes and activity',
+          href: '/audit',
+          icon: '🛡️',
+          roles: ['owner', 'superadmin'],
+          badge: 'Surveillance',
+          badgeColor:
+            'bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/40 font-bold',
         },
         {
           name: 'Site Design & Navigation',
@@ -613,34 +630,6 @@ export function Sidebar({
             </div>
           );
         })}
-
-        {/* Quick Reader Portal Link */}
-        <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
-          {!isCollapsed && (
-            <p className="px-3 pb-1 text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono">
-              Live Reader Site
-            </p>
-          )}
-          <a
-            href="http://localhost:3000"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="Open Live Public Site"
-            className={`group flex items-center rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-100 hover:text-cyan-900 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-cyan-300 transition-all ${
-              isCollapsed ? 'justify-center p-2.5' : 'gap-3 px-3 py-2 border-l-4 border-transparent'
-            }`}
-          >
-            <span className="text-lg shrink-0 group-hover:scale-110 transition-transform">🌐</span>
-            {!isCollapsed && (
-              <>
-                <span className="truncate flex-1">Public Site</span>
-                <span className="text-xs text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200 font-bold">
-                  ↗
-                </span>
-              </>
-            )}
-          </a>
-        </div>
       </nav>
 
       {/* Bottom User Profile Section */}
@@ -676,18 +665,6 @@ export function Sidebar({
                   {userRole || 'Editor'} • Edit
                 </span>
               </div>
-            </Link>
-          )}
-
-          {/* Profile / Settings Button */}
-          {!isCollapsed && (
-            <Link
-              href="/profile"
-              onClick={onCloseMobile}
-              title="Edit Profile & Author Name"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] border border-slate-300 bg-slate-50 text-slate-700 hover:border-cyan-500 hover:bg-cyan-50 hover:text-cyan-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-cyan-500/50 dark:hover:bg-cyan-500/10 dark:hover:text-cyan-300 transition-colors"
-            >
-              <span className="text-xs">⚙️</span>
             </Link>
           )}
 

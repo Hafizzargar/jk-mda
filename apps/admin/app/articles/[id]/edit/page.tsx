@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import {
-  CATEGORY_OPTIONS,
   DISTRICT_GROUPS,
   IMAGE_PRESETS,
   fetchDynamicCategories,
@@ -229,6 +228,20 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
     }
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        const formEl = document.getElementById('edit-article-form') as HTMLFormElement | null;
+        if (formEl) {
+          formEl.requestSubmit();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   if (isAuthorized === false) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-950 p-8 text-white">
@@ -252,78 +265,61 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
   }
 
   return (
-    <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950/50 p-3 sm:p-6 lg:p-8 pb-24 lg:pb-8">
-      <div className="mx-auto max-w-4xl space-y-4 sm:space-y-6">
-        {/* Breadcrumb Navigation & Top Action Header */}
-        <header className="rounded-xl sm:rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-6 shadow-xs dark:border-slate-800 dark:bg-slate-900/90">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-            <div className="space-y-1.5">
-              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
-                <Link href="/articles" className="hover:text-cyan-600 dark:hover:text-cyan-400 transition">
-                  Stories
-                </Link>
-                <span>/</span>
-                <span className="text-slate-400 dark:text-slate-600">Edit</span>
-                <span>/</span>
-                <span className="font-mono text-slate-700 dark:text-slate-300 truncate max-w-[140px] sm:max-w-[180px]">
-                  {article.slug || id}
-                </span>
-                <span
-                  className={`ml-1 sm:ml-2 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider ${
-                    article.status === 'published'
-                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300'
-                      : article.status === 'archived'
-                        ? 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
-                        : 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300'
-                  }`}
-                >
-                  {article.status}
-                </span>
-              </div>
+    <div className="min-h-screen bg-slate-50/50 dark:bg-slate-950/50 p-3 sm:p-6 lg:p-8 pb-24 lg:pb-8 relative">
+      {/* Right-Side Floating Action Dock (Pinned on the right side while scrolling) */}
+      <aside
+        aria-label="Publishing Actions Desk"
+        className="hidden lg:flex fixed right-6 top-20 z-30 flex-col gap-3 w-52 rounded-2xl border border-slate-200/90 dark:border-slate-800/90 bg-white/95 dark:bg-slate-900/95 p-4 shadow-xl backdrop-blur-md animate-in fade-in slide-in-from-right-4 duration-200"
+      >
+        <div className="flex items-center justify-between pb-2.5 border-b border-slate-100 dark:border-slate-800/80">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            Publishing Desk
+          </span>
+          <span
+            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
+              article.status === 'published'
+                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300'
+                : article.status === 'archived'
+                  ? 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                  : 'bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300'
+            }`}
+          >
+            {article.status}
+          </span>
+        </div>
 
-              <div className="flex items-center gap-2.5 sm:gap-3">
-                <Link
-                  href={`/articles/${id}`}
-                  className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 transition shadow-2xs"
-                  title="Back to article details"
-                >
-                  ←
-                </Link>
-                <div>
-                  <h1 className="text-lg sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
-                    Edit Story
-                  </h1>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Update content, lead visual presentation, and regional taxonomy routing.
-                  </p>
-                </div>
-              </div>
-            </div>
+        <div className="space-y-2">
+          <Button
+            type="submit"
+            form="edit-article-form"
+            variant="primary"
+            size="md"
+            disabled={isSubmitting}
+            isLoading={isSubmitting}
+            icon={<span>💾</span>}
+            className="w-full justify-center font-bold shadow-sm"
+          >
+            {isSubmitting ? 'Saving...' : 'Save Changes'}
+          </Button>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto">
-              <Button
-                href={`/articles/${id}`}
-                variant="secondary"
-                size="md"
-                className="flex-1 sm:flex-none justify-center"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                form="edit-article-form"
-                variant="primary"
-                size="md"
-                disabled={isSubmitting}
-                isLoading={isSubmitting}
-                icon={<span>💾</span>}
-                className="flex-1 sm:flex-none justify-center font-bold"
-              >
-                {isSubmitting ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </div>
-          </div>
-        </header>
+          <Button
+            href={`/articles/${id}`}
+            variant="secondary"
+            size="md"
+            className="w-full justify-center"
+          >
+            Cancel
+          </Button>
+        </div>
+
+        <div className="pt-2 text-[10px] text-slate-400 dark:text-slate-500 leading-tight border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between">
+          <span>Shortcut:</span>
+          <kbd className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 font-mono text-[9px] text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700">Ctrl + S</kbd>
+        </div>
+      </aside>
+
+      <div className="mx-auto max-w-4xl lg:mr-60 space-y-4 sm:space-y-6 transition-all">
+
 
         {error && (
           <div className="rounded-xl border border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-950/40 p-4 text-red-700 dark:text-red-200 font-medium text-sm flex items-center gap-3 shadow-xs">
@@ -505,7 +501,14 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
                 <select
                   name="category"
                   value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  onChange={(e) => {
+                    const newCat = e.target.value;
+                    setSelectedCategory(newCat);
+                    const lower = newCat.toLowerCase();
+                    if (lower === 'international' || lower === 'national') {
+                      setSelectedDistrict('');
+                    }
+                  }}
                   className="mt-1.5 w-full rounded-[8px] border border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-950/70 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:border-cyan-500 focus:bg-white dark:focus:bg-slate-950 focus:ring-2 focus:ring-cyan-500/20 focus:outline-none transition shadow-2xs"
                 >
                   {categories.map((cat) => (
@@ -515,35 +518,79 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
                   ))}
                 </select>
                 <p className="text-[11px] text-cyan-600 dark:text-cyan-400 mt-1.5">
-                  ⭐ Tip: For local issues, road/water problems, or citizen grievances, select <strong>Local</strong> or <strong>Investigation</strong>.
+                  {selectedCategory.toLowerCase() === 'international' ? (
+                    <span>🌐 <strong>International Wire:</strong> Global diplomacy &amp; diaspora relations (No J&amp;K district).</span>
+                  ) : selectedCategory.toLowerCase() === 'national' ? (
+                    <span>🇮🇳 <strong>National Wire:</strong> Union policy &amp; pan-India governance (No J&amp;K district).</span>
+                  ) : selectedCategory.toLowerCase() === 'problems' ? (
+                    <span>⚠️ <strong>Editorial Civic Investigations:</strong> In-depth articles on issues raised by you (roads, hospitals, water, electricity &amp; citizen grievances).</span>
+                  ) : (
+                    <span>⭐ <strong>J&amp;K Local News:</strong> Daily ground reporting, district events &amp; regional headlines.</span>
+                  )}
                 </p>
               </label>
 
-              <label className="block">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  District / Ground Area
-                </span>
-                <select
-                  name="district"
-                  value={selectedDistrict}
-                  onChange={(e) => setSelectedDistrict(e.target.value)}
-                  className="mt-1.5 w-full rounded-[8px] border border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-950/70 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:border-cyan-500 focus:bg-white dark:focus:bg-slate-950 focus:ring-2 focus:ring-cyan-500/20 focus:outline-none transition shadow-2xs"
-                >
-                  <option value="">-- All Jammu &amp; Kashmir (Statewide / Regional) --</option>
-                  {DISTRICT_GROUPS.map((group) => (
-                    <optgroup key={group.region} label={group.region}>
-                      {group.districts.map((d) => (
-                        <option key={d.slug} value={d.slug}>
-                          {d.name} ({group.region})
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
-                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">
-                  Ensures the dispatch matches regional directory tabs and district queries.
-                </p>
-              </label>
+              {/* Adaptive Geographic Area Tagging based on Category */}
+              {selectedCategory.toLowerCase() === 'international' ? (
+                <div className="block">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                    <span>Geographic Scope</span>
+                    <span className="text-[10px] text-cyan-600 dark:text-cyan-400 font-mono font-bold">🌐 World Wire</span>
+                  </span>
+                  <div className="mt-1.5 flex items-center gap-3 rounded-[8px] border border-dashed border-cyan-300/80 dark:border-cyan-800 bg-cyan-50/50 dark:bg-cyan-950/30 px-3.5 py-3 text-sm text-cyan-900 dark:text-cyan-200">
+                    <span className="text-xl shrink-0">🌍</span>
+                    <div>
+                      <p className="font-bold text-xs">Global Wire — No J&amp;K District Required</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">Published directly to the International Desk feed. Never pinned to local J&amp;K maps or district pages.</p>
+                    </div>
+                  </div>
+                  <input type="hidden" name="district" value="" />
+                </div>
+              ) : selectedCategory.toLowerCase() === 'national' ? (
+                <div className="block">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                    <span>Geographic Scope</span>
+                    <span className="text-[10px] text-amber-600 dark:text-amber-400 font-mono font-bold">🇮🇳 Pan-India</span>
+                  </span>
+                  <div className="mt-1.5 flex items-center gap-3 rounded-[8px] border border-dashed border-amber-300/80 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-950/30 px-3.5 py-3 text-sm text-amber-900 dark:text-amber-200">
+                    <span className="text-xl shrink-0">🇮🇳</span>
+                    <div>
+                      <p className="font-bold text-xs">National Wire — No J&amp;K District Required</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">Published directly to the National / India Desk feed. Never pinned to local J&amp;K maps or district pages.</p>
+                    </div>
+                  </div>
+                  <input type="hidden" name="district" value="" />
+                </div>
+              ) : (
+                <label className="block">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center justify-between">
+                    <span>J&amp;K District / Ground Area <span className="text-rose-500">*</span></span>
+                    <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono font-bold">📍 Regional J&amp;K Tag</span>
+                  </span>
+                  <select
+                    name="district"
+                    value={selectedDistrict}
+                    onChange={(e) => setSelectedDistrict(e.target.value)}
+                    className="mt-1.5 w-full rounded-[8px] border border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-950/70 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:border-cyan-500 focus:bg-white dark:focus:bg-slate-950 focus:ring-2 focus:ring-cyan-500/20 focus:outline-none transition shadow-2xs"
+                  >
+                    <option value="">-- All Jammu &amp; Kashmir (Statewide / Regional) --</option>
+                    {DISTRICT_GROUPS.map((group) => (
+                      <optgroup key={group.region} label={group.region}>
+                        {group.districts.map((d) => (
+                          <option key={d.slug} value={d.slug}>
+                            {d.name} ({group.region})
+                          </option>
+                        ))}
+                      </optgroup>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5">
+                    {selectedCategory.toLowerCase() === 'problems'
+                      ? '⭐ Tags this civic problem to the designated J&K district for the public map & civic problem radar.'
+                      : '⭐ Routes this ground dispatch to the selected district&apos;s newsfeed, civic problems list, and map overview.'}
+                  </p>
+                </label>
+              )}
 
               <label className="block">
                 <span className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
@@ -572,29 +619,7 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
             </div>
           </div>
 
-          {/* Bottom Floating Action Bar */}
-          <div className="sticky bottom-4 z-20 flex items-center justify-between rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 px-5 py-3.5 backdrop-blur shadow-lg">
-            <div className="flex items-center gap-2 text-xs font-medium text-slate-500 dark:text-slate-400">
-              <span className="h-2 w-2 rounded-full bg-cyan-500 animate-pulse" />
-              <span>Editing story • unsaved revisions</span>
-            </div>
 
-            <div className="flex items-center gap-2.5">
-              <Button href={`/articles/${id}`} variant="secondary" size="md">
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                variant="primary"
-                size="md"
-                disabled={isSubmitting}
-                isLoading={isSubmitting}
-                icon={<span>💾</span>}
-              >
-                {isSubmitting ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </div>
-          </div>
         </form>
       </div>
     </div>
