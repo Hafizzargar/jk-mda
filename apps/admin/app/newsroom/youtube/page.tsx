@@ -6,6 +6,10 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/Button';
+import {
+  getRecommendedEditorialImage,
+  EditorialImageOption,
+} from '@/lib/newsroom/ai-synthesizer';
 
 interface YouTubeSource {
   id: string;
@@ -49,6 +53,7 @@ interface YouTubeVideo {
     division?: string;
     keyFacts?: string[];
     articleBodyMarkdown?: string;
+    featured_image_url?: string;
     uncertaintyNotes?: string;
   } | null;
   youtube_sources?: {
@@ -91,6 +96,9 @@ export default function YouTubeMonitorPage() {
   const [editScope, setEditScope] = useState<'International' | 'National' | 'State (Jammu & Kashmir)' | 'Chenab Valley'>('National');
   const [editDistrict, setEditDistrict] = useState('');
   const [editBody, setEditBody] = useState('');
+  const [editImage, setEditImage] = useState('');
+  const [imageAlternatives, setImageAlternatives] = useState<EditorialImageOption[]>([]);
+  const [isSynthesizing, setIsSynthesizing] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
 
   useEffect(() => {
@@ -264,11 +272,68 @@ export default function YouTubeMonitorPage() {
     }
   }
 
+  async function handleSynthesizeWithAi(targetVideo?: YouTubeVideo) {
+    const video = targetVideo || reviewVideo;
+    if (!video) return;
+
+    setIsSynthesizing(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) return;
+
+      const res = await fetch('/api/newsroom/youtube/synthesize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+        body: JSON.stringify({ video_id: video.id }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.draft) {
+        setEditHeadline(data.draft.headline);
+        setEditSummary(data.draft.summary);
+        setEditCategory(data.draft.category);
+        setEditScope(data.draft.scope);
+        setEditDistrict(data.draft.district || '');
+        setEditBody(data.draft.body_markdown);
+        setEditImage(data.draft.featured_image_url);
+        setImageAlternatives(data.draft.alternative_images || []);
+
+        setVideos((prev) =>
+          prev.map((v) =>
+            v.id === video.id
+              ? {
+                  ...v,
+                  proposed_headline: data.draft.headline,
+                  proposed_summary: data.draft.summary,
+                  proposed_category: data.draft.category,
+                  ai_analysis: {
+                    ...v.ai_analysis,
+                    headline: data.draft.headline,
+                    summary: data.draft.summary,
+                    category: data.draft.category,
+                    scope: data.draft.scope,
+                    articleBodyMarkdown: data.draft.body_markdown,
+                    featured_image_url: data.draft.featured_image_url,
+                  },
+                }
+              : v
+          )
+        );
+      } else {
+        alert(data.error || 'Failed to synthesize English draft.');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Translation/Synthesis error.');
+    } finally {
+      setIsSynthesizing(false);
+    }
+  }
+
   function openReviewModal(video: YouTubeVideo) {
     setReviewVideo(video);
-    setEditHeadline(video.proposed_headline || video.title);
-    setEditSummary(video.proposed_summary || video.description?.slice(0, 300) || '');
-    setEditCategory(video.proposed_category || video.youtube_sources?.category || 'General');
 
     // Auto-detect scope
     const scope = (video.ai_analysis?.scope as any) || (
@@ -281,15 +346,37 @@ export default function YouTubeMonitorPage() {
         : 'National'
     );
     setEditScope(scope);
+    const cat = video.proposed_category || video.youtube_sources?.category || 'General';
+    setEditCategory(cat);
     setEditDistrict(video.ai_analysis?.district || '');
 
-    // Ensure 100% link-free script
+    // Curate clean editorial news image instead of raw YouTube thumbnail
+    const recommended = getRecommendedEditorialImage(scope, cat);
+    setImageAlternatives(recommended.alternatives);
+    const initialImage = video.ai_analysis?.featured_image_url || recommended.featuredImage;
+    setEditImage(initialImage);
+
+    // Ensure 100% link-free script without hashtags
     const rawBody = video.ai_analysis?.articleBodyMarkdown || video.description || '';
     const cleanBody = rawBody
+      .replace(/#[a-zA-Z0-9_\u0900-\u097F]+/g, '')
       .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
       .replace(/https?:\/\/[^\s]+/g, '')
       .trim();
+
+    setEditHeadline(video.proposed_headline || video.title);
+    setEditSummary(video.proposed_summary || video.description?.slice(0, 300) || '');
     setEditBody(cleanBody);
+
+    // If non-English characters or hashtags are detected, automatically run AI English synthesis
+    const hasNonEnglish = /[\u0900-\u097F\u0600-\u06FF]/.test(
+      (video.proposed_headline || video.title) + (video.proposed_summary || video.description)
+    );
+    const hasHashtags = (video.ai_analysis?.articleBodyMarkdown || video.description || '').includes('#');
+
+    if (hasNonEnglish || hasHashtags || !video.ai_analysis?.articleBodyMarkdown) {
+      handleSynthesizeWithAi(video);
+    }
   }
 
   async function handleApproveDraft(targetStatus: 'review' | 'draft') {
@@ -314,6 +401,7 @@ export default function YouTubeMonitorPage() {
           scope: editScope,
           district: editDistrict || null,
           body_markdown: editBody,
+          featured_image_url: editImage,
           target_status: targetStatus,
         }),
       });
@@ -987,7 +1075,7 @@ export default function YouTubeMonitorPage() {
       {/* Review & Approve Draft Modal */}
       {reviewVideo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <div>
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">
@@ -1003,6 +1091,45 @@ export default function YouTubeMonitorPage() {
                 className="text-slate-400 hover:text-white"
               >
                 ✕
+              </button>
+            </div>
+
+            {/* AI English Synthesis Action Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-gradient-to-r from-cyan-950/60 via-blue-950/40 to-slate-900 border border-cyan-800/50 p-3.5 shadow-inner">
+              <div className="space-y-0.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-cyan-400">⚡ AI English Newsroom Engine</span>
+                  {/[\u0900-\u097F\u0600-\u06FF]/.test(editHeadline + editBody + reviewVideo.title) ? (
+                    <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-[10px] font-semibold text-amber-300 border border-amber-500/30">
+                      ⚠️ Non-English Source Detected
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-300 border border-emerald-500/30">
+                      ✓ 100% English Script
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Translates foreign/regional speech, removes clickbait &amp; hashtags, and generates a structured English news report with clean editorial photography.
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={isSynthesizing}
+                onClick={() => handleSynthesizeWithAi()}
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:opacity-50 text-white text-xs font-bold shadow-md transition"
+              >
+                {isSynthesizing ? (
+                  <>
+                    <span className="animate-spin text-sm">⏳</span>
+                    Translating &amp; Rewriting...
+                  </>
+                ) : (
+                  <>
+                    <span>✨</span>
+                    AI Translate &amp; Rewrite to English
+                  </>
+                )}
               </button>
             </div>
 
@@ -1025,7 +1152,15 @@ export default function YouTubeMonitorPage() {
                   </label>
                   <select
                     value={editScope}
-                    onChange={(e: any) => setEditScope(e.target.value)}
+                    onChange={(e: any) => {
+                      const newScope = e.target.value;
+                      setEditScope(newScope);
+                      const rec = getRecommendedEditorialImage(newScope, editCategory);
+                      setImageAlternatives(rec.alternatives);
+                      if (!editImage || editImage === reviewVideo.thumbnail_url) {
+                        setEditImage(rec.featuredImage);
+                      }
+                    }}
                     className="mt-1 w-full rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-950 p-2 text-slate-900 dark:text-white text-xs outline-none focus:border-cyan-500"
                   >
                     <option value="International">🌍 International</option>
@@ -1045,6 +1180,7 @@ export default function YouTubeMonitorPage() {
                     className="mt-1 w-full rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-950 p-2 text-slate-900 dark:text-white text-xs outline-none focus:border-cyan-500"
                   >
                     <option value="Politics">Politics</option>
+                    <option value="International">International</option>
                     <option value="Economy">Economy</option>
                     <option value="Local">Local</option>
                     <option value="Investigation">Investigation</option>
@@ -1079,7 +1215,7 @@ export default function YouTubeMonitorPage() {
                     Original KJIN Headline
                   </label>
                   <span className="text-[11px] text-cyan-500 font-semibold">
-                    Written from zero in English
+                    Written from zero in English (No Hindi/Urdu)
                   </span>
                 </div>
                 <input
@@ -1107,18 +1243,119 @@ export default function YouTubeMonitorPage() {
               <div>
                 <div className="flex items-center justify-between">
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                    Original News Script (Markdown · Zero external links)
+                    Original News Script (Markdown · Zero external links · No hashtags)
                   </label>
                   <span className="text-[10px] text-slate-400">
-                    No copied promo links
+                    Synthesized journalistic report
                   </span>
                 </div>
                 <textarea
-                  rows={10}
+                  rows={9}
                   value={editBody}
                   onChange={(e) => setEditBody(e.target.value)}
                   className="mt-1 w-full font-mono text-xs rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-950 p-3 text-slate-900 dark:text-white outline-none focus:border-cyan-500"
                 />
+              </div>
+
+              {/* Featured Article Image Selection */}
+              <div className="space-y-2 border-t border-slate-200 dark:border-slate-800 pt-3">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Featured Article Image
+                  </label>
+                  <span className="text-[11px] text-cyan-400 font-medium">
+                    Clean editorial photo recommended (no YouTube text overlays)
+                  </span>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 items-start">
+                  {/* Current Image Preview */}
+                  <div className="relative w-36 h-24 rounded-xl overflow-hidden bg-slate-950 border border-slate-700 shrink-0 shadow-md">
+                    {editImage ? (
+                      <Image
+                        src={editImage}
+                        alt="Featured preview"
+                        fill
+                        className="object-cover"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-xs text-slate-500">
+                        No Image
+                      </div>
+                    )}
+                    {editImage === reviewVideo.thumbnail_url ? (
+                      <span className="absolute bottom-1 right-1 rounded bg-amber-600/90 px-1 py-0.5 text-[9px] font-semibold text-white">
+                        YouTube Thumbnail
+                      </span>
+                    ) : (
+                      <span className="absolute bottom-1 right-1 rounded bg-cyan-600/90 px-1 py-0.5 text-[9px] font-semibold text-white">
+                        Clean Editorial
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Image Options */}
+                  <div className="flex-1 space-y-2 text-xs w-full">
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const recommended = getRecommendedEditorialImage(editScope, editCategory);
+                          setEditImage(recommended.featuredImage);
+                        }}
+                        className={`px-2.5 py-1 rounded-lg border text-xs font-semibold transition ${
+                          editImage && editImage !== reviewVideo.thumbnail_url
+                            ? 'border-cyan-500 bg-cyan-950/40 text-cyan-300'
+                            : 'border-slate-700 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        📸 Clean Editorial Photo
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setEditImage(reviewVideo.thumbnail_url)}
+                        className={`px-2.5 py-1 rounded-lg border text-xs font-semibold transition ${
+                          editImage === reviewVideo.thumbnail_url
+                            ? 'border-amber-500 bg-amber-950/40 text-amber-300'
+                            : 'border-slate-700 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        📺 YouTube Thumbnail
+                      </button>
+                    </div>
+
+                    {/* Alternative Editorial Photos Gallery */}
+                    {imageAlternatives.length > 0 && (
+                      <div className="flex items-center gap-2 overflow-x-auto py-1">
+                        <span className="text-[10px] text-slate-400 shrink-0">Gallery:</span>
+                        {imageAlternatives.map((alt, idx) => (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => setEditImage(alt.url)}
+                            className={`relative w-14 h-9 rounded-lg overflow-hidden border shrink-0 transition ${
+                              editImage === alt.url ? 'border-cyan-400 ring-2 ring-cyan-400' : 'border-slate-700 hover:border-slate-500'
+                            }`}
+                            title={alt.label}
+                          >
+                            <Image src={alt.url} alt={alt.label} fill className="object-cover" unoptimized />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Manual URL input fallback */}
+                    <input
+                      type="url"
+                      placeholder="Or paste custom image HTTPS URL..."
+                      value={editImage}
+                      onChange={(e) => setEditImage(e.target.value)}
+                      className="w-full rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-950 p-2 text-slate-900 dark:text-white text-xs outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 

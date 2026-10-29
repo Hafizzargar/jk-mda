@@ -1,6 +1,7 @@
 import { generateText } from 'ai';
 import { google } from '@ai-sdk/google';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { synthesizeEnglishNewsDraft } from './ai-synthesizer';
 
 export interface YouTubeChannelMeta {
   channelId: string;
@@ -27,6 +28,7 @@ export interface GeminiVideoAnalysis {
   division: string;
   keyFacts: string[];
   articleBodyMarkdown: string;
+  featured_image_url?: string;
   uncertaintyNotes?: string;
 }
 
@@ -379,55 +381,31 @@ Output your response strictly as valid JSON with keys:
         uncertaintyNotes: parsed.uncertaintyNotes || (transcript ? 'Based on verified transcript translated to English.' : 'Based on broadcast intelligence; verified in English.'),
       };
     } catch (err) {
-      console.warn('[Gemini YouTube Analyzer] API call failed, falling back to deterministic synthesis:', err);
+      console.warn('[Gemini YouTube Analyzer] API call failed, falling back to English news synthesizer:', err);
     }
   }
 
-  // Deterministic fallback generator when Gemini API is unavailable or quota is exceeded
-  const scope = detectedScope;
-  const cleanTitle = video.title
-    .replace(/[|!@#$%^&*()[\]{}]+/g, ' ')
-    .replace(/breaking|exclusive|shocking|viral|big update|alert|watch/gi, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  // Create an original, polished headline in English based on the scope and topic
-  let originalHeadline = '';
-  const hasIndicOrArabicScript = /[\u0900-\u097F\u0600-\u06FF\u0750-\u077F]/.test(cleanTitle);
-
-  if (hasIndicOrArabicScript) {
-    const asciiWords = cleanTitle.replace(/[^\x00-\x7F]/g, ' ').replace(/\s+/g, ' ').trim();
-    if (asciiWords.length > 8) {
-      originalHeadline = `${asciiWords}: Detailed ${scope} Assessment and Public Overview`;
-    } else {
-      originalHeadline = `${source.channel_name} Broadcasts Special ${scope} Investigative Report`;
-    }
-  } else if (cleanTitle.length > 10) {
-    originalHeadline = cleanTitle.charAt(0).toUpperCase() + cleanTitle.slice(1);
-  } else {
-    originalHeadline = `${source.channel_name} Releases In-Depth ${scope} Field Report`;
-  }
-
-  const originalSummary = cleanDescription.length > 50
-    ? cleanDescription.split('\n')[0].slice(0, 240)
-    : `Comprehensive ${scope} coverage synthesized by KJIN Newsroom from recent broadcast intelligence by ${source.channel_name}.`;
-
-  const fallbackBody = `### Executive Overview\n\nIn a newly broadcast report focusing on ${scope} developments, **${source.channel_name}** detailed key events surrounding **${originalHeadline}**. The information was extracted and verified through KJIN automated news surveillance for independent editorial review.\n\n### Background & Regional Context\n\nThis development holds notable significance within the ${scope} sphere. Regional observers and civic monitors have been closely following developments regarding governance, public security, and administrative transparency across the territory.\n\n### Key Developments & Statements\n\n${
-    cleanDescription
-      ? cleanDescription.slice(0, 500)
-      : `Broadcaster ${source.channel_name} presented analysis regarding the evolving situation, highlighting official responses, civic reactions, and key stakeholder statements.`
-  }\n\n### Strategic Implications & Next Steps\n\nEditorial staff are assessing the full implications of this broadcast to determine if administrative orders or field verification are required. The situation remains under continuous observation.\n\n*Report synthesized by KJIN Newsroom from verified broadcast intelligence.*`;
+  // Automatic translation and journalistic synthesis engine (works without external API keys)
+  const synthesized = await synthesizeEnglishNewsDraft({
+    rawTitle: video.title,
+    rawDescription: video.description,
+    channelName: source.channel_name,
+    region: source.region,
+    category: source.category,
+    transcript,
+  });
 
   return {
-    headline: originalHeadline,
-    summary: originalSummary,
-    category: source.category || 'General News',
-    scope,
-    division: source.region || 'Jammu & Kashmir',
-    district: null,
-    keyFacts: [originalHeadline, `Aired by ${source.channel_name}`, `Classification: ${scope}`],
-    articleBodyMarkdown: fallbackBody,
-    uncertaintyNotes: transcript ? 'Analyzed via transcript excerpt.' : 'Broadcast metadata. Original audio in regional language; synthesized in English.',
+    headline: synthesized.headline,
+    summary: synthesized.summary,
+    category: synthesized.category,
+    scope: synthesized.scope,
+    division: synthesized.division,
+    district: synthesized.district,
+    keyFacts: [synthesized.headline, `Aired by ${source.channel_name}`, `Classification: ${synthesized.scope}`],
+    articleBodyMarkdown: synthesized.body_markdown,
+    featured_image_url: synthesized.featured_image_url,
+    uncertaintyNotes: transcript ? 'Analyzed via transcript excerpt.' : 'Broadcast intelligence translated to English from source audio.',
   };
 }
 

@@ -15,6 +15,7 @@ export async function POST(request: Request) {
       summary,
       category,
       body_markdown,
+      featured_image_url,
       scope,
       district,
       target_status = 'review'
@@ -37,16 +38,29 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Video record not found.' }, { status: 404 });
     }
 
-    const finalTitle = (headline || videoRecord.proposed_headline || videoRecord.title).trim();
-    const finalSummary = (summary || videoRecord.proposed_summary || videoRecord.description || '').trim().slice(0, 400);
+    const finalTitle = (headline || videoRecord.proposed_headline || videoRecord.title)
+      .replace(/#[a-zA-Z0-9_\u0900-\u097F]+/g, '')
+      .trim();
+    const finalSummary = (summary || videoRecord.proposed_summary || videoRecord.description || '')
+      .replace(/#[a-zA-Z0-9_\u0900-\u097F]+/g, '')
+      .trim()
+      .slice(0, 400);
     const finalCategory = (category || videoRecord.proposed_category || 'General').trim();
     const rawContent = (body_markdown || videoRecord.ai_analysis?.articleBodyMarkdown || videoRecord.description || '').trim();
 
-    // Ensure 100% link-free article script (no copied external URLs)
+    // Ensure 100% link-free and hashtag-free article script
     const linkFreeContent = rawContent
+      .replace(/#[a-zA-Z0-9_\u0900-\u097F]+/g, '')
       .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
       .replace(/https?:\/\/[^\s]+/g, '')
       .trim();
+
+    // Priority for featured image: explicit choice > AI editorial image > video thumbnail
+    const finalImageUrl =
+      featured_image_url ||
+      videoRecord.ai_analysis?.featured_image_url ||
+      videoRecord.thumbnail_url ||
+      null;
 
     const { data: profileRecord } = await service
       .from('profiles')
@@ -76,7 +90,7 @@ export async function POST(request: Request) {
         author_display_name: authorName,
         source_name: sourceChannelName,
         source_url: videoRecord.video_url,
-        featured_image_url: videoRecord.thumbnail_url || null,
+        featured_image_url: finalImageUrl,
       })
       .select()
       .single();
