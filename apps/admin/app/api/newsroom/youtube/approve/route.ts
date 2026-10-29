@@ -9,7 +9,16 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { video_id, headline, summary, category, body_markdown, target_status = 'review' } = body;
+    const {
+      video_id,
+      headline,
+      summary,
+      category,
+      body_markdown,
+      scope,
+      district,
+      target_status = 'review'
+    } = body;
 
     if (!video_id || typeof video_id !== 'string') {
       return Response.json({ error: 'Video record ID is required.' }, { status: 400 });
@@ -30,8 +39,15 @@ export async function POST(request: Request) {
 
     const finalTitle = (headline || videoRecord.proposed_headline || videoRecord.title).trim();
     const finalSummary = (summary || videoRecord.proposed_summary || videoRecord.description || '').trim().slice(0, 400);
-    const finalCategory = (category || videoRecord.proposed_category || 'General News').trim();
-    const finalContent = (body_markdown || videoRecord.ai_analysis?.articleBodyMarkdown || videoRecord.description || '').trim();
+    const finalCategory = (category || videoRecord.proposed_category || 'General').trim();
+    const rawContent = (body_markdown || videoRecord.ai_analysis?.articleBodyMarkdown || videoRecord.description || '').trim();
+
+    // Ensure 100% link-free article script (no copied external URLs)
+    const linkFreeContent = rawContent
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/https?:\/\/[^\s]+/g, '')
+      .trim();
+
     const { data: profileRecord } = await service
       .from('profiles')
       .select('display_name')
@@ -39,10 +55,11 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     const baseSlug = generateSlug(finalTitle);
-    const finalSlug = `${baseSlug || 'youtube-news'}-${Date.now().toString(36).slice(-4)}`;
+    const finalSlug = `${baseSlug || 'news-report'}-${Date.now().toString(36).slice(-4)}`;
 
     const authorName = profileRecord?.display_name?.trim() || auth.user.email?.split('@')[0] || 'KJIN Newsroom';
-    const sourceChannelName = videoRecord.youtube_sources?.channel_name || 'YouTube Broadcast';
+    const sourceChannelName = videoRecord.youtube_sources?.channel_name || 'Broadcast Surveillance';
+    const finalDistrict = district || videoRecord.ai_analysis?.district || null;
 
     // Step 1: Create article in articles table as 'draft' (enforced by DB integrity trigger)
     const { data: newArticle, error: articleErr } = await service
@@ -51,8 +68,9 @@ export async function POST(request: Request) {
         title: finalTitle.slice(0, 250),
         slug: finalSlug,
         excerpt: finalSummary,
-        content: finalContent,
+        content: linkFreeContent,
         category: finalCategory,
+        district: finalDistrict,
         status: 'draft',
         author_id: profile.id,
         author_display_name: authorName,
@@ -86,7 +104,7 @@ export async function POST(request: Request) {
       version_number: 1,
       title: finalTitle.slice(0, 250),
       excerpt: finalSummary,
-      content: finalContent,
+      content: linkFreeContent,
       edited_by: profile.id,
     });
 

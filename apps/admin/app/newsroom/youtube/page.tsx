@@ -41,6 +41,12 @@ interface YouTubeVideo {
   proposed_category: string | null;
   article_id: string | null;
   ai_analysis: {
+    headline?: string;
+    summary?: string;
+    category?: string;
+    scope?: 'International' | 'National' | 'State (Jammu & Kashmir)' | 'Chenab Valley';
+    district?: string | null;
+    division?: string;
     keyFacts?: string[];
     articleBodyMarkdown?: string;
     uncertaintyNotes?: string;
@@ -62,6 +68,7 @@ export default function YouTubeMonitorPage() {
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterScope, setFilterScope] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8;
   const [feedback, setFeedback] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
@@ -81,6 +88,8 @@ export default function YouTubeMonitorPage() {
   const [editHeadline, setEditHeadline] = useState('');
   const [editSummary, setEditSummary] = useState('');
   const [editCategory, setEditCategory] = useState('');
+  const [editScope, setEditScope] = useState<'International' | 'National' | 'State (Jammu & Kashmir)' | 'Chenab Valley'>('National');
+  const [editDistrict, setEditDistrict] = useState('');
   const [editBody, setEditBody] = useState('');
   const [isApproving, setIsApproving] = useState(false);
 
@@ -259,8 +268,28 @@ export default function YouTubeMonitorPage() {
     setReviewVideo(video);
     setEditHeadline(video.proposed_headline || video.title);
     setEditSummary(video.proposed_summary || video.description?.slice(0, 300) || '');
-    setEditCategory(video.proposed_category || video.youtube_sources?.category || 'General News');
-    setEditBody(video.ai_analysis?.articleBodyMarkdown || video.description || '');
+    setEditCategory(video.proposed_category || video.youtube_sources?.category || 'General');
+
+    // Auto-detect scope
+    const scope = (video.ai_analysis?.scope as any) || (
+      video.youtube_sources?.region?.toLowerCase().includes('chenab')
+        ? 'Chenab Valley'
+        : video.youtube_sources?.country?.toLowerCase() !== 'india'
+        ? 'International'
+        : video.youtube_sources?.region?.toLowerCase().includes('kashmir') || video.youtube_sources?.region?.toLowerCase().includes('jammu')
+        ? 'State (Jammu & Kashmir)'
+        : 'National'
+    );
+    setEditScope(scope);
+    setEditDistrict(video.ai_analysis?.district || '');
+
+    // Ensure 100% link-free script
+    const rawBody = video.ai_analysis?.articleBodyMarkdown || video.description || '';
+    const cleanBody = rawBody
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/https?:\/\/[^\s]+/g, '')
+      .trim();
+    setEditBody(cleanBody);
   }
 
   async function handleApproveDraft(targetStatus: 'review' | 'draft') {
@@ -282,6 +311,8 @@ export default function YouTubeMonitorPage() {
           headline: editHeadline,
           summary: editSummary,
           category: editCategory,
+          scope: editScope,
+          district: editDistrict || null,
           body_markdown: editBody,
           target_status: targetStatus,
         }),
@@ -306,8 +337,20 @@ export default function YouTubeMonitorPage() {
   }
 
   const filteredVideos = videos.filter((v) => {
-    if (filterStatus === 'all') return true;
-    return v.processing_status === filterStatus;
+    if (filterStatus !== 'all' && v.processing_status !== filterStatus) return false;
+    if (filterScope !== 'all') {
+      const scope = v.ai_analysis?.scope || (
+        v.youtube_sources?.region?.toLowerCase().includes('chenab')
+          ? 'Chenab Valley'
+          : v.youtube_sources?.country?.toLowerCase() !== 'india'
+          ? 'International'
+          : v.youtube_sources?.region?.toLowerCase().includes('kashmir') || v.youtube_sources?.region?.toLowerCase().includes('jammu')
+          ? 'State (Jammu & Kashmir)'
+          : 'National'
+      );
+      if (scope !== filterScope) return false;
+    }
+    return true;
   });
 
   const totalPages = Math.max(1, Math.ceil(filteredVideos.length / itemsPerPage));
@@ -466,26 +509,47 @@ export default function YouTubeMonitorPage() {
       {/* Tab 1: Incoming Broadcasts & Gemini Drafts */}
       {activeTab === 'drafts' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Filter status:</span>
-              <select
-                value={filterStatus}
-                onChange={(e) => {
-                  setFilterStatus(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1 text-xs text-slate-800 dark:text-slate-200"
-              >
-                <option value="all">All ({videos.length})</option>
-                <option value="draft_proposed">Proposed Drafts ({pendingDraftsCount})</option>
-                <option value="approved">Approved</option>
-                <option value="analyzing">Analyzing</option>
-                <option value="manual_review_needed">Needs Review</option>
-              </select>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">Status:</span>
+                <select
+                  value={filterStatus}
+                  onChange={(e) => {
+                    setFilterStatus(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1 text-xs text-slate-800 dark:text-slate-200"
+                >
+                  <option value="all">All Statuses ({videos.length})</option>
+                  <option value="draft_proposed">Proposed Drafts ({pendingDraftsCount})</option>
+                  <option value="approved">Approved</option>
+                  <option value="analyzing">Analyzing</option>
+                  <option value="manual_review_needed">Needs Review</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">News Scope:</span>
+                <select
+                  value={filterScope}
+                  onChange={(e) => {
+                    setFilterScope(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1 text-xs text-slate-800 dark:text-slate-200"
+                >
+                  <option value="all">All Scopes</option>
+                  <option value="International">🌍 International</option>
+                  <option value="National">🇮🇳 National</option>
+                  <option value="State (Jammu & Kashmir)">🏔️ J&K State</option>
+                  <option value="Chenab Valley">🏞️ Chenab Valley</option>
+                </select>
+              </div>
             </div>
+
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Click &quot;Review &amp; Approve&quot; to inspect Gemini facts and send into editorial pipeline.
+              Click &quot;Review &amp; Approve&quot; to review the original headline &amp; script before editorial publication.
             </p>
           </div>
 
@@ -512,6 +576,24 @@ export default function YouTubeMonitorPage() {
                     ? 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30'
                     : 'bg-cyan-100 text-cyan-900 border-cyan-300 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/30';
 
+                  // Determine Scope Badge
+                  const scope = video.ai_analysis?.scope || (
+                    video.youtube_sources?.region?.toLowerCase().includes('chenab')
+                      ? 'Chenab Valley'
+                      : video.youtube_sources?.country?.toLowerCase() !== 'india'
+                      ? 'International'
+                      : video.youtube_sources?.region?.toLowerCase().includes('kashmir') || video.youtube_sources?.region?.toLowerCase().includes('jammu')
+                      ? 'State (Jammu & Kashmir)'
+                      : 'National'
+                  );
+                  const badgeMap: Record<string, { label: string; icon: string; cls: string }> = {
+                    'International': { label: 'International', icon: '🌍', cls: 'bg-purple-100 text-purple-900 border-purple-300 dark:bg-purple-500/20 dark:text-purple-300 dark:border-purple-500/30' },
+                    'National': { label: 'National', icon: '🇮🇳', cls: 'bg-blue-100 text-blue-900 border-blue-300 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/30' },
+                    'State (Jammu & Kashmir)': { label: 'J&K State', icon: '🏔️', cls: 'bg-emerald-100 text-emerald-900 border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30' },
+                    'Chenab Valley': { label: 'Chenab Valley', icon: '🏞️', cls: 'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30' },
+                  };
+                  const scopeMeta = badgeMap[scope] || badgeMap['National'];
+
                 return (
                   <div
                     key={video.id}
@@ -524,6 +606,10 @@ export default function YouTubeMonitorPage() {
                           <span className="rounded-md bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
                             {video.youtube_sources?.channel_name || 'YouTube'}
                           </span>
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold border flex items-center gap-1 ${scopeMeta.cls}`}>
+                            <span>{scopeMeta.icon}</span>
+                            <span>{scopeMeta.label}</span>
+                          </span>
                           <span className="text-xs text-slate-400">
                             {new Date(video.published_at).toLocaleDateString()}
                           </span>
@@ -534,7 +620,7 @@ export default function YouTubeMonitorPage() {
                         </span>
                       </div>
 
-                      {/* Video Thumbnail + Title */}
+                      {/* Video Thumbnail + Original Broadcast Reference */}
                       <div className="flex gap-3.5 mb-3">
                         {video.thumbnail_url && (
                           <div className="relative h-20 w-32 shrink-0 overflow-hidden rounded-lg bg-slate-950 border border-slate-800">
@@ -551,32 +637,32 @@ export default function YouTubeMonitorPage() {
                         )}
 
                         <div className="min-w-0 flex-1">
+                          <div className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                            Original Broadcast Title (Raw Source):
+                          </div>
                           <a
                             href={video.video_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="font-bold text-sm text-slate-900 dark:text-white hover:text-cyan-500 transition line-clamp-2"
+                            className="font-medium text-xs text-slate-700 dark:text-slate-300 hover:text-cyan-500 transition line-clamp-2 mt-0.5"
                             title="Open original video on YouTube"
                           >
                             {video.title} ↗
                           </a>
-                          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">
-                            {video.description || 'No description available.'}
-                          </p>
                         </div>
                       </div>
 
-                      {/* Gemini Proposed Synthesis */}
+                      {/* KJIN Synthesized Original Story (From Scratch) */}
                       {video.proposed_headline && (
                         <div className="mt-2 rounded-xl bg-cyan-950/20 border border-cyan-500/20 p-3 text-xs space-y-1.5">
                           <div className="flex items-center gap-1.5 font-bold text-cyan-400">
-                            <span>✨ Gemini Proposed Headline:</span>
+                            <span>✨ KJIN Original Headline (Formulated from scratch):</span>
                           </div>
-                          <p className="font-semibold text-slate-200">
+                          <p className="font-bold text-sm text-slate-900 dark:text-white">
                             {video.proposed_headline}
                           </p>
                           {video.proposed_summary && (
-                            <p className="text-slate-400 text-[11px] line-clamp-2">
+                            <p className="text-slate-600 dark:text-slate-300 text-xs line-clamp-2">
                               {video.proposed_summary}
                             </p>
                           )}
@@ -905,10 +991,10 @@ export default function YouTubeMonitorPage() {
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <div>
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                  Review &amp; Approve Gemini Story Draft
+                  Review &amp; Approve Broadcast Story Draft
                 </h3>
                 <p className="text-xs text-slate-500">
-                  Source: {reviewVideo.youtube_sources?.channel_name} · Original: {reviewVideo.title}
+                  Channel: {reviewVideo.youtube_sources?.channel_name} · Independent Newsroom Synthesis
                 </p>
               </div>
               <button
@@ -920,11 +1006,82 @@ export default function YouTubeMonitorPage() {
               </button>
             </div>
 
+            {/* Raw Reference Card (For editorial inspection only) */}
+            <div className="rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 p-3 text-xs space-y-1">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Raw Broadcast Title (Reference only - do not publish verbatim):
+              </span>
+              <p className="text-slate-700 dark:text-slate-300 font-medium">
+                {reviewVideo.title}
+              </p>
+            </div>
+
             <div className="space-y-3.5 text-sm">
+              {/* Scope & Category Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                    News Scope
+                  </label>
+                  <select
+                    value={editScope}
+                    onChange={(e: any) => setEditScope(e.target.value)}
+                    className="mt-1 w-full rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-950 p-2 text-slate-900 dark:text-white text-xs outline-none focus:border-cyan-500"
+                  >
+                    <option value="International">🌍 International</option>
+                    <option value="National">🇮🇳 National</option>
+                    <option value="State (Jammu & Kashmir)">🏔️ J&K State</option>
+                    <option value="Chenab Valley">🏞️ Chenab Valley</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Category
+                  </label>
+                  <select
+                    value={editCategory}
+                    onChange={(e) => setEditCategory(e.target.value)}
+                    className="mt-1 w-full rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-950 p-2 text-slate-900 dark:text-white text-xs outline-none focus:border-cyan-500"
+                  >
+                    <option value="Politics">Politics</option>
+                    <option value="Economy">Economy</option>
+                    <option value="Local">Local</option>
+                    <option value="Investigation">Investigation</option>
+                    <option value="General">General</option>
+                    <option value="Security">Security</option>
+                    <option value="Environment">Environment</option>
+                    <option value="Sports">Sports</option>
+                    <option value="Education">Education</option>
+                    <option value="Culture">Culture</option>
+                    <option value="Opinion">Opinion</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                    District (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Doda, Kishtwar, Srinagar..."
+                    value={editDistrict}
+                    onChange={(e) => setEditDistrict(e.target.value)}
+                    className="mt-1 w-full rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-950 p-2 text-slate-900 dark:text-white text-xs outline-none focus:border-cyan-500"
+                  />
+                </div>
+              </div>
+
+              {/* Original Headline */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                  Proposed Article Headline
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Original KJIN Headline
+                  </label>
+                  <span className="text-[11px] text-cyan-500 font-semibold">
+                    Written from zero in English
+                  </span>
+                </div>
                 <input
                   type="text"
                   value={editHeadline}
@@ -933,6 +1090,7 @@ export default function YouTubeMonitorPage() {
                 />
               </div>
 
+              {/* Excerpt */}
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
                   Article Summary / Excerpt
@@ -945,24 +1103,18 @@ export default function YouTubeMonitorPage() {
                 />
               </div>
 
+              {/* Original Script */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                  Category
-                </label>
-                <input
-                  type="text"
-                  value={editCategory}
-                  onChange={(e) => setEditCategory(e.target.value)}
-                  className="mt-1 w-full rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-950 p-2 text-slate-900 dark:text-white text-xs outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                  Article Body (Markdown)
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                    Original News Script (Markdown · Zero external links)
+                  </label>
+                  <span className="text-[10px] text-slate-400">
+                    No copied promo links
+                  </span>
+                </div>
                 <textarea
-                  rows={8}
+                  rows={10}
                   value={editBody}
                   onChange={(e) => setEditBody(e.target.value)}
                   className="mt-1 w-full font-mono text-xs rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-950 p-3 text-slate-900 dark:text-white outline-none focus:border-cyan-500"

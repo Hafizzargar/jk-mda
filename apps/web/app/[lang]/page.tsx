@@ -137,7 +137,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
   const totalCount = latestResult.count ?? 0;
   const paginationMeta = calculatePaginationMeta(totalCount, page, limit);
 
-  let trendingArticlesRaw = trendingResult.data || [];
+  const trendingArticlesRaw = trendingResult.data || [];
 
   // Defensive isolation: logically, international, national, and editorial problems belong in their dedicated desks
   const isExcludedFromHome = (cat?: string | null) => {

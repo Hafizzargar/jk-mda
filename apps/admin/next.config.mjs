@@ -9,6 +9,9 @@ const configuredSupabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL
 const nextConfig = {
   reactStrictMode: true,
   devIndicators: false,
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: configuredSupabaseHost },

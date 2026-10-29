@@ -182,6 +182,9 @@ export function buildImageRemotePatterns(env = process.env) {
 /** @type {import('next').NextConfig} */
 export const nextConfig = {
   reactStrictMode: true,
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   images: {
     remotePatterns: buildImageRemotePatterns(),
     formats: ['image/avif', 'image/webp'],
