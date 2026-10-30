@@ -1,6 +1,7 @@
 import { authorizeEmployeeRequest, isEmployeeAuthorization } from '@/lib/employee-server';
 import { validateArticleInput } from '@/lib/article-validation';
 import { readBoundedJson, MAX_ARTICLE_PAYLOAD_BYTES } from '@/lib/request-utils';
+import { getCanonicalCategory } from '@/lib/taxonomy-options';
 
 export async function POST(request: Request) {
   try {
@@ -84,6 +85,25 @@ export async function POST(request: Request) {
         status: 500,
         headers: { 'Content-Type': 'application/json' },
       });
+    }
+
+    // Synchronize category_id to public.categories table
+    if (data?.id) {
+      const canonical = getCanonicalCategory(category);
+      const { data: catRecord } = await authorization.service
+        .from('categories')
+        .select('id')
+        .eq('slug', canonical.slug)
+        .maybeSingle();
+
+      if (catRecord?.id) {
+        await authorization.service
+          .from('articles')
+          .update({ category_id: catRecord.id, category: canonical.name })
+          .eq('id', data.id);
+        data.category_id = catRecord.id;
+        data.category = canonical.name;
+      }
     }
 
     return new Response(JSON.stringify(data), {

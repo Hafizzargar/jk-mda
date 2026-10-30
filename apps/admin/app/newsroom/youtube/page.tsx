@@ -10,6 +10,12 @@ import {
   getRecommendedEditorialImage,
   EditorialImageOption,
 } from '@/lib/newsroom/ai-synthesizer';
+import {
+  getCanonicalCategory,
+  DISTRICT_GROUPS,
+  NEWS_SCOPES,
+  NEWS_TOPICS,
+} from '@/lib/taxonomy-options';
 
 interface YouTubeSource {
   id: string;
@@ -48,7 +54,7 @@ interface YouTubeVideo {
     headline?: string;
     summary?: string;
     category?: string;
-    scope?: 'International' | 'National' | 'State (Jammu & Kashmir)' | 'Chenab Valley';
+    scope?: 'International' | 'National' | 'State (Jammu & Kashmir)' | 'Chenab Valley' | 'Local News (J&K)' | string;
     district?: string | null;
     division?: string;
     keyFacts?: string[];
@@ -85,15 +91,15 @@ export default function YouTubeMonitorPage() {
   const [addCountry, setAddCountry] = useState('India');
   const [addRegion, setAddRegion] = useState('Jammu & Kashmir');
   const [addLanguage, setAddLanguage] = useState('Hindi / Urdu / English');
-  const [addCategory, setAddCategory] = useState('General News');
+  const [addCategory, setAddCategory] = useState('Local News');
   const [isAddingChannel, setIsAddingChannel] = useState(false);
 
   // Review & Approve Draft Modal State
   const [reviewVideo, setReviewVideo] = useState<YouTubeVideo | null>(null);
   const [editHeadline, setEditHeadline] = useState('');
   const [editSummary, setEditSummary] = useState('');
-  const [editCategory, setEditCategory] = useState('');
-  const [editScope, setEditScope] = useState<'International' | 'National' | 'State (Jammu & Kashmir)' | 'Chenab Valley'>('National');
+  const [editCategory, setEditCategory] = useState('Politics');
+  const [editScope, setEditScope] = useState<'Local News (J&K)' | 'National' | 'International'>('National');
   const [editDistrict, setEditDistrict] = useState('');
   const [editBody, setEditBody] = useState('');
   const [editImage, setEditImage] = useState('');
@@ -292,11 +298,30 @@ export default function YouTubeMonitorPage() {
 
       const data = await res.json();
       if (res.ok && data.draft) {
+        let synthScope: 'Local News (J&K)' | 'National' | 'International' = 'National';
+        const rawScope = (data.draft.scope || '').toLowerCase();
+        if (rawScope.includes('international') || rawScope.includes('global') || rawScope.includes('world')) {
+          synthScope = 'International';
+        } else if (
+          rawScope.includes('state') ||
+          rawScope.includes('kashmir') ||
+          rawScope.includes('jammu') ||
+          rawScope.includes('chenab') ||
+          rawScope.includes('local')
+        ) {
+          synthScope = 'Local News (J&K)';
+        } else {
+          synthScope = 'National';
+        }
+
+        const canonical = getCanonicalCategory(data.draft.category, synthScope);
+        const topic = (canonical.name === 'National' || canonical.name === 'International') ? 'Politics' : canonical.name;
+
         setEditHeadline(data.draft.headline);
         setEditSummary(data.draft.summary);
-        setEditCategory(data.draft.category);
-        setEditScope(data.draft.scope);
-        setEditDistrict(data.draft.district || '');
+        setEditCategory(topic);
+        setEditScope(synthScope);
+        setEditDistrict(synthScope === 'Local News (J&K)' ? (data.draft.district || '') : '');
         setEditBody(data.draft.body_markdown);
         setEditImage(data.draft.featured_image_url);
         setImageAlternatives(data.draft.alternative_images || []);
@@ -308,13 +333,13 @@ export default function YouTubeMonitorPage() {
                   ...v,
                   proposed_headline: data.draft.headline,
                   proposed_summary: data.draft.summary,
-                  proposed_category: data.draft.category,
+                  proposed_category: canonical.name,
                   ai_analysis: {
                     ...v.ai_analysis,
                     headline: data.draft.headline,
                     summary: data.draft.summary,
-                    category: data.draft.category,
-                    scope: data.draft.scope,
+                    category: canonical.name,
+                    scope: synthScope,
                     articleBodyMarkdown: data.draft.body_markdown,
                     featured_image_url: data.draft.featured_image_url,
                   },
@@ -335,23 +360,41 @@ export default function YouTubeMonitorPage() {
   function openReviewModal(video: YouTubeVideo) {
     setReviewVideo(video);
 
-    // Auto-detect scope
-    const scope = (video.ai_analysis?.scope as any) || (
-      video.youtube_sources?.region?.toLowerCase().includes('chenab')
-        ? 'Chenab Valley'
-        : video.youtube_sources?.country?.toLowerCase() !== 'india'
-        ? 'International'
-        : video.youtube_sources?.region?.toLowerCase().includes('kashmir') || video.youtube_sources?.region?.toLowerCase().includes('jammu')
-        ? 'State (Jammu & Kashmir)'
-        : 'National'
-    );
+    // Auto-detect scope (Local News J&K, National, International)
+    const rawScope = (video.ai_analysis?.scope as string) || (video.youtube_sources?.region as string) || '';
+    let scope: 'Local News (J&K)' | 'National' | 'International' = 'National';
+    if (
+      rawScope.toLowerCase().includes('international') ||
+      rawScope.toLowerCase().includes('global') ||
+      video.youtube_sources?.country?.toLowerCase() !== 'india'
+    ) {
+      scope = 'International';
+    } else if (
+      rawScope.toLowerCase().includes('kashmir') ||
+      rawScope.toLowerCase().includes('jammu') ||
+      rawScope.toLowerCase().includes('chenab') ||
+      rawScope.toLowerCase().includes('state') ||
+      rawScope.toLowerCase().includes('local')
+    ) {
+      scope = 'Local News (J&K)';
+    } else {
+      scope = 'National';
+    }
     setEditScope(scope);
-    const cat = video.proposed_category || video.youtube_sources?.category || 'General';
-    setEditCategory(cat);
-    setEditDistrict(video.ai_analysis?.district || '');
+
+    // Normalize topic/category to official database taxonomy
+    const canonical = getCanonicalCategory(
+      video.proposed_category || video.youtube_sources?.category,
+      scope
+    );
+    const topic = (canonical.name === 'National' || canonical.name === 'International') ? 'Politics' : canonical.name;
+    setEditCategory(topic);
+
+    // District: ONLY preserved if Local J&K, otherwise empty
+    setEditDistrict(scope === 'Local News (J&K)' ? (video.ai_analysis?.district?.toLowerCase() || '') : '');
 
     // Curate clean editorial news image instead of raw YouTube thumbnail
-    const recommended = getRecommendedEditorialImage(scope, cat);
+    const recommended = getRecommendedEditorialImage(scope, canonical.name);
     setImageAlternatives(recommended.alternatives);
     const initialImage = video.ai_analysis?.featured_image_url || recommended.featuredImage;
     setEditImage(initialImage);
@@ -387,6 +430,11 @@ export default function YouTubeMonitorPage() {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) return;
 
+      const isLocal = editScope === 'Local News (J&K)';
+      const finalCategory = isLocal
+        ? editCategory
+        : (editScope === 'International' ? 'International' : 'National');
+
       const res = await fetch('/api/newsroom/youtube/approve', {
         method: 'POST',
         headers: {
@@ -397,9 +445,10 @@ export default function YouTubeMonitorPage() {
           video_id: reviewVideo.id,
           headline: editHeadline,
           summary: editSummary,
-          category: editCategory,
-          scope: editScope,
-          district: editDistrict || null,
+          category: finalCategory,
+          topic: editCategory,
+          scope: isLocal ? 'State (Jammu & Kashmir)' : editScope,
+          district: isLocal ? (editDistrict || null) : null,
           body_markdown: editBody,
           featured_image_url: editImage,
           target_status: targetStatus,
@@ -1037,14 +1086,26 @@ export default function YouTubeMonitorPage() {
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    News Category
+                    Default News Category
                   </label>
-                  <input
-                    type="text"
+                  <select
                     value={addCategory}
                     onChange={(e) => setAddCategory(e.target.value)}
                     className="mt-1 w-full rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-white outline-none"
-                  />
+                  >
+                    <option value="Local News">Local News</option>
+                    <option value="Politics">Politics</option>
+                    <option value="National">National</option>
+                    <option value="International">International</option>
+                    <option value="Economy">Economy</option>
+                    <option value="Investigation">Investigation</option>
+                    <option value="Problems">Problems</option>
+                    <option value="Culture">Culture</option>
+                    <option value="Sports">Sports</option>
+                    <option value="Education">Education</option>
+                    <option value="Opinion">Opinion</option>
+                    <option value="General">General</option>
+                  </select>
                 </div>
               </div>
 
@@ -1144,68 +1205,85 @@ export default function YouTubeMonitorPage() {
             </div>
 
             <div className="space-y-3.5 text-sm">
-              {/* Scope & Category Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {/* 2-Way Distribution: Scope (Tier 1) + Topic (Tier 2) + Optional J&K District (Tier 3) */}
+              <div className={`grid grid-cols-1 ${editScope === 'Local News (J&K)' ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-3`}>
+                {/* 1st Dropdown: Coverage Scope */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                    News Scope
+                    Coverage Scope
                   </label>
                   <select
                     value={editScope}
                     onChange={(e: any) => {
-                      const newScope = e.target.value;
+                      const newScope = e.target.value as 'Local News (J&K)' | 'National' | 'International';
                       setEditScope(newScope);
+                      if (newScope !== 'Local News (J&K)') {
+                        setEditDistrict('');
+                      }
                       const rec = getRecommendedEditorialImage(newScope, editCategory);
                       setImageAlternatives(rec.alternatives);
                       if (!editImage || editImage === reviewVideo.thumbnail_url) {
                         setEditImage(rec.featuredImage);
                       }
                     }}
-                    className="mt-1 w-full rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-950 p-2 text-slate-900 dark:text-white text-xs outline-none focus:border-cyan-500"
+                    className="mt-1 w-full rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-950 p-2 text-slate-900 dark:text-white text-xs outline-none focus:border-cyan-500 font-medium"
                   >
-                    <option value="International">🌍 International</option>
-                    <option value="National">🇮🇳 National</option>
-                    <option value="State (Jammu & Kashmir)">🏔️ J&K State</option>
-                    <option value="Chenab Valley">🏞️ Chenab Valley</option>
+                    <option value="Local News (J&K)">🏔️ Local News (Jammu &amp; Kashmir)</option>
+                    <option value="National">🇮🇳 National News (India)</option>
+                    <option value="International">🌍 International News (World)</option>
                   </select>
                 </div>
 
+                {/* 2nd Dropdown: News Topic / Category */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                    Category
+                    News Topic / Category
                   </label>
                   <select
                     value={editCategory}
-                    onChange={(e) => setEditCategory(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-950 p-2 text-slate-900 dark:text-white text-xs outline-none focus:border-cyan-500"
+                    onChange={(e) => {
+                      const nextTopic = e.target.value;
+                      setEditCategory(nextTopic);
+                      const rec = getRecommendedEditorialImage(editScope, nextTopic);
+                      setImageAlternatives(rec.alternatives);
+                      if (!editImage || editImage === reviewVideo.thumbnail_url) {
+                        setEditImage(rec.featuredImage);
+                      }
+                    }}
+                    className="mt-1 w-full rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-950 p-2 text-slate-900 dark:text-white text-xs outline-none focus:border-cyan-500 font-medium"
                   >
-                    <option value="Politics">Politics</option>
-                    <option value="International">International</option>
-                    <option value="Economy">Economy</option>
-                    <option value="Local">Local</option>
-                    <option value="Investigation">Investigation</option>
-                    <option value="General">General</option>
-                    <option value="Security">Security</option>
-                    <option value="Environment">Environment</option>
-                    <option value="Sports">Sports</option>
-                    <option value="Education">Education</option>
-                    <option value="Culture">Culture</option>
-                    <option value="Opinion">Opinion</option>
+                    {NEWS_TOPICS.map((topic) => (
+                      <option key={topic.value} value={topic.value}>
+                        {topic.label}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                    District (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Doda, Kishtwar, Srinagar..."
-                    value={editDistrict}
-                    onChange={(e) => setEditDistrict(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-950 p-2 text-slate-900 dark:text-white text-xs outline-none focus:border-cyan-500"
-                  />
-                </div>
+                {/* 3rd Dropdown: J&K District (ONLY visible if Local J&K) */}
+                {editScope === 'Local News (J&K)' && (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                      J&amp;K District
+                    </label>
+                    <select
+                      value={editDistrict}
+                      onChange={(e) => setEditDistrict(e.target.value)}
+                      className="mt-1 w-full rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-950 p-2 text-slate-900 dark:text-white text-xs outline-none focus:border-cyan-500 font-medium"
+                    >
+                      <option value="">All J&amp;K / State-wide (No specific district)</option>
+                      {DISTRICT_GROUPS.map((group) => (
+                        <optgroup key={group.region} label={group.region}>
+                          {group.districts.map((d) => (
+                            <option key={d.slug} value={d.slug}>
+                              {d.name}
+                            </option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
               {/* Original Headline */}

@@ -9,6 +9,7 @@ import {
   IMAGE_PRESETS,
   fetchDynamicCategories,
   formatCategoryOptions,
+  getCanonicalCategory,
   type DynamicCategoryItem,
 } from '@/lib/taxonomy-options';
 import { ImageUploader } from '@/components/ImageUploader';
@@ -132,14 +133,20 @@ export default function EditArticlePage({ params }: { params: Promise<{ id: stri
       // Load dynamic categories from database, ensuring article's current category is retained
       try {
         const dynamicCats = await fetchDynamicCategories(supabase, true);
-        const matched = dynamicCats.find((c) => c.value.toLowerCase() === (a.category || '').toLowerCase());
+        const canonical = getCanonicalCategory(a.category);
+        const matched = dynamicCats.find(
+          (c) =>
+            c.value.toLowerCase() === (a.category || '').toLowerCase() ||
+            c.value.toLowerCase() === canonical.name.toLowerCase() ||
+            c.slug.toLowerCase() === canonical.slug.toLowerCase()
+        );
         if (matched) {
           setSelectedCategory(matched.value);
         } else if (a.category) {
           dynamicCats.unshift({
             value: a.category,
             label: `${a.category} (Current)`,
-            slug: a.category.toLowerCase(),
+            slug: a.category.toLowerCase().replace(/\s+/g, '-'),
             description: 'Assigned article category',
             is_active: true,
           });

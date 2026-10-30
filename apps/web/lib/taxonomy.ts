@@ -125,6 +125,7 @@ export const NEWS_CATEGORIES: Record<string, { name: string; description: string
   national: { name: 'National', description: 'National affairs, union governance, Supreme Court rulings, and pan-India developments.' },
   india: { name: 'National', description: 'National affairs, union governance, Supreme Court rulings, and pan-India developments.' },
   health: { name: 'Health & Science', description: 'Public healthcare, medical research, clinical care, and scientific innovation.' },
+  science: { name: 'Science & Technology', description: 'Science, digital technology, innovation, and scientific developments.' },
   environment: { name: 'Environment', description: 'Ecology, climate, glaciers, rivers, and environmental conservation across J&K.' },
 };
 

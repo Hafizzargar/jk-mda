@@ -2,6 +2,7 @@ import { generateText } from 'ai';
 import { google } from '@ai-sdk/google';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { synthesizeEnglishNewsDraft } from './ai-synthesizer';
+import { getCanonicalCategory } from '@/lib/taxonomy-options';
 
 export interface YouTubeChannelMeta {
   channelId: string;
@@ -342,7 +343,7 @@ Output your response strictly as valid JSON with keys:
 {
   "headline": string,
   "summary": string,
-  "category": "Politics" | "Economy" | "Local" | "Investigation" | "General" | "Security" | "Environment" | "Sports" | "Education",
+  "category": "Politics" | "National" | "International" | "Local News" | "Economy" | "Investigation" | "Problems" | "Culture" | "Sports" | "Education" | "Opinion" | "General",
   "scope": "International" | "National" | "State (Jammu & Kashmir)" | "Chenab Valley",
   "division": string,
   "district": string | null,
@@ -369,11 +370,14 @@ Output your response strictly as valid JSON with keys:
         .replace(/https?:\/\/[^\s]+/g, '')
         .trim();
 
+      const effectiveScope = parsed.scope || detectedScope;
+      const canonical = getCanonicalCategory(parsed.category || source.category, effectiveScope);
+
       return {
         headline: (parsed.headline || video.title).trim(),
         summary: (parsed.summary || cleanDescription.slice(0, 200) || video.title).trim(),
-        category: parsed.category || source.category || 'General News',
-        scope: parsed.scope || detectedScope,
+        category: canonical.name,
+        scope: effectiveScope,
         division: parsed.division || source.region || 'Jammu & Kashmir',
         district: parsed.district || null,
         keyFacts: Array.isArray(parsed.keyFacts) ? parsed.keyFacts : [parsed.headline || video.title],

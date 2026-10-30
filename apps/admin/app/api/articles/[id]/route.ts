@@ -1,6 +1,7 @@
 import { authenticateEmployeeRequest, authorizeEmployeeRequest, isEmployeeAuthorization, requireRecentAuthentication } from '@/lib/employee-server';
 import { validateArticleInput, UUID_PATTERN } from '@/lib/article-validation';
 import { readBoundedJson, MAX_ARTICLE_PAYLOAD_BYTES } from '@/lib/request-utils';
+import { getCanonicalCategory } from '@/lib/taxonomy-options';
 
 export async function PATCH(
   request: Request,
@@ -197,6 +198,26 @@ export async function PATCH(
         status: 500,
         headers: { 'Content-Type': 'application/json' },
       });
+    }
+
+    if (category) {
+      const canonical = getCanonicalCategory(category);
+      const { data: catRecord } = await authorization.service
+        .from('categories')
+        .select('id')
+        .eq('slug', canonical.slug)
+        .maybeSingle();
+
+      if (catRecord?.id) {
+        await authorization.service
+          .from('articles')
+          .update({ category_id: catRecord.id, category: canonical.name })
+          .eq('id', id);
+        if (data) {
+          data.category_id = catRecord.id;
+          data.category = canonical.name;
+        }
+      }
     }
 
     return new Response(JSON.stringify(data), {

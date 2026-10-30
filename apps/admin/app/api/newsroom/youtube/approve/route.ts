@@ -1,5 +1,6 @@
 import { authorizeEmployeeRequest, isEmployeeAuthorization } from '@/lib/employee-server';
 import { generateSlug } from '@/lib/newsroom/gemini-drafter';
+import { getCanonicalCategory } from '@/lib/taxonomy-options';
 
 export async function POST(request: Request) {
   try {
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
     // Fetch video record
     const { data: videoRecord, error: videoErr } = await service
       .from('youtube_videos')
-      .select('*, youtube_sources(channel_name, country, region)')
+      .select('*, youtube_sources(channel_name, country, region, category)')
       .eq('id', video_id)
       .single();
 
@@ -45,7 +46,28 @@ export async function POST(request: Request) {
       .replace(/#[a-zA-Z0-9_\u0900-\u097F]+/g, '')
       .trim()
       .slice(0, 400);
-    const finalCategory = (category || videoRecord.proposed_category || 'General').trim();
+
+    // Determine 2-way distribution: Scope (Tier 1) + Topic (Tier 2) + District
+    const effectiveScope = scope || videoRecord.ai_analysis?.scope || 'National';
+    const isLocalScope = effectiveScope.includes('Local') || effectiveScope.includes('State') || effectiveScope.includes('Jammu') || effectiveScope.includes('Chenab');
+
+    let canonicalCat: { name: string; slug: string };
+    if (!isLocalScope && (effectiveScope === 'International' || category === 'International')) {
+      canonicalCat = { name: 'International', slug: 'international' };
+    } else if (!isLocalScope && (effectiveScope === 'National' || category === 'National')) {
+      canonicalCat = { name: 'National', slug: 'national' };
+    } else {
+      canonicalCat = getCanonicalCategory(category || videoRecord.proposed_category, 'Local News (J&K)');
+    }
+    const finalCategory = canonicalCat.name;
+
+    // Resolve category_id from public.categories
+    const { data: catRecord } = await service
+      .from('categories')
+      .select('id')
+      .eq('slug', canonicalCat.slug)
+      .maybeSingle();
+
     const rawContent = (body_markdown || videoRecord.ai_analysis?.articleBodyMarkdown || videoRecord.description || '').trim();
 
     // Ensure 100% link-free and hashtag-free article script
@@ -73,7 +95,7 @@ export async function POST(request: Request) {
 
     const authorName = profileRecord?.display_name?.trim() || auth.user.email?.split('@')[0] || 'KJIN Newsroom';
     const sourceChannelName = videoRecord.youtube_sources?.channel_name || 'Broadcast Surveillance';
-    const finalDistrict = district || videoRecord.ai_analysis?.district || null;
+    const finalDistrict = isLocalScope ? (district || videoRecord.ai_analysis?.district || null) : null;
 
     // Step 1: Create article in articles table as 'draft' (enforced by DB integrity trigger)
     const { data: newArticle, error: articleErr } = await service
@@ -84,6 +106,7 @@ export async function POST(request: Request) {
         excerpt: finalSummary,
         content: linkFreeContent,
         category: finalCategory,
+        category_id: catRecord?.id || null,
         district: finalDistrict,
         status: 'draft',
         author_id: profile.id,
