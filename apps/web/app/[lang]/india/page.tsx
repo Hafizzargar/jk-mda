@@ -11,8 +11,11 @@ import { getTelemetrySettings } from '@/lib/telemetry';
 import { getCurationSettings } from '@/lib/curation';
 import { getRegionalWeather } from '@/lib/weather';
 import { getCustomAdsSettings } from '@/lib/ads';
+import { getCachedSiteSetting } from '@/lib/site-settings-cache';
 import { ClassicEditorialTemplate } from '@/components/templates/ClassicEditorialTemplate';
 import type { ArticleItem, TemplateScope } from '@/components/templates/types';
+
+export const revalidate = 60; // Revalidate every 60 seconds
 
 interface IndiaPageProps {
   params: Promise<{ lang: string }>;
@@ -59,8 +62,19 @@ export default async function IndiaNationalPage({ params, searchParams }: IndiaP
 
   const supabase = createServerAnonClient();
 
-  // 1. Fetch Shared Settings
-  const [brandSettings, contactSettings, navbarSettings, telemetry, curation, weather, adsSettings] = await Promise.all([
+  // 1. Fetch Shared Settings, Articles, Trending, and Template concurrently in ONE parallel roundtrip
+  const [
+    brandSettings,
+    contactSettings,
+    navbarSettings,
+    telemetry,
+    curation,
+    weather,
+    adsSettings,
+    articlesResult,
+    trendingResult,
+    settingRow,
+  ] = await Promise.all([
     getBrandSettings(supabase),
     getFooterContactSettings(supabase),
     getNavbarSettings(supabase),
@@ -68,36 +82,33 @@ export default async function IndiaNationalPage({ params, searchParams }: IndiaP
     getCurationSettings(supabase),
     getRegionalWeather(),
     getCustomAdsSettings(supabase),
+    supabase
+      .from('articles')
+      .select(
+        'id, slug, title, excerpt, category, district, author_display_name, published_at, featured_image_url, view_count, article_translations(title, excerpt, language_code)',
+        { count: 'exact' }
+      )
+      .eq('status', 'published')
+      .ilike('category', 'National')
+      .order('published_at', { ascending: false, nullsFirst: false })
+      .range(from, to),
+    supabase
+      .from('articles')
+      .select('id, slug, title, category, district, published_at, view_count, article_translations(title, language_code)')
+      .eq('status', 'published')
+      .ilike('category', 'National')
+      .order('view_count', { ascending: false })
+      .limit(5),
+    getCachedSiteSetting<{ template_id?: string }>(supabase, 'active_template'),
   ]);
 
-  // 2. Query strictly Indian national news (category = 'National')
-  const { data: articlesRaw, count } = await supabase
-    .from('articles')
-    .select(
-      'id, slug, title, excerpt, category, district, author_display_name, published_at, featured_image_url, view_count, article_translations(title, excerpt, language_code)',
-      { count: 'exact' }
-    )
-    .eq('status', 'published')
-    .ilike('category', 'National')
-    .order('published_at', { ascending: false, nullsFirst: false })
-    .range(from, to);
-
-  const articles = (applyTranslations(articlesRaw || [], lang) as unknown) as ArticleItem[];
-  const totalArticles = count ?? 0;
+  const articles = (applyTranslations(articlesResult.data || [], lang) as unknown) as ArticleItem[];
+  const totalArticles = articlesResult.count ?? 0;
   const paginationMeta = calculatePaginationMeta(totalArticles, page, limit);
 
-  // 3. Trending articles within National
-  const { data: trendingRaw } = await supabase
-    .from('articles')
-    .select('id, slug, title, category, district, published_at, view_count, article_translations(title, language_code)')
-    .eq('status', 'published')
-    .ilike('category', 'National')
-    .order('view_count', { ascending: false })
-    .limit(5);
+  const trendingArticles = (applyTranslations(trendingResult.data || [], lang) as unknown) as ArticleItem[];
 
-  const trendingArticles = (applyTranslations(trendingRaw || [], lang) as unknown) as ArticleItem[];
-
-  // 4. Partition articles for 3-column broadsheet layout
+  // 2. Partition articles for 3-column broadsheet layout
   const heroArticle = articles[0] || null;
   const remainingArticles = articles.filter((a) => a.id !== heroArticle?.id);
   const subArticles = remainingArticles.slice(0, 2);
@@ -105,14 +116,7 @@ export default async function IndiaNationalPage({ params, searchParams }: IndiaP
   const dossierArticles = articles.slice(7, 10);
   const editorialArticle = articles.find((a) => a.category?.toLowerCase() === 'opinion') || null;
 
-  // 5. Active Template Theme
-  const { data: settingRow } = await supabase
-    .from('site_settings')
-    .select('value')
-    .eq('key', 'active_template')
-    .maybeSingle();
-
-  const dbTemplateId = (settingRow?.value as { template_id?: string } | null)?.template_id as TemplateId | undefined;
+  const dbTemplateId = settingRow?.template_id as TemplateId | undefined;
   const theme = getTemplateTheme(dbTemplateId);
 
   // 6. National Broadsheet Scope (tailored for Union affairs & National governance)

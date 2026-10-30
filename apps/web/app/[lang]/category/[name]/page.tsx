@@ -94,6 +94,12 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
   if (categorySlug === 'india' || categorySlug === 'national') {
     redirect(`${langPrefix}/india${pageQuery}`);
   }
+  if (categorySlug === 'problem') {
+    redirect(`${langPrefix}/category/problems${pageQuery}`);
+  }
+  if (categorySlug === 'articles') {
+    redirect(`${langPrefix}/latest${pageQuery}`);
+  }
 
   const supabase = createServerAnonClient();
 

@@ -134,7 +134,7 @@ export function buildCspHeader(options: CspOptions): string {
 
   const cspDirectives = [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${options.nonce}' 'strict-dynamic' ${isDev ? "'unsafe-eval'" : ''}`.trim(),
+    `script-src ${isDev ? "'self' 'unsafe-inline' 'unsafe-eval' https: http:" : `'self' 'nonce-${options.nonce}' 'strict-dynamic'`}`.trim(),
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     `img-src 'self' data: blob: ${trustedImageHosts.join(' ')}`,
     `connect-src 'self' ${trustedConnectHosts.join(' ')}`,

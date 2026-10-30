@@ -179,15 +179,19 @@ export function buildImageRemotePatterns(env = process.env) {
   });
 }
 
+const isProd = process.env.NODE_ENV === 'production';
+
 /** @type {import('next').NextConfig} */
 export const nextConfig = {
   reactStrictMode: true,
+  serverExternalPackages: ['@supabase/supabase-js', '@supabase/ssr'],
   eslint: {
     ignoreDuringBuilds: true,
   },
   images: {
     remotePatterns: buildImageRemotePatterns(),
     formats: ['image/avif', 'image/webp'],
+    unoptimized: !isProd,
   },
   async headers() {
     return [
@@ -220,8 +224,6 @@ export const nextConfig = {
     return config;
   },
 };
-
-const isProd = process.env.NODE_ENV === 'production';
 
 export default isProd
   ? withSentryConfig(nextConfig, {

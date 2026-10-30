@@ -9,6 +9,7 @@ import { TemplateProps } from './types';
 import { getDistrictDisplayName } from '@/lib/taxonomy';
 import { DEFAULT_TELEMETRY_SETTINGS } from '@/lib/telemetry';
 import { formatArticleDate } from '@/lib/date';
+import { getOptimizedMediaUrl } from '@/lib/media';
 
 export function ClassicEditorialTemplate({
   langPrefix,
@@ -522,12 +523,13 @@ export function ClassicEditorialTemplate({
                     'European conclave conference and historic setting verified by KJIN documentary desk'
                   }
                   className="w-full h-full object-cover"
-                  src={
+                  src={getOptimizedMediaUrl(
                     heroArticle?.featured_image_url ||
-                    'https://lh3.googleusercontent.com/aida-public/AB6AXuAANWJ3dY_6WVBpx7Z2agpDQbuoyD7XcLRpdAao-OvZ4eTa2LgCIyk1UNL1E126phu-iSCeb_xASZ9WNMhqP2oxQTMAaWOizV4qzOB_t9rUKGUheT45yWwaS4zrNQ3N5z052u3XWwQv8HkSRZ7mAlGWSCQN1EMz64lPszV4e4nm8aGcdfEr7x2zvWu2U9Fyp6fKHNDRfsN9h_qarER8A1zxBJ4OCSDRIBWa2KjmovknuqCHMrxytG8nv70cSPKR6sjJDEA'
-                  }
+                    'https://lh3.googleusercontent.com/aida-public/AB6AXuAANWJ3dY_6WVBpx7Z2agpDQbuoyD7XcLRpdAao-OvZ4eTa2LgCIyk1UNL1E126phu-iSCeb_xASZ9WNMhqP2oxQTMAaWOizV4qzOB_t9rUKGUheT45yWwaS4zrNQ3N5z052u3XWwQv8HkSRZ7mAlGWSCQN1EMz64lPszV4e4nm8aGcdfEr7x2zvWu2U9Fyp6fKHNDRfsN9h_qarER8A1zxBJ4OCSDRIBWa2KjmovknuqCHMrxytG8nv70cSPKR6sjJDEA',
+                    450
+                  )}
                   fill
-                  priority
+                  loading="lazy"
                   sizes="(max-width: 640px) 100vw, 450px"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-stone-950/80 via-transparent to-transparent pointer-events-none"></div>
@@ -1124,11 +1126,12 @@ export function ClassicEditorialTemplate({
                     {heroArticle.featured_image_url && (
                       <div className="relative w-full h-[280px] sm:h-[360px] rounded-xl overflow-hidden bg-slate-900 shadow-sm mb-4">
                         <Image
-                          src={heroArticle.featured_image_url}
+                          src={getOptimizedMediaUrl(heroArticle.featured_image_url, 720)}
                           alt={heroArticle.title}
                           fill
                           priority
-                          sizes="(max-width: 1024px) 100vw, 600px"
+                          fetchPriority="high"
+                          sizes="(max-width: 1024px) 100vw, 750px"
                           className="object-cover"
                         />
                         <div className="absolute bottom-0 inset-x-0 p-2.5 bg-gradient-to-t from-[#0F172A] via-[#0F172A]/60 to-transparent text-white flex justify-between items-center text-[11px] font-sans">

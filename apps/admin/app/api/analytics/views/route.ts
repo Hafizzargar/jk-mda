@@ -18,35 +18,42 @@ export async function GET() {
       auth: { persistSession: false },
     });
 
-    // 1. Fetch all published articles with their view counts and metadata
-    const { data: articles, error: articlesError } = await client
-      .from('articles')
-      .select('id, title, slug, category, district, view_count, status, published_at')
-      .eq('status', 'published')
-      .order('view_count', { ascending: false });
-
-    if (articlesError) {
-      console.error('Error fetching articles for view analytics:', articlesError);
-      return NextResponse.json({ error: 'Failed to query article views' }, { status: 500 });
-    }
-
-    const allArticles = articles ?? [];
-    const totalViews = allArticles.reduce((sum, a) => sum + (a.view_count || 0), 0);
-
-    // 2. Query article_views_log for unique visitors and today's activity
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
 
-    const { count: totalLogsCount } = await client
-      .from('article_views_log')
-      .select('*', { count: 'exact', head: true });
+    // 1. Fetch articles, view counts, and logs concurrently in parallel
+    const [articlesResult, totalLogsResult, todayLogsResult, recentLogsResult] = await Promise.all([
+      client
+        .from('articles')
+        .select('id, title, slug, category, district, view_count, status, published_at')
+        .eq('status', 'published')
+        .order('view_count', { ascending: false }),
+      client
+        .from('article_views_log')
+        .select('*', { count: 'exact', head: true }),
+      client
+        .from('article_views_log')
+        .select('*', { count: 'exact', head: true })
+        .gte('viewed_at', todayStart),
+      client
+        .from('article_views_log')
+        .select('id, article_id, viewed_at')
+        .order('viewed_at', { ascending: false })
+        .limit(8),
+    ]);
 
-    const { count: todayLogsCount } = await client
-      .from('article_views_log')
-      .select('*', { count: 'exact', head: true })
-      .gte('viewed_at', todayStart);
+    if (articlesResult.error) {
+      console.error('Error fetching articles for view analytics:', articlesResult.error);
+      return NextResponse.json({ error: 'Failed to query article views' }, { status: 500 });
+    }
 
-    // 3. Compute Regional Breakdown
+    const allArticles = articlesResult.data ?? [];
+    const totalViews = allArticles.reduce((sum, a) => sum + (a.view_count || 0), 0);
+    const totalLogsCount = totalLogsResult.count;
+    const todayLogsCount = todayLogsResult.count;
+    const recentLogs = recentLogsResult.data;
+
+    // 2. Compute Regional Breakdown
     const byRegion: Record<string, number> = {
       kashmir: 0,
       jammu: 0,
@@ -83,7 +90,7 @@ export async function GET() {
       byCategory[catKey] = (byCategory[catKey] || 0) + views;
     });
 
-    // 4. Top 10 Most Read Stories
+    // 3. Top 10 Most Read Stories
     const topArticles = allArticles.slice(0, 10).map((a) => ({
       id: a.id,
       title: a.title,
@@ -93,13 +100,6 @@ export async function GET() {
       views: a.view_count || 0,
       publishedAt: a.published_at,
     }));
-
-    // 5. Recent view logs
-    const { data: recentLogs } = await client
-      .from('article_views_log')
-      .select('id, article_id, viewed_at')
-      .order('viewed_at', { ascending: false })
-      .limit(8);
 
     // 4. Determine leading corridor dynamically from actual database counts
     let topRegion = 'N/A';

@@ -114,6 +114,8 @@ export const NEWS_CATEGORIES: Record<string, { name: string; description: string
   local: { name: 'Local News', description: 'Ground reporting, regional developments, and grassroots updates from districts.' },
   'local-news': { name: 'Local News', description: 'Ground reporting, regional developments, and grassroots updates from districts.' },
   problems: { name: 'Problems & Grievances', description: 'Civic grievances, public infrastructure issues, and ground investigative reports across J&K.' },
+  problem: { name: 'Problems & Grievances', description: 'Civic grievances, public infrastructure issues, and ground investigative reports across J&K.' },
+  articles: { name: 'Articles Archive', description: 'Editorial articles, wire reports, and latest news across Jammu & Kashmir.' },
   economy: { name: 'Economy', description: 'Business, agriculture, tourism, and financial developments.' },
   culture: { name: 'Culture', description: 'Heritage, literature, arts, and traditions of Jammu and Kashmir.' },
   sports: { name: 'Sports', description: 'Athletics, youth sports, and regional championships.' },

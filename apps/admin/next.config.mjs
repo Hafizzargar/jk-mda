@@ -8,11 +8,13 @@ const configuredSupabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  serverExternalPackages: ['@supabase/supabase-js', '@supabase/ssr'],
   devIndicators: false,
   eslint: {
     ignoreDuringBuilds: true,
   },
   images: {
+    unoptimized: process.env.NODE_ENV !== 'production',
     remotePatterns: [
       { protocol: 'https', hostname: configuredSupabaseHost },
       { protocol: 'https', hostname: 'images.unsplash.com' },
