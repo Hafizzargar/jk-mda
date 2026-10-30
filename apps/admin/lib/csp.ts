@@ -59,7 +59,7 @@ export function buildAdminCspHeader(options: AdminCspOptions): string {
   ].join(' ');
 
   const scriptSrc = isDev
-    ? `'self' 'unsafe-inline' 'unsafe-eval' https: http:`
+    ? `'self' 'nonce-${options.nonce}' 'strict-dynamic' 'unsafe-eval'`
     : `'self' 'nonce-${options.nonce}' 'strict-dynamic'`;
 
   const cspDirectives = [
