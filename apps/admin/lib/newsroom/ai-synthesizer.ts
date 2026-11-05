@@ -10,7 +10,7 @@
  * 3. Curated High-Resolution Editorial News Image Library (replaces ugly/cluttered YouTube thumbnails)
  */
 
-import { getCanonicalCategory } from '../taxonomy-options';
+import { getCanonicalCategory } from '../taxonomy-options.ts';
 
 export interface EditorialImageOption {
   url: string;
@@ -120,46 +120,89 @@ export const EDITORIAL_NEWS_IMAGES: Record<string, EditorialImageOption[]> = {
   ],
 };
 
+// In-memory cache to prevent duplicate translation calls
+const translationCache = new Map<string, string>();
+let rateLimitCooldownUntil = 0;
+
 /**
  * Free language translation endpoint that converts Hindi, Urdu, Arabic or other foreign
  * text into clean English with zero API keys required.
+ * Implements in-memory caching, multi-endpoint failover, and rate-limit cooldowns.
  */
 export async function translateToEnglishFree(text: string): Promise<string> {
   if (!text || !text.trim()) return '';
 
+  const trimmed = text.trim();
+
   // If text already has strictly Latin/ASCII characters, no translation needed
-  const containsNonLatin = /[\u0900-\u097F\u0600-\u06FF\u0750-\u077F\u0A80-\u0AFF\u0B00-\u0B7F\u0400-\u04FF]/.test(text);
+  const containsNonLatin = /[\u0900-\u097F\u0600-\u06FF\u0750-\u077F\u0A80-\u0AFF\u0B00-\u0B7F\u0400-\u04FF]/.test(trimmed);
   if (!containsNonLatin) {
-    return text;
+    return trimmed;
   }
 
+  // Check cache
+  if (translationCache.has(trimmed)) {
+    return translationCache.get(trimmed)!;
+  }
+
+  const encoded = encodeURIComponent(trimmed.slice(0, 2500));
+
+  // If Google is currently rate-limiting us, skip to fallback endpoints
+  const isCooldownActive = Date.now() < rateLimitCooldownUntil;
+
+  if (!isCooldownActive) {
+    // Attempt 1: Google Translate GTX endpoint
+    try {
+      const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encoded}`;
+      const res = await fetch(url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        },
+      });
+
+      if (res.status === 429) {
+        // Activate a 60-second cooldown so we don't spam requests
+        rateLimitCooldownUntil = Date.now() + 60_000;
+        console.warn('[TranslateToEnglishFree] Google GTX endpoint rate-limited (HTTP 429). Entering 60s cooldown.');
+      } else if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && Array.isArray(data[0])) {
+          const translatedChunks = data[0].map((chunk: any[]) => chunk[0] || '').join('');
+          if (translatedChunks.trim()) {
+            const result = translatedChunks.trim();
+            translationCache.set(trimmed, result);
+            return result;
+          }
+        }
+      }
+    } catch {
+      // Quietly fall through to secondary endpoint
+    }
+  }
+
+  // Attempt 2: Alternative Google Chrome Extension endpoint
   try {
-    const encoded = encodeURIComponent(text.slice(0, 4000));
-    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encoded}`;
-    
+    const url = `https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=auto&tl=en&q=${encoded}`;
     const res = await fetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       },
     });
 
-    if (!res.ok) {
-      throw new Error(`Translation endpoint HTTP ${res.status}`);
-    }
-
-    const data = await res.json();
-    if (Array.isArray(data) && Array.isArray(data[0])) {
-      const translatedChunks = data[0].map((chunk: any[]) => chunk[0] || '').join('');
-      if (translatedChunks.trim()) {
-        return translatedChunks.trim();
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && typeof data[0] === 'string' && data[0].trim()) {
+        const result = data[0].trim();
+        translationCache.set(trimmed, result);
+        return result;
       }
     }
-  } catch (err) {
-    console.warn('[TranslateToEnglishFree] Translation fallback warning:', err);
+  } catch {
+    // Quietly fall through
   }
 
-  // Fallback: strip non-ASCII characters if translation service unreachable
-  return text.replace(/[^\x00-\x7F]/g, ' ').replace(/\s+/g, ' ').trim();
+  // Fallback: Return original cleaned text rather than deleting all non-ASCII characters
+  return cleanRawBroadcastText(trimmed);
 }
 
 /**
@@ -271,12 +314,10 @@ export async function synthesizeEnglishNewsDraft(input: {
 }): Promise<SynthesizedDraft> {
   const { rawTitle, rawDescription, channelName, region, category, transcript } = input;
 
-  // 1. Translate title & description to English if foreign characters detected
-  const [translatedTitle, translatedDesc, translatedTranscript] = await Promise.all([
-    translateToEnglishFree(rawTitle),
-    translateToEnglishFree(rawDescription),
-    transcript ? translateToEnglishFree(transcript.slice(0, 3000)) : Promise.resolve(''),
-  ]);
+  // 1. Translate title & description sequentially to avoid bursting rate limits
+  const translatedTitle = await translateToEnglishFree(rawTitle);
+  const translatedDesc = await translateToEnglishFree(rawDescription);
+  const translatedTranscript = transcript ? await translateToEnglishFree(transcript.slice(0, 1500)) : '';
 
   // 2. Clean up noise, hashtags, and promotional junk
   const cleanTitle = cleanRawBroadcastText(translatedTitle);

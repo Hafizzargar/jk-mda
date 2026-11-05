@@ -1,8 +1,8 @@
 import { generateText } from 'ai';
 import { google } from '@ai-sdk/google';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { synthesizeEnglishNewsDraft } from './ai-synthesizer';
-import { getCanonicalCategory } from '@/lib/taxonomy-options';
+import { synthesizeEnglishNewsDraft } from './ai-synthesizer.ts';
+import { getCanonicalCategory } from '../taxonomy-options.ts';
 
 export interface YouTubeChannelMeta {
   channelId: string;
@@ -356,7 +356,7 @@ Output your response strictly as valid JSON with keys:
   if (apiKey) {
     try {
       const response = await generateText({
-        model: google('gemini-2.5-flash'),
+        model: google('gemini-1.5-flash'),
         prompt: contentPrompt,
         temperature: 0.2,
       });
