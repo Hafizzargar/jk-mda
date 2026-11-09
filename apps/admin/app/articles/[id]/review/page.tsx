@@ -164,6 +164,10 @@ export default function ArticleReviewPage() {
 
       if (!res.ok) {
         const errJson = await res.json().catch(() => ({}));
+        if (res.status === 401) {
+          window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
+          return;
+        }
         throw new Error(errJson.error || `Failed to update status to ${nextStatus}`);
       }
 

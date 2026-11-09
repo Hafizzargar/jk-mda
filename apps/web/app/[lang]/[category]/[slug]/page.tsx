@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { Metadata } from 'next';
 import { createServerAnonClient } from '@/lib/supabase-server';
 import { ViewTracker } from '@/components/ViewTracker';
-import { sanitizeArticleHtml, safeJsonLd } from '@/lib/sanitize';
+import { sanitizeArticleHtml, safeJsonLd, markdownToHtml } from '@/lib/sanitize';
 import { SITE_URL, SITE_NAME, SITE_SHORT_NAME, DEFAULT_LOCALE } from '@/lib/config';
 import { getTemplateTheme, type TemplateId } from '@/lib/templates';
 import { SiteNavbar } from '@/components/navigation/SiteNavbar';
@@ -96,32 +96,6 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
   };
 }
 
-function markdownToHtml(raw: string): string {
-  if (!raw) return '';
-  if (/<(p|h[1-6]|div|article|section)/i.test(raw)) {
-    return raw;
-  }
-  const blocks = raw.split(/\n\s*\n/);
-  const htmlBlocks = blocks.map((block) => {
-    const trimmed = block.trim();
-    if (!trimmed) return '';
-    if (trimmed.startsWith('### ')) {
-      return `<h3>${trimmed.slice(4).trim()}</h3>`;
-    }
-    if (trimmed.startsWith('## ')) {
-      return `<h2>${trimmed.slice(3).trim()}</h2>`;
-    }
-    if (trimmed.startsWith('# ')) {
-      return `<h1>${trimmed.slice(2).trim()}</h1>`;
-    }
-    if (trimmed.startsWith('> ')) {
-      return `<blockquote>${trimmed.slice(2).trim()}</blockquote>`;
-    }
-    return `<p>${trimmed.replace(/\n/g, '<br/>')}</p>`;
-  });
-  return htmlBlocks.filter(Boolean).join('\n\n');
-}
-
 export default async function ArticlePage({ params }: ArticlePageProps) {
   const resolvedParams = await params;
   const supabase = createServerAnonClient();
@@ -161,15 +135,26 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     }
   }
 
-  // Fetch Related Stories (prioritize same category, excluding current article)
-  const { data: relatedArticles } = await supabase
-    .from('articles')
-    .select('id, slug, title, category, published_at, featured_image_url')
-    .eq('status', 'published')
-    .eq('category', article.category)
-    .neq('id', article.id)
-    .order('published_at', { ascending: false, nullsFirst: false })
-    .limit(3);
+  // Fetch Related Stories (same category) and Trending Stories (across corridors)
+  const [relatedResult, trendingResult] = await Promise.all([
+    supabase
+      .from('articles')
+      .select('id, slug, title, category, published_at, featured_image_url')
+      .eq('status', 'published')
+      .eq('category', article.category)
+      .neq('id', article.id)
+      .order('published_at', { ascending: false, nullsFirst: false })
+      .limit(3),
+    supabase
+      .from('articles')
+      .select('id, slug, title, category, district, published_at, read_time_minutes')
+      .eq('status', 'published')
+      .neq('id', article.id)
+      .order('published_at', { ascending: false, nullsFirst: false })
+      .limit(5),
+  ]);
+  const relatedArticles = relatedResult.data || [];
+  const trendingArticles = trendingResult.data || [];
 
   // Generate robust, structured JSON-LD for news article schema
   const articleCanonicalUrl = `${SITE_URL}/${resolvedParams.lang === 'en' ? '' : `${resolvedParams.lang}/`}${displayArticle.category.toLowerCase()}/${displayArticle.slug}`;
@@ -248,6 +233,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             langPrefix={langPrefix}
             districtName={displayArticle.district ? getDistrictDisplayName(displayArticle.district) : undefined}
             relatedArticles={relatedArticles || []}
+            trendingArticles={trendingArticles || []}
             telemetry={telemetry}
           />
         </main>

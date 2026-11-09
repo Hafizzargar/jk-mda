@@ -26,7 +26,8 @@ async function main() {
   });
 
   try {
-    const result = await runYouTubeHourlySync(service);
+    const force = process.argv.includes('--force');
+    const result = await runYouTubeHourlySync(service, { force, autoPublish: true });
 
     const durationSeconds = ((Date.now() - startTime.getTime()) / 1000).toFixed(2);
     console.log(`[YouTube Worker] Completed in ${durationSeconds}s:`, JSON.stringify(result, null, 2));

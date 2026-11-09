@@ -420,6 +420,21 @@ export default function HomepageCuratorPage() {
         </div>
       )}
 
+      {/* Top Workflow Tabs */}
+      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+        <Link
+          href="/settings/layout"
+          className="px-3.5 py-1.5 rounded-lg text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 hover:text-indigo-600 transition flex items-center gap-1.5"
+        >
+          <span>🔀</span>
+          <span>1. Section Drag &amp; Drop Builder (Reorder &amp; Swap Columns) →</span>
+        </Link>
+        <span className="px-3.5 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-bold shadow-xs flex items-center gap-1.5">
+          <span>📰</span>
+          <span>2. Story Slotting Desk (Lead, Sub-Leads &amp; Wire)</span>
+        </span>
+      </div>
+
       {/* Main Grid: Visual Broadsheet Layout (Left 8 cols) + News Bank Drawer (Right 4 cols) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* ======================================================== */}

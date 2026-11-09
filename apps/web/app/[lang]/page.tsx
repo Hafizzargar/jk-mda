@@ -24,17 +24,32 @@ import { REGIONAL_DIVISIONS, getDistrictDisplayName, type KJINRegionKey } from '
 import { getCurationSettings } from '@/lib/curation';
 import { getRegionalWeather } from '@/lib/weather';
 import { getCachedSiteSetting } from '@/lib/site-settings-cache';
+import { getEditorialDeskSettings } from '@/lib/editorial-desk';
+import { getWarAndConflictNews, getDiscoverNews } from '@/lib/external-news';
+import { getHomepageLayout } from '@/lib/homepage-layout';
 
-export const revalidate = 60; // Revalidate every 60 seconds
+export const revalidate = 10; // Rapid 10s revalidation for instant sync with newsroom and ad settings
 
 import { getBrandSettings } from '@/lib/brand';
+import { DEFAULT_TELEMETRY_SETTINGS } from '@/lib/telemetry';
+import { DEFAULT_CURATION_SETTINGS } from '@/lib/curation';
+import { DEFAULT_HOMEPAGE_LAYOUT } from '@/lib/homepage-layout';
+import { FALLBACK_BROADSHEET_ARTICLES } from '@/lib/seed-articles';
 
 export async function generateMetadata(): Promise<Metadata> {
-  const supabase = createServerAnonClient();
-  const brand = await getBrandSettings(supabase);
-  const brandName = brand.name || SITE_SHORT_NAME;
-  const brandFullName = brand.full_name || SITE_NAME;
-  const tagline = brand.tagline || 'Verified Journalism from Jammu & Kashmir';
+  let brandName = SITE_SHORT_NAME;
+  let brandFullName = SITE_NAME;
+  let tagline = 'Verified Journalism from Jammu & Kashmir';
+
+  try {
+    const supabase = createServerAnonClient();
+    const brand = await getBrandSettings(supabase);
+    if (brand.name) brandName = brand.name;
+    if (brand.full_name) brandFullName = brand.full_name;
+    if (brand.tagline) tagline = brand.tagline;
+  } catch (err) {
+    console.warn('[HomePage:generateMetadata] Fallback metadata:', err);
+  }
 
   return {
     metadataBase: new URL(SITE_URL),
@@ -64,21 +79,24 @@ interface HomePageProps {
 }
 
 export default async function HomePage({ params, searchParams }: HomePageProps) {
-  const { lang } = await params;
+  const resolvedParams = (await params) || {};
+  const lang = resolvedParams.lang || 'en';
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const supabase = createServerAnonClient();
   const langPrefix = lang === 'en' ? '' : `/${lang}`;
 
-  // 1. Pagination parameters
+  // 1. Pagination parameters (Expanded to 18 per page to maintain an authoritative, full broadsheet)
   const page = parsePageParam(resolvedSearchParams.page);
-  const limit = parseLimitParam(resolvedSearchParams.limit, 6);
+  const limit = parseLimitParam(resolvedSearchParams.limit, 18);
   const { from, to } = getPaginationRange(page, limit);
 
   // Exclude global International, National, and editorial Problems stories from local J&K general home feed
   const EXCLUDED_CATEGORIES_FILTER =
     '(International,international,INTERNATIONAL,National,national,NATIONAL,"International","international","INTERNATIONAL","National","national","NATIONAL",Problems,problems,PROBLEMS,"Problems","problems","PROBLEMS")';
 
-  // 2. Fetch all independent database queries and cached settings concurrently in parallel
+  // 2. Fetch all independent database queries, external live feeds, and cached settings concurrently in parallel
+  // Each Supabase query builder is wrapped in Promise.resolve().then() to ensure proper promise semantics,
+  // with individual .catch() handlers so a single DB failure never crashes the entire page.
   const [
     settingRow,
     latestResult,
@@ -90,42 +108,99 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     curation,
     weather,
     problemResult,
+    internationalResult,
+    editorialDeskSettings,
+    wireResult,
+    dossierResult,
+    conflictNews,
+    discoverNews,
+    layoutConfig,
   ] = await Promise.all([
-    getCachedSiteSetting<{ template_id?: string }>(supabase, 'active_template'),
-    supabase
-      .from('articles')
-      .select(
-        'id, slug, title, excerpt, category, district, author_display_name, published_at, featured_image_url, view_count, article_translations(title, excerpt, language_code)',
-        { count: 'exact' }
-      )
-      .eq('status', 'published')
-      .not('category', 'in', EXCLUDED_CATEGORIES_FILTER)
-      .order('published_at', { ascending: false, nullsFirst: false })
-      .range(from, to),
-    supabase
-      .from('articles')
-      .select('id, slug, title, category, published_at, view_count, article_translations(title, language_code)')
-      .eq('status', 'published')
-      .not('category', 'in', EXCLUDED_CATEGORIES_FILTER)
-      .order('view_count', { ascending: false })
-      .limit(5),
-    getFooterContactSettings(supabase),
-    getCustomAdsSettings(supabase),
-    getNavbarSettings(supabase),
-    getTelemetrySettings(supabase),
-    getCurationSettings(supabase),
-    getRegionalWeather(),
-    supabase
-      .from('articles')
-      .select(
-        'id, slug, title, excerpt, category, district, author_display_name, published_at, featured_image_url, view_count, article_translations(title, excerpt, language_code)'
-      )
-      .eq('status', 'published')
-      .ilike('category', 'problems')
-      .order('published_at', { ascending: false, nullsFirst: false })
-      .limit(1)
-      .maybeSingle(),
+    getCachedSiteSetting<{ template_id?: string }>(supabase, 'active_template').catch(() => null),
+    Promise.resolve(
+      supabase
+        .from('articles')
+        .select(
+          'id, slug, title, excerpt, category, district, author_display_name, published_at, featured_image_url, view_count, article_translations(title, excerpt, language_code)',
+          { count: 'exact' }
+        )
+        .eq('status', 'published')
+        .not('category', 'in', EXCLUDED_CATEGORIES_FILTER)
+        .order('published_at', { ascending: false, nullsFirst: false })
+        .range(from, to)
+    ).catch(() => ({ data: [], count: 0, error: null })),
+    Promise.resolve(
+      supabase
+        .from('articles')
+        .select('id, slug, title, category, published_at, view_count, article_translations(title, language_code)')
+        .eq('status', 'published')
+        .not('category', 'in', EXCLUDED_CATEGORIES_FILTER)
+        .order('view_count', { ascending: false })
+        .limit(5)
+    ).catch(() => ({ data: [], error: null })),
+    getFooterContactSettings(supabase).catch(() => null),
+    getCustomAdsSettings(supabase).catch(() => null),
+    getNavbarSettings(supabase).catch(() => null),
+    getTelemetrySettings(supabase).catch(() => null),
+    getCurationSettings(supabase).catch(() => null),
+    getRegionalWeather().catch(() => []),
+    Promise.resolve(
+      supabase
+        .from('articles')
+        .select(
+          'id, slug, title, excerpt, category, district, author_display_name, published_at, featured_image_url, view_count, article_translations(title, excerpt, language_code)'
+        )
+        .eq('status', 'published')
+        .ilike('category', 'problems')
+        .order('published_at', { ascending: false, nullsFirst: false })
+        .limit(1)
+        .maybeSingle()
+    ).catch(() => ({ data: null, error: null })),
+    Promise.resolve(
+      supabase
+        .from('articles')
+        .select(
+          'id, slug, title, excerpt, category, district, author_display_name, published_at, featured_image_url, view_count, article_translations(title, excerpt, language_code)'
+        )
+        .eq('status', 'published')
+        .ilike('category', 'international')
+        .order('published_at', { ascending: false, nullsFirst: false })
+        .limit(4)
+    ).catch(() => ({ data: [], error: null })),
+    getEditorialDeskSettings(supabase).catch(() => null),
+    // Dedicated Wire query so wire doesn't steal articles from the center broadsheet feed
+    Promise.resolve(
+      supabase
+        .from('articles')
+        .select(
+          'id, slug, title, excerpt, category, district, author_display_name, published_at, featured_image_url, view_count, article_translations(title, excerpt, language_code)'
+        )
+        .eq('status', 'published')
+        .not('category', 'in', EXCLUDED_CATEGORIES_FILTER)
+        .order('published_at', { ascending: false, nullsFirst: false })
+        .limit(6)
+    ).catch(() => ({ data: [], error: null })),
+    // Dedicated Dossier query to ensure 4-6 rich investigative/cultural features at the bottom
+    Promise.resolve(
+      supabase
+        .from('articles')
+        .select(
+          'id, slug, title, excerpt, category, district, author_display_name, published_at, featured_image_url, view_count, article_translations(title, excerpt, language_code)'
+        )
+        .eq('status', 'published')
+        .in('category', ['Investigation', 'Culture', 'Environment', 'Economy', 'investigation', 'culture', 'environment', 'economy', 'Education', 'education'])
+        .order('published_at', { ascending: false, nullsFirst: false })
+        .limit(6)
+    ).catch(() => ({ data: [], error: null })),
+    getWarAndConflictNews(6).catch(() => []),
+    getDiscoverNews(4).catch(() => []),
+    getHomepageLayout(supabase).catch(() => null),
   ]);
+
+  // Apply safe defaults for any settings that failed to load from DB
+  const safeTelemetry = telemetry ?? DEFAULT_TELEMETRY_SETTINGS;
+  const safeCuration = curation ?? DEFAULT_CURATION_SETTINGS;
+  const safeLayoutConfig = layoutConfig ?? DEFAULT_HOMEPAGE_LAYOUT;
 
   const dbTemplateId = settingRow?.template_id as TemplateId | undefined;
   const previewParam = (resolvedSearchParams.preview || resolvedSearchParams.template) as string | undefined;
@@ -149,35 +224,46 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
   const rawLatestFiltered = (latestArticlesRaw || []).filter((a) => !isExcludedFromHome(a.category));
   const rawTrendingFiltered = (trendingArticlesRaw || []).filter((a) => !isExcludedFromHome(a.category));
 
-  const latestArticles = (applyTranslations(rawLatestFiltered, lang) as unknown) as ArticleItem[];
-  const trendingArticles = (applyTranslations(rawTrendingFiltered, lang) as unknown) as ArticleItem[];
+  const dbLatestArticles = (applyTranslations(rawLatestFiltered, lang) as unknown) as ArticleItem[];
+  const dbTrendingArticles = (applyTranslations(rawTrendingFiltered, lang) as unknown) as ArticleItem[];
+
+  // Zero-Downtime Guarantee: If DB has 0 articles (cold boot / unreachable Supabase), fallback to broadsheet seed articles
+  const latestArticles = dbLatestArticles.length > 0 ? dbLatestArticles : FALLBACK_BROADSHEET_ARTICLES;
+  const trendingArticles = dbTrendingArticles.length > 0 ? dbTrendingArticles : FALLBACK_BROADSHEET_ARTICLES.slice(0, 5);
 
   const rawProblemArticle = problemResult?.data || null;
   const problemArticle = rawProblemArticle
     ? (((applyTranslations([rawProblemArticle], lang) as unknown) as ArticleItem[])[0] || null)
-    : null;
+    : FALLBACK_BROADSHEET_ARTICLES.find((a) => a.category.toLowerCase() === 'investigation') || null;
+
+  const rawInternationalArticles = internationalResult?.data || [];
+  const dbInternationalArticles = ((applyTranslations(rawInternationalArticles, lang) as unknown) as ArticleItem[]) || [];
+  const internationalArticles = dbInternationalArticles.length > 0 ? dbInternationalArticles : FALLBACK_BROADSHEET_ARTICLES.slice(0, 4);
+  const internationalArticle = internationalArticles[0] || null;
 
   // 6. Fetch specifically curated article IDs if set in curation desk
   const allCuratedIds = Array.from(
     new Set([
-      curation.lead_hero_id,
-      ...(curation.sub_lead_ids || []),
-      ...(curation.wire_ids || []),
-      ...(curation.dossier_ids || []),
-      curation.editorial_id,
-      curation.developing_article_id,
-      ...Object.values(curation.corridor_assignments || {}),
+      safeCuration.lead_hero_id,
+      ...(safeCuration.sub_lead_ids || []),
+      ...(safeCuration.wire_ids || []),
+      ...(safeCuration.dossier_ids || []),
+      safeCuration.editorial_id,
+      safeCuration.developing_article_id,
+      ...Object.values(safeCuration.corridor_assignments || {}),
     ].filter(Boolean) as string[])
   );
 
   const curatedArticlesMap = new Map<string, ArticleItem>();
   if (allCuratedIds.length > 0) {
-    const { data: curatedDbArticles } = await supabase
-      .from('articles')
-      .select(
-        'id, slug, title, excerpt, category, district, author_display_name, published_at, featured_image_url, view_count, article_translations(title, excerpt, language_code)'
-      )
-      .in('id', allCuratedIds);
+    const { data: curatedDbArticles } = await Promise.resolve(
+      supabase
+        .from('articles')
+        .select(
+          'id, slug, title, excerpt, category, district, author_display_name, published_at, featured_image_url, view_count, article_translations(title, excerpt, language_code)'
+        )
+        .in('id', allCuratedIds)
+    ).catch(() => ({ data: [] }));
 
     const translatedCurated = (applyTranslations(curatedDbArticles || [], lang) as unknown) as ArticleItem[];
     for (const art of translatedCurated) {
@@ -185,43 +271,61 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     }
   }
 
-  // 7. Resolve Curated vs Algorithmic Slots
-  const heroArticle =
-    (curation.lead_hero_id ? curatedArticlesMap.get(curation.lead_hero_id) : null) ||
-    (latestArticles && latestArticles.length > 0 ? latestArticles[0] : null);
+  const wireDbArticles = wireResult.data || [];
+  const translatedWire = (applyTranslations(wireDbArticles, lang) as unknown) as ArticleItem[];
 
-  const remainingArticles = latestArticles.filter((a) => a.id !== heroArticle?.id);
+  const dossierDbArticles = dossierResult.data || [];
+  const translatedDossier = (applyTranslations(dossierDbArticles, lang) as unknown) as ArticleItem[];
+
+  // 7. Resolve Curated vs Algorithmic Slots — Always guaranteed a valid non-null heroArticle
+  const heroArticle: ArticleItem =
+    (safeCuration.lead_hero_id ? curatedArticlesMap.get(safeCuration.lead_hero_id) : null) ||
+    latestArticles[0] ||
+    FALLBACK_BROADSHEET_ARTICLES[0];
+
+  const remainingArticles = latestArticles.filter((a) => a.id !== heroArticle.id);
+  const safeRemaining = remainingArticles.length > 0 ? remainingArticles : FALLBACK_BROADSHEET_ARTICLES.slice(1);
 
   const subArticles: ArticleItem[] =
-    curation.sub_lead_ids && curation.sub_lead_ids.length > 0
-      ? (curation.sub_lead_ids.map((id) => curatedArticlesMap.get(id)).filter(Boolean) as ArticleItem[])
-      : remainingArticles.slice(0, 2);
+    safeCuration.sub_lead_ids && safeCuration.sub_lead_ids.length > 0
+      ? (safeCuration.sub_lead_ids.map((id) => curatedArticlesMap.get(id)).filter(Boolean) as ArticleItem[])
+      : safeRemaining.slice(0, 2);
+
+  const subArticleIds = new Set(subArticles.map((a) => a.id));
+  const streamArticles = safeRemaining.filter((a) => !subArticleIds.has(a.id));
 
   const wireArticles: ArticleItem[] =
-    curation.wire_ids && curation.wire_ids.length > 0
-      ? (curation.wire_ids.map((id) => curatedArticlesMap.get(id)).filter(Boolean) as ArticleItem[])
-      : remainingArticles.slice(2, 7);
+    safeCuration.wire_ids && safeCuration.wire_ids.length > 0
+      ? (safeCuration.wire_ids.map((id) => curatedArticlesMap.get(id)).filter(Boolean) as ArticleItem[])
+      : translatedWire.length > 0
+      ? translatedWire
+      : safeRemaining.slice(2, 7);
 
   const dossierArticles: ArticleItem[] =
-    curation.dossier_ids && curation.dossier_ids.length > 0
-      ? (curation.dossier_ids.map((id) => curatedArticlesMap.get(id)).filter(Boolean) as ArticleItem[])
+    safeCuration.dossier_ids && safeCuration.dossier_ids.length > 0
+      ? (safeCuration.dossier_ids.map((id) => curatedArticlesMap.get(id)).filter(Boolean) as ArticleItem[])
+      : translatedDossier.length > 0
+      ? translatedDossier
       : latestArticles.filter((a) => {
-          const c = a.category.toLowerCase();
+          const c = (a.category || '').toLowerCase();
           return c === 'investigation' || c === 'culture' || c === 'environment' || c === 'economy';
-        }).slice(0, 3);
+        }).slice(0, 6);
 
   const editorialArticle: ArticleItem | null =
-    (curation.editorial_id ? curatedArticlesMap.get(curation.editorial_id) : null) ||
-    latestArticles.find((a) => a.category.toLowerCase() === 'opinion') ||
+    (safeCuration.editorial_id ? curatedArticlesMap.get(safeCuration.editorial_id) : null) ||
+    latestArticles.find((a) => (a.category || '').toLowerCase() === 'opinion') ||
+    FALLBACK_BROADSHEET_ARTICLES.find((a) => a.category.toLowerCase() === 'opinion') ||
     null;
 
   // 8. Fetch Territorial Corridor Trending News (dynamic real-time stories for all 5 corridors)
-  const { data: corridorArticlesRaw } = await supabase
-    .from('articles')
-    .select('id, slug, title, category, district, published_at, view_count, reading_time_minutes, article_translations(title, language_code)')
-    .eq('status', 'published')
-    .not('district', 'is', null)
-    .order('view_count', { ascending: false, nullsFirst: false });
+  const { data: corridorArticlesRaw } = await Promise.resolve(
+    supabase
+      .from('articles')
+      .select('id, slug, title, category, district, published_at, view_count, reading_time_minutes, article_translations(title, language_code)')
+      .eq('status', 'published')
+      .not('district', 'is', null)
+      .order('view_count', { ascending: false, nullsFirst: false })
+  ).catch(() => ({ data: [] }));
 
   // Map each of the 5 canonical corridors to its top trending regional news or curated override
   const CORRIDOR_REGIONS: Record<string, { regionKey: KJINRegionKey; name: string }> = {
@@ -232,7 +336,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     ladakh: { regionKey: 'leh', name: 'Leh & Ladakh' },
   };
 
-  const dynamicCorridors = (telemetry.corridors_at_a_glance || []).map((corridor) => {
+  const dynamicCorridors = (safeTelemetry.corridors_at_a_glance || []).map((corridor) => {
     const config = CORRIDOR_REGIONS[corridor.id] || {
       regionKey: (corridor.id === 'chenab' ? 'chenab-valley' : corridor.id === 'panjal' ? 'pir-panjal' : corridor.id === 'ladakh' ? 'leh' : corridor.id) as KJINRegionKey,
       name: corridor.name,
@@ -242,7 +346,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     const allowedDistricts = regionDef?.districts || [];
 
     // Check if specifically curated for this corridor
-    const pinnedArticleId = curation.corridor_assignments?.[corridor.id];
+    const pinnedArticleId = safeCuration.corridor_assignments?.[corridor.id];
     const matchedArticle =
       (pinnedArticleId ? curatedArticlesMap.get(pinnedArticleId) : null) ||
       (corridorArticlesRaw || []).find((art) =>
@@ -271,7 +375,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
         ...corridor,
         headline,
         stats,
-        link_path: `/${matchedArticle.category.toLowerCase()}/${matchedArticle.slug}`,
+        link_path: `/${(matchedArticle.category || 'news').toLowerCase().replace(/\s+/g, '-')}/${matchedArticle.slug}`,
         region_slug: config.regionKey,
         article_id: matchedArticle.id,
         is_dynamic: true,
@@ -290,15 +394,15 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
   });
 
   const enhancedTelemetry = {
-    ...telemetry,
-    live_wire: curation.developing_is_active && curation.developing_headline
+    ...safeTelemetry,
+    live_wire: safeCuration.developing_is_active && safeCuration.developing_headline
       ? {
-          headline: curation.developing_headline,
+          headline: safeCuration.developing_headline,
           is_active: true,
           synced_time: 'LIVE DESK',
           verified: true,
         }
-      : telemetry.live_wire,
+      : safeTelemetry.live_wire,
     corridors_at_a_glance: dynamicCorridors,
   };
 
@@ -310,18 +414,25 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     trendingArticles,
     allArticles: latestArticles,
     theme,
-    contactSettings,
+    contactSettings: contactSettings ?? undefined,
     paginationMeta,
-    adsSettings,
-    navbarSettings,
+    adsSettings: adsSettings ?? undefined,
+    navbarSettings: navbarSettings ?? undefined,
     telemetry: enhancedTelemetry,
-    curation,
+    curation: safeCuration,
     weather,
     dossierArticles,
     editorialArticle,
     subArticles,
     wireArticles,
+    streamArticles,
+    conflictNews,
+    discoverNews,
     problemArticle,
+    internationalArticle,
+    internationalArticles,
+    editorialDeskSettings: editorialDeskSettings ?? undefined,
+    layoutConfig: safeLayoutConfig,
   };
 
   const currentTemplateDef = getTemplateDefinition(activeTemplateId);

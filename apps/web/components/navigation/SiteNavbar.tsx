@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { SITE_SHORT_NAME } from '@/lib/config';
 import { REGIONAL_DIVISIONS } from '@/lib/taxonomy';
 import { type TemplateTheme } from '@/lib/templates';
@@ -33,9 +33,42 @@ export function SiteNavbar({
   navbarSettings,
 }: SiteNavbarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileSearchQuery, setMobileSearchQuery] = useState('');
   const [regionsOpen, setRegionsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Lock body scroll when mobile menu is active for smooth drawer feel & close on Escape
+  useEffect(() => {
+    if (mobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape' && mobileMenuOpen) {
+        setMobileMenuOpen(false);
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [mobileMenuOpen]);
+
+  const handleMobileSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!mobileSearchQuery.trim()) return;
+    setMobileMenuOpen(false);
+    router.push(`${langPrefix}/search?q=${encodeURIComponent(mobileSearchQuery.trim())}`);
+  };
 
   // Initialize with passed settings or default
   const [navSettings, setNavSettings] = useState<NavbarSettings>(() =>
@@ -148,33 +181,35 @@ export function SiteNavbar({
     <header className={`w-full max-w-full overflow-x-hidden sticky top-0 z-50 backdrop-blur-md ${navBg} ${navBorder} transition-colors duration-200`}>
       {/* 1. Slim Top Utility Strip */}
       {navSettings.top_strip.enabled && (
-        <div className="w-full max-w-full px-2.5 sm:px-4 py-1 sm:py-1.5 border-b border-stone-200/80 flex items-center justify-between text-[9px] sm:text-[10.5px] uppercase tracking-wider text-stone-600 font-medium overflow-hidden gap-1.5 sm:gap-2">
-          {/* Left: Dateline & Hijri/Calendar */}
-          <div className="flex items-center space-x-1 sm:space-x-2 min-w-0 truncate">
-            <span className="font-semibold text-stone-800 truncate" suppressHydrationWarning>{currentDate}</span>
-            <span className="text-stone-300 hidden xs:inline">|</span>
-            <span className="text-stone-500 font-serif lowercase italic text-[9px] sm:text-[10.5px] truncate hidden xs:inline">16 Jumada al-awwal 1448</span>
-          </div>
-
-          {/* Right: Verified Wire Badge & Languages */}
-          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-            <div className="flex items-center space-x-1 bg-emerald-50 text-emerald-800 px-1.5 sm:px-2 py-0.5 rounded-full border border-emerald-200 text-[8px] sm:text-[9.5px] font-semibold whitespace-nowrap">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
-              <span>VERIFIED WIRE</span>
+        <div className="w-full border-b border-stone-200/80">
+          <div className="w-full max-w-7xl 2xl:max-w-[1440px] mx-auto px-3 sm:px-4 md:px-8 py-1 sm:py-1.5 flex items-center justify-between text-[9px] sm:text-[10.5px] uppercase tracking-wider text-stone-600 font-medium overflow-hidden gap-1.5 sm:gap-2">
+            {/* Left: Dateline & Hijri/Calendar */}
+            <div className="flex items-center space-x-1 sm:space-x-2 min-w-0 truncate">
+              <span className="font-semibold text-stone-800 truncate" suppressHydrationWarning>{currentDate}</span>
+              <span className="text-stone-300 hidden xs:inline">|</span>
+              <span className="text-stone-500 font-serif lowercase italic text-[9px] sm:text-[10.5px] truncate hidden xs:inline">16 Jumada al-awwal 1448</span>
             </div>
-            {navSettings.languages.enabled && (
-              <div className="hidden sm:flex items-center gap-1 font-mono text-[10px] ml-1">
-                <Link href={pathname.replace(/^\/(ur|ks|hi)/, '') || '/'} className={`px-1 py-0.5 rounded ${lang === 'en' ? 'font-bold bg-stone-200/80 text-stone-900' : 'text-stone-500'}`}>EN</Link>
-                <span className="text-stone-300">/</span>
-                <Link href={`/ur${pathname.replace(/^\/(ur|ks|hi)/, '')}`} className={`px-1 py-0.5 rounded ${lang === 'ur' ? 'font-bold bg-stone-200/80 text-stone-900' : 'text-stone-500'}`}>اردو</Link>
+
+            {/* Right: Verified Wire Badge & Languages */}
+            <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+              <div className="flex items-center space-x-1 bg-emerald-50 text-emerald-800 px-1.5 sm:px-2 py-0.5 rounded-full border border-emerald-200 text-[8px] sm:text-[9.5px] font-semibold whitespace-nowrap">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                <span>VERIFIED WIRE</span>
               </div>
-            )}
+              {navSettings.languages.enabled && (
+                <div className="hidden sm:flex items-center gap-1 font-mono text-[10px] ml-1">
+                  <Link href={pathname.replace(/^\/(ur|ks|hi)/, '') || '/'} className={`px-1 py-0.5 rounded ${lang === 'en' ? 'font-bold bg-stone-200/80 text-stone-900' : 'text-stone-500'}`}>EN</Link>
+                  <span className="text-stone-300">/</span>
+                  <Link href={`/ur${pathname.replace(/^\/(ur|ks|hi)/, '')}`} className={`px-1 py-0.5 rounded ${lang === 'ur' ? 'font-bold bg-stone-200/80 text-stone-900' : 'text-stone-500'}`}>اردو</Link>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
 
       {/* 2. Master Heraldic Masthead */}
-      <div className="w-full max-w-7xl mx-auto px-3 sm:px-4 py-2.5 flex items-center justify-between gap-2 sm:gap-3">
+      <div className="w-full max-w-7xl 2xl:max-w-[1440px] mx-auto px-3 sm:px-4 md:px-8 py-2.5 flex items-center justify-between gap-2 sm:gap-3">
         {/* Brand Crest & Name */}
         <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
           <Link href={`${langPrefix}/`} className="flex items-center space-x-2 sm:space-x-3 group transition-all min-w-0">
@@ -186,7 +221,7 @@ export function SiteNavbar({
                     alt={navSettings.brand.name || 'KCPJLN'}
                     fill
                     className="object-contain p-0.5 rounded-full"
-                    loading="eager"
+                    decoding="async"
                     sizes="44px"
                   />
                 </div>
@@ -412,158 +447,281 @@ export function SiteNavbar({
       {/* 2b. Five Territorial Corridor Filter Navigation Bar (Daily +1 Shift Rotation) */}
       <nav
         aria-label="Regional Corridors"
-        className="w-full max-w-full border-t border-stone-200/80 px-3 py-1.5 overflow-x-auto no-scrollbar flex items-center space-x-2 text-[11px] font-semibold tracking-wide whitespace-nowrap bg-stone-100/60"
+        className="w-full border-t border-stone-200/80 bg-stone-100/60"
       >
-        <Link
-          href={`${langPrefix}/`}
-          className={`shrink-0 px-2.5 py-1 rounded-full shadow-xs flex items-center space-x-1.5 transition-colors ${
-            !activeRegion
-              ? 'bg-stone-900 text-stone-100'
-              : 'bg-white border border-stone-300 text-stone-700 hover:bg-stone-50'
-          }`}
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-          <span>ALL BUREAUS</span>
-        </Link>
-        {corridors.map((c) => {
-          const isActive = activeRegion === c.id || activeRegion === c.slug;
-          return (
+        <div className="w-full max-w-7xl 2xl:max-w-[1440px] mx-auto px-3 sm:px-4 md:px-8 py-1.5 flex items-center justify-between gap-3">
+          <div className="flex items-center space-x-2 text-[11px] font-semibold tracking-wide whitespace-nowrap overflow-x-auto no-scrollbar py-0.5 min-w-0">
             <Link
-              key={c.id}
-              href={`${langPrefix}/region/${c.slug}`}
-              className={`shrink-0 px-2.5 py-1 rounded-full border transition-colors flex items-center space-x-1.5 ${
-                isActive ? c.activeClass : c.idleClass
+              href={`${langPrefix}/`}
+              className={`shrink-0 px-2.5 py-1 rounded-full shadow-xs flex items-center space-x-1.5 transition-colors ${
+                !activeRegion
+                  ? 'bg-stone-900 text-stone-100'
+                  : 'bg-white border border-stone-300 text-stone-700 hover:bg-stone-50'
               }`}
             >
-              <span className={`w-1.5 h-1.5 rounded-full ${c.dotColor}`}></span>
-              <span>{c.name}</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+              <span>ALL BUREAUS</span>
             </Link>
-          );
-        })}
-      </nav>
+            {corridors.map((c) => {
+              const isActive = activeRegion === c.id || activeRegion === c.slug;
+              return (
+                <Link
+                  key={c.id}
+                  href={`${langPrefix}/region/${c.slug}`}
+                  className={`shrink-0 px-2.5 py-1 rounded-full border transition-colors flex items-center space-x-1.5 ${
+                    isActive ? c.activeClass : c.idleClass
+                  }`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${c.dotColor}`}></span>
+                  <span>{c.name}</span>
+                </Link>
+              );
+            })}
+          </div>
 
-      {/* 3. Mobile Navigation Drawer */}
+          {/* Right Status / Telemetry Link on Desktop to Balance Large Screens */}
+          <div className="hidden lg:flex items-center gap-3 text-[11px] font-mono text-stone-500 shrink-0">
+            <span className="flex items-center gap-1.5 text-stone-600 font-sans font-medium text-[11px]">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>5 Territorial Corridors Active</span>
+            </span>
+            <span className="text-stone-300">|</span>
+            <Link
+              href={`${langPrefix}/transit`}
+              className="hover:text-stone-900 transition flex items-center gap-1 font-sans font-semibold text-stone-700 hover:underline"
+            >
+              <span>Mountain Transit Telemetry</span>
+              <span>&rarr;</span>
+            </Link>
+          </div>
+        </div>
+      </nav>
+      {/* 3. Mobile Navigation Dropdown Menu (Broadsheet Editorial Architecture) */}
       {mobileMenuOpen && (
         <div
-          className={`md:hidden border-t px-4 py-4 space-y-4 max-h-[80vh] overflow-y-auto ${navBg} ${navBorder}`}
+          role="dialog"
+          aria-label="Site Navigation Directory"
+          className="w-full md:hidden border-t border-stone-200 bg-[#FAF8F5] text-stone-900 shadow-xl max-h-[calc(100dvh-120px)] overflow-y-auto px-4 py-4 space-y-4 font-sans"
         >
-          {/* Quick Action Buttons: Live Wire & Map Overview */}
-          <div className="grid grid-cols-2 gap-2">
-            {navSettings.actions.show_latest_wire_badge && (
-              <Link
-                href={`${langPrefix}/latest`}
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl bg-red-600 text-white font-bold text-xs shadow-sm uppercase tracking-wider"
+            {/* 1. Integrated Search Bar */}
+            <form onSubmit={handleMobileSearch} className="relative">
+              <input
+                type="search"
+                value={mobileSearchQuery}
+                onChange={(e) => setMobileSearchQuery(e.target.value)}
+                placeholder="Search dispatches, corridors, archives..."
+                className="w-full bg-white dark:bg-stone-900 text-stone-900 dark:text-stone-100 pl-10 pr-20 py-2.5 rounded-xl border border-stone-300 dark:border-stone-700 text-xs font-sans placeholder-stone-400 focus:outline-hidden focus:ring-2 focus:ring-amber-500/50 shadow-xs"
+              />
+              <svg
+                className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                <span>Wire</span>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <button
+                type="submit"
+                className="absolute right-1.5 top-1/2 -translate-y-1/2 px-2.5 py-1 bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-900 text-[10px] font-bold uppercase tracking-wider rounded-lg hover:bg-stone-800 transition shadow-xs"
+              >
+                Search
+              </button>
+            </form>
+
+            {/* 2. Refined Editorial Actions (Live Wire & Radar Map) */}
+            <div className="grid grid-cols-2 gap-2 font-serif">
+              {navSettings.actions.show_latest_wire_badge && (
+                <Link
+                  href={`${langPrefix}/latest`}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-stone-900 dark:bg-stone-100 text-white dark:text-stone-950 font-bold text-xs shadow-xs border border-stone-900 dark:border-stone-100 hover:opacity-95 transition"
+                >
+                  <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+                  <span className="uppercase tracking-wider">Field Wire</span>
+                </Link>
+              )}
+
+              <Link
+                href={`${langPrefix}/map`}
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl bg-white dark:bg-stone-900 text-stone-800 dark:text-stone-200 font-bold text-xs shadow-xs border border-stone-300 dark:border-stone-700 hover:bg-stone-50 dark:hover:bg-stone-800 transition"
+              >
+                <span>🗺️</span>
+                <span className="uppercase tracking-wider">Interactive Map</span>
               </Link>
-            )}
-
-            <Link
-              href={`${langPrefix}/map`}
-              onClick={() => setMobileMenuOpen(false)}
-              className="flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold text-xs shadow-sm uppercase tracking-wider"
-            >
-              <span>🗺️</span>
-              <span>Map Overview</span>
-            </Link>
-          </div>
-
-          {/* Categories */}
-          <div>
-            <div className={`text-[10px] font-mono uppercase tracking-widest font-bold ${textMuted} mb-2`}>
-              News Categories
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              {visibleNavItems.map((item) => {
-                const isActive = isNavItemActive(item);
-                return (
-                  <Link
-                    key={item.id}
-                    href={getNavItemHref(item)}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`p-2 rounded-lg text-xs font-semibold border ${
-                      isActive
-                        ? `${accentText} font-bold ${subtleBg} border-cyan-500/50`
-                        : `${isDark ? 'border-slate-800 bg-slate-900/60' : 'border-slate-200 bg-slate-50'} text-slate-300 hover:${textPrimary}`
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
 
-          {/* Regional Divisions */}
-          {navSettings.actions.show_regions_dropdown && (
+            {/* 3. News Categories (High-contrast Broadside Grid) */}
             <div>
-              <div className={`text-[10px] font-mono uppercase tracking-widest font-bold ${textMuted} mb-2`}>
-                Regional Divisions
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] font-mono uppercase tracking-widest font-bold text-stone-600">
+                  Editorial Desks &amp; Topics
+                </span>
+                <span className="text-[9px] font-mono text-stone-500">
+                  Select Desk
+                </span>
               </div>
-              <div className="space-y-1.5 font-sans normal-case">
-                {Object.values(REGIONAL_DIVISIONS).map((reg) => {
-                  const icons: Record<string, string> = {
-                    'pir-panjal': '🏔️',
-                    'chenab-valley': '🌊',
-                    'kashmir': '🍁',
-                    'jammu': '🏛️',
-                    'leh': '❄️',
-                  };
-                  const icon = icons[reg.id] || '📍';
+              <div className="grid grid-cols-2 gap-2">
+                {visibleNavItems.map((item) => {
+                  const isActive = isNavItemActive(item);
                   return (
                     <Link
-                      key={reg.id}
-                      href={`${langPrefix}/region/${reg.id}`}
+                      key={item.id}
+                      href={getNavItemHref(item)}
                       onClick={() => setMobileMenuOpen(false)}
-                      className={`flex items-center justify-between p-2.5 rounded-xl text-xs font-medium border transition ${
-                        activeRegion === reg.id
-                          ? `${accentText} font-bold ${subtleBg} border-cyan-500/50`
-                          : `${isDark ? 'border-slate-800 bg-slate-900/40 text-slate-200' : 'border-slate-200 bg-white text-slate-800'}`
+                      className={`p-3 rounded-xl text-xs font-serif font-bold border transition flex items-center justify-between shadow-xs ${
+                        isActive
+                          ? 'bg-stone-900 text-white border-stone-900 shadow-sm'
+                          : 'bg-white text-stone-900 border-stone-300 hover:border-stone-400 hover:bg-stone-50'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5">
-                        <span className="text-base">{icon}</span>
-                        <span className="font-bold">{reg.name}</span>
-                      </div>
-                      <span className="text-[10px] font-mono text-slate-400">
-                        {reg.districts.length} {reg.districts.length === 1 ? 'dist' : 'districts'}
-                      </span>
+                      <span className="truncate">{item.label}</span>
+                      <span className="text-[10px] font-mono opacity-50 shrink-0 ml-1">&rarr;</span>
                     </Link>
                   );
                 })}
               </div>
             </div>
-          )}
 
-          {/* Languages */}
-          {navSettings.languages.enabled && (
-            <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs">
-              <span className={textMuted}>Switch Edition:</span>
-              <div className="flex gap-2 font-mono">
-                {navSettings.languages.en && <Link href="/" className="font-bold text-white hover:underline">English</Link>}
-                {navSettings.languages.ur && (
-                  <>
-                    <span className="text-slate-600">&bull;</span>
-                    <Link href="/ur" className="font-bold text-cyan-400 hover:underline">اردو</Link>
-                  </>
-                )}
-                {navSettings.languages.ks && (
-                  <>
-                    <span className="text-slate-600">&bull;</span>
-                    <Link href="/ks" className="font-bold text-emerald-400 hover:underline">कॉशुर</Link>
-                  </>
-                )}
-                {navSettings.languages.hi && (
-                  <>
-                    <span className="text-slate-600">&bull;</span>
-                    <Link href="/hi" className="font-bold text-amber-400 hover:underline">हिन्दी</Link>
-                  </>
-                )}
+            {/* 4. Territorial Regional Divisions */}
+            {navSettings.actions.show_regions_dropdown && (
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-mono uppercase tracking-widest font-bold text-stone-600">
+                    Regional Divisions &bull; 22 Districts
+                  </span>
+                  <span className="text-[9px] font-mono px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-900">
+                    Active
+                  </span>
+                </div>
+                <div className="space-y-2 font-sans">
+                  {Object.values(REGIONAL_DIVISIONS).map((reg) => {
+                    const icons: Record<string, string> = {
+                      'pir-panjal': '🏔️',
+                      'chenab-valley': '🌊',
+                      'kashmir': '🍁',
+                      'jammu': '🏛️',
+                      'leh': '❄️',
+                    };
+                    const icon = icons[reg.id] || '📍';
+                    const isActive = activeRegion === reg.id;
+                    const districtListPreview = reg.districts
+                      .slice(0, 3)
+                      .map((d) => d.charAt(0).toUpperCase() + d.slice(1))
+                      .join(' • ') + (reg.districts.length > 3 ? ` +${reg.districts.length - 3}` : '');
+
+                    return (
+                      <Link
+                        key={reg.id}
+                        href={`${langPrefix}/region/${reg.id}`}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center justify-between p-3 rounded-xl border transition shadow-xs ${
+                          isActive
+                            ? 'bg-amber-50 border-amber-400 text-amber-950 font-bold'
+                            : 'bg-white text-stone-800 border-stone-300 hover:border-stone-400 hover:bg-stone-50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="text-xl shrink-0">{icon}</span>
+                          <div className="min-w-0">
+                            <span className="font-serif font-bold text-xs text-stone-900 block truncate">
+                              {reg.name}
+                            </span>
+                            <span className="text-[10px] text-stone-600 font-sans block truncate mt-0.5">
+                              {districtListPreview}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-600 shrink-0 ml-2">
+                          {reg.districts.length} {reg.districts.length === 1 ? 'dist' : 'dists'}
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* 5. Transit & Passes Telemetry Card */}
+            <div className="p-3 bg-white rounded-xl border border-stone-300 shadow-xs">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-lg">🏔️</span>
+                  <div>
+                    <span className="font-serif font-bold text-xs text-stone-900 block">
+                      Mountain Passes Telemetry
+                    </span>
+                    <span className="text-[10px] text-stone-600 font-sans block">
+                      Zojila &bull; Peer Ki Gali &bull; Banihal &bull; Sinthan
+                    </span>
+                  </div>
+                </div>
+                <Link
+                  href={`${langPrefix}/transit`}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="text-[11px] font-bold text-amber-800 hover:underline shrink-0 font-sans"
+                >
+                  Live Status &rarr;
+                </Link>
               </div>
             </div>
-          )}
+
+            {/* 6. Edition Switcher (Languages) */}
+            {navSettings.languages.enabled && (
+              <div className="pt-2 border-t border-stone-300">
+                <span className="text-[10px] font-mono uppercase tracking-widest font-bold text-stone-600 block mb-2">
+                  Language Edition / زبان ایڈیشن
+                </span>
+                <div className="grid grid-cols-4 gap-1.5 font-sans">
+                  {navSettings.languages.en && (
+                    <Link
+                      href="/"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="py-2 px-1 text-center rounded-lg border border-stone-300 bg-white font-bold text-xs text-stone-900 hover:bg-stone-100"
+                    >
+                      English
+                    </Link>
+                  )}
+                  {navSettings.languages.ur && (
+                    <Link
+                      href="/ur"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="py-2 px-1 text-center rounded-lg border border-stone-300 bg-white font-bold text-xs text-cyan-700 hover:bg-stone-100"
+                    >
+                      اردو
+                    </Link>
+                  )}
+                  {navSettings.languages.ks && (
+                    <Link
+                      href="/ks"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="py-2 px-1 text-center rounded-lg border border-stone-300 bg-white font-bold text-xs text-emerald-700 hover:bg-stone-100"
+                    >
+                      कॉशुर
+                    </Link>
+                  )}
+                  {navSettings.languages.hi && (
+                    <Link
+                      href="/hi"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="py-2 px-1 text-center rounded-lg border border-stone-300 bg-white font-bold text-xs text-amber-700 hover:bg-stone-100"
+                    >
+                      हिन्दी
+                    </Link>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* 7. Institutional Footer Seal */}
+            <div className="pt-2 pb-6 border-t border-stone-200 text-center font-serif text-[10px] text-stone-600 space-y-1">
+              <p className="font-bold uppercase tracking-wider text-stone-700">
+                KCPJLN Institutional Dispatch
+              </p>
+              <p className="text-[9px] text-stone-600">
+                Independent Field Press of Record &bull; Certified Editorial Standards
+              </p>
+            </div>
         </div>
       )}
     </header>

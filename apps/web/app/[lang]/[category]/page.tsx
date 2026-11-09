@@ -44,6 +44,10 @@ export default async function DynamicCategoryRoute({ params, searchParams }: Dyn
     redirect(`${langPrefix}/category/problems${queryString}`);
   }
 
+  if (rawCat === 'search') {
+    redirect(`${langPrefix}/latest${queryString}`);
+  }
+
   if (isValidCategory(rawCat)) {
     redirect(`${langPrefix}/category/${rawCat}${queryString}`);
   }

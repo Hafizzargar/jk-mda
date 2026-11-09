@@ -116,14 +116,14 @@ export function ImageUploader({
       {/* Hidden input to ensure native form submission captures the image URL */}
       <input type="hidden" name="featured_image_url" value={value} />
 
-      {/* Mode Switcher: Upload from System vs Paste URL */}
+      {/* Mode Switcher: Upload from System vs Paste URL vs No Image */}
       <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => setActiveTab('upload')}
             className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition ${
-              activeTab === 'upload'
+              activeTab === 'upload' && value
                 ? 'bg-cyan-100 text-cyan-900 border border-cyan-300 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/40 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/60'
             }`}
@@ -135,13 +135,25 @@ export function ImageUploader({
             type="button"
             onClick={() => setActiveTab('url')}
             className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition ${
-              activeTab === 'url'
+              activeTab === 'url' && value
                 ? 'bg-cyan-100 text-cyan-900 border border-cyan-300 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/40 shadow-xs'
                 : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800/60'
             }`}
           >
             <span>🔗</span>
             <span>Web Image URL</span>
+          </button>
+          <button
+            type="button"
+            onClick={clearImage}
+            className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition ${
+              !value
+                ? 'bg-rose-100 text-rose-900 border border-rose-300 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/40 shadow-xs font-bold'
+                : 'text-slate-600 hover:text-rose-600 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-rose-300 dark:hover:bg-slate-800/60'
+            }`}
+          >
+            <span>🚫</span>
+            <span>No Image (Text Only)</span>
           </button>
         </div>
 
@@ -155,6 +167,18 @@ export function ImageUploader({
           </button>
         )}
       </div>
+
+      {!value && (
+        <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/70 dark:bg-slate-950/70 p-4 text-center space-y-1">
+          <div className="flex items-center justify-center gap-2 text-slate-800 dark:text-slate-200 font-bold text-xs">
+            <span>📄</span>
+            <span>No Image Required (Text-Only Mode)</span>
+          </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+            This article will publish in broadsheet typography without photos. You can upload an image from your computer or choose a preset anytime.
+          </p>
+        </div>
+      )}
 
       {uploadError && (
         <div className="rounded-lg border border-red-300 dark:border-red-500/40 bg-red-50 dark:bg-red-950/30 p-3 text-xs text-red-700 dark:text-red-300 flex items-center gap-2">

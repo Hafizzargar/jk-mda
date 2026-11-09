@@ -30,7 +30,21 @@ export async function POST(request: Request) {
       serviceClient = auth.service;
     }
 
-    const result = await runYouTubeHourlySync(serviceClient);
+    let force = false;
+    try {
+      const url = new URL(request.url);
+      if (url.searchParams.get('force') === 'true') {
+        force = true;
+      }
+      if (request.headers.get('content-type')?.includes('application/json')) {
+        const body = await request.clone().json().catch(() => ({}));
+        if (body?.force) force = true;
+      }
+    } catch {
+      // safe fallback
+    }
+
+    const result = await runYouTubeHourlySync(serviceClient, { force, autoPublish: true });
     return Response.json(result);
   } catch (err) {
     console.error('Error during YouTube sync route:', err);

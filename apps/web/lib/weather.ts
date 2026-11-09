@@ -61,7 +61,7 @@ export async function getRegionalWeather(): Promise<RegionalStationWeather[]> {
         const res = await fetch(url, {
           next: { revalidate: 300 }, // Cache for 5 minutes
           headers: { 'User-Agent': 'KJIN-Regional-Telemetry/1.0' },
-          signal: AbortSignal.timeout(1200), // Fast 1.2s timeout to avoid blocking page renders
+          signal: AbortSignal.timeout(350), // Ultra-fast 350ms timeout to ensure zero delay to page TTFB
         });
 
         if (!res.ok) {

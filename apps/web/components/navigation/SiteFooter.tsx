@@ -51,7 +51,7 @@ export function SiteFooter({
   if (variant === 'compact') {
     return (
       <footer className={`mt-10 sm:mt-14 ${footerBg} ${footerBorder} font-sans transition-colors duration-200`}>
-        <div className="max-w-7xl mx-auto px-3 sm:px-6 md:px-8 py-8 sm:py-10">
+        <div className="max-w-7xl 2xl:max-w-[1440px] mx-auto px-3 sm:px-6 md:px-8 py-8 sm:py-10">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-6 sm:gap-8 items-start">
             {/* Col 1: Brand & Colophon Accreditation */}
             <div className="md:col-span-5 space-y-2.5">
@@ -176,7 +176,7 @@ export function SiteFooter({
   return (
     <footer className={`mt-14 sm:mt-20 ${footerBg} ${footerBorder} font-sans transition-colors duration-200 w-full`}>
       {/* 1. Main 4-Column Layout */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-6 md:px-8 py-10 sm:py-14">
+      <div className="max-w-7xl 2xl:max-w-[1440px] mx-auto px-3 sm:px-6 md:px-8 py-10 sm:py-14">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-8 lg:gap-10">
           {/* Col 1: Identity & Editorial Mission (4 cols) */}
           <div className="sm:col-span-2 lg:col-span-4 space-y-3 sm:space-y-4">
@@ -410,7 +410,7 @@ export function SiteFooter({
 
       {/* 2. Sub-Footer Bar */}
       <div className={`border-t ${isDark ? 'border-slate-900 bg-black/60' : 'border-slate-300 bg-stone-200/40'} py-6 px-3 sm:px-6 md:px-8`}>
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-center sm:text-left">
+        <div className="max-w-7xl 2xl:max-w-[1440px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-center sm:text-left">
           <div className={textMuted}>
             &copy; {new Date().getFullYear()} {brandName}{brandFullName ? ` (${brandFullName})` : ''}. All editorial rights reserved.
           </div>

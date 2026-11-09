@@ -286,6 +286,12 @@ export function sanitizeNavbarSettings(raw: unknown): NavbarSettings {
 
 import { getCachedSiteSetting } from './site-settings-cache';
 
+export function getNavItemHref(item: { id: string; slug: string }, langPrefix = ''): string {
+  if (item.slug === 'india' || item.id === 'national') return `${langPrefix}/india`;
+  if (item.slug === 'international' || item.id === 'international') return `${langPrefix}/international`;
+  return `${langPrefix}/category/${item.slug}`;
+}
+
 export async function getNavbarSettings(supabase: SupabaseClient): Promise<NavbarSettings> {
   try {
     const value = await getCachedSiteSetting(supabase, 'navbar_settings');

@@ -2,6 +2,29 @@ import { authorizeEmployeeRequest, isEmployeeAuthorization } from '@/lib/employe
 import { generateSlug } from '@/lib/newsroom/gemini-drafter';
 import { getCanonicalCategory } from '@/lib/taxonomy-options';
 
+function cleanEditorialText(text: string): string {
+  if (!text) return '';
+  return text
+    // Remove hashtags
+    .replace(/#[a-zA-Z0-9_\u0900-\u097F]+/g, '')
+    // Remove trailing social blocks and promotional text
+    .replace(/(?:social\s*links|channel\s*link|join\s+.*?channel|follow\s+us|connect\s+with\s+us|subscribe\s+to)[\s\S]*$/gi, '')
+    // Remove inline social media channels, handles, and WhatsApp calls
+    .replace(/(?:facebook|instagram|twitter|telegram|whatsapp)\s*:\s*[^\s.,;]+/gi, '')
+    .replace(/join\s+[^.,;]+\s*(?:whatsapp|telegram)\s*channel/gi, '')
+    .replace(/channel\s*link\s*:\s*/gi, '')
+    .replace(/\*+(?:Independent investigative dispatch|Report synthesized by).*?\*+/gi, '')
+    // Remove markdown links while preserving text
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    // Remove all URLs
+    .replace(/https?:\/\/[^\s]+/gi, '')
+    .replace(/www\.[^\s]+/gi, '')
+    // Remove long dashed dividers
+    .replace(/[-=_~*]{3,}/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 export async function POST(request: Request) {
   try {
     const auth = await authorizeEmployeeRequest(request, 'article.review');
@@ -39,13 +62,8 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Video record not found.' }, { status: 404 });
     }
 
-    const finalTitle = (headline || videoRecord.proposed_headline || videoRecord.title)
-      .replace(/#[a-zA-Z0-9_\u0900-\u097F]+/g, '')
-      .trim();
-    const finalSummary = (summary || videoRecord.proposed_summary || videoRecord.description || '')
-      .replace(/#[a-zA-Z0-9_\u0900-\u097F]+/g, '')
-      .trim()
-      .slice(0, 400);
+    const finalTitle = cleanEditorialText(headline || videoRecord.proposed_headline || videoRecord.title);
+    const finalSummary = cleanEditorialText(summary || videoRecord.proposed_summary || videoRecord.description || '').slice(0, 400);
 
     // Determine 2-way distribution: Scope (Tier 1) + Topic (Tier 2) + District
     const effectiveScope = scope || videoRecord.ai_analysis?.scope || 'National';
@@ -70,19 +88,23 @@ export async function POST(request: Request) {
 
     const rawContent = (body_markdown || videoRecord.ai_analysis?.articleBodyMarkdown || videoRecord.description || '').trim();
 
-    // Ensure 100% link-free and hashtag-free article script
-    const linkFreeContent = rawContent
-      .replace(/#[a-zA-Z0-9_\u0900-\u097F]+/g, '')
-      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-      .replace(/https?:\/\/[^\s]+/g, '')
-      .trim();
+    // Ensure 100% clean, professional article script
+    const linkFreeContent = cleanEditorialText(rawContent);
 
-    // Priority for featured image: explicit choice > AI editorial image > video thumbnail
-    const finalImageUrl =
-      featured_image_url ||
-      videoRecord.ai_analysis?.featured_image_url ||
-      videoRecord.thumbnail_url ||
-      null;
+    // Priority for featured image:
+    // If client explicitly sent featured_image_url (including "" or null to indicate text-only without image), respect it!
+    // Only fall back to video thumbnail/AI image if featured_image_url was omitted (undefined).
+    let finalImageUrl: string | null = null;
+    if (featured_image_url !== undefined) {
+      finalImageUrl = typeof featured_image_url === 'string' && featured_image_url.trim().length > 0
+        ? featured_image_url.trim()
+        : null;
+    } else {
+      finalImageUrl =
+        videoRecord.ai_analysis?.featured_image_url ||
+        videoRecord.thumbnail_url ||
+        null;
+    }
 
     const { data: profileRecord } = await service
       .from('profiles')

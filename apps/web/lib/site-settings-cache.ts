@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 let settingsCache: Map<string, unknown> | null = null;
 let lastSettingsFetchTime = 0;
-const SETTINGS_CACHE_TTL_MS = 60 * 1000; // 60 seconds
+const SETTINGS_CACHE_TTL_MS = 5 * 1000; // 5 seconds for rapid sync with admin settings
 
 /**
  * Universal high-performance cache for public.site_settings.

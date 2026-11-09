@@ -22,7 +22,15 @@ export async function GET() {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
         xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">
-  ${(articles || []).map((article) => `
+  ${(articles || []).map((article) => {
+    let pubDate = new Date().toISOString();
+    try {
+      if (article.published_at) pubDate = new Date(article.published_at).toISOString();
+    } catch {
+      // fallback to current time
+    }
+    const cleanTitle = (article.title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return `
   <url>
     <loc>${SITE_URL}/${article.category.toLowerCase()}/${article.slug}</loc>
     <news:news>
@@ -30,11 +38,11 @@ export async function GET() {
         <news:name>${SITE_NAME.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</news:name>
         <news:language>en</news:language>
       </news:publication>
-      <news:publication_date>${new Date(article.published_at).toISOString()}</news:publication_date>
-      <news:title>${article.title.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</news:title>
+      <news:publication_date>${pubDate}</news:publication_date>
+      <news:title>${cleanTitle}</news:title>
     </news:news>
-  </url>
-  `).join('')}
+  </url>`;
+  }).join('')}
 </urlset>`;
 
   return new NextResponse(xml, {

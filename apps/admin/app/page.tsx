@@ -23,7 +23,7 @@ async function getDashboardData() {
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
 
   try {
-    const [statusResult, articlesResult, totalLogsResult, todayLogsResult] = await Promise.all([
+    const [statusResult, articlesResult, totalLogsResult, todayLogsResult, pendingAiResult] = await Promise.all([
       client.from('articles').select('status'),
       client
         .from('articles')
@@ -37,6 +37,10 @@ async function getDashboardData() {
         .from('article_views_log')
         .select('*', { count: 'exact', head: true })
         .gte('viewed_at', todayStart),
+      client
+        .from('youtube_videos')
+        .select('id, proposed_headline, proposed_category, published_at', { count: 'exact' })
+        .eq('processing_status', 'draft_proposed'),
     ]);
 
     const counts = { draft: 0, review: 0, published: 0, archived: 0 };
@@ -99,7 +103,10 @@ async function getDashboardData() {
       publishedAt: a.published_at,
     }));
 
+    const pendingAiCount = pendingAiResult.count || (pendingAiResult.data?.length ?? 0);
+
     return {
+      pendingAiCount,
       stats: [
         { label: 'Drafts', value: counts.draft },
         { label: 'Pending review', value: counts.review },
@@ -119,6 +126,7 @@ async function getDashboardData() {
   } catch (err) {
     console.error('Error loading dashboard data:', err);
     return {
+      pendingAiCount: 0,
       stats: [
         { label: 'Drafts', value: 0 },
         { label: 'Pending review', value: 0 },
@@ -139,7 +147,7 @@ async function getDashboardData() {
 }
 
 export default async function DashboardPage() {
-  const { stats, viewAnalytics } = await getDashboardData();
+  const { pendingAiCount, stats, viewAnalytics } = await getDashboardData();
 
   return (
     <div className="p-3 sm:p-6 space-y-4 sm:space-y-6 max-w-7xl w-full mx-auto min-w-0">
@@ -154,6 +162,39 @@ export default async function DashboardPage() {
           </p>
         </div>
       </div>
+
+      {/* AI Newsroom Alert Banner — Appears whenever Gemini synthesizes stories awaiting editorial review */}
+      {pendingAiCount > 0 && (
+        <div className="rounded-2xl border border-purple-200 dark:border-purple-800/80 bg-gradient-to-r from-purple-50 via-indigo-50/40 to-white dark:from-purple-950/40 dark:via-slate-900 dark:to-slate-900 p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in">
+          <div className="flex items-start sm:items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center text-xl shrink-0 shadow-md">
+              🤖
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300">
+                  AI Newsroom Surveillance
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300 border border-amber-200 dark:border-amber-700">
+                  Action Required
+                </span>
+              </div>
+              <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white mt-0.5">
+                {pendingAiCount} {pendingAiCount === 1 ? 'Story' : 'Stories'} Synthesized by Gemini 2.5 Flash Awaiting Approval
+              </h3>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                Rewritten from scratch (zero copyright) with 80/10/10 regional weightage. Review and verify to publish live.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/newsroom/youtube"
+            className="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-md hover:shadow-lg transition shrink-0"
+          >
+            Verify &amp; Approve AI Stories →
+          </Link>
+        </div>
+      )}
 
       {/* Metrics Overview Cards — 2x2 Grid on Mobile, 4-col on Desktop */}
       <section className="grid grid-cols-2 gap-2.5 sm:gap-4 xl:grid-cols-4 min-w-0">

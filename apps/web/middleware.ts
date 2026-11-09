@@ -13,6 +13,18 @@ const DEFAULT_LOCALE = 'en';
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Ignore static assets, internal endpoints, .well-known (Chrome devtools), and files with extensions
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/admin') ||
+    pathname.startsWith('/monitoring') ||
+    pathname.startsWith('/.well-known') ||
+    pathname.includes('.')
+  ) {
+    return NextResponse.next();
+  }
+
   // Generate a nonce for the Strict CSP
   const nonce = crypto.randomUUID();
   const cspHeader = buildCspHeader({ nonce });
@@ -27,26 +39,21 @@ export function middleware(request: NextRequest) {
     (locale) => !pathname.startsWith(`/${locale}/`) && pathname !== `/${locale}`
   );
 
-  let response: NextResponse;
-
-  // If missing, rewrite to default locale (en) so URLs remain clean (e.g. /politics -> /en/politics)
+  // If missing, redirect to default locale (en) so the App Router [lang] root layout resolves seamlessly
   if (pathnameIsMissingLocale) {
-    const nextUrl = request.nextUrl.clone();
-    nextUrl.pathname = `/${DEFAULT_LOCALE}${pathname}`;
-    response = NextResponse.rewrite(nextUrl, {
-      request: {
-        headers: requestHeaders,
-      },
-    });
-  } else {
-    response = NextResponse.next({
-      request: {
-        headers: requestHeaders,
-      },
-    });
+    const targetPath = pathname === '/' ? `/${DEFAULT_LOCALE}` : `/${DEFAULT_LOCALE}${pathname}`;
+    const redirectUrl = new URL(targetPath, request.url);
+    redirectUrl.search = request.nextUrl.search;
+    return NextResponse.redirect(redirectUrl);
   }
 
-  // Also attach the CSP to the response headers so the browser enforces it
+  const response = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
+
+  // Attach CSP to the response headers so the browser enforces it
   response.headers.set('Content-Security-Policy', cspHeader);
 
   return response;
@@ -54,7 +61,7 @@ export function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Apply to all paths except Next.js internals, API routes, admin, monitoring, and files with extensions
-    '/((?!_next|api|admin|monitoring|.*\\.).*)',
+    // Apply to all paths except Next.js internals, API routes, admin, monitoring, .well-known, and files with extensions
+    '/((?!_next|api|admin|monitoring|\\.well-known|.*\\.).*)',
   ],
 };

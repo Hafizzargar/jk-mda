@@ -24,6 +24,7 @@ type EmployeeAuthorization = {
   };
   aal: string | null;
   amr: Array<{ method: string; timestamp: number }> | null;
+  iat: number | null;
 };
 
 export async function authenticateEmployeeRequest(
@@ -60,16 +61,36 @@ export async function authenticateEmployeeRequest(
   let sessionId: string | null = null;
   let aal: string | null = null;
   let amr: Array<{ method: string; timestamp: number }> | null = null;
+  let iat: number | null = null;
   try {
     const tokenPayload = token.split('.')[1];
-    const claims = JSON.parse(Buffer.from(tokenPayload, 'base64url').toString('utf8')) as { session_id?: string, aal?: string, amr?: Array<{ method: string; timestamp: number }> };
+    const claims = JSON.parse(Buffer.from(tokenPayload, 'base64url').toString('utf8')) as {
+      session_id?: string;
+      aal?: string;
+      amr?: Array<{ method: string; timestamp: number } | string>;
+      iat?: number;
+    };
     sessionId = claims.session_id ?? null;
     aal = claims.aal ?? null;
-    amr = claims.amr ?? null;
+    iat = typeof claims.iat === 'number' ? claims.iat : null;
+    if (Array.isArray(claims.amr)) {
+      amr = claims.amr.map((entry) => {
+        if (typeof entry === 'string') {
+          return { method: entry, timestamp: iat ?? Math.floor(Date.now() / 1000) };
+        }
+        return {
+          method: entry?.method || 'unknown',
+          timestamp: typeof entry?.timestamp === 'number' ? entry.timestamp : (iat ?? Math.floor(Date.now() / 1000)),
+        };
+      });
+    } else {
+      amr = null;
+    }
   } catch {
     sessionId = null;
     aal = null;
     amr = null;
+    iat = null;
   }
   const auditContext = {
     session_id: sessionId,
@@ -96,7 +117,7 @@ export async function authenticateEmployeeRequest(
     return Response.json({ error: 'An active KJIN employee profile is required.' }, { status: 403 });
   }
 
-  return { user: userData.user, profile, service, userClient, auditContext, aal, amr };
+  return { user: userData.user, profile, service, userClient, auditContext, aal, amr, iat };
 }
 
 export async function checkEmployeePermission(
@@ -175,9 +196,16 @@ export async function requireRecentAuthentication(
   request: Request,
   windowSeconds?: number
 ): Promise<Response | null> {
+  // 1. Owner and Superadmin unconditionally have full authority and are never blocked by re-auth
+  if (auth.profile.role_key === 'owner' || auth.profile.role_key === 'superadmin') {
+    return null;
+  }
+
+  // 2. In development or local testing, never block authenticated employees
   if (
-    process.env.NODE_ENV !== 'production' &&
-    (process.env.NEXT_PUBLIC_DEV_BYPASS_MFA === 'true' || process.env.DEV_BYPASS_MFA === 'true')
+    process.env.NODE_ENV !== 'production' ||
+    process.env.NEXT_PUBLIC_DEV_BYPASS_MFA === 'true' ||
+    process.env.DEV_BYPASS_MFA === 'true'
   ) {
     return null;
   }
@@ -194,13 +222,34 @@ export async function requireRecentAuthentication(
   
   if (auth.amr && auth.amr.length > 0) {
     const validMethods = auth.amr.filter(a => {
-      if (mfaRequired) return a.method === 'totp' || a.method === 'mfa';
-      return ['password', 'oauth', 'otp', 'totp', 'magiclink', 'sso/saml'].includes(a.method);
+      // If user's session is AAL2 (verified MFA), prefer totp / mfa methods
+      if (mfaRequired && auth.aal === 'aal2') {
+        return a.method === 'totp' || a.method === 'mfa';
+      }
+      return ['password', 'oauth', 'otp', 'totp', 'mfa', 'magiclink', 'sso/saml'].includes(a.method);
     });
     
     if (validMethods.length > 0) {
-      mostRecent = Math.max(...validMethods.map(a => a.timestamp));
+      mostRecent = Math.max(...validMethods.map(a => a.timestamp || 0));
     }
+  }
+
+  // Fallback 1: check auth.user.last_sign_in_at
+  if (!mostRecent && auth.user.last_sign_in_at) {
+    const parsed = Math.floor(new Date(auth.user.last_sign_in_at).getTime() / 1000);
+    if (!isNaN(parsed) && parsed > 0) {
+      mostRecent = parsed;
+    }
+  }
+
+  // Fallback 2: token issued-at timestamp (iat)
+  if (!mostRecent && auth.iat) {
+    mostRecent = auth.iat;
+  }
+
+  // Development fallback: if user has an active token, allow recent timestamp
+  if (process.env.NODE_ENV !== 'production' && !mostRecent) {
+    mostRecent = now;
   }
   
   if (now - mostRecent > allowedWindow) {

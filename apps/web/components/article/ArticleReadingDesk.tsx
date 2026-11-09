@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { type TelemetrySettings, DEFAULT_TELEMETRY_SETTINGS } from '@/lib/telemetry';
 import { formatArticleDate } from '@/lib/date';
+import { getOptimizedMediaUrl } from '@/lib/media';
 
 interface ArticleReadingDeskProps {
   article: {
@@ -38,6 +39,15 @@ interface ArticleReadingDeskProps {
     author_display_name?: string | null;
     featured_image_url?: string | null;
   }>;
+  trendingArticles?: Array<{
+    id: string;
+    slug: string;
+    title: string;
+    category: string;
+    district?: string | null;
+    published_at?: string | null;
+    read_time_minutes?: number | null;
+  }>;
   telemetry?: TelemetrySettings;
 }
 
@@ -48,6 +58,7 @@ export function ArticleReadingDesk({
   langPrefix,
   districtName,
   relatedArticles = [],
+  trendingArticles = [],
   telemetry,
 }: ArticleReadingDeskProps) {
   const activeTelemetry = telemetry || DEFAULT_TELEMETRY_SETTINGS;
@@ -98,7 +109,7 @@ export function ArticleReadingDesk({
 
       {/* 2. Breadcrumbs & Classification Strip */}
       <div className="w-full bg-[#f5f3f0] border-b border-slate-300/70 py-2.5 px-4 md:px-8">
-        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 text-xs font-sans">
+        <div className="max-w-7xl 2xl:max-w-[1440px] mx-auto flex flex-wrap items-center justify-between gap-3 text-xs font-sans">
           <nav className="flex items-center space-x-2 text-slate-600">
             <Link href={`${langPrefix}/`} className="hover:text-slate-950 transition-colors">
               Home
@@ -142,7 +153,7 @@ export function ArticleReadingDesk({
       </div>
 
       {/* 3. Main Dual-Column Grid */}
-      <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 w-full">
+      <div className="max-w-7xl 2xl:max-w-[1440px] mx-auto px-4 md:px-8 py-8 w-full">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* ========================================================= */}
           {/* LEFT / CENTER ARTICLE COLUMN (8 cols)                     */}
@@ -193,19 +204,11 @@ export function ArticleReadingDesk({
                 </div>
               </div>
 
-              {/* Reader Action Bar: Audio, Font Scale, Print, Share */}
+              {/* Reader Action Bar: Font Scale, Print, Share (Audio removed for clean simplicity) */}
               <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 text-xs">
-                {/* Audio Dispatch Pill */}
-                <button
-                  onClick={() => setIsPlayingAudio(!isPlayingAudio)}
-                  className="flex items-center space-x-2 bg-[#0F172A] text-white px-3.5 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition shadow-sm"
-                >
-                  <span>{isPlayingAudio ? '⏸ Pause Dispatch' : `▶ Listen (${readTimeMinutes}:12 min)`}</span>
-                </button>
-
-                {/* Controls */}
+                {/* Font Scaling Controls */}
                 <div className="flex items-center space-x-2">
-                  <span className="text-slate-400 text-[11px] uppercase font-bold mr-1">Text:</span>
+                  <span className="text-slate-400 text-[11px] uppercase font-bold mr-1">Text Size:</span>
                   <button
                     onClick={() => setFontScale((prev) => Math.max(-1, prev - 1))}
                     className="w-7 h-7 bg-[#efeeeb] hover:bg-slate-200 rounded-lg font-bold text-slate-800 flex items-center justify-center transition"
@@ -220,7 +223,10 @@ export function ArticleReadingDesk({
                   >
                     A+
                   </button>
-                  <div className="w-px h-4 bg-slate-300 mx-1" />
+                </div>
+
+                {/* Reader Utility Controls */}
+                <div className="flex items-center space-x-2">
                   <button
                     onClick={handlePrint}
                     className="px-2.5 py-1 bg-[#efeeeb] hover:bg-slate-200 rounded-lg text-slate-800 transition flex items-center gap-1"
@@ -258,7 +264,7 @@ export function ArticleReadingDesk({
               <figure className="flex flex-col space-y-1.5">
                 <div className="relative w-full h-[320px] sm:h-[480px] rounded-2xl overflow-hidden bg-slate-900 shadow-md">
                   <Image
-                    src={article.featured_image_url}
+                    src={getOptimizedMediaUrl(article.featured_image_url, 800)}
                     alt={article.title}
                     fill
                     priority
@@ -279,25 +285,6 @@ export function ArticleReadingDesk({
               </figure>
             )}
 
-            {/* Executive Briefing / Strategic Implications Box */}
-            <section className="bg-[#f5f3f0] p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm font-sans">
-              <div className="flex items-center space-x-2 text-[#0891B2] text-xs font-bold uppercase tracking-wider mb-3">
-                <span>📋</span>
-                <span>Executive Briefing: Strategic Implications</span>
-              </div>
-              <ul className="space-y-2 text-xs sm:text-sm text-slate-800 leading-relaxed list-disc list-inside">
-                <li>
-                  <strong className="font-bold text-slate-950">Logistical Transit Compression:</strong> Continuous all-weather connectivity eliminates historical freight bottlenecks and winter delays.
-                </li>
-                <li>
-                  <strong className="font-bold text-slate-950">Horticulture Perishability Hedging:</strong> Direct cold-chain container trains safeguard hundreds of crores in perishable produce across Sopore and Shopian mandis.
-                </li>
-                <li>
-                  <strong className="font-bold text-slate-950">Regional Corridor Synthesis:</strong> Links Reasi, Doda, Kishtwar, and Pir Panjal directly into express trade and civic arteries.
-                </li>
-              </ul>
-            </section>
-
             {/* Article Body Content */}
             <div
               className={`space-y-6 leading-relaxed text-slate-900 ${
@@ -308,68 +295,12 @@ export function ArticleReadingDesk({
                   : fontScale === 2
                   ? 'text-2xl leading-loose'
                   : 'text-lg leading-relaxed'
-              } first-letter:text-5xl first-letter:font-bold first-letter:float-left first-letter:mr-3 first-letter:text-[#0F172A] first-letter:leading-none`}
+              }`}
             >
               <div
-                className="prose max-w-none prose-slate prose-headings:font-serif prose-headings:text-[#0F172A] prose-headings:font-bold prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-p:my-4 prose-p:leading-relaxed prose-blockquote:border-l-4 prose-blockquote:border-[#0891B2] prose-blockquote:bg-[#efeeeb] prose-blockquote:p-4 prose-blockquote:rounded-r-xl prose-blockquote:italic"
+                className="prose max-w-none prose-slate prose-headings:font-serif prose-headings:text-[#0F172A] prose-headings:font-bold prose-h2:text-2xl prose-h2:mt-8 prose-h2:mb-4 prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3 prose-p:my-4 prose-p:leading-relaxed prose-ul:list-disc prose-ul:pl-6 prose-ul:my-4 prose-ol:list-decimal prose-ol:pl-6 prose-ol:my-4 prose-li:my-1.5 prose-strong:font-bold prose-strong:text-slate-900 prose-blockquote:border-l-4 prose-blockquote:border-[#0891B2] prose-blockquote:bg-[#efeeeb] prose-blockquote:p-4 prose-blockquote:rounded-r-xl prose-blockquote:italic"
                 dangerouslySetInnerHTML={{ __html: article.content }}
               />
-            </div>
-
-            {/* Pull Quote Callout Box */}
-            <blockquote className="my-6 p-6 rounded-2xl bg-[#efeeeb] border-l-4 border-[#0891B2] shadow-sm">
-              <p className="text-xl sm:text-2xl font-serif text-[#0F172A] italic leading-snug">
-                “Jammu and Kashmir’s socio-cultural geography was never meant to exist as insulated mountain pockets, but as an interdependent confluence of river corridors, linguistic nuances, and resilient trade.”
-              </p>
-              <footer className="mt-3 text-xs font-sans font-bold text-[#0891B2] uppercase tracking-wider">
-                — {brandFullName} Institutional Charter
-              </footer>
-            </blockquote>
-
-            {/* Route Telemetry Data Table */}
-            <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm overflow-x-auto my-6 font-sans">
-              <div className="text-xs font-bold text-[#0F172A] uppercase tracking-wider mb-3">
-                Route Telemetry: NH-44 Surface Transit vs. USBRL Rail Link
-              </div>
-              <table className="w-full text-left text-xs">
-                <thead>
-                  <tr className="bg-[#efeeeb] text-[#0F172A] font-bold uppercase text-[11px]">
-                    <th className="py-2.5 px-3">Metric Dimension</th>
-                    <th className="py-2.5 px-3">Traditional Highway (NH-44)</th>
-                    <th className="py-2.5 px-3 text-[#0891B2]">All-Weather Rail Link</th>
-                    <th className="py-2.5 px-3 text-[#059669]">Corridor Variance</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  <tr className="hover:bg-slate-50 transition">
-                    <td className="py-2.5 px-3 font-semibold text-slate-900">Transit Duration (Srinagar ⇄ Jammu)</td>
-                    <td className="py-2.5 px-3 text-slate-500">18 to 36 Hours (Weather Bound)</td>
-                    <td className="py-2.5 px-3 font-bold text-[#0891B2]">3.5 to 4.5 Hours</td>
-                    <td className="py-2.5 px-3 font-bold text-[#059669]">−78% Transit Time</td>
-                  </tr>
-                  <tr className="hover:bg-slate-50 transition">
-                    <td className="py-2.5 px-3 font-semibold text-slate-900">Apple Box Freight (Per 16kg Carton)</td>
-                    <td className="py-2.5 px-3 text-slate-500">₹145 – ₹190 (Peak Gouging)</td>
-                    <td className="py-2.5 px-3 font-bold text-[#0891B2]">₹48 – ₹62 (Standard Tariff)</td>
-                    <td className="py-2.5 px-3 font-bold text-[#059669]">−63% Freight Overhead</td>
-                  </tr>
-                  <tr className="hover:bg-slate-50 transition">
-                    <td className="py-2.5 px-3 font-semibold text-slate-900">Annual Winter Shutdown Days</td>
-                    <td className="py-2.5 px-3 text-red-600 font-bold">42 to 68 Days Average</td>
-                    <td className="py-2.5 px-3 font-bold text-[#0891B2]">0 Days (Tunnel Shielded)</td>
-                    <td className="py-2.5 px-3 font-bold text-[#059669]">Zero Cold-Spill Days</td>
-                  </tr>
-                  <tr className="hover:bg-slate-50 transition">
-                    <td className="py-2.5 px-3 font-semibold text-slate-900">Passenger Ticket Price (Chair Car)</td>
-                    <td className="py-2.5 px-3 text-slate-500">₹900 – ₹1,800 (Shared Sumo)</td>
-                    <td className="py-2.5 px-3 font-bold text-[#0891B2]">₹185 – ₹410 (Subsidized)</td>
-                    <td className="py-2.5 px-3 font-bold text-[#059669]">−75% Commuter Cost</td>
-                  </tr>
-                </tbody>
-              </table>
-              <div className="mt-2 text-[11px] text-slate-400">
-                Source: Bureau Telemetry Compilation from Northern Railway Timetable & J&K Traffic Police Gazettes.
-              </div>
             </div>
 
             {/* Tag Cloud */}
@@ -386,18 +317,11 @@ export function ArticleReadingDesk({
                     #{districtName}
                   </span>
                 )}
-                <span className="px-3 py-1 bg-white border border-slate-200 text-slate-800 rounded-lg font-medium">
-                  #AllWeatherTransit
-                </span>
-                <span className="px-3 py-1 bg-white border border-slate-200 text-slate-800 rounded-lg font-medium">
-                  #RegionalEconomy
-                </span>
-                <span className="px-3 py-1 bg-white border border-slate-200 text-slate-800 rounded-lg font-medium">
-                  #ChenabValley
-                </span>
-                <span className="px-3 py-1 bg-white border border-slate-200 text-slate-800 rounded-lg font-medium">
-                  #KashmirValley
-                </span>
+                {article.tags && article.tags.map((t) => (
+                  <span key={t} className="px-3 py-1 bg-white border border-slate-200 text-slate-800 rounded-lg font-medium">
+                    #{t}
+                  </span>
+                ))}
               </div>
             </div>
 
@@ -519,70 +443,112 @@ export function ArticleReadingDesk({
               </div>
 
               <div className="space-y-4">
-                <div className="flex items-start space-x-3">
-                  <span className="font-serif text-2xl font-bold text-slate-300 leading-none w-5">1</span>
-                  <div className="flex-1">
-                    <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-emerald-100 text-emerald-800 mb-1">
-                      Kashmir Valley
-                    </span>
-                    <h4 className="text-xs font-bold text-[#0F172A] leading-snug hover:text-[#0891B2] transition">
-                      Saffron Farmers in Pampore Report 22% Yield Bump Following Micro-Irrigation Adoption
-                    </h4>
-                    <span className="text-[10px] text-slate-400 mt-1 block">5 Min Read</span>
-                  </div>
-                </div>
+                {trendingArticles && trendingArticles.length > 0 ? (
+                  trendingArticles.slice(0, 5).map((item, idx) => (
+                    <Link
+                      key={item.id}
+                      href={`${langPrefix}/${item.category.toLowerCase()}/${item.slug}`}
+                      className="flex items-start space-x-3 group block"
+                    >
+                      <span className="font-serif text-2xl font-bold text-slate-300 group-hover:text-amber-600 transition leading-none w-5 shrink-0">
+                        {idx + 1}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-stone-100 text-stone-700 mb-1 group-hover:bg-amber-100 group-hover:text-amber-900 transition">
+                          {item.district || item.category}
+                        </span>
+                        <h4 className="text-xs font-bold text-[#0F172A] leading-snug group-hover:text-[#0891B2] transition line-clamp-2">
+                          {item.title}
+                        </h4>
+                        <span className="text-[10px] text-slate-400 mt-1 block">
+                          {item.read_time_minutes ? `${item.read_time_minutes} Min Read` : '3 Min Read'}
+                        </span>
+                      </div>
+                    </Link>
+                  ))
+                ) : (
+                  <>
+                    <Link
+                      href={`${langPrefix}/regions/kashmir-valley`}
+                      className="flex items-start space-x-3 group block"
+                    >
+                      <span className="font-serif text-2xl font-bold text-slate-300 group-hover:text-amber-600 transition leading-none w-5 shrink-0">1</span>
+                      <div className="flex-1 min-w-0">
+                        <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-emerald-100 text-emerald-800 mb-1 group-hover:bg-emerald-200 transition">
+                          Kashmir Valley
+                        </span>
+                        <h4 className="text-xs font-bold text-[#0F172A] leading-snug group-hover:text-[#0891B2] transition">
+                          Saffron Farmers in Pampore Report 22% Yield Bump Following Micro-Irrigation Adoption
+                        </h4>
+                        <span className="text-[10px] text-slate-400 mt-1 block">5 Min Read</span>
+                      </div>
+                    </Link>
 
-                <div className="flex items-start space-x-3">
-                  <span className="font-serif text-2xl font-bold text-slate-300 leading-none w-5">2</span>
-                  <div className="flex-1">
-                    <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-amber-100 text-amber-800 mb-1">
-                      Jammu Plains
-                    </span>
-                    <h4 className="text-xs font-bold text-[#0F172A] leading-snug hover:text-[#0891B2] transition">
-                      Narwal Mandi Upgrades Basmati Grading Infrastructure for Middle Eastern Export Hub
-                    </h4>
-                    <span className="text-[10px] text-slate-400 mt-1 block">4 Min Read</span>
-                  </div>
-                </div>
+                    <Link
+                      href={`${langPrefix}/regions/jammu-plains`}
+                      className="flex items-start space-x-3 group block"
+                    >
+                      <span className="font-serif text-2xl font-bold text-slate-300 group-hover:text-amber-600 transition leading-none w-5 shrink-0">2</span>
+                      <div className="flex-1 min-w-0">
+                        <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-amber-100 text-amber-800 mb-1 group-hover:bg-amber-200 transition">
+                          Jammu Plains
+                        </span>
+                        <h4 className="text-xs font-bold text-[#0F172A] leading-snug group-hover:text-[#0891B2] transition">
+                          Narwal Mandi Upgrades Basmati Grading Infrastructure for Middle Eastern Export Hub
+                        </h4>
+                        <span className="text-[10px] text-slate-400 mt-1 block">4 Min Read</span>
+                      </div>
+                    </Link>
 
-                <div className="flex items-start space-x-3">
-                  <span className="font-serif text-2xl font-bold text-slate-300 leading-none w-5">3</span>
-                  <div className="flex-1">
-                    <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-blue-100 text-blue-800 mb-1">
-                      Ladakh
-                    </span>
-                    <h4 className="text-xs font-bold text-[#0F172A] leading-snug hover:text-[#0891B2] transition">
-                      Leh Geothermal Power Plant Tests Reach Operational Depths of 1,000 Meters
-                    </h4>
-                    <span className="text-[10px] text-slate-400 mt-1 block">8 Min Read</span>
-                  </div>
-                </div>
+                    <Link
+                      href={`${langPrefix}/regions/ladakh`}
+                      className="flex items-start space-x-3 group block"
+                    >
+                      <span className="font-serif text-2xl font-bold text-slate-300 group-hover:text-amber-600 transition leading-none w-5 shrink-0">3</span>
+                      <div className="flex-1 min-w-0">
+                        <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-blue-100 text-blue-800 mb-1 group-hover:bg-blue-200 transition">
+                          Ladakh
+                        </span>
+                        <h4 className="text-xs font-bold text-[#0F172A] leading-snug group-hover:text-[#0891B2] transition">
+                          Leh Geothermal Power Plant Tests Reach Operational Depths of 1,000 Meters
+                        </h4>
+                        <span className="text-[10px] text-slate-400 mt-1 block">8 Min Read</span>
+                      </div>
+                    </Link>
 
-                <div className="flex items-start space-x-3">
-                  <span className="font-serif text-2xl font-bold text-slate-300 leading-none w-5">4</span>
-                  <div className="flex-1">
-                    <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-purple-100 text-purple-800 mb-1">
-                      Pir Panjal
-                    </span>
-                    <h4 className="text-xs font-bold text-[#0F172A] leading-snug hover:text-[#0891B2] transition">
-                      Gojri & Pahari Folklore Digitization Archive Completes 500th Oral History Entry
-                    </h4>
-                    <span className="text-[10px] text-slate-400 mt-1 block">6 Min Read</span>
-                  </div>
-                </div>
+                    <Link
+                      href={`${langPrefix}/regions/pir-panjal`}
+                      className="flex items-start space-x-3 group block"
+                    >
+                      <span className="font-serif text-2xl font-bold text-slate-300 group-hover:text-amber-600 transition leading-none w-5 shrink-0">4</span>
+                      <div className="flex-1 min-w-0">
+                        <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-purple-100 text-purple-800 mb-1 group-hover:bg-purple-200 transition">
+                          Pir Panjal
+                        </span>
+                        <h4 className="text-xs font-bold text-[#0F172A] leading-snug group-hover:text-[#0891B2] transition">
+                          Gojri &amp; Pahari Folklore Digitization Archive Completes 500th Oral History Entry
+                        </h4>
+                        <span className="text-[10px] text-slate-400 mt-1 block">6 Min Read</span>
+                      </div>
+                    </Link>
 
-                <div className="flex items-start space-x-3">
-                  <span className="font-serif text-2xl font-bold text-slate-300 leading-none w-5">5</span>
-                  <div className="flex-1">
-                    <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-cyan-100 text-cyan-800 mb-1">
-                      Chenab Valley
-                    </span>
-                    <h4 className="text-xs font-bold text-[#0F172A] leading-snug hover:text-[#0891B2] transition">
-                      Doda High-Altitude Lavender Co-Op Inks Organic Oil Contract with Grasse Perfumers
-                    </h4>
-                    <span className="text-[10px] text-slate-400 mt-1 block">3 Min Read</span>
-                  </div>
-                </div>
+                    <Link
+                      href={`${langPrefix}/regions/chenab-valley`}
+                      className="flex items-start space-x-3 group block"
+                    >
+                      <span className="font-serif text-2xl font-bold text-slate-300 group-hover:text-amber-600 transition leading-none w-5 shrink-0">5</span>
+                      <div className="flex-1 min-w-0">
+                        <span className="inline-block px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-cyan-100 text-cyan-800 mb-1 group-hover:bg-cyan-200 transition">
+                          Chenab Valley
+                        </span>
+                        <h4 className="text-xs font-bold text-[#0F172A] leading-snug group-hover:text-[#0891B2] transition">
+                          Doda High-Altitude Lavender Co-Op Inks Organic Oil Contract with Grasse Perfumers
+                        </h4>
+                        <span className="text-[10px] text-slate-400 mt-1 block">3 Min Read</span>
+                      </div>
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
 
@@ -683,7 +649,7 @@ export function ArticleReadingDesk({
       {/* 4. Pre-Footer: Related Corridor Dossiers & Dispatches */}
       {relatedArticles && relatedArticles.length > 0 && (
         <section className="w-full bg-[#f5f3f0] py-12 px-4 md:px-8 border-t border-slate-300/80 font-sans">
-          <div className="max-w-7xl mx-auto space-y-6">
+          <div className="max-w-7xl 2xl:max-w-[1440px] mx-auto space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 border-b border-slate-300 pb-4">
               <div>
                 <span className="text-xs uppercase font-bold tracking-widest text-slate-500 block">

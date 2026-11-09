@@ -2,9 +2,17 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 
 export type AdThemeAccent = 'gold' | 'emerald' | 'cyan' | 'ruby' | 'indigo';
 
+export type AdSlotType =
+  | 'leaderboard_top'
+  | 'left_rail_sponsor'
+  | 'leaderboard_feed'
+  | 'sidebar_banner'
+  | 'in_article_native';
+
 export interface CustomAdPlacement {
   id: string;
   name: string;
+  slot?: AdSlotType;
   enabled: boolean;
   sponsor_name: string;
   badge_label: string;
@@ -14,6 +22,8 @@ export interface CustomAdPlacement {
   destination_url: string;
   image_url: string | null;
   theme_accent: AdThemeAccent;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface CustomAdsSettings {
@@ -31,20 +41,8 @@ export const DEFAULT_ADS_SETTINGS: CustomAdsSettings = {
   pricing_badge: 'Reach 50,000+ J&K Readers Daily',
   placements: [
     {
-      id: 'leaderboard_top',
-      name: 'Homepage Top Leaderboard (Front Page Header)',
-      enabled: true,
-      sponsor_name: 'Kashmir Artisans & Heritage Guild',
-      badge_label: 'Official Partner',
-      title: 'Authentic Hand-Knotted Silk Carpets & Pashmina Shawls',
-      description: 'Geographical Indication (GI) certified crafts delivered worldwide directly from valley master craftsmen.',
-      cta_text: 'Shop Verified Collection',
-      destination_url: 'https://kashmircrafts.org',
-      image_url: 'https://images.unsplash.com/photo-1600121848594-d8644e57abab?auto=format&fit=crop&w=600&q=80',
-      theme_accent: 'gold',
-    },
-    {
       id: 'sidebar_banner',
+      slot: 'sidebar_banner',
       name: 'Right Rail Sidebar Sponsor (Right Side of Page)',
       enabled: true,
       sponsor_name: 'Valley MedX Diagnostic Laboratories',
@@ -57,7 +55,50 @@ export const DEFAULT_ADS_SETTINGS: CustomAdsSettings = {
       theme_accent: 'emerald',
     },
     {
+      id: 'left_rail_sponsor',
+      slot: 'left_rail_sponsor',
+      name: 'Left Column Broadsheet Sponsor (Below Bureau Wire)',
+      enabled: true,
+      sponsor_name: 'Kashmir Agri-Cold Logistics & Transit',
+      badge_label: 'Commercial Partner',
+      title: 'Direct Cold-Chain Freight & Mandi Transit Corridor',
+      description: 'Zero-delay temperature-controlled freight linking Sopore, Shopian and Narwal directly to national terminal mandis.',
+      cta_text: 'Book Freight Corridor',
+      destination_url: 'https://kjin.org/transit',
+      image_url: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&w=600&q=80',
+      theme_accent: 'gold',
+    },
+    {
+      id: 'leaderboard_top',
+      slot: 'leaderboard_top',
+      name: 'Homepage Top Leaderboard (Front Page Header)',
+      enabled: true,
+      sponsor_name: 'Kashmir Artisans & Heritage Guild',
+      badge_label: 'Official Partner',
+      title: 'Authentic Hand-Knotted Silk Carpets & Pashmina Shawls',
+      description: 'Geographical Indication (GI) certified crafts delivered worldwide directly from valley master craftsmen.',
+      cta_text: 'Shop Verified Collection',
+      destination_url: 'https://kashmircrafts.org',
+      image_url: 'https://images.unsplash.com/photo-1600121848594-d8644e57abab?auto=format&fit=crop&w=600&q=80',
+      theme_accent: 'gold',
+    },
+    {
+      id: 'leaderboard_feed',
+      slot: 'leaderboard_feed',
+      name: 'Mid-Feed Broadsheet Sponsor Banner (Below Stories & Pagination)',
+      enabled: true,
+      sponsor_name: 'Ladakh Clean Energy & Renewable Initiative',
+      badge_label: 'Sustainable J&K',
+      title: 'High-Altitude Solar & Microgrid Power Projects',
+      description: 'Accelerating state subsidies for sub-zero battery storage technology across Leh, Kargil, and Changthang plateau.',
+      cta_text: 'Explore Clean Energy',
+      destination_url: 'https://kjin.org/transit',
+      image_url: 'https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=600&q=80',
+      theme_accent: 'cyan',
+    },
+    {
       id: 'in_article_native',
+      slot: 'in_article_native',
       name: 'In-Article Mid-Reading Sponsor (In Between Paragraphs)',
       enabled: true,
       sponsor_name: 'Gulmarg Alpine Eco-Resorts',
@@ -85,12 +126,31 @@ export async function getCustomAdsSettings(supabase: SupabaseClient): Promise<Cu
     }
 
     const value = data.value as Partial<CustomAdsSettings>;
+    const rawPlacements = Array.isArray(value.placements) ? (value.placements as CustomAdPlacement[]) : null;
+    // If rawPlacements is an array (even if empty []), respect the user's saved list! Never resurrect deleted default ads!
+    const placementsList = rawPlacements !== null ? rawPlacements : DEFAULT_ADS_SETTINGS.placements;
+    const placements = placementsList.map((p) => {
+      let resolvedSlot: AdSlotType = p.slot || 'sidebar_banner';
+      if (!p.slot) {
+        if (p.id.includes('leaderboard_top')) resolvedSlot = 'leaderboard_top';
+        else if (p.id.includes('leaderboard_feed')) resolvedSlot = 'leaderboard_feed';
+        else if (p.id.includes('left_rail')) resolvedSlot = 'left_rail_sponsor';
+        else if (p.id.includes('in_article')) resolvedSlot = 'in_article_native';
+        else if (p.id.includes('sidebar')) resolvedSlot = 'sidebar_banner';
+      }
+      return {
+        ...p,
+        slot: resolvedSlot,
+        enabled: p.enabled !== false,
+      };
+    });
+
     return {
-      monetization_enabled: value.monetization_enabled ?? true,
+      monetization_enabled: value.monetization_enabled === true,
       contact_email_for_ads: value.contact_email_for_ads || DEFAULT_ADS_SETTINGS.contact_email_for_ads,
       contact_phone_for_ads: value.contact_phone_for_ads || DEFAULT_ADS_SETTINGS.contact_phone_for_ads,
       pricing_badge: value.pricing_badge || DEFAULT_ADS_SETTINGS.pricing_badge,
-      placements: Array.isArray(value.placements) ? (value.placements as CustomAdPlacement[]) : DEFAULT_ADS_SETTINGS.placements,
+      placements,
     };
   } catch (e) {
     console.error('Failed to fetch custom ads settings:', e);

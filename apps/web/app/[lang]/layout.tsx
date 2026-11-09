@@ -16,11 +16,21 @@ import { getBrandSettings } from '@/lib/brand';
 import { getCachedSiteSetting } from '@/lib/site-settings-cache';
 
 export async function generateMetadata(): Promise<Metadata> {
-  const supabase = createServerAnonClient();
-  const brand = await getBrandSettings(supabase);
-  const brandName = brand.name || SITE_SHORT_NAME;
-  const brandFullName = brand.full_name || SITE_NAME;
-  const logo = brand.logo_url || '/kcpjln-symbol.webp';
+  let brandName = SITE_SHORT_NAME;
+  let brandFullName = SITE_NAME;
+  let logo = '/kcpjln-symbol.webp';
+  let tagline = 'Independent, verified, multilingual news and information for Jammu and Kashmir.';
+
+  try {
+    const supabase = createServerAnonClient();
+    const brand = await getBrandSettings(supabase);
+    if (brand.name) brandName = brand.name;
+    if (brand.full_name) brandFullName = brand.full_name;
+    if (brand.logo_url) logo = brand.logo_url;
+    if (brand.tagline) tagline = brand.tagline;
+  } catch (err) {
+    console.warn('[RootLayout:generateMetadata] Fallback metadata:', err);
+  }
 
   return {
     metadataBase: new URL(SITE_URL),
@@ -28,7 +38,7 @@ export async function generateMetadata(): Promise<Metadata> {
       default: `${brandFullName} | ${brandName}`,
       template: `%s | ${brandName}`,
     },
-    description: brand.tagline || 'Independent, verified, multilingual news and information for Jammu and Kashmir.',
+    description: tagline,
     robots: {
       index: true,
       follow: true,
@@ -53,13 +63,20 @@ export default async function RootLayout({
   children: React.ReactNode;
   params: Promise<{ lang: string }>;
 }) {
-  const { lang } = await params;
+  const resolvedParams = (await params) || {};
+  const lang = resolvedParams.lang || 'en';
   const dir = lang === 'ur' ? 'rtl' : 'ltr';
 
-  const supabase = createServerAnonClient();
-  const settingValue = await getCachedSiteSetting<{ template_id?: string }>(supabase, 'active_template');
-  const dbTemplateId = settingValue?.template_id as TemplateId | undefined;
-  const activeTemplateId: TemplateId = dbTemplateId || 'classic-editorial';
+  let activeTemplateId: TemplateId = 'classic-editorial';
+  try {
+    const supabase = createServerAnonClient();
+    const settingValue = await getCachedSiteSetting<{ template_id?: string }>(supabase, 'active_template');
+    const dbTemplateId = settingValue?.template_id as TemplateId | undefined;
+    if (dbTemplateId) activeTemplateId = dbTemplateId;
+  } catch (err) {
+    console.warn('[RootLayout] Using fallback template:', err);
+  }
+
   const theme = getTemplateTheme(activeTemplateId);
 
   return (
@@ -74,6 +91,8 @@ export default async function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://images.unsplash.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://images.unsplash.com" />
       </head>
       <body
         suppressHydrationWarning

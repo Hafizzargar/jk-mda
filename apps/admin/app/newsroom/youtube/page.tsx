@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, FormEvent } from 'react';
+import { useState, useEffect, useRef, FormEvent, DragEvent } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
@@ -84,6 +84,9 @@ export default function YouTubeMonitorPage() {
   const itemsPerPage = 8;
   const [feedback, setFeedback] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
+  // Top Stats & Overview Collapsible State (mostly hidden by default to keep news list front and center)
+  const [showStats, setShowStats] = useState(false);
+
   // Add Channel Modal State
   const [showAddModal, setShowAddModal] = useState(false);
   const [addUrl, setAddUrl] = useState('');
@@ -102,10 +105,21 @@ export default function YouTubeMonitorPage() {
   const [editScope, setEditScope] = useState<'Local News (J&K)' | 'National' | 'International'>('National');
   const [editDistrict, setEditDistrict] = useState('');
   const [editBody, setEditBody] = useState('');
+  const [showEditBody, setShowEditBody] = useState(false);
   const [editImage, setEditImage] = useState('');
   const [imageAlternatives, setImageAlternatives] = useState<EditorialImageOption[]>([]);
   const [isSynthesizing, setIsSynthesizing] = useState(false);
   const [isApproving, setIsApproving] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [uploadImageError, setUploadImageError] = useState<string | null>(null);
+  const [isImageDragging, setIsImageDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Quick Multi-Platform Social Ingestion State (Facebook, Instagram, YouTube)
+  const [quickSocialUrl, setQuickSocialUrl] = useState('');
+  const [quickSocialText, setQuickSocialText] = useState('');
+  const [isQuickIngesting, setIsQuickIngesting] = useState(false);
+  const [showQuickIngestBox, setShowQuickIngestBox] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -357,8 +371,71 @@ export default function YouTubeMonitorPage() {
     }
   }
 
+  async function handleQuickSocialIngest(e: React.FormEvent) {
+    e.preventDefault();
+    if (!quickSocialUrl && !quickSocialText) {
+      setFeedback({ text: 'Please enter a Facebook, Instagram, or YouTube URL or paste news text.', type: 'error' });
+      return;
+    }
+    setIsQuickIngesting(true);
+    setFeedback(null);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      const res = await fetch('/api/newsroom/social/ingest', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          url: quickSocialUrl,
+          raw_text: quickSocialText,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to synthesize social post.');
+
+      // Open the synthesized draft directly in the review modal!
+      const mockVideo: any = {
+        id: `social-${Date.now()}`,
+        title: data.draft.headline,
+        description: data.draft.summary,
+        video_url: quickSocialUrl || 'https://kjin.in',
+        published_at: new Date().toISOString(),
+        processing_status: 'draft_proposed',
+        proposed_headline: data.draft.headline,
+        proposed_summary: data.draft.summary,
+        proposed_category: data.draft.category,
+        has_transcript: true,
+        ai_analysis: {
+          ...data.draft,
+          articleBodyMarkdown: data.draft.articleBodyMarkdown,
+        },
+        youtube_sources: {
+          channel_name: `${data.platform.toUpperCase()} Wire`,
+          country: 'India',
+          region: data.draft.division || 'Jammu & Kashmir',
+          category: data.draft.category,
+        },
+      };
+
+      setVideos((prev) => [mockVideo, ...prev]);
+      openReviewModal(mockVideo);
+      setQuickSocialUrl('');
+      setQuickSocialText('');
+      setShowQuickIngestBox(false);
+      setFeedback({ text: `✨ Successfully synthesized ${data.platform.toUpperCase()} news draft! Review and approve below.`, type: 'success' });
+    } catch (err: any) {
+      setFeedback({ text: err.message || 'Error processing social news post.', type: 'error' });
+    } finally {
+      setIsQuickIngesting(false);
+    }
+  }
+
   function openReviewModal(video: YouTubeVideo) {
     setReviewVideo(video);
+    setShowEditBody(false);
 
     // Auto-detect scope (Local News J&K, National, International)
     const rawScope = (video.ai_analysis?.scope as string) || (video.youtube_sources?.region as string) || '';
@@ -393,8 +470,9 @@ export default function YouTubeMonitorPage() {
     // District: ONLY preserved if Local J&K, otherwise empty
     setEditDistrict(scope === 'Local News (J&K)' ? (video.ai_analysis?.district?.toLowerCase() || '') : '');
 
-    // Curate clean editorial news image instead of raw YouTube thumbnail
-    const recommended = getRecommendedEditorialImage(scope, canonical.name);
+    // Curate clean editorial news image with content-aware topic matching (e.g. Doctor, Forest, Aviation)
+    const contextForImage = `${video.proposed_headline || video.title} ${video.proposed_summary || video.description || ''}`;
+    const recommended = getRecommendedEditorialImage(scope, canonical.name, contextForImage);
     setImageAlternatives(recommended.alternatives);
     const initialImage = video.ai_analysis?.featured_image_url || recommended.featuredImage;
     setEditImage(initialImage);
@@ -419,6 +497,52 @@ export default function YouTubeMonitorPage() {
 
     if (hasNonEnglish || hasHashtags || !video.ai_analysis?.articleBodyMarkdown) {
       handleSynthesizeWithAi(video);
+    }
+  }
+
+  async function handleManualImageUpload(file: File) {
+    setUploadImageError(null);
+    if (!file.type.startsWith('image/')) {
+      setUploadImageError('Please select a valid image file (JPG, PNG, WebP, AVIF, GIF).');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadImageError('Image file size exceeds the 10 MB limit.');
+      return;
+    }
+
+    setIsUploadingImage(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to upload image.');
+      }
+
+      if (data.url) {
+        setEditImage(data.url);
+      }
+    } catch (err: unknown) {
+      console.error('Manual image upload error:', err);
+      setUploadImageError(err instanceof Error ? err.message : 'Upload failed. Please try again.');
+    } finally {
+      setIsUploadingImage(false);
     }
   }
 
@@ -500,42 +624,62 @@ export default function YouTubeMonitorPage() {
   const pendingDraftsCount = videos.filter((v) => v.processing_status === 'draft_proposed').length;
 
   return (
-    <div className="space-y-6 sm:space-y-8">
-      {/* Top Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-5">
+    <div className="space-y-3.5 sm:space-y-4">
+      {/* Top Banner - Compact sm layout */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">📺</span>
-            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-              YouTube News Monitoring
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xl">🤖</span>
+            <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+              AI Newsroom &amp; Verification Desk
             </h1>
-            <span className="rounded-full bg-red-100 text-red-800 dark:bg-red-500/20 dark:text-red-300 text-xs font-bold px-2.5 py-0.5 border border-red-200 dark:border-red-500/30">
-              Surveillance Engine
+            <span className="rounded-full bg-purple-100 text-purple-800 dark:bg-purple-500/20 dark:text-purple-300 text-[10px] sm:text-xs font-bold px-2 py-0.5 border border-purple-200 dark:border-purple-500/30">
+              Gemini 2.5 Flash
+            </span>
+            <span className="rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 text-[10px] sm:text-xs font-bold px-2 py-0.5 border border-emerald-200 dark:border-emerald-500/30">
+              80/10/10 Quota Active
             </span>
           </div>
-          <p className="mt-1.5 text-sm text-slate-600 dark:text-slate-400">
-            Monitors world & regional YouTube channels every 60 minutes. Gemini extracts facts and drafts stories for your editorial review.
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            Autonomous multi-platform news surveillance (YouTube, FB, Insta). Gemini drafts original, copyright-free reports for 1-click verification before live broadcast.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => setShowStats(!showStats)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition shadow-2xs"
+            title={showStats ? 'Hide stats and metrics' : 'Expand stats and metrics'}
+          >
+            <span>{showStats ? 'Hide Stats' : 'Overview & Stats'}</span>
+            <svg
+              className={`h-3.5 w-3.5 text-slate-400 transition-transform duration-200 ${showStats ? 'rotate-180' : ''}`}
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
           <Button
             type="button"
             variant="secondary"
-            size="md"
+            size="sm"
             icon="🔄"
             disabled={isSyncing}
             isLoading={isSyncing}
             onClick={handleSyncNow}
             title="Poll active YouTube feeds right now"
           >
-            {isSyncing ? 'Syncing...' : 'Sync Now (60m)'}
+            {isSyncing ? 'Syncing...' : 'Sync (60m)'}
           </Button>
 
           <Button
             type="button"
             variant="primary"
-            size="md"
+            size="sm"
             icon="➕"
             onClick={() => setShowAddModal(true)}
           >
@@ -546,7 +690,7 @@ export default function YouTubeMonitorPage() {
 
       {feedback && (
         <div
-          className={`rounded-xl border p-4 text-sm font-medium flex items-center justify-between ${
+          className={`rounded-xl border p-3 text-xs font-medium flex items-center justify-between ${
             feedback.type === 'success'
               ? 'border-emerald-500/40 bg-emerald-50 text-emerald-900 dark:border-emerald-500/30 dark:bg-emerald-950/40 dark:text-emerald-300'
               : 'border-red-500/40 bg-red-50 text-red-900 dark:border-red-500/30 dark:bg-red-950/40 dark:text-red-300'
@@ -559,55 +703,175 @@ export default function YouTubeMonitorPage() {
         </div>
       )}
 
-      {/* 4 Metric Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-5 shadow-xs">
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            Monitored Sources
-          </p>
-          <p className="mt-2 text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
-            {channels.length}
-          </p>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            {activeChannelsCount} active surveillance channels
-          </p>
+      {/* 4 Metric Cards - Collapsible / Mostly Hidden */}
+      {!showStats ? (
+        <div className="flex items-center justify-between gap-3 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs text-xs">
+          <div className="flex items-center gap-3 sm:gap-4 flex-wrap text-slate-600 dark:text-slate-300">
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-cyan-500 animate-pulse" />
+              <strong className="text-slate-900 dark:text-white font-bold">{channels.length}</strong> Sources
+              <span className="text-[11px] text-slate-400">({activeChannelsCount} active)</span>
+            </span>
+            <span className="text-slate-300 dark:text-slate-700">·</span>
+            <span className="flex items-center gap-1.5">
+              <strong className="text-slate-900 dark:text-white font-bold">{videos.length}</strong> Ingested
+            </span>
+            <span className="text-slate-300 dark:text-slate-700">·</span>
+            <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-semibold">
+              <span className="h-2 w-2 rounded-full bg-amber-500" />
+              <strong>{pendingDraftsCount}</strong> Awaiting Approval
+            </span>
+            <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">·</span>
+            <span className="hidden sm:inline-flex items-center gap-1 font-mono text-[11px] text-emerald-600 dark:text-emerald-400">
+              0 * * * * (Hourly Sync)
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowStats(true)}
+            className="flex items-center gap-1 text-[11px] font-medium text-slate-500 hover:text-cyan-600 dark:hover:text-cyan-400 shrink-0 transition"
+          >
+            <span>Expand Stats</span>
+            <svg className="h-3.5 w-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        </div>
+      ) : (
+        <div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 shadow-2xs">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                Monitored Sources
+              </p>
+              <p className="mt-1 text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
+                {channels.length}
+              </p>
+              <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+                {activeChannelsCount} active surveillance channels
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 shadow-2xs">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400">
+                Discovered Videos
+              </p>
+              <p className="mt-1 text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
+                {videos.length}
+              </p>
+              <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+                Ingested & deduplicated by ID
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 shadow-2xs">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                Proposed Gemini Drafts
+              </p>
+              <p className="mt-1 text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
+                {pendingDraftsCount}
+              </p>
+              <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+                Awaiting editorial approval
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 shadow-2xs">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                Railway Schedule
+              </p>
+              <p className="mt-1 text-base sm:text-lg font-black text-slate-900 dark:text-white font-mono">
+                0 * * * *
+              </p>
+              <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+                Hourly background worker
+              </p>
+            </div>
+          </div>
+          <div className="mt-1 flex justify-end">
+            <button
+              type="button"
+              onClick={() => setShowStats(false)}
+              className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition"
+            >
+              <span>Hide Stats</span>
+              <svg className="h-3 w-3 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Omni-Channel Quick Social Ingestion Bar (Facebook · Instagram · YouTube) - Compact sm */}
+      <div className="rounded-xl border border-cyan-500/30 bg-gradient-to-r from-cyan-950/20 via-slate-900/40 to-purple-950/20 p-2.5 sm:px-3.5 sm:py-2.5 shadow-2xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2">
+            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-500/20 text-sm">
+              📡
+            </span>
+            <div>
+              <h2 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <span>Multi-Platform Social Surveillance</span>
+                <span className="rounded-full bg-cyan-500/20 px-1.5 py-0.2 text-[9px] font-bold text-cyan-400">
+                  FB · Insta · YT
+                </span>
+              </h2>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                Paste any Facebook post, Instagram Reel, or YouTube link to formulate a verified 80/10/10 news draft in seconds.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowQuickIngestBox(!showQuickIngestBox)}
+            className="px-2.5 py-1.5 text-xs font-bold rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white shadow transition shrink-0"
+          >
+            {showQuickIngestBox ? '✕ Close Quick Ingest' : '+ Ingest FB / Insta / YT News'}
+          </button>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-5 shadow-xs">
-          <p className="text-xs font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400">
-            Discovered Videos
-          </p>
-          <p className="mt-2 text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
-            {videos.length}
-          </p>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            Ingested & deduplicated by video ID
-          </p>
-        </div>
+        {showQuickIngestBox && (
+          <form onSubmit={handleQuickSocialIngest} className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+              <div className="sm:col-span-8">
+                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                  Social Post URL (Facebook Page / Instagram Reel / YouTube Video)
+                </label>
+                <input
+                  type="url"
+                  placeholder="e.g. https://www.facebook.com/... or https://www.instagram.com/reel/..."
+                  value={quickSocialUrl}
+                  onChange={(e) => setQuickSocialUrl(e.target.value)}
+                  className="w-full rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-950 px-3 py-2 text-xs text-slate-900 dark:text-white outline-none focus:border-cyan-500"
+                />
+              </div>
+              <div className="sm:col-span-4 flex items-end">
+                <button
+                  type="submit"
+                  disabled={isQuickIngesting}
+                  className="w-full h-[38px] rounded-xl bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 text-white font-bold text-xs shadow-md transition disabled:opacity-50 flex items-center justify-center gap-1.5"
+                >
+                  {isQuickIngesting ? '⏳ Synthesizing with Gemini...' : '✨ Synthesize News Draft'}
+                </button>
+              </div>
+            </div>
 
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-5 shadow-xs">
-          <p className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-            Proposed Gemini Drafts
-          </p>
-          <p className="mt-2 text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
-            {pendingDraftsCount}
-          </p>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            Awaiting editorial approval
-          </p>
-        </div>
-
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 sm:p-5 shadow-xs">
-          <p className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-            Railway Schedule
-          </p>
-          <p className="mt-2 text-xl sm:text-2xl font-black text-slate-900 dark:text-white font-mono">
-            0 * * * *
-          </p>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            Hourly automated background worker
-          </p>
-        </div>
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                Optional: Raw Post Caption / Text (If post is text-only or behind login)
+              </label>
+              <textarea
+                rows={2}
+                placeholder="Paste the caption, press release, or bulletin text here..."
+                value={quickSocialText}
+                onChange={(e) => setQuickSocialText(e.target.value)}
+                className="w-full rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-950 px-3 py-2 text-xs text-slate-900 dark:text-white outline-none focus:border-cyan-500"
+              />
+            </div>
+          </form>
+        )}
       </div>
 
       {/* Tabs */}
@@ -789,11 +1053,17 @@ export default function YouTubeMonitorPage() {
                         </div>
                       </div>
 
-                      {/* KJIN Synthesized Original Story (From Scratch) */}
+                      {/* KJIN Synthesized Original Story (From Scratch by Gemini) */}
                       {video.proposed_headline && (
-                        <div className="mt-2 rounded-xl bg-cyan-950/20 border border-cyan-500/20 p-3 text-xs space-y-1.5">
-                          <div className="flex items-center gap-1.5 font-bold text-cyan-400">
-                            <span>✨ KJIN Original Headline (Formulated from scratch):</span>
+                        <div className="mt-2 rounded-xl bg-purple-950/20 border border-purple-500/30 p-3 text-xs space-y-1.5">
+                          <div className="flex items-center justify-between gap-1.5 font-bold text-purple-700 dark:text-purple-300">
+                            <span className="flex items-center gap-1.5">
+                              <span>🤖</span>
+                              <span>Synthesized by Gemini 2.5 Flash (100% Original English)</span>
+                            </span>
+                            <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-purple-100 text-purple-800 dark:bg-purple-900/60 dark:text-purple-200 border border-purple-200 dark:border-purple-800 font-bold">
+                              Zero Copyright
+                            </span>
                           </div>
                           <p className="font-bold text-sm text-slate-900 dark:text-white">
                             {video.proposed_headline}
@@ -1317,75 +1587,204 @@ export default function YouTubeMonitorPage() {
                 />
               </div>
 
-              {/* Original Script */}
-              <div>
-                <div className="flex items-center justify-between">
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                    Original News Script (Markdown · Zero external links · No hashtags)
-                  </label>
-                  <span className="text-[10px] text-slate-400">
-                    Synthesized journalistic report
+              {/* Full Article Body Script (Hidden by default) */}
+              <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setShowEditBody(!showEditBody)}
+                  className="w-full flex items-center justify-between p-3 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition"
+                >
+                  <span className="flex items-center gap-2">
+                    <span>📝 Full Article Body Script</span>
+                    <span className="text-[10px] text-slate-400 font-normal">
+                      (Optional · Click to {showEditBody ? 'hide' : 'view / edit'})
+                    </span>
                   </span>
-                </div>
-                <textarea
-                  rows={9}
-                  value={editBody}
-                  onChange={(e) => setEditBody(e.target.value)}
-                  className="mt-1 w-full font-mono text-xs rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-950 p-3 text-slate-900 dark:text-white outline-none focus:border-cyan-500"
-                />
+                  <span className="text-xs font-bold text-slate-400">
+                    {showEditBody ? '▲ Hide' : '▼ Show'}
+                  </span>
+                </button>
+
+                {showEditBody && (
+                  <div className="p-3 border-t border-slate-200 dark:border-slate-800 space-y-1 bg-white dark:bg-slate-950">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-slate-400">
+                        Markdown · Zero external links · No hashtags
+                      </span>
+                    </div>
+                    <textarea
+                      rows={7}
+                      value={editBody}
+                      onChange={(e) => setEditBody(e.target.value)}
+                      className="mt-1 w-full font-mono text-xs rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-950 p-3 text-slate-900 dark:text-white outline-none focus:border-cyan-500"
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Featured Article Image Selection */}
               <div className="space-y-2 border-t border-slate-200 dark:border-slate-800 pt-3">
                 <div className="flex items-center justify-between">
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                    Featured Article Image
-                  </label>
-                  <span className="text-[11px] text-cyan-400 font-medium">
-                    Clean editorial photo recommended (no YouTube text overlays)
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+                      Featured Article Image
+                    </label>
+                    {!editImage ? (
+                      <span className="rounded bg-rose-500/20 px-2 py-0.5 text-[10px] font-bold text-rose-300 border border-rose-500/30">
+                        📄 Text-Only Mode (No Image)
+                      </span>
+                    ) : (
+                      <span className="rounded bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-300 border border-emerald-500/30">
+                        ✓ Image Attached
+                      </span>
+                    )}
+                  </div>
+                  {editImage ? (
+                    <button
+                      type="button"
+                      onClick={() => setEditImage('')}
+                      className="text-[11px] text-rose-400 hover:text-rose-300 font-medium hover:underline flex items-center gap-1"
+                      title="Clear image and publish article as text only"
+                    >
+                      <span>✕</span> Remove Image
+                    </button>
+                  ) : (
+                    <span className="text-[11px] text-slate-400 font-medium">
+                      Optional &bull; No image required
+                    </span>
+                  )}
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-3 items-start">
-                  {/* Current Image Preview */}
-                  <div className="relative w-36 h-24 rounded-xl overflow-hidden bg-slate-950 border border-slate-700 shrink-0 shadow-md">
+                  {/* Current Image Preview & Drag/Drop Zone */}
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragOver={(e: DragEvent<HTMLDivElement>) => {
+                      e.preventDefault();
+                      setIsImageDragging(true);
+                    }}
+                    onDragLeave={(e: DragEvent<HTMLDivElement>) => {
+                      e.preventDefault();
+                      setIsImageDragging(false);
+                    }}
+                    onDrop={(e: DragEvent<HTMLDivElement>) => {
+                      e.preventDefault();
+                      setIsImageDragging(false);
+                      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                        handleManualImageUpload(e.dataTransfer.files[0]);
+                      }
+                    }}
+                    className={`relative w-40 h-28 rounded-xl overflow-hidden bg-slate-950 border shrink-0 shadow-md cursor-pointer group transition ${
+                      isImageDragging
+                        ? 'border-emerald-400 ring-2 ring-emerald-400 scale-[1.02]'
+                        : !editImage
+                          ? 'border-dashed border-slate-700 hover:border-slate-500'
+                          : 'border-slate-700 hover:border-emerald-500'
+                    }`}
+                    title="Click or drop a file to upload an image from your computer"
+                  >
                     {editImage ? (
                       <Image
                         src={editImage}
                         alt="Featured preview"
                         fill
-                        className="object-cover"
+                        className="object-cover group-hover:opacity-85 transition"
                         unoptimized
                       />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-xs text-slate-500">
-                        No Image
+                      <div className="w-full h-full flex flex-col items-center justify-center text-xs text-slate-400 p-2 text-center bg-slate-900/90">
+                        <span className="text-xl mb-0.5">📄</span>
+                        <span className="font-bold text-[11px] text-slate-300">No Image</span>
+                        <span className="text-[9.5px] text-cyan-400 mt-0.5 font-medium">Text-Only Dispatch</span>
                       </div>
                     )}
-                    {editImage === reviewVideo.thumbnail_url ? (
-                      <span className="absolute bottom-1 right-1 rounded bg-amber-600/90 px-1 py-0.5 text-[9px] font-semibold text-white">
-                        YouTube Thumbnail
-                      </span>
-                    ) : (
-                      <span className="absolute bottom-1 right-1 rounded bg-cyan-600/90 px-1 py-0.5 text-[9px] font-semibold text-white">
-                        Clean Editorial
-                      </span>
+
+                    {/* Hover upload overlay */}
+                    <div className="absolute inset-0 bg-slate-950/75 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-opacity text-white text-[11px] font-semibold gap-1 z-10 p-2 text-center">
+                      <span>💻 Click to Upload</span>
+                      <span className="text-[9.5px] text-slate-300 font-normal">or drop file from computer</span>
+                    </div>
+
+                    {isUploadingImage && (
+                      <div className="absolute inset-0 bg-slate-950/85 flex flex-col items-center justify-center gap-1.5 z-20">
+                        <div className="w-5 h-5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                        <span className="text-[10px] text-emerald-300 font-bold">Uploading from system...</span>
+                      </div>
                     )}
+
+                    {editImage && !isUploadingImage ? (
+                      editImage.includes('/article-images/') || editImage.includes('supabase.co/storage') ? (
+                        <span className="absolute bottom-1 right-1 rounded bg-emerald-600/95 px-1.5 py-0.5 text-[9px] font-bold text-white shadow-xs z-10">
+                          Uploaded Custom
+                        </span>
+                      ) : editImage === reviewVideo.thumbnail_url ? (
+                        <span className="absolute bottom-1 right-1 rounded bg-amber-600/90 px-1 py-0.5 text-[9px] font-semibold text-white z-10">
+                          YouTube Thumbnail
+                        </span>
+                      ) : (
+                        <span className="absolute bottom-1 right-1 rounded bg-cyan-600/90 px-1 py-0.5 text-[9px] font-semibold text-white z-10">
+                          Clean Editorial
+                        </span>
+                      )
+                    ) : !editImage && !isUploadingImage ? (
+                      <span className="absolute bottom-1 right-1 rounded bg-slate-800/90 border border-slate-700 px-1.5 py-0.5 text-[9px] font-bold text-slate-300 z-10">
+                        No Image
+                      </span>
+                    ) : null}
                   </div>
 
                   {/* Image Options */}
                   <div className="flex-1 space-y-2 text-xs w-full">
-                    <div className="flex flex-wrap gap-2">
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/avif,image/gif"
+                      className="hidden"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          handleManualImageUpload(e.target.files[0]);
+                        }
+                      }}
+                    />
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      {/* Manual Upload Button */}
+                      <button
+                        type="button"
+                        disabled={isUploadingImage}
+                        onClick={() => fileInputRef.current?.click()}
+                        className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition flex items-center gap-1.5 shadow-sm ${
+                          isUploadingImage
+                            ? 'border-emerald-500 bg-emerald-950/40 text-emerald-300 animate-pulse cursor-wait'
+                            : 'border-emerald-500/80 bg-emerald-950/40 text-emerald-300 hover:bg-emerald-900/60 hover:border-emerald-400 ring-1 ring-emerald-500/30'
+                        }`}
+                        title="Upload JPG, PNG, WebP or AVIF image from your system"
+                      >
+                        {isUploadingImage ? (
+                          <>
+                            <span className="w-3 h-3 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin" />
+                            <span>Uploading...</span>
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-3.5 h-3.5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                            </svg>
+                            <span>Upload from Computer</span>
+                          </>
+                        )}
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => {
                           const recommended = getRecommendedEditorialImage(editScope, editCategory);
                           setEditImage(recommended.featuredImage);
                         }}
-                        className={`px-2.5 py-1 rounded-lg border text-xs font-semibold transition ${
-                          editImage && editImage !== reviewVideo.thumbnail_url
-                            ? 'border-cyan-500 bg-cyan-950/40 text-cyan-300'
-                            : 'border-slate-700 text-slate-400 hover:text-white'
+                        className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition ${
+                          editImage && editImage !== reviewVideo.thumbnail_url && !editImage.includes('/article-images/') && !editImage.includes('supabase.co/storage')
+                            ? 'border-cyan-500 bg-cyan-950/40 text-cyan-300 font-bold'
+                            : 'border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800/40'
                         }`}
                       >
                         📸 Clean Editorial Photo
@@ -1394,20 +1793,41 @@ export default function YouTubeMonitorPage() {
                       <button
                         type="button"
                         onClick={() => setEditImage(reviewVideo.thumbnail_url)}
-                        className={`px-2.5 py-1 rounded-lg border text-xs font-semibold transition ${
+                        className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition ${
                           editImage === reviewVideo.thumbnail_url
-                            ? 'border-amber-500 bg-amber-950/40 text-amber-300'
-                            : 'border-slate-700 text-slate-400 hover:text-white'
+                            ? 'border-amber-500 bg-amber-950/40 text-amber-300 font-bold'
+                            : 'border-slate-700 text-slate-400 hover:text-white hover:bg-slate-800/40'
                         }`}
                       >
                         📺 YouTube Thumbnail
                       </button>
+
+                      {/* No Image / Text Only Option */}
+                      <button
+                        type="button"
+                        onClick={() => setEditImage('')}
+                        className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition flex items-center gap-1 ${
+                          !editImage
+                            ? 'border-rose-500 bg-rose-950/60 text-rose-300 font-bold ring-1 ring-rose-500/40 shadow-xs'
+                            : 'border-slate-700 text-slate-400 hover:text-rose-300 hover:bg-slate-800/40'
+                        }`}
+                        title="Publish article without any photo as a text-only report"
+                      >
+                        <span>🚫</span>
+                        <span>No Image (Text Only)</span>
+                      </button>
                     </div>
+
+                    {uploadImageError && (
+                      <p className="text-[11px] text-rose-400 bg-rose-950/30 border border-rose-800/50 rounded-lg px-2.5 py-1 font-medium">
+                        ⚠️ {uploadImageError}
+                      </p>
+                    )}
 
                     {/* Alternative Editorial Photos Gallery */}
                     {imageAlternatives.length > 0 && (
                       <div className="flex items-center gap-2 overflow-x-auto py-1">
-                        <span className="text-[10px] text-slate-400 shrink-0">Gallery:</span>
+                        <span className="text-[10px] text-slate-400 shrink-0 font-semibold">Presets:</span>
                         {imageAlternatives.map((alt, idx) => (
                           <button
                             key={idx}
@@ -1427,10 +1847,10 @@ export default function YouTubeMonitorPage() {
                     {/* Manual URL input fallback */}
                     <input
                       type="url"
-                      placeholder="Or paste custom image HTTPS URL..."
+                      placeholder={!editImage ? "No image assigned (publishing as text only). Or paste image URL to attach..." : "Or paste custom image HTTPS URL directly..."}
                       value={editImage}
                       onChange={(e) => setEditImage(e.target.value)}
-                      className="w-full rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-950 p-2 text-slate-900 dark:text-white text-xs outline-none focus:border-cyan-500"
+                      className="w-full rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-950 p-2 text-slate-900 dark:text-white text-xs outline-none focus:border-cyan-500 placeholder-slate-500"
                     />
                   </div>
                 </div>

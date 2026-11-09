@@ -1259,6 +1259,18 @@ export default function TelemetrySettingsPage() {
       {/* TAB 4: VOICES OF THE CORRIDORS */}
       {activeTab === 'voices' && (
         <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-amber-50 dark:bg-amber-950/40 rounded-xl border border-amber-200 dark:border-amber-800 text-xs">
+            <span className="text-amber-900 dark:text-amber-200">
+              💡 Full control over <strong>Editorial of Record</strong> and adding/reordering <strong>Citizen Voices</strong> is available in the dedicated desk manager.
+            </span>
+            <Link
+              href="/settings/editorial-records"
+              className="font-bold text-amber-800 dark:text-amber-300 hover:underline shrink-0"
+            >
+              Open Voices &amp; Editorial Desk &rarr;
+            </Link>
+          </div>
+
           <div className="flex items-center justify-between">
             <h3 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white">
               Citizen Voices &amp; Field Testimonies

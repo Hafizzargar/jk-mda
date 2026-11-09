@@ -119,27 +119,27 @@ export function Sidebar({
           ],
         },
         {
-          name: 'Event & Gov Monitor',
-          description: 'District events & official government response monitor',
-          href: '/newsroom',
-          icon: '📡',
-          badge: 'Radar',
+          name: 'AI Newsroom & Monitor',
+          description: 'Gemini 2.5 surveillance, automated ingestion & approval queue',
+          href: '/newsroom/youtube',
+          icon: '🤖',
+          badge: 'Gemini AI',
           badgeColor:
-            'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 font-bold',
+            'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-500/20 dark:text-purple-300 font-bold',
           roles: ['owner', 'superadmin', 'admin', 'editor'],
           children: [
+            {
+              name: 'Pending AI Approval',
+              href: '/newsroom/youtube',
+              icon: '🤖',
+              badge: 'Review',
+              badgeColor: 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 font-bold',
+            },
             {
               name: 'Live Monitor',
               href: '/newsroom',
               icon: '📡',
               exact: true,
-            },
-            {
-              name: 'YouTube Monitor',
-              href: '/newsroom/youtube',
-              icon: '📺',
-              badge: 'Surveillance',
-              badgeColor: 'bg-red-100 text-red-800 border-red-200 dark:bg-red-500/20 dark:text-red-300 font-bold',
             },
             {
               name: 'Source Registry',
@@ -212,6 +212,15 @@ export function Sidebar({
           roles: ['owner', 'superadmin', 'admin', 'editor'],
           children: [
             {
+              name: 'Section Drag & Drop Builder',
+              href: '/settings/layout',
+              icon: '🔀',
+              roles: ['owner', 'superadmin', 'admin', 'editor'],
+              badge: 'Drag & Drop',
+              badgeColor:
+                'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/40 font-bold',
+            },
+            {
               name: 'Homepage Curator',
               href: '/settings/curation',
               icon: '📰',
@@ -219,6 +228,15 @@ export function Sidebar({
               badge: 'Curator',
               badgeColor:
                 'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/40 font-bold',
+            },
+            {
+              name: 'Voices & Editorial Desk',
+              href: '/settings/editorial-records',
+              icon: '🗣️',
+              roles: ['owner', 'superadmin', 'admin', 'editor'],
+              badge: 'Live',
+              badgeColor:
+                'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40 font-bold',
             },
             {
               name: 'Brand & Identity',

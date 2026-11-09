@@ -19,6 +19,13 @@ interface AuditNotification {
   };
 }
 
+interface PendingAiDraft {
+  id: string;
+  proposed_headline: string | null;
+  proposed_category: string | null;
+  published_at: string;
+}
+
 interface NotificationBellProps {
   userRole?: string | null;
 }
@@ -26,11 +33,12 @@ interface NotificationBellProps {
 export function NotificationBell({ userRole }: NotificationBellProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [notifications, setNotifications] = useState<AuditNotification[]>([]);
+  const [pendingAiDrafts, setPendingAiDrafts] = useState<PendingAiDraft[]>([]);
   const [hasUnreadAlerts, setHasUnreadAlerts] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const isPrivileged = userRole === 'owner' || userRole === 'superadmin';
+  const isPrivileged = userRole === 'owner' || userRole === 'superadmin' || userRole === 'admin' || userRole === 'editor';
 
   // Fetch recent notifications
   const loadNotifications = useCallback(async () => {
@@ -41,23 +49,36 @@ export function NotificationBell({ userRole }: NotificationBellProps) {
       const token = sessionData?.session?.access_token;
       if (!token) return;
 
+      // 1. Fetch staff activity logs
       const response = await fetch('/api/audit?limit=8&recentOnly=true', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
 
-      if (!response.ok) return;
+      let logs: AuditNotification[] = [];
+      if (response.ok) {
+        const data = await response.json();
+        logs = (data.logs || []) as AuditNotification[];
+        setNotifications(logs);
+      }
 
-      const data = await response.json();
-      const logs = (data.logs || []) as AuditNotification[];
-      setNotifications(logs);
+      // 2. Fetch pending AI news drafts awaiting verification
+      const { data: aiDrafts } = await supabase
+        .from('youtube_videos')
+        .select('id, proposed_headline, proposed_category, published_at')
+        .eq('processing_status', 'draft_proposed')
+        .order('published_at', { ascending: false })
+        .limit(5);
 
-      // Check if any recent logs are blocked attempts or article deletes
-      const hasAlert = logs.some(
+      const aiList = (aiDrafts || []) as PendingAiDraft[];
+      setPendingAiDrafts(aiList);
+
+      // Check if any recent logs are alerts or if AI drafts are pending
+      const hasSecurityAlert = logs.some(
         (l) => l.result === 'denied' || l.action === 'article.delete_attempt_blocked'
       );
-      setHasUnreadAlerts(hasAlert);
+      setHasUnreadAlerts(hasSecurityAlert || aiList.length > 0);
     } catch {
       // Quiet fail on network hiccups
     } finally {
@@ -172,9 +193,8 @@ export function NotificationBell({ userRole }: NotificationBellProps) {
       >
         <span className="text-sm">🔔</span>
         {hasUnreadAlerts && (
-          <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" />
+          <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-amber-500 text-[9px] font-black text-slate-950 shadow-sm">
+            {pendingAiDrafts.length > 0 ? pendingAiDrafts.length : '!'}
           </span>
         )}
       </button>
@@ -182,6 +202,45 @@ export function NotificationBell({ userRole }: NotificationBellProps) {
       {/* Floating Dropdown */}
       {isOpen && (
         <div className="absolute right-0 mt-2 w-80 sm:w-96 rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900 z-50 overflow-hidden animate-in fade-in duration-150">
+          {/* AI Stories Pending Verification Section */}
+          {pendingAiDrafts.length > 0 && (
+            <div className="bg-purple-50/90 dark:bg-purple-950/40 border-b border-purple-200/80 dark:border-purple-800/60 p-3">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[11px] font-bold text-purple-900 dark:text-purple-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>🤖</span>
+                  <span>AI Drafts Waiting Approval ({pendingAiDrafts.length})</span>
+                </span>
+                <Link
+                  href="/newsroom/youtube"
+                  onClick={() => setIsOpen(false)}
+                  className="text-[10px] font-bold text-purple-700 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-200 underline"
+                >
+                  Review All →
+                </Link>
+              </div>
+              <div className="space-y-1.5">
+                {pendingAiDrafts.map((draft) => (
+                  <Link
+                    key={draft.id}
+                    href="/newsroom/youtube"
+                    onClick={() => setIsOpen(false)}
+                    className="block p-2 rounded-lg bg-white dark:bg-slate-900 border border-purple-100 dark:border-purple-900/60 hover:border-purple-300 transition"
+                  >
+                    <p className="text-xs font-semibold text-slate-900 dark:text-slate-100 line-clamp-1 leading-snug">
+                      {draft.proposed_headline || 'Synthesized News Draft'}
+                    </p>
+                    <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 mt-1">
+                      <span className="font-bold text-purple-600 dark:text-purple-400">
+                        {draft.proposed_category || 'General'}
+                      </span>
+                      <span>{formatShortTime(draft.published_at)}</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-4 py-2.5 dark:border-slate-800 dark:bg-slate-950/60">
             <div className="flex items-center gap-1.5">
               <span className="text-sm">🛡️</span>

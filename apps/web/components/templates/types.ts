@@ -7,6 +7,11 @@ import type { TelemetrySettings } from '@/lib/telemetry';
 
 import type { RegionalStationWeather } from '@/lib/weather';
 import type { HomepageCurationSettings } from '@/lib/curation';
+import type { EditorialDeskSettings } from '@/lib/editorial-desk';
+import type { ExternalNewsItem } from '@/lib/external-news';
+import type { HomepageLayoutConfig } from '@/lib/homepage-layout';
+
+export type { ExternalNewsItem, HomepageLayoutConfig };
 
 export interface ArticleItem {
   id: string;
@@ -51,7 +56,14 @@ export interface TemplateProps {
   editorialArticle?: ArticleItem | null;
   subArticles?: ArticleItem[];
   wireArticles?: ArticleItem[];
+  streamArticles?: ArticleItem[];
+  conflictNews?: ExternalNewsItem[];
+  discoverNews?: ExternalNewsItem[];
   problemArticle?: ArticleItem | null;
+  internationalArticle?: ArticleItem | null;
+  internationalArticles?: ArticleItem[];
+  editorialDeskSettings?: EditorialDeskSettings;
+  layoutConfig?: HomepageLayoutConfig;
   scope?: TemplateScope;
 }
 

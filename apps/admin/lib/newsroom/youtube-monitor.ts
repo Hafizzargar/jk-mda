@@ -1,8 +1,10 @@
 import { generateText } from 'ai';
 import { google } from '@ai-sdk/google';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { synthesizeEnglishNewsDraft } from './ai-synthesizer.ts';
+import { synthesizeEnglishNewsDraft, getRecommendedEditorialImage } from './ai-synthesizer.ts';
 import { getCanonicalCategory } from '../taxonomy-options.ts';
+import { sendNewsApprovalAlert } from './email-notifier.ts';
+import { generateSlug } from './gemini-drafter.ts';
 
 export interface YouTubeChannelMeta {
   channelId: string;
@@ -31,6 +33,8 @@ export interface GeminiVideoAnalysis {
   articleBodyMarkdown: string;
   featured_image_url?: string;
   uncertaintyNotes?: string;
+  is_priority_eligible?: boolean;
+  rejection_reason?: string | null;
 }
 
 /**
@@ -208,12 +212,21 @@ export function sanitizeSourceDescription(desc: string | null | undefined): stri
     // Remove all URLs
     .replace(/https?:\/\/[^\s]+/gi, '')
     .replace(/www\.[^\s]+/gi, '')
+    // Strip trailing social blocks and promotional text
+    .replace(/(?:social\s*links|channel\s*link|join\s+.*?channel|follow\s+us|connect\s+with\s+us|subscribe\s+to)[\s\S]*$/gi, '')
+    // Remove inline social media channels, handles, and WhatsApp calls
+    .replace(/(?:facebook|instagram|twitter|telegram|whatsapp)\s*:\s*[^\s.,;]+/gi, '')
+    .replace(/join\s+[^.,;]+\s*(?:whatsapp|telegram)\s*channel/gi, '')
+    .replace(/channel\s*link\s*:\s*/gi, '')
+    .replace(/\*+(?:Independent investigative dispatch|Report synthesized by).*?\*+/gi, '')
     // Remove email addresses
     .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '')
     // Remove phone numbers
     .replace(/(?:\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g, '')
     // Remove social media handles
     .replace(/@[a-zA-Z0-9_.]+/g, '')
+    // Remove long decorative dashes or dividers
+    .replace(/[-=_~*]{3,}/g, ' ')
     // Remove common promotional lines line-by-line
     .split('\n')
     .filter((line) => {
@@ -225,6 +238,7 @@ export function sanitizeSourceDescription(desc: string | null | undefined): stri
       if (lower.includes('like and share') || lower.includes('like, share')) return false;
       if (lower.includes('for business') || lower.includes('copyright disclaimer')) return false;
       if (lower.includes('whatsapp') || lower.includes('instagram') || lower.includes('facebook') || lower.includes('twitter')) return false;
+      if (lower.includes('social links') || lower.includes('channel link')) return false;
       return true;
     })
     .join('\n')
@@ -309,35 +323,61 @@ ${cleanDescription ? cleanDescription.slice(0, 1500) : 'No description provided.
 ${cleanTranscript ? `ACCESSIBLE TRANSCRIPT (EXCERPT):\n${cleanTranscript.slice(0, 3000)}` : 'TRANSCRIPT: Not available. Strictly use verified facts extracted from title/description.'}
 
 EDITORIAL INSTRUCTIONS:
-1. DETERMINE NEWS SCOPE:
-   Classify the news story into exactly ONE of the following 4 scopes:
-   - "International" (World news, global conflicts, foreign policy, foreign elections, multilateral treaties)
-   - "National" (India-wide politics, Supreme Court, Parliament, Union Cabinet, national parties, country-wide policy)
-   - "State (Jammu & Kashmir)" (UT administration, Srinagar, Jammu, J&K governance, High Court of J&K, regional policy)
-   - "Chenab Valley" (Specifically pertains to Doda, Kishtwar, Ramban districts, Chenab river basin, NH-244, mountain passes)
+1. DETERMINE NEWS SCOPE & J&K REGIONAL WEIGHTAGE:
+   KJIN assigns strict sub-regional distribution across Jammu & Kashmir and Ladakh (80% total quota):
+   - "Chenab Valley" (30% Target Weightage): Doda, Kishtwar, Ramban, Bhadarwah, Banihal, Sinthan, Padder, Thathri, NH-244.
+   - "Srinagar" (30% Target Weightage): Srinagar & Kashmir Valley (Dal Lake, Budgam, Ganderbal, Anantnag, Pulwama, Shopian, Kulgam, Baramulla, Kupwara, Bandipora).
+   - "Jammu" (30% Target Weightage): Jammu city, Samba, Kathua, Udhampur, Reasi (Jammu Plains).
+   - "Pir Panjal" (10% Target Weightage): Rajouri, Poonch, Mendhar, Thannamandi, Surankote, Mughal Road.
+   - "Leh & Ladakh" (10% Target Weightage): Leh, Kargil, Zanskar, Drass.
+   Outside regions:
+   - "National" (10% Target Weightage)
+   - "International" (10% Target Weightage)
 
 2. REWRITE THE HEADLINE FROM ZERO:
    - DO NOT copy or translate the YouTube broadcast title directly.
    - Discard all clickbait phrases, exclamation marks, emotional teasers, channel watermarks, and Hindi/Urdu idioms.
    - Formulate an entirely new, objective, high-caliber journalistic news headline in English (AP / Reuters style).
 
-3. WRITE AN ORIGINAL SCRIPT/ARTICLE FROM ZERO:
-   - Write the entire article from scratch ("at new from zero") as an independent KJIN investigative news report.
+3. WRITE AN ORIGINAL JOURNALISTIC REPORT FROM ZERO:
+   - Write the entire article from scratch as an authoritative, independent news dispatch.
+   - EVENT-PROPORTIONAL DEPTH:
+     * Major geopolitical conflicts, wars, political elections, constitutional crises, ministerial shakeups, and major infrastructure milestones: write a comprehensive, in-depth 450-700 word report covering complete background, timelines, direct quotes, political friction, and domestic/international fallout.
+     * Medium-scale developments: write 300-450 words.
+     * Local briefs or routine advisories: write 150-250 words.
+   - 100% FACTUAL EVENT FOCUS: Focus strictly on what happened, who was involved, where it occurred, and why it matters. Do NOT include vague generic filler, boilerplate rhetoric, or hallucinated facts.
    - NEVER copy lines verbatim from the source.
-   - NEVER embed ANY URLs, YouTube links, social media handles, phone numbers, or promotional text.
-   - Organize the article in clear Markdown with the following 4 structured sections:
+   - NEVER embed ANY URLs, YouTube links, social media handles, phone numbers, or promotional calls.
+   - Organize the article in clear Markdown with the following structured sections:
      ### Executive Overview
-     (A crisp 2-3 sentence lead answering Who, What, Where, When, and Why in professional English)
-     ### Background & Regional Context
-     (Explain the broader background, significance within its scope, and historical/political setting)
+     (An authoritative lead answering Who, What, Where, When, and Why in professional English)
+     ### Background & Context
+     (The underlying geopolitical, legislative, or regional context leading to this development)
      ### Key Developments & Statements
-     (The verified facts, official statements, figures, orders, or arguments reported in the broadcast)
-     ### Strategic Implications & Next Steps
-     (What this means for citizens, governance, economy, or policy moving forward)
+     (The verified facts, official statements, key political stances, and developments)
+     ### Strategic Implications & Outlook
+     (What this means for governance, regional stability, or affected citizens moving forward)
 
-4. NO EXTERNAL LINKS:
-   - The article text must NOT contain any external URLs or markdown links.
-   - Conclude cleanly with: "*Report synthesized by KJIN Newsroom from verified broadcast intelligence.*"
+4. CLEAN EDITORIAL FORMATTING (NO METADATA FOOTNOTES):
+   - Do NOT include any external links or URLs.
+   - Do NOT append meta-statements like "Report synthesized by KJIN" or "dispatch synthesized from broadcast intelligence". End the text cleanly with the final journalistic analysis paragraph.
+
+5. STRICT EDITORIAL WEIGHTAGE GATEKEEPER:
+   - Mandate: 80% J&K (Srinagar 30%, Chenab Valley 30%, Jammu 30%, Pir Panjal 10%, Leh 10%) | 10% National | 10% International.
+   - "is_priority_eligible": boolean (true/false)
+   - RULES:
+     * J&K Sub-regions (Chenab Valley, Srinagar, Jammu, Pir Panjal, Leh): ALWAYS true (Core territory priority).
+     * National: True ONLY for high-impact governance (Supreme Court, Union Cabinet, national economy). False for trivial outer state politics.
+     * International (STRICT ZERO-BAKWAS MANDATE):
+       - ALLOWED ONLY (true):
+         1. Major Wars & Geopolitical Conflicts (e.g. Middle East war, Russia-Ukraine, cross-border strikes, missile tests, global defense security).
+         2. Groundbreaking Scientific & Medical Discoveries (e.g. scientists developing new vaccines, disease cures, medical research breakthroughs, WHO epidemic alerts).
+         3. Macro Global Energy / Trade Chokepoints (crude oil supplies, Bab el-Mandeb shipping disruptions).
+       - STRICTLY REJECTED (false):
+         1. NO International Sports (European football, Champions League, Premier League, NBA, tennis, foreign clubs - REJECT).
+         2. NO Pop Culture, Hollywood, Celebrity Gossip, or Royal Family drama (REJECT).
+         3. NO Foreign Local Municipal Affairs or petty foreign domestic crimes (REJECT).
+   - "rejection_reason": string | null (If false, state why e.g. "Outer state local news without J&K or pan-India relevance")
 
 Output your response strictly as valid JSON with keys:
 {
@@ -345,18 +385,20 @@ Output your response strictly as valid JSON with keys:
   "summary": string,
   "category": "Politics" | "National" | "International" | "Local News" | "Economy" | "Investigation" | "Problems" | "Culture" | "Sports" | "Education" | "Opinion" | "General",
   "scope": "International" | "National" | "State (Jammu & Kashmir)" | "Chenab Valley",
-  "division": string,
+  "division": "Srinagar" | "Chenab Valley" | "Jammu" | "Pir Panjal" | "Leh & Ladakh" | "National" | "International",
   "district": string | null,
   "keyFacts": string[],
   "articleBodyMarkdown": string,
-  "uncertaintyNotes": string
+  "uncertaintyNotes": string,
+  "is_priority_eligible": boolean,
+  "rejection_reason": string | null
 }
 `;
 
   if (apiKey) {
     try {
       const response = await generateText({
-        model: google('gemini-1.5-flash'),
+        model: google('gemini-2.5-flash'),
         prompt: contentPrompt,
         temperature: 0.2,
       });
@@ -373,6 +415,10 @@ Output your response strictly as valid JSON with keys:
       const effectiveScope = parsed.scope || detectedScope;
       const canonical = getCanonicalCategory(parsed.category || source.category, effectiveScope);
 
+      // Semantic content-aware image matching (e.g. Doctor, Forest, Aviation, Court)
+      const imageContext = `${parsed.headline || video.title} ${parsed.summary || cleanDescription} ${canonical.name}`;
+      const recommendedImage = getRecommendedEditorialImage(effectiveScope, canonical.name, imageContext);
+
       return {
         headline: (parsed.headline || video.title).trim(),
         summary: (parsed.summary || cleanDescription.slice(0, 200) || video.title).trim(),
@@ -382,7 +428,10 @@ Output your response strictly as valid JSON with keys:
         district: parsed.district || null,
         keyFacts: Array.isArray(parsed.keyFacts) ? parsed.keyFacts : [parsed.headline || video.title],
         articleBodyMarkdown: sanitizedArticleBody,
+        featured_image_url: recommendedImage.featuredImage,
         uncertaintyNotes: parsed.uncertaintyNotes || (transcript ? 'Based on verified transcript translated to English.' : 'Based on broadcast intelligence; verified in English.'),
+        is_priority_eligible: parsed.is_priority_eligible !== false,
+        rejection_reason: parsed.rejection_reason || null,
       };
     } catch (err) {
       console.warn('[Gemini YouTube Analyzer] API call failed, falling back to English news synthesizer:', err);
@@ -413,17 +462,165 @@ Output your response strictly as valid JSON with keys:
   };
 }
 
+function cleanEditorialBroadcastText(text: string): string {
+  if (!text) return '';
+  return text
+    .replace(/#[a-zA-Z0-9_\u0900-\u097F]+/g, '')
+    .replace(/(?:social\s*links|channel\s*link|join\s+.*?channel|follow\s+us|connect\s+with\s+us|subscribe\s+to)[\s\S]*$/gi, '')
+    .replace(/(?:facebook|instagram|twitter|telegram|whatsapp)\s*:\s*[^\s.,;]+/gi, '')
+    .replace(/join\s+[^.,;]+\s*(?:whatsapp|telegram)\s*channel/gi, '')
+    .replace(/channel\s*link\s*:\s*/gi, '')
+    .replace(/\*+(?:Independent investigative dispatch|Report synthesized by).*?\*+/gi, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/https?:\/\/[^\s]+/gi, '')
+    .replace(/www\.[^\s]+/gi, '')
+    .replace(/[-=_~*]{3,}/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+async function autoPublishEligibleDraft(
+  service: SupabaseClient,
+  videoRecordId: string,
+  video: { title: string; videoUrl: string; thumbnailUrl: string; description: string },
+  channel: { channel_name: string },
+  analysis: GeminiVideoAnalysis
+): Promise<string | null> {
+  try {
+    const { data: authors } = await service
+      .from('profiles')
+      .select('id, display_name, role')
+      .limit(1);
+
+    const authorProfile = authors?.[0] || null;
+    const authorId = authorProfile?.id || null;
+    if (!authorId || !authorProfile) {
+      console.warn('[AutoPublish] No author profile found in public.profiles, draft saved for manual review.');
+      return null;
+    }
+
+    const cleanTitle = cleanEditorialBroadcastText(analysis.headline || video.title).slice(0, 250);
+    const cleanSummary = cleanEditorialBroadcastText(analysis.summary || video.description || '').slice(0, 400);
+    const cleanContent = cleanEditorialBroadcastText(analysis.articleBodyMarkdown || video.description || '').trim();
+
+    const effectiveScope = analysis.scope || 'National';
+    const isLocalScope = effectiveScope.includes('Local') || effectiveScope.includes('State') || effectiveScope.includes('Jammu') || effectiveScope.includes('Chenab');
+    let canonicalCat: { name: string; slug: string };
+    if (!isLocalScope && (effectiveScope === 'International' || analysis.category === 'International')) {
+      canonicalCat = { name: 'International', slug: 'international' };
+    } else if (!isLocalScope && (effectiveScope === 'National' || analysis.category === 'National')) {
+      canonicalCat = { name: 'National', slug: 'national' };
+    } else {
+      canonicalCat = getCanonicalCategory(analysis.category, 'Local News (J&K)');
+    }
+
+    const { data: catRecord } = await service
+      .from('categories')
+      .select('id')
+      .eq('slug', canonicalCat.slug)
+      .maybeSingle();
+
+    const baseSlug = generateSlug(cleanTitle);
+    const finalSlug = `${baseSlug || 'news-report'}-${Date.now().toString(36).slice(-4)}`;
+    const authorName = authorProfile.display_name || 'KJIN Newsroom';
+    const finalDistrict = isLocalScope ? (analysis.district || null) : null;
+    const finalImageUrl = analysis.featured_image_url || video.thumbnailUrl || null;
+
+    // Step 1: Insert article as draft (enforced by DB trigger)
+    const { data: newArticle, error: articleErr } = await service
+      .from('articles')
+      .insert({
+        title: cleanTitle,
+        slug: finalSlug,
+        excerpt: cleanSummary,
+        content: cleanContent,
+        category: canonicalCat.name,
+        category_id: catRecord?.id || null,
+        district: finalDistrict,
+        status: 'draft',
+        author_id: authorId,
+        author_display_name: authorName,
+        source_name: channel.channel_name || 'Broadcast Surveillance',
+        source_url: video.videoUrl,
+        featured_image_url: finalImageUrl,
+      })
+      .select()
+      .single();
+
+    if (articleErr || !newArticle) {
+      console.error('[AutoPublish] Error creating draft article:', articleErr);
+      return null;
+    }
+
+    // Step 2: Transition draft -> review
+    await service
+      .from('articles')
+      .update({ status: 'review', updated_at: new Date().toISOString() })
+      .eq('id', newArticle.id);
+
+    // Step 3: Transition review -> published
+    const nowIso = new Date().toISOString();
+    const { error: publishErr } = await service
+      .from('articles')
+      .update({
+        status: 'published',
+        published_at: nowIso,
+        published_by: authorId,
+        updated_at: nowIso,
+      })
+      .eq('id', newArticle.id);
+
+    if (publishErr) {
+      console.error('[AutoPublish] Error publishing article:', publishErr);
+      return null;
+    }
+
+    // Step 4: Record article version
+    await service.from('article_versions').insert({
+      article_id: newArticle.id,
+      version_number: 1,
+      title: cleanTitle,
+      excerpt: cleanSummary,
+      content: cleanContent,
+      edited_by: authorId,
+    });
+
+    // Step 5: Update youtube_videos record
+    await service
+      .from('youtube_videos')
+      .update({
+        processing_status: 'approved',
+        article_id: newArticle.id,
+        updated_at: nowIso,
+      })
+      .eq('id', videoRecordId);
+
+    console.log(`[AutoPublish] Successfully auto-published: "${cleanTitle}" (ID: ${newArticle.id})`);
+    return newArticle.id;
+  } catch (err) {
+    console.error('[AutoPublish] Unexpected error publishing draft:', err);
+    return null;
+  }
+}
+
 /**
  * Executes the scheduled sync job: checks active channels, inserts new videos, runs Gemini analysis,
- * and maintains job locks to prevent overlapping runs.
+ * auto-publishes high-confidence dispatches, and maintains resilient job locks.
  */
-export async function runYouTubeHourlySync(service: SupabaseClient) {
-  const workerId = `railway-worker-${Date.now()}`;
+export async function runYouTubeHourlySync(
+  service: SupabaseClient,
+  options?: { force?: boolean; autoPublish?: boolean }
+) {
+  const workerId = `worker-${Date.now()}`;
   const now = new Date();
-  const tenMinutesAgo = new Date(now.getTime() - 10 * 60 * 1000).toISOString();
+  const threeMinutesAgo = new Date(now.getTime() - 3 * 60 * 1000).toISOString();
 
-  // 1. Acquire job lock with stale lock reclamation (>10 mins)
-  await service.from('youtube_worker_locks').delete().lt('locked_at', tenMinutesAgo);
+  // 1. Acquire job lock with stale lock reclamation (>3 mins or forced)
+  if (options?.force) {
+    await service.from('youtube_worker_locks').delete().eq('lock_name', 'youtube_hourly_sync');
+  } else {
+    await service.from('youtube_worker_locks').delete().lt('locked_at', threeMinutesAgo);
+  }
 
   const { error: lockErr } = await service.from('youtube_worker_locks').insert({
     lock_name: 'youtube_hourly_sync',
@@ -432,17 +629,37 @@ export async function runYouTubeHourlySync(service: SupabaseClient) {
   });
 
   if (lockErr) {
-    return {
-      success: false,
-      skipped: true,
-      reason: 'Another sync job is currently running.',
-    };
+    // Check if current lock is stale
+    const { data: currentLock } = await service
+      .from('youtube_worker_locks')
+      .select('locked_at')
+      .eq('lock_name', 'youtube_hourly_sync')
+      .maybeSingle();
+
+    const lockAgeMs = currentLock?.locked_at ? now.getTime() - new Date(currentLock.locked_at).getTime() : 0;
+    if (lockAgeMs > 3 * 60 * 1000 || !currentLock) {
+      await service.from('youtube_worker_locks').delete().eq('lock_name', 'youtube_hourly_sync');
+      await service.from('youtube_worker_locks').insert({
+        lock_name: 'youtube_hourly_sync',
+        locked_at: now.toISOString(),
+        locked_by: workerId,
+      });
+    } else {
+      return {
+        success: false,
+        skipped: true,
+        reason: 'Another sync job is currently running.',
+      };
+    }
   }
+
+  const isAutoPublish = options?.autoPublish ?? true;
 
   const syncResults = {
     channelsChecked: 0,
     newVideosFound: 0,
     draftsProposed: 0,
+    articlesPublished: 0,
     errors: [] as string[],
   };
 
@@ -512,19 +729,53 @@ export async function runYouTubeHourlySync(service: SupabaseClient) {
           try {
             const analysis = await analyzeVideoWithGemini(video, channel, transcript);
 
+            // Enforce 80% J&K / 10% National / 10% International mandate
+            const isEligible = analysis.is_priority_eligible !== false;
+            const targetStatus = isEligible ? 'draft_proposed' : 'rejected';
+
             await service
               .from('youtube_videos')
               .update({
-                processing_status: 'draft_proposed',
+                processing_status: targetStatus,
                 proposed_headline: analysis.headline,
                 proposed_summary: analysis.summary,
                 proposed_category: analysis.category,
                 ai_analysis: analysis,
+                last_error: isEligible ? null : (analysis.rejection_reason || 'Filtered out by 80/10/10 regional weightage mandate'),
                 updated_at: new Date().toISOString(),
               })
               .eq('id', insertedVideo.id);
 
-            syncResults.draftsProposed += 1;
+            if (isEligible) {
+              syncResults.draftsProposed += 1;
+
+              // Automatic News Generation: directly publish to broadsheet feed
+              if (isAutoPublish) {
+                const pubId = await autoPublishEligibleDraft(
+                  service,
+                  insertedVideo.id,
+                  video,
+                  channel,
+                  analysis
+                );
+                if (pubId) {
+                  syncResults.articlesPublished += 1;
+                }
+              }
+
+              // Dispatch instant email alert to editor to verify & approve on dashboard
+              sendNewsApprovalAlert({
+                headline: analysis.headline,
+                summary: analysis.summary,
+                category: analysis.category,
+                scope: analysis.scope || 'State (Jammu & Kashmir)',
+                division: analysis.division || 'Jammu & Kashmir',
+                district: analysis.district,
+                platform: 'YouTube Broadcast',
+                sourceName: channel.channel_name,
+                sourceUrl: video.videoUrl,
+              }).catch((mailErr) => console.warn('[YouTube Worker] Non-blocking email alert warning:', mailErr));
+            }
           } catch (analysisErr) {
             console.error(`Gemini analysis error for ${video.videoId}:`, analysisErr);
             await service
@@ -561,6 +812,37 @@ export async function runYouTubeHourlySync(service: SupabaseClient) {
             updated_at: new Date().toISOString(),
           })
           .eq('id', channel.id);
+      }
+    }
+
+    // Auto-publish any existing eligible draft backlogs
+    if (isAutoPublish) {
+      const { data: backloggedDrafts } = await service
+        .from('youtube_videos')
+        .select('*, youtube_sources(channel_name)')
+        .eq('processing_status', 'draft_proposed')
+        .limit(5);
+
+      if (backloggedDrafts && backloggedDrafts.length > 0) {
+        for (const draft of backloggedDrafts) {
+          if (draft.ai_analysis) {
+            const pubId = await autoPublishEligibleDraft(
+              service,
+              draft.id,
+              {
+                title: draft.title,
+                videoUrl: draft.video_url,
+                thumbnailUrl: draft.thumbnail_url,
+                description: draft.description,
+              },
+              { channel_name: draft.youtube_sources?.channel_name || 'Broadcast News' },
+              draft.ai_analysis
+            );
+            if (pubId) {
+              syncResults.articlesPublished += 1;
+            }
+          }
+        }
       }
     }
 

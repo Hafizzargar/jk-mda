@@ -1,7 +1,7 @@
 import { authenticateEmployeeRequest, isEmployeeAuthorization, requireRecentAuthentication } from '@/lib/employee-server';
 import { DEFAULT_ADS_SETTINGS, type CustomAdsSettings } from '@/lib/ads';
 
-const ALLOWED_ROLES = ['owner', 'superadmin'];
+const ALLOWED_ROLES = ['owner', 'superadmin', 'admin', 'editor'];
 
 export async function GET(request: Request) {
   const authorization = await authenticateEmployeeRequest(request);
@@ -18,14 +18,14 @@ export async function GET(request: Request) {
   }
 
   const rawValue = settingRow?.value as Partial<CustomAdsSettings> | null;
+  const dbPlacements = Array.isArray(rawValue?.placements) ? (rawValue.placements as CustomAdsSettings['placements']) : null;
+
   const adsSettings: CustomAdsSettings = {
     monetization_enabled: rawValue?.monetization_enabled ?? DEFAULT_ADS_SETTINGS.monetization_enabled,
     contact_email_for_ads: rawValue?.contact_email_for_ads || DEFAULT_ADS_SETTINGS.contact_email_for_ads,
     contact_phone_for_ads: rawValue?.contact_phone_for_ads || DEFAULT_ADS_SETTINGS.contact_phone_for_ads,
     pricing_badge: rawValue?.pricing_badge || DEFAULT_ADS_SETTINGS.pricing_badge,
-    placements: Array.isArray(rawValue?.placements) && rawValue.placements.length > 0
-      ? rawValue.placements
-      : DEFAULT_ADS_SETTINGS.placements,
+    placements: dbPlacements !== null ? dbPlacements : DEFAULT_ADS_SETTINGS.placements,
   };
 
   return Response.json({
@@ -61,9 +61,7 @@ export async function POST(request: Request) {
     contact_email_for_ads: body.contact_email_for_ads?.trim() || DEFAULT_ADS_SETTINGS.contact_email_for_ads,
     contact_phone_for_ads: body.contact_phone_for_ads?.trim() || DEFAULT_ADS_SETTINGS.contact_phone_for_ads,
     pricing_badge: body.pricing_badge?.trim() || DEFAULT_ADS_SETTINGS.pricing_badge,
-    placements: Array.isArray(body.placements) && body.placements.length > 0
-      ? body.placements
-      : DEFAULT_ADS_SETTINGS.placements,
+    placements: Array.isArray(body.placements) ? body.placements : [],
   };
 
   // Upsert into site_settings using service role client to avoid RLS permission issues on roles table
