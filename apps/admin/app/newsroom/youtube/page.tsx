@@ -847,9 +847,6 @@ export default function YouTubeMonitorPage() {
               {autoPilot ? `Autonomous Radar: Active (${formatCountdownTime(countdown)})` : 'Autonomous Radar: Paused'}
             </button>
           </div>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            Independently researches breaking news across Google News, local newspapers (Daily Excelsior, Greater Kashmir, etc.), PIB, official disaster portals and global wires. No channel list required.
-          </p>
         </div>
 
         <div className="flex items-center gap-2 shrink-0 flex-wrap">
@@ -928,10 +925,7 @@ export default function YouTubeMonitorPage() {
                 100% Pending Approval (0 Auto-Publish)
               </span>
             </div>
-            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed max-w-3xl">
-              Independently monitors developing public stories across <strong>Chenab Valley</strong> (Doda, Kishtwar, Ramban), <strong>Jammu</strong>, <strong>Kashmir</strong>, <strong>Leh/Ladakh</strong>, <strong>Pir Panjal</strong>, and National/World wires. Dynamically prioritizes underrepresented beats without forcing artificial coverage.
-            </p>
-            <div className="flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400 pt-0.5 flex-wrap">
+            <div className="flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400 pt-1 flex-wrap">
               <span className="inline-flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 px-2.5 py-0.5 rounded-md font-semibold border border-emerald-200 dark:border-emerald-800/40">
                 📰 Today Published News: <strong className="text-emerald-900 dark:text-emerald-200 ml-0.5">{discoveryStats?.publishedToday ?? 0}</strong> stories
               </span>
@@ -942,29 +936,6 @@ export default function YouTubeMonitorPage() {
               <span>•</span>
               <span>⛰️ Regional Coverage: <strong>{discoveryStats?.regionalCount ?? 0} stories ({discoveryStats?.regionalSharePercent ?? 65}% of minimum)</strong></span>
             </div>
-          </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <Button
-              type="button"
-              variant="primary"
-              size="sm"
-              icon="🔍"
-              disabled={isDiscovering}
-              isLoading={isDiscovering}
-              onClick={handleDiscoverNow}
-              className="bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-xs cursor-pointer"
-              title="Trigger real-time Google Search news discovery across underrepresented beats right now"
-            >
-              {isDiscovering ? 'Discovering Breaking News...' : 'Discover News Now'}
-            </Button>
-            <Link
-              href="/articles?status=review"
-              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition shadow-2xs"
-            >
-              <span>⏳</span>
-              <span>Pending Approval</span>
-            </Link>
           </div>
         </div>
 
