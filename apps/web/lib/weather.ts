@@ -4,10 +4,13 @@
  */
 
 export interface RegionalStationWeather {
-  station_id: 'srinagar' | 'jammu' | 'doda' | 'poonch' | 'leh';
+  station_id: 'srinagar' | 'jammu' | 'doda' | 'ramban' | 'kishtwar' | 'poonch' | 'rajouri' | 'leh' | 'kargil' | string;
   name: string;
+  district?: string;
+  districtSlug?: string;
   region: string;
   elevation: string;
+  coordinates?: string;
   temp_c: number;
   wind_kph: number;
   weather_desc: string;
@@ -15,20 +18,126 @@ export interface RegionalStationWeather {
   status: 'optimal' | 'moderate' | 'harsh';
 }
 
-const REGIONAL_STATIONS: {
+export const REGIONAL_STATIONS: {
   id: RegionalStationWeather['station_id'];
   name: string;
+  district: string;
+  districtSlug: string;
   region: string;
   lat: number;
   lon: number;
   elevation: string;
+  coordinates: string;
   fallbackTemp: number;
 }[] = [
-  { id: 'srinagar', name: 'Srinagar Station', region: 'Kashmir Valley', lat: 34.08, lon: 74.80, elevation: '1,585m', fallbackTemp: 14.5 },
-  { id: 'jammu', name: 'Jammu Tawi Observatory', region: 'Jammu Plains', lat: 32.73, lon: 74.86, elevation: '327m', fallbackTemp: 24.2 },
-  { id: 'doda', name: 'Kishtwar / Doda Gorge', region: 'Chenab Valley', lat: 33.14, lon: 75.77, elevation: '1,638m', fallbackTemp: 12.0 },
-  { id: 'poonch', name: 'Pir Panjal Foothills', region: 'Pir Panjal', lat: 33.77, lon: 74.09, elevation: '1,021m', fallbackTemp: 16.0 },
-  { id: 'leh', name: 'Leh Plateau Station', region: 'Leh & Ladakh', lat: 34.15, lon: 77.58, elevation: '3,524m', fallbackTemp: -1.5 },
+  {
+    id: 'srinagar',
+    name: 'Srinagar Central Station',
+    district: 'Srinagar',
+    districtSlug: 'srinagar',
+    region: 'Kashmir Valley',
+    lat: 34.08,
+    lon: 74.80,
+    elevation: '1,585m',
+    coordinates: '34.0837° N, 74.7973° E',
+    fallbackTemp: 14.5,
+  },
+  {
+    id: 'doda',
+    name: 'Doda Chenab Gorge Hub',
+    district: 'Doda',
+    districtSlug: 'doda',
+    region: 'Chenab Valley',
+    lat: 33.14,
+    lon: 75.54,
+    elevation: '1,107m',
+    coordinates: '33.1448° N, 75.5458° E',
+    fallbackTemp: 15.2,
+  },
+  {
+    id: 'ramban',
+    name: 'Ramban Panthyal Transit Node',
+    district: 'Ramban',
+    districtSlug: 'ramban',
+    region: 'Chenab Valley',
+    lat: 33.24,
+    lon: 75.24,
+    elevation: '1,156m',
+    coordinates: '33.2415° N, 75.2419° E',
+    fallbackTemp: 16.0,
+  },
+  {
+    id: 'jammu',
+    name: 'Jammu Tawi Observatory',
+    district: 'Jammu',
+    districtSlug: 'jammu',
+    region: 'Jammu Plains',
+    lat: 32.73,
+    lon: 74.86,
+    elevation: '327m',
+    coordinates: '32.7266° N, 74.8570° E',
+    fallbackTemp: 24.2,
+  },
+  {
+    id: 'poonch',
+    name: 'Poonch Pir Panjal Station',
+    district: 'Poonch',
+    districtSlug: 'poonch',
+    region: 'Pir Panjal',
+    lat: 33.77,
+    lon: 74.09,
+    elevation: '1,021m',
+    coordinates: '33.7667° N, 74.0922° E',
+    fallbackTemp: 16.8,
+  },
+  {
+    id: 'rajouri',
+    name: 'Rajouri Frontier Observatory',
+    district: 'Rajouri',
+    districtSlug: 'rajouri',
+    region: 'Pir Panjal',
+    lat: 33.38,
+    lon: 74.30,
+    elevation: '915m',
+    coordinates: '33.3812° N, 74.3056° E',
+    fallbackTemp: 18.5,
+  },
+  {
+    id: 'kishtwar',
+    name: 'Kishtwar High-Altitude Radar',
+    district: 'Kishtwar',
+    districtSlug: 'kishtwar',
+    region: 'Chenab Valley',
+    lat: 33.31,
+    lon: 75.76,
+    elevation: '1,638m',
+    coordinates: '33.3128° N, 75.7663° E',
+    fallbackTemp: 12.8,
+  },
+  {
+    id: 'leh',
+    name: 'Leh Trans-Himalayan Station',
+    district: 'Leh',
+    districtSlug: 'leh',
+    region: 'Leh & Ladakh',
+    lat: 34.15,
+    lon: 77.58,
+    elevation: '3,524m',
+    coordinates: '34.1526° N, 77.5771° E',
+    fallbackTemp: 1.5,
+  },
+  {
+    id: 'kargil',
+    name: 'Kargil Suru Valley Station',
+    district: 'Kargil',
+    districtSlug: 'kargil',
+    region: 'Leh & Ladakh',
+    lat: 34.56,
+    lon: 76.13,
+    elevation: '2,676m',
+    coordinates: '34.5539° N, 76.1349° E',
+    fallbackTemp: 4.8,
+  },
 ];
 
 function weatherCodeToDesc(code: number): string {
@@ -81,8 +190,11 @@ export async function getRegionalWeather(): Promise<RegionalStationWeather[]> {
         return {
           station_id: st.id,
           name: st.name,
+          district: st.district,
+          districtSlug: st.districtSlug,
           region: st.region,
           elevation: st.elevation,
+          coordinates: st.coordinates,
           temp_c: Math.round(temp * 10) / 10,
           wind_kph: Math.round(wind * 10) / 10,
           weather_desc: desc,
@@ -94,8 +206,11 @@ export async function getRegionalWeather(): Promise<RegionalStationWeather[]> {
         return {
           station_id: st.id,
           name: st.name,
+          district: st.district,
+          districtSlug: st.districtSlug,
           region: st.region,
           elevation: st.elevation,
+          coordinates: st.coordinates,
           temp_c: st.fallbackTemp,
           wind_kph: 5.0,
           weather_desc: 'Station Active',
@@ -115,8 +230,11 @@ export async function getRegionalWeather(): Promise<RegionalStationWeather[]> {
     return REGIONAL_STATIONS.map((st) => ({
       station_id: st.id,
       name: st.name,
+      district: st.district,
+      districtSlug: st.districtSlug,
       region: st.region,
       elevation: st.elevation,
+      coordinates: st.coordinates,
       temp_c: st.fallbackTemp,
       wind_kph: 5.0,
       weather_desc: 'Operational',

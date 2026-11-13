@@ -13,6 +13,7 @@ import { DEFAULT_TELEMETRY_SETTINGS } from '@/lib/telemetry';
 import { formatArticleDate } from '@/lib/date';
 import { getOptimizedMediaUrl } from '@/lib/media';
 import { FALLBACK_BROADSHEET_ARTICLES } from '@/lib/seed-articles';
+import { TerritorialBureauTelemetrySlider } from '@/components/telemetry/TerritorialBureauTelemetrySlider';
 
 export function ClassicEditorialTemplate({
   langPrefix,
@@ -743,48 +744,11 @@ export function ClassicEditorialTemplate({
               </div>
             </section>
 
-            {/* Territorial Bureau GIS Telemetry Box */}
-            <section
-              className="bg-white rounded-xl border border-stone-200 p-2.5 sm:p-3.5 shadow-sm space-y-2 sm:space-y-2.5 font-sans"
-              data-purpose="territorial-bureau-map"
-            >
-              <div className="flex items-center justify-between gap-1">
-                <div className="flex items-center space-x-1.5 min-w-0">
-                  <span className="text-sm sm:text-base">🗺️</span>
-                  <h3 className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-stone-900 truncate">
-                    Territorial Bureau Map
-                  </h3>
-                </div>
-                <span className="text-[8.5px] sm:text-[9.5px] font-mono text-cyan-800 bg-cyan-50 border border-cyan-200 px-1.5 sm:px-2 py-0.5 rounded-full font-semibold shrink-0">
-                  GPS Telemetry
-                </span>
-              </div>
-              <div className="bg-slate-950 text-white rounded-lg p-3 sm:p-4 relative overflow-hidden border border-slate-800 shadow-inner">
-                <div className="absolute -right-8 -bottom-8 w-44 h-44 rounded-full border border-slate-800/80 pointer-events-none"></div>
-                <div className="absolute -right-2 -bottom-2 w-28 h-28 rounded-full border border-cyan-900/40 pointer-events-none"></div>
-                <div className="relative z-10">
-                  <div className="flex items-center space-x-2 mb-2 sm:mb-3">
-                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
-                    <span className="text-[9px] sm:text-[10px] font-mono tracking-widest text-cyan-400 uppercase font-semibold">
-                      NODE: 01-SRX ACTIVE
-                    </span>
-                  </div>
-                  <h4 className="font-mono text-sm sm:text-base font-bold text-white tracking-wide truncate">
-                    SRINAGAR CENTRAL STATION
-                  </h4>
-                  <p className="font-mono text-[9.5px] sm:text-[11px] text-slate-400 mt-0.5 truncate">
-                    34.0837° N, 74.7973° E • <span className="text-amber-400 font-semibold">Elev 1,585m</span>
-                  </p>
-                  <div className="mt-2.5 sm:mt-3.5 pt-2 sm:pt-3 border-t border-slate-800/80 flex items-center justify-between text-[9px] sm:text-[10px] font-mono text-slate-400">
-                    <span>Uplink: OK</span>
-                    <span className="text-emerald-400">Synchronized</span>
-                  </div>
-                </div>
-              </div>
-              <p className="text-[11px] text-stone-600 leading-snug px-0.5">
-                Real-time bureau telemetry across 5 regional operational hubs linking valley, chenab gorges, and ladakh plateau.
-              </p>
-            </section>
+            {/* Territorial Bureau GIS Telemetry Slider */}
+            <TerritorialBureauTelemetrySlider
+              initialWeather={weather}
+              langPrefix={langPrefix}
+            />
 
             {/* Agricultural & Commodity Mandi Telemetry */}
             <section
@@ -1378,38 +1342,11 @@ export function ClassicEditorialTemplate({
             );
 
             const renderTerritorialMap = (key = 'territorial_map') => (
-              <div key={key} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm font-sans" data-purpose="territorial-map">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-xs font-bold uppercase tracking-widest text-[#0F172A] flex items-center gap-1.5">
-                    <span>🗺️</span>
-                    <span>Territorial Bureau Map</span>
-                  </h3>
-                  <span className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" />
-                    Open-Meteo Live
-                  </span>
-                </div>
-                <div className="w-full h-40 rounded-xl bg-slate-900 relative overflow-hidden flex flex-col justify-between p-3 text-white">
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A] via-[#0F172A]/40 to-transparent" />
-                  <div className="relative z-10 flex justify-between items-start">
-                    <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-mono border border-emerald-500/30">
-                      LIVE RADAR SYNC
-                    </span>
-                    {weather && weather[0] && typeof weather[0].temp_c === 'number' && (
-                      <span className="text-xs font-mono font-bold text-amber-300">
-                        {weather[0].temp_c}°C • {weather[0].weather_desc || 'Clear'}
-                      </span>
-                    )}
-                  </div>
-                  <div className="relative z-10">
-                    <p className="text-xs font-bold uppercase tracking-wider">Srinagar Central Station</p>
-                    <p className="text-[10px] text-slate-300 font-mono">34.0837° N, 74.7973° E • Elevation 1,585m</p>
-                  </div>
-                </div>
-                <p className="text-[11px] text-slate-500 mt-2.5 leading-relaxed">
-                  Real-time bureau telemetry across 5 regional operational hubs linking valley, chenab gorges, and ladakh plateau.
-                </p>
-              </div>
+              <TerritorialBureauTelemetrySlider
+                key={key}
+                initialWeather={weather}
+                langPrefix={langPrefix}
+              />
             );
 
             const renderConflictRadar = (key = 'conflict_radar') => {
