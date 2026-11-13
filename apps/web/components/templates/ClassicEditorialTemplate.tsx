@@ -56,7 +56,6 @@ export function ClassicEditorialTemplate({
   const isNational = scope?.type === 'national';
   const isInternational = scope?.type === 'international';
   const isRegion = scope?.type === 'region';
-  const hasScopeBanner = Boolean(scope && scope.type !== 'home');
 
   const getCatSlug = (cat?: string | null) => (cat || 'news').toLowerCase().replace(/\s+/g, '-');
   const getArtHref = (art?: { category?: string | null; slug?: string | null } | null) => {
@@ -276,86 +275,7 @@ export function ClassicEditorialTemplate({
           activeCategory={scope?.activeCategory}
         />
 
-        {/* Heraldic Masthead Scope Banner */}
-        {hasScopeBanner && (
-          <section className="w-full bg-[#FAF8F5] border-b border-stone-300/80 py-4 px-3 sm:px-6 md:px-8 font-sans">
-            <div className="max-w-7xl xl:max-w-[1536px] 2xl:max-w-[1780px] mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-                  <span
-                    className={`px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                      isNational
-                        ? 'bg-red-700 text-white'
-                        : isInternational
-                        ? 'bg-blue-800 text-white'
-                        : 'bg-stone-900 text-amber-400'
-                    }`}
-                  >
-                    {scope?.eyebrow || (isNational ? 'COUNTRY WIRE • INDIA' : isInternational ? 'GLOBAL WIRE • WORLD' : `${brandName} REGIONAL BUREAU`)}
-                  </span>
-                  <span className="text-[11px] font-mono text-stone-500">
-                    {isNational
-                      ? '• UNION & CONSTITUTIONAL DESK'
-                      : isInternational
-                      ? '• FOREIGN & MULTILATERAL DESK'
-                      : '• TERRITORIAL CORRIDOR'}
-                  </span>
-                  {scope?.totalCount !== undefined && (
-                    <span className="text-[11px] font-mono text-stone-400">
-                      ({scope.totalCount} {scope.totalCount === 1 ? 'Dispatch' : 'Dispatches'})
-                    </span>
-                  )}
-                </div>
-                <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#0F172A] leading-tight">
-                  {scope?.title}
-                </h1>
-                {scope?.tagline && (
-                  <p className="text-xs sm:text-sm text-stone-600 font-serif mt-1 max-w-2xl leading-relaxed">
-                    {scope.tagline}
-                  </p>
-                )}
-              </div>
 
-              {/* Constituent districts for region, or domain indicators for national/international */}
-              {isRegion && scope?.districts && scope.districts.length > 0 && (
-                <div className="flex flex-col md:items-end">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500 mb-1.5">
-                    Constituent Districts ({scope.districts.length}):
-                  </span>
-                  <div className="flex flex-wrap gap-1.5 max-w-md md:justify-end">
-                    {scope.districts.map((d) => (
-                      <Link
-                        key={d}
-                        href={`${langPrefix}/district/${d}`}
-                        className="px-2 py-0.5 text-[11px] bg-white border border-stone-300 rounded hover:border-stone-900 hover:bg-stone-50 transition font-medium text-stone-700 shadow-2xs"
-                      >
-                        {getDistrictDisplayName(d)}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {isNational && (
-                <div className="flex flex-col md:items-end">
-                  <div className="flex items-center gap-2 text-xs font-mono text-stone-700 bg-white border border-stone-300 px-3 py-2 rounded-xl shadow-xs">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                    <span>PARLIAMENT &bull; SUPREME COURT &bull; UNION MINISTRIES &bull; RBI</span>
-                  </div>
-                </div>
-              )}
-
-              {isInternational && (
-                <div className="flex flex-col md:items-end">
-                  <div className="flex items-center gap-2 text-xs font-mono text-stone-700 bg-white border border-stone-300 px-3 py-2 rounded-xl shadow-xs">
-                    <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse shrink-0" />
-                    <span>UNITED NATIONS &bull; G20 &bull; DIPLOMATIC CORPS &bull; THE HAGUE</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </section>
-        )}
 
         {/* ========================================================================= */}
         {/* 1. MOBILE-ONLY VIEW (md:hidden): Pixel-Matched Stream from User HTML Mockup */}
