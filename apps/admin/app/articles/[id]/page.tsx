@@ -95,37 +95,42 @@ export default function ArticleViewPage({ params }: { params?: Promise<{ id: str
         return;
       }
       
-      const [sessionRes, articleRes, roleRes, permRes, versionsRes] = await Promise.all([
-        supabase.auth.getSession(),
-        supabase.from('articles').select('*').eq('id', id).single(),
-        supabase.rpc('current_user_role'),
-        supabase.rpc('current_user_permissions'),
-        supabase.from('article_versions').select('version_number, created_at, edited_by, title, profiles!edited_by(display_name)').eq('article_id', id).order('version_number', { ascending: false })
-      ]);
+      try {
+        const [sessionRes, articleRes, roleRes, permRes, versionsRes] = await Promise.all([
+          supabase.auth.getSession(),
+          supabase.from('articles').select('*').eq('id', id).single(),
+          supabase.rpc('current_user_role'),
+          supabase.rpc('current_user_permissions'),
+          supabase.from('article_versions').select('version_number, created_at, edited_by, title, profiles!edited_by(display_name)').eq('article_id', id).order('version_number', { ascending: false })
+        ]);
 
-      if (sessionRes.data?.session?.user) {
-        setCurrentUserId(sessionRes.data.session.user.id);
-      }
-      
-      if (!roleRes.error && roleRes.data) {
-        setUserRole(roleRes.data as string);
-      }
-      
-      if (articleRes.error || !articleRes.data) {
+        if (sessionRes.data?.session?.user) {
+          setCurrentUserId(sessionRes.data.session.user.id);
+        }
+        
+        if (!roleRes.error && roleRes.data) {
+          setUserRole(roleRes.data as string);
+        }
+        
+        if (articleRes.error || !articleRes.data) {
+          setError('Could not load article');
+        } else {
+          setArticle(articleRes.data);
+        }
+        
+        if (!permRes.error && permRes.data) {
+          setPermissions(permRes.data as string[]);
+        }
+
+        if (!versionsRes.error && versionsRes.data) {
+          setVersions(versionsRes.data as unknown as ArticleVersion[]);
+        }
+      } catch (err) {
+        console.warn('Error loading article data:', err);
         setError('Could not load article');
-      } else {
-        setArticle(articleRes.data);
+      } finally {
+        setIsLoading(false);
       }
-      
-      if (!permRes.error && permRes.data) {
-        setPermissions(permRes.data as string[]);
-      }
-
-      if (!versionsRes.error && versionsRes.data) {
-        setVersions(versionsRes.data as unknown as ArticleVersion[]);
-      }
-      
-      setIsLoading(false);
     }
     
     loadData();
