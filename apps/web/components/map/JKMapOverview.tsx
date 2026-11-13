@@ -651,13 +651,13 @@ export function JKMapOverview({
           <Link
             href={`${langPrefix}/`}
             className="flex items-center gap-2 sm:gap-2.5 group transition-transform active:scale-95 shrink-0"
-            title="KCPJLN Homepage"
+            title="KJIN Homepage"
           >
             <div className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-full p-0.5 bg-gradient-to-tr from-amber-600 via-amber-200 to-amber-700 shadow-xs flex items-center justify-center shrink-0">
               <div className="w-full h-full bg-stone-900 rounded-full flex items-center justify-center overflow-hidden relative">
                 <Image
                   src={brand?.logo_url || '/kjin-emblem.png'}
-                  alt={brand?.name || 'KCPJLN'}
+                  alt={brand?.name || 'KJIN'}
                   fill
                   unoptimized
                   className="object-contain p-0.5"
@@ -669,7 +669,7 @@ export function JKMapOverview({
             <div className="min-w-0 flex flex-col">
               <div className="flex items-center gap-1.5">
                 <span className="font-masthead text-base sm:text-lg font-black text-stone-950 tracking-tight leading-none group-hover:text-cyan-800 transition-colors">
-                  {brand?.name || 'KCPJLN'}
+                  {brand?.name || 'KJIN'}
                 </span>
                 <span className="px-1.5 py-0.2 rounded bg-cyan-100 text-cyan-900 font-mono text-[9px] font-bold uppercase tracking-wider">
                   MAP

@@ -31,6 +31,9 @@ export const NEWS_SCOPES = [
 export type NewsScopeValue = (typeof NEWS_SCOPES)[number]['value'];
 
 export const NEWS_TOPICS = [
+  { value: 'National', label: '🇮🇳 National — Union Affairs & Pan-India Policy' },
+  { value: 'International', label: '🌍 International — Global & Diaspora Relations' },
+  { value: 'Local News', label: '🏔️ Local News — J&K Daily Ground Dispatches' },
   { value: 'Politics', label: 'Politics — Governance & Assemblies' },
   { value: 'Economy', label: 'Economy — Business, Markets & Trade' },
   { value: 'Science & Technology', label: 'Science & Technology — Innovation & Digital' },
@@ -189,17 +192,37 @@ export function getCanonicalCategory(
 ): { name: string; slug: string } {
   const raw = (rawCategory || '').trim().toLowerCase();
 
-  // If scope is explicitly National and category is generic or empty
-  if (scope === 'National' && (!raw || raw === 'general' || raw.includes('broadcast') || raw.includes('interview'))) {
-    return { name: 'National', slug: 'national' };
-  }
-
-  // If scope is explicitly International and category is generic or empty
-  if (scope === 'International' && (!raw || raw === 'general' || raw.includes('broadcast') || raw.includes('interview'))) {
+  // 1. If scope is International, route to International unless specific thematic category is requested
+  if (
+    scope === 'International' ||
+    raw.includes('internation') ||
+    raw.includes('global') ||
+    raw.includes('world') ||
+    raw.includes('foreign') ||
+    raw.includes('diplomacy')
+  ) {
+    if (raw.includes('scienc') || raw.includes('tech')) return { name: 'Science & Technology', slug: 'science' };
+    if (raw.includes('econom') || raw.includes('trade')) return { name: 'Economy', slug: 'economy' };
+    if (raw.includes('investigat')) return { name: 'Investigation', slug: 'investigation' };
     return { name: 'International', slug: 'international' };
   }
 
-  // Exact mappings
+  // 2. If scope is National, route to National unless specific thematic category is requested
+  if (
+    scope === 'National' ||
+    raw.includes('nation') ||
+    raw === 'india'
+  ) {
+    if (raw.includes('scienc') || raw.includes('tech')) return { name: 'Science & Technology', slug: 'science' };
+    if (raw.includes('econom') || raw.includes('trade') || raw.includes('business')) return { name: 'Economy', slug: 'economy' };
+    if (raw.includes('politic') || raw.includes('parliament') || raw.includes('debate')) return { name: 'Politics', slug: 'politics' };
+    if (raw.includes('cultur') || raw.includes('cinema') || raw.includes('bollywood') || raw.includes('film')) return { name: 'Culture', slug: 'culture' };
+    if (raw.includes('sport') || raw.includes('cricket')) return { name: 'Sports', slug: 'sports' };
+    if (raw.includes('investigat')) return { name: 'Investigation', slug: 'investigation' };
+    return { name: 'National', slug: 'national' };
+  }
+
+  // 3. Exact mappings for Regional / Local J&K
   if (
     raw === 'local' ||
     raw === 'local news' ||

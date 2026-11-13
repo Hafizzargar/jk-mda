@@ -199,11 +199,20 @@ export function sanitizeNavbarSettings(raw: unknown): NavbarSettings {
   const rawTopStrip = (obj.top_strip && typeof obj.top_strip === 'object' ? obj.top_strip : {}) as Record<string, unknown>;
   const rawActions = (obj.actions && typeof obj.actions === 'object' ? obj.actions : {}) as Record<string, unknown>;
 
+  const rawBrandName = typeof rawBrand.name === 'string' && rawBrand.name.trim() ? rawBrand.name.trim().slice(0, 50) : DEFAULT_NAVBAR_SETTINGS.brand.name;
+  const sanitizedBrandName = rawBrandName === 'KCPJLN' ? 'KJIN' : rawBrandName;
+
+  const rawBrandFullName = typeof rawBrand.full_name === 'string' ? rawBrand.full_name.trim().slice(0, 150) : (DEFAULT_NAVBAR_SETTINGS.brand.full_name || '');
+  const sanitizedBrandFullName = rawBrandFullName.replace(/Kashmir Chenab Panjal Jammu Ladakh Network/gi, 'Kashmir & Jammu Information Network');
+
+  const rawLogo = typeof rawBrand.logo_url === 'string' && rawBrand.logo_url.trim() ? rawBrand.logo_url.trim() : DEFAULT_NAVBAR_SETTINGS.brand.logo_url;
+  const sanitizedLogo = rawLogo.includes('kcpjln') ? '/kjin-emblem.png' : rawLogo;
+
   const brand: NavbarBrandConfig = {
-    logo_url: typeof rawBrand.logo_url === 'string' && rawBrand.logo_url.trim() ? rawBrand.logo_url.trim() : DEFAULT_NAVBAR_SETTINGS.brand.logo_url,
+    logo_url: sanitizedLogo,
     show_logo_image: typeof rawBrand.show_logo_image === 'boolean' ? rawBrand.show_logo_image : true,
-    name: typeof rawBrand.name === 'string' && rawBrand.name.trim() ? rawBrand.name.trim().slice(0, 50) : DEFAULT_NAVBAR_SETTINGS.brand.name,
-    full_name: typeof rawBrand.full_name === 'string' ? rawBrand.full_name.trim().slice(0, 150) : (DEFAULT_NAVBAR_SETTINGS.brand.full_name || ''),
+    name: sanitizedBrandName,
+    full_name: sanitizedBrandFullName,
     show_name: typeof rawBrand.show_name === 'boolean' ? rawBrand.show_name : true,
     tagline: typeof rawBrand.tagline === 'string' ? rawBrand.tagline.trim().slice(0, 100) : DEFAULT_NAVBAR_SETTINGS.brand.tagline,
     show_tagline: typeof rawBrand.show_tagline === 'boolean' ? rawBrand.show_tagline : true,

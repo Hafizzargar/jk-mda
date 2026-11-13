@@ -274,6 +274,98 @@ export const EDITORIAL_NEWS_IMAGES: Record<string, EditorialImageOption[]> = {
       category: 'Economy',
     },
   ],
+  Cinema: [
+    {
+      url: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=1200&q=80',
+      label: 'Cinema Theater Auditorium & Movie Screen',
+      category: 'Culture & Entertainment',
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?auto=format&fit=crop&w=1200&q=80',
+      label: 'Film Production Movie Camera Set & Studio',
+      category: 'Culture & Entertainment',
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?auto=format&fit=crop&w=1200&q=80',
+      label: 'Theatrical Cinema Screening & Premiere',
+      category: 'Culture & Entertainment',
+    },
+  ],
+  Transit: [
+    {
+      url: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=1200&q=80',
+      label: 'Mountain Highway & Road Transit Corridor',
+      category: 'Transit & Infrastructure',
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1502877338535-766e1452684a?auto=format&fit=crop&w=1200&q=80',
+      label: 'Highway Traffic, Transport & Transit Route',
+      category: 'Transit & Infrastructure',
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1519003722824-194d4455a60c?auto=format&fit=crop&w=1200&q=80',
+      label: 'Winding Mountain Pass Road Curves & Blackspots',
+      category: 'Transit & Infrastructure',
+    },
+  ],
+  Energy: [
+    {
+      url: 'https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?auto=format&fit=crop&w=1200&q=80',
+      label: 'Hydroelectric Dam & River Reservoir Project',
+      category: 'Hydropower & Energy',
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=1200&q=80',
+      label: 'Electrical Power Lines & Energy Transmission Grid',
+      category: 'Hydropower & Energy',
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1509391365360-2e959784a276?auto=format&fit=crop&w=1200&q=80',
+      label: 'Solar & Clean Renewable Energy Infrastructure',
+      category: 'Hydropower & Energy',
+    },
+  ],
+  Winter: [
+    {
+      url: 'https://images.unsplash.com/photo-1517299321909-509fa930adc0?auto=format&fit=crop&w=1200&q=80',
+      label: 'Heavy Snowfall on Mountain Pass & Highway',
+      category: 'Weather & Climate',
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1483921020237-2ff51e8e4b22?auto=format&fit=crop&w=1200&q=80',
+      label: 'Winter Snowstorm & Sub-Zero Himalayan Temperatures',
+      category: 'Weather & Climate',
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1491002052546-bf38f186af56?auto=format&fit=crop&w=1200&q=80',
+      label: 'Frost, Glacial Ice & Mountain Freeze',
+      category: 'Weather & Climate',
+    },
+  ],
+  Disaster: [
+    {
+      url: 'https://images.unsplash.com/photo-1515694346937-94d85e41e6f0?auto=format&fit=crop&w=1200&q=80',
+      label: 'Heavy Downpour, Flash Floods & Storm Weather',
+      category: 'Disaster & Emergency',
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1547683905-f686c993aae5?auto=format&fit=crop&w=1200&q=80',
+      label: 'Storm Clouds & Natural Disaster Emergency',
+      category: 'Disaster & Emergency',
+    },
+  ],
+  SpaceTech: [
+    {
+      url: 'https://images.unsplash.com/photo-1517976487502-570775e714b3?auto=format&fit=crop&w=1200&q=80',
+      label: 'ISRO Space Mission & Aerospace Rocket Launch',
+      category: 'Science & Technology',
+    },
+    {
+      url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80',
+      label: 'Semiconductor Microchip & Artificial Intelligence Tech',
+      category: 'Science & Technology',
+    },
+  ],
   General: [
     {
       url: 'https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&w=1200&q=80',
@@ -403,6 +495,129 @@ export function cleanRawBroadcastText(text: string): string {
 }
 
 /**
+ * Resolves the accurate journalistic dateline based on story scope and textual entities.
+ */
+export function determineDatelineForScope(
+  scope: 'International' | 'National' | 'State (Jammu & Kashmir)' | 'Chenab Valley',
+  contextText: string,
+  district?: string | null
+): string {
+  const lower = (contextText || '').toLowerCase();
+
+  if (scope === 'International') {
+    if (/\b(washington|white house|pentagon|united states|\busa?\b|biden|trump|congress)\b/i.test(lower)) return 'WASHINGTON –';
+    if (/\b(london|britain|\buk\b|united kingdom|downing street|starmer)\b/i.test(lower)) return 'LONDON –';
+    if (/\b(israel|tel aviv|jerusalem|gaza|netanyahu)\b/i.test(lower)) return 'JERUSALEM –';
+    if (/\b(tehran|iran|khamenei)\b/i.test(lower)) return 'TEHRAN –';
+    if (/\b(moscow|kremlin|russia|putin)\b/i.test(lower)) return 'MOSCOW –';
+    if (/\b(kyiv|kiev|ukraine|zelensky)\b/i.test(lower)) return 'KYIV –';
+    if (/\b(beijing|china|xi jinping)\b/i.test(lower)) return 'BEIJING –';
+    if (/\b(islamabad|pakistan)\b/i.test(lower)) return 'ISLAMABAD –';
+    if (/\b(dhaka|bangladesh)\b/i.test(lower)) return 'DHAKA –';
+    if (/\b(paris|france|macron)\b/i.test(lower)) return 'PARIS –';
+    if (/\b(berlin|germany|scholz)\b/i.test(lower)) return 'BERLIN –';
+    if (/\b(tokyo|japan)\b/i.test(lower)) return 'TOKYO –';
+    if (/\b(dubai|uae|abu dhabi)\b/i.test(lower)) return 'DUBAI –';
+    if (/\b(ottawa|canada|trudeau)\b/i.test(lower)) return 'OTTAWA –';
+    if (/\b(united nations|\bun\b|security council|geneva)\b/i.test(lower)) return 'UNITED NATIONS –';
+    return 'GLOBAL DESK –';
+  }
+
+  if (scope === 'National') {
+    if (/\b(mumbai|bollywood|bombay|maharashtra|rbi|bse|nse)\b/i.test(lower)) return 'MUMBAI –';
+    if (/\b(bengaluru|bangalore|karnataka|isro)\b/i.test(lower)) return 'BENGALURU –';
+    if (/\b(chennai|madras|tamil nadu)\b/i.test(lower)) return 'CHENNAI –';
+    if (/\b(kolkata|calcutta|west bengal)\b/i.test(lower)) return 'KOLKATA –';
+    if (/\b(hyderabad|telangana)\b/i.test(lower)) return 'HYDERABAD –';
+    if (/\b(lucknow|uttar pradesh|\bup\b)\b/i.test(lower)) return 'LUCKNOW –';
+    if (/\b(patna|bihar)\b/i.test(lower)) return 'PATNA –';
+    if (/\b(chandigarh|punjab|haryana)\b/i.test(lower)) return 'CHANDIGARH –';
+    return 'NEW DELHI –';
+  }
+
+  if (scope === 'Chenab Valley') {
+    if (district) return `${district.toUpperCase()} –`;
+    if (lower.includes('kishtwar')) return 'KISHTWAR –';
+    if (lower.includes('ramban')) return 'RAMBAN –';
+    if (lower.includes('doda')) return 'DODA –';
+    if (lower.includes('bhadarwah')) return 'BHADARWAH –';
+    if (lower.includes('banihal')) return 'BANIHAL –';
+    return 'CHENAB VALLEY –';
+  }
+
+  // State (Jammu & Kashmir)
+  if (district) return `${district.toUpperCase()} –`;
+  if (lower.includes('jammu')) return 'JAMMU –';
+  if (lower.includes('anantnag')) return 'ANANTNAG –';
+  if (lower.includes('baramulla')) return 'BARAMULLA –';
+  if (lower.includes('pulwama')) return 'PULWAMA –';
+  if (lower.includes('kupwara')) return 'KUPWARA –';
+  if (lower.includes('leh') || lower.includes('ladakh')) return 'LEH, LADAKH –';
+  return 'SRINAGAR –';
+}
+
+/**
+ * Sanitizes and corrects the dateline in an article summary or body, ensuring
+ * National or International stories are NEVER erroneously prefixed with Srinagar/J&K datelines.
+ */
+export function sanitizeDatelineForScope(
+  text: string,
+  scope: 'International' | 'National' | 'State (Jammu & Kashmir)' | 'Chenab Valley',
+  targetDateline: string
+): string {
+  if (!text) return '';
+
+  let cleaned = text.trim();
+
+  // 1. Strip any accidental dateline prepended directly before markdown headings (e.g. "NEW DELHI – ### Heading" -> "### Heading")
+  cleaned = cleaned.replace(/^[A-Z\s,–—-]+(?=#{1,6}\s+)/i, '').trim();
+
+  // 2. If the text begins with a markdown heading, do NOT prepend dateline to the heading!
+  // Instead, apply the dateline to the first actual prose paragraph that follows the heading.
+  if (/^#{1,6}\s+/.test(cleaned)) {
+    const blocks = cleaned.split(/\n\s*\n+/);
+    for (let i = 0; i < blocks.length; i++) {
+      const block = blocks[i].trim();
+      if (block && !block.startsWith('#') && !block.startsWith('|') && !block.startsWith('>')) {
+        blocks[i] = sanitizeDatelineForScope(block, scope, targetDateline);
+        return blocks.join('\n\n');
+      }
+    }
+    return cleaned;
+  }
+
+  // 3. If scope is National or International, strip any hallucinated J&K / Srinagar datelines
+  if (scope === 'National' || scope === 'International') {
+    cleaned = cleaned.replace(
+      /^(?:SRINAGAR(?:,\s*J&K)?|JAMMU(?:,\s*J&K)?|DODA|KISHTWAR|RAMBAN|KASHMIR VALLEY|CHENAB VALLEY)\s*[-–—:]\s*/i,
+      ''
+    ).trim();
+  }
+
+  // 4. Clean up any duplicated dateline prefixes (e.g. "NEW DELHI – NEW DELHI –" or "NEW DELHI –   NEW DELHI –")
+  const escapedTarget = targetDateline.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const duplicatePattern = new RegExp(`^(?:${escapedTarget}\\s*)+`, 'i');
+  if (duplicatePattern.test(cleaned)) {
+    cleaned = cleaned.replace(duplicatePattern, '').trim();
+  }
+
+  // 5. If text already starts with another uppercase city dateline
+  if (/^[A-Z\s,]+[-–—:]\s*/.test(cleaned)) {
+    if ((scope === 'National' || scope === 'International') && /^(?:SRINAGAR|JAMMU|DODA|KISHTWAR|RAMBAN)/i.test(cleaned)) {
+      cleaned = cleaned.replace(/^[A-Z\s,]+[-–—:]\s*/, `${targetDateline} `);
+    } else {
+      // Keep existing valid dateline
+      return cleaned.trim();
+    }
+  } else {
+    // Prepend the target dateline once
+    cleaned = `${targetDateline} ${cleaned}`;
+  }
+
+  return cleaned.trim();
+}
+
+/**
  * Detects the accurate news scope by prioritizing international geopolitics,
  * local Chenab Valley geography, and Jammu & Kashmir territory.
  */
@@ -411,45 +626,62 @@ export function determineAccurateNewsScope(
   description: string,
   region?: string
 ): 'International' | 'National' | 'State (Jammu & Kashmir)' | 'Chenab Valley' {
-  const combined = `${title} ${description} ${region || ''}`.toLowerCase();
+  // NOTE: We examine title and description first because source region can be J&K even for national/international broadcasts!
+  const contentText = `${title} ${description}`.toLowerCase();
 
-  // 1. Check International Geopolitics FIRST (e.g. Netanyahu, Trump, Obama, Israel, Iran, Ukraine, US)
+  // 1. Check if the story explicitly pertains to Chenab Valley local terrain
+  const chenabKeywords = [
+    'doda', 'kishtwar', 'ramban', 'chenab', 'bhadarwah', 'banihal', 'batote',
+    'sinthan', 'chhatroo', 'thathri', 'gundoh', 'bhalessa', 'padder', 'marwah',
+    'warwan', 'assar', 'khellani'
+  ];
+  if (chenabKeywords.some((kw) => contentText.includes(kw))) {
+    return 'Chenab Valley';
+  }
+
+  // 2. Check if the story explicitly pertains to Jammu & Kashmir local geography / administration
+  const jkKeywords = [
+    'kashmir', 'jammu', 'srinagar', 'anantnag', 'baramulla', 'pulwama', 'kulgam',
+    'kupwara', 'ganderbal', 'budgam', 'shopian', 'bandipora', 'poonch', 'rajouri',
+    'udhampur', 'kathua', 'reasi', 'samba', 'j&k', 'lg sinha', 'jammu and kashmir',
+    'article 370', 'kashmir valley', 'dal lake', 'gulmarg', 'pahalgam', 'sonamarg',
+    'zojila', 'mughal road', 'peer ki gali'
+  ];
+  if (jkKeywords.some((kw) => contentText.includes(kw))) {
+    return 'State (Jammu & Kashmir)';
+  }
+
+  // 3. Check Primary Indian National Anchors (e.g. Bollywood, Parliament, ISRO, national leaders)
+  const nationalKeywords = [
+    'bollywood', 'ramayana', 'namit malhotra', 'nitesh tiwari', 'indian cinema',
+    'parliament', 'lok sabha', 'rajya sabha', 'supreme court of india', 'union cabinet',
+    'pm modi', 'narendra modi', 'amit shah', 'rahul gandhi', 'isro', 'rbi',
+    'reserve bank of india', 'vande bharat', 'indian railways'
+  ];
+  if (nationalKeywords.some((kw) => contentText.includes(kw))) {
+    return 'National';
+  }
+
+  // 4. Check International Geopolitics & World Events (e.g. US, Middle East, Europe, Asia)
   const internationalKeywords = [
     'netanyahu', 'israel', 'iran', 'tehran', 'gaza', 'palestine', 'middle east',
     'trump', 'obama', 'biden', 'white house', 'pentagon', 'united states', 'usa',
     'ukraine', 'russia', 'putin', 'zelensky', 'nato', 'united nations', 'security council',
     'china', 'beijing', 'taiwan', 'pakistan', 'islamabad', 'bangladesh', 'dhaka',
     'london', 'britain', 'united kingdom', 'europe', 'france', 'germany', 'canada', 'ottawa',
-    'geopolitics', 'foreign affairs', 'global summit', 'diplomacy'
+    'japan', 'tokyo', 'australia', 'dubai', 'uae', 'saudi arabia', 'riyadh', 'syria', 'lebanon',
+    'hezbollah', 'houthi', 'red sea', 'turkey', 'erdogan', 'egypt', 'cairo',
+    'geopolitics', 'foreign affairs', 'global summit', 'diplomacy', 'worldwide', 'overseas',
+    'hollywood', 'oscars', 'silicon valley'
   ];
   if (internationalKeywords.some((kw) => {
     const regex = new RegExp(`\\b${kw}\\b`, 'i');
-    return regex.test(combined);
+    return regex.test(contentText);
   })) {
     return 'International';
   }
 
-  // 2. Check Chenab Valley local terrain
-  const chenabKeywords = [
-    'doda', 'kishtwar', 'ramban', 'chenab', 'bhadarwah', 'banihal', 'batote',
-    'sinthan', 'chhatroo', 'thathri', 'gundoh', 'bhalessa', 'padder'
-  ];
-  if (chenabKeywords.some((kw) => combined.includes(kw))) {
-    return 'Chenab Valley';
-  }
-
-  // 3. Check Jammu & Kashmir State
-  const jkKeywords = [
-    'kashmir', 'jammu', 'srinagar', 'anantnag', 'baramulla', 'pulwama', 'kulgam',
-    'kupwara', 'ganderbal', 'budgam', 'shopian', 'bandipora', 'poonch', 'rajouri',
-    'udhampur', 'kathua', 'reasi', 'samba', 'j&k', 'lg sinha', 'jammu and kashmir',
-    'article 370', 'kashmir valley', 'dal lake'
-  ];
-  if (jkKeywords.some((kw) => combined.includes(kw))) {
-    return 'State (Jammu & Kashmir)';
-  }
-
-  // 4. Default: National (India)
+  // 5. Default: National (India pan-India affairs, union governance, national events)
   return 'National';
 }
 
@@ -467,15 +699,63 @@ export function getRecommendedEditorialImage(
 
   let matchedCategoryImages: EditorialImageOption[] | undefined;
 
-  // 1. Science / Laboratory / Vaccine / Virology / Medical Breakthroughs
+  // 1. Cinema / Bollywood / Hollywood / Film / Actor / Theatrical Premiere / Namit Malhotra / Ramayana
   if (
+    /\b(cinema|film|films|movie|movies|bollywood|hollywood|actor|actress|director|producer|theatrical|theater|theatre|box office|trailer|teaser|entertainment|screening|namit malhotra|nitesh tiwari|ramayana|censor board|multiplex)\b/i.test(
+      combined
+    )
+  ) {
+    matchedCategoryImages = EDITORIAL_NEWS_IMAGES.Cinema;
+  }
+  // 2. Road Transit / Highway / Traffic / Accidents / Crashes / NH-44 / NH-244 / Vehicles / Bus
+  else if (
+    /\b(highway|highways|road|roads|traffic|transit|nh-44|nh-244|mughal road|vehicle|vehicles|bus|buses|truck|trucks|accident|accidents|crash|crashes|mishap|mishaps|gorge|collision|overturned|transport|jam|chakka jam)\b/i.test(
+      combined
+    )
+  ) {
+    matchedCategoryImages = EDITORIAL_NEWS_IMAGES.Transit;
+  }
+  // 3. Hydropower / Dam / Power Project / Energy / Grid / Electricity / Ratle / Pakal Dul / CVPPPL / Solar
+  else if (
+    /\b(hydro|hydropower|dam|dams|power project|ratle|pakal dul|kiru|kwar|cvpppl|nhpc|megawatt|\bmw\b|electricity|power plant|power transmission|solar|renewable|grid|thermal power)\b/i.test(
+      combined
+    )
+  ) {
+    matchedCategoryImages = EDITORIAL_NEWS_IMAGES.Energy;
+  }
+  // 4. Snow / Winter / Snowfall / Avalanche / Chillai Kalan / Frost / Sub-Zero / Glacier
+  else if (
+    /\b(snow|snowfall|snowbound|winter|chillai kalan|frost|sub-zero|avalanche|blizzard|cold wave|freeze|freezing)\b/i.test(
+      combined
+    )
+  ) {
+    matchedCategoryImages = EDITORIAL_NEWS_IMAGES.Winter;
+  }
+  // 5. Disaster / Flood / Cloudburst / Flash Flood / Landslide / Rainstorm / Earthquake
+  else if (
+    /\b(cloudburst|cloudbursts|flash flood|flash floods|flood|floods|landslide|landslides|inundated|earthquake|tremor|tremors|disaster|mudslide|downpour)\b/i.test(
+      combined
+    )
+  ) {
+    matchedCategoryImages = EDITORIAL_NEWS_IMAGES.Disaster;
+  }
+  // 6. Space / ISRO / Rocket / Satellite / Artificial Intelligence / Semiconductor / High Tech
+  else if (
+    /\b(isro|rocket|satellite|chandrayaan|gaganyaan|spacecraft|aerospace|semiconductor|microchip|artificial intelligence|\bai\b|computing|deep learning)\b/i.test(
+      combined
+    )
+  ) {
+    matchedCategoryImages = EDITORIAL_NEWS_IMAGES.SpaceTech;
+  }
+  // 7. Science / Laboratory / Vaccine / Virology / Medical Breakthroughs
+  else if (
     /\b(scientist|scientists|vaccine|vaccines|virology|immunology|breakthrough|laboratory|lab|cure|pathogen|genomics)\b|clinical trial|pandemic|epidemic|outbreak|who alert/i.test(
       combined
     )
   ) {
     matchedCategoryImages = EDITORIAL_NEWS_IMAGES.Science;
   }
-  // 2. Healthcare / Doctor / Medical / Hospital
+  // 8. Healthcare / Doctor / Medical / Hospital
   else if (
     /\b(doctor|doctors|hospital|hospitals|medical|patient|patients|nurse|nurses|surgery|clinic|clinics|health|healthcare|mbbs|paramedic|medicines|icu|ward|wards)\b/i.test(
       combined
@@ -483,7 +763,7 @@ export function getRecommendedEditorialImage(
   ) {
     matchedCategoryImages = EDITORIAL_NEWS_IMAGES.Healthcare;
   }
-  // 3. International Conflict / War / Geopolitical Strikes
+  // 9. International Conflict / War / Geopolitical Strikes
   else if (
     /\b(war|wars|warfare|missile|missiles|airstrike|airstrikes|artillery|ceasefire|frontline|invasion|bombardment)\b|military conflict|gaza|ukraine war|russia-ukraine|defense ministry|air strike/i.test(
       combined
@@ -491,7 +771,7 @@ export function getRecommendedEditorialImage(
   ) {
     matchedCategoryImages = EDITORIAL_NEWS_IMAGES.Conflict || EDITORIAL_NEWS_IMAGES.International;
   }
-  // 4. Forest / Land / Trees / Environment / Wildlife
+  // 10. Forest / Land / Trees / Environment / Wildlife
   else if (
     /\b(forest|forests|tree|trees|timber|wildlife|jungle|land|lands|greenery|environment|ecology|flora|fauna|deforestation|woodland|plantation|wetland|wetlands)\b/i.test(
       combined
@@ -499,7 +779,7 @@ export function getRecommendedEditorialImage(
   ) {
     matchedCategoryImages = EDITORIAL_NEWS_IMAGES.Forest;
   }
-  // 5. Aviation / Airport / Flight
+  // 11. Aviation / Airport / Flight
   else if (
     /\b(airport|airports|airline|airlines|flight|flights|aviation|aircraft|runway|csmia|pilot|airspace)\b|air india|indigo/i.test(
       combined
@@ -507,7 +787,7 @@ export function getRecommendedEditorialImage(
   ) {
     matchedCategoryImages = EDITORIAL_NEWS_IMAGES.Aviation;
   }
-  // 6. Agriculture / Farmers / Crops / Apples
+  // 12. Agriculture / Farmers / Crops / Apples
   else if (
     /\b(farmer|farmers|kisan|crop|crops|harvest|apple|apples|orchard|orchards|horticulture|agriculture|paddy|saffron|mandi)\b/i.test(
       combined
@@ -515,7 +795,7 @@ export function getRecommendedEditorialImage(
   ) {
     matchedCategoryImages = EDITORIAL_NEWS_IMAGES.Agriculture;
   }
-  // 7. Judiciary / Court / Gavel / Law
+  // 13. Judiciary / Court / Gavel / Law
   else if (
     /\b(court|courts|judge|judges|judiciary|lawyer|lawyers|bench|bail|hearing|verdict|legal|justice|advocate|advocates|law|laws)\b|supreme court|high court|bar association/i.test(
       combined
@@ -523,7 +803,7 @@ export function getRecommendedEditorialImage(
   ) {
     matchedCategoryImages = EDITORIAL_NEWS_IMAGES.Judiciary;
   }
-  // 6. Police / Crime / Security / Investigation
+  // 14. Police / Crime / Security / Investigation
   else if (
     /police|fir|arrest|crime|investigation|encounter|security forces|cops|checkpoint|\bdsp\b|\bsp\b|\bnia\b|\bcbi\b/i.test(
       combined
@@ -531,7 +811,7 @@ export function getRecommendedEditorialImage(
   ) {
     matchedCategoryImages = EDITORIAL_NEWS_IMAGES.Security;
   }
-  // 7. Education / University / Students
+  // 15. Education / University / Students
   else if (
     /student|school|college|university|exam|education|syllabus|teacher|professor|degree|campus|scholarship/i.test(
       combined
@@ -539,7 +819,7 @@ export function getRecommendedEditorialImage(
   ) {
     matchedCategoryImages = EDITORIAL_NEWS_IMAGES.Education;
   }
-  // 8. Sports / Cricket
+  // 16. Sports / Cricket
   else if (
     /cricket|match|tournament|stadium|trophy|ipl|sports|athlete|football|championship|wicket|runs/i.test(
       combined
@@ -547,7 +827,15 @@ export function getRecommendedEditorialImage(
   ) {
     matchedCategoryImages = EDITORIAL_NEWS_IMAGES.Sports;
   }
-  // 9. Economy / Markets / Banking
+  // 17. Politics / Parliament / Legislative Assembly
+  else if (
+    /\b(parliament|lok sabha|rajya sabha|assembly|legislative|cabinet|minister|ministers|election|elections|vote|voting|mla|mlas|\bmp\b|secretariat|governance|policy)\b|pm modi|amit shah|rahul gandhi/i.test(
+      combined
+    )
+  ) {
+    matchedCategoryImages = EDITORIAL_NEWS_IMAGES.National;
+  }
+  // 18. Economy / Markets / Banking
   else if (
     /economy|economic|market|stock|rupee|dollar|inflation|gdp|finance|banking|bank|trade|traders|tax|gst/i.test(
       combined
@@ -667,14 +955,17 @@ export async function synthesizeEnglishNewsDraft(input: {
       .split(/[.?!]/)
       .map((s) => s.trim())
       .filter((s) => s.length > 20)
-      .slice(0, 2)
+      .slice(0, 3)
       .join('. ');
     summary = summarySentences ? `${summarySentences}.` : `An independent investigative dispatch on ${scope} developments synthesized by KJIN Newsroom.`;
   } else {
     summary = `Key developments regarding ${headline} as reported by ${channelName} and verified through KJIN automated news surveillance.`;
   }
 
-  // 6. Attempt Gemini AI Live Synthesis if API Key is configured
+  // 6. Resolve target dateline based on detected scope and location
+  const targetDateline = determineDatelineForScope(scope, `${cleanTitle} ${cleanDesc} ${cleanTranscript}`);
+
+  // 7. Attempt Gemini AI Live Synthesis if API Key is configured
   let reportBody = '';
   const apiKey = typeof process !== 'undefined' ? (process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY) : null;
 
@@ -688,19 +979,23 @@ export async function synthesizeEnglishNewsDraft(input: {
         cleanTranscript,
         scope,
         channelName,
+        targetDateline,
       });
       if (geminiResult && geminiResult.bodyMarkdown) {
         reportBody = geminiResult.bodyMarkdown;
         if (geminiResult.headline) headline = geminiResult.headline;
-        if (geminiResult.summary) summary = geminiResult.summary;
+        if (geminiResult.summary) {
+          summary = sanitizeDatelineForScope(geminiResult.summary, scope, targetDateline);
+        }
       }
     } catch (geminiErr) {
       console.warn('[Synthesizer] Gemini AI call failed or timed out. Falling back to deterministic regional intelligence engine:', geminiErr);
     }
   }
 
-  // 7. If Gemini was not used or did not produce a report, run our Deterministic Regional Intelligence Engine
+  // 8. If Gemini was not used or did not produce a report, run our Deterministic Regional Intelligence Engine
   if (!reportBody) {
+    summary = sanitizeDatelineForScope(summary, scope, targetDateline);
     reportBody = generateDeterministicInvestigativeReport({
       headline,
       summary,
@@ -711,14 +1006,14 @@ export async function synthesizeEnglishNewsDraft(input: {
     });
   }
 
-  // 8. Curate clean, high-resolution editorial imagery with content-aware semantic matching
+  // 9. Curate clean, high-resolution editorial imagery with content-aware semantic matching
   const canonicalCat = getCanonicalCategory(category, scope);
   const contextForImage = `${headline} ${summary} ${cleanDesc} ${cleanTranscript}`;
   const { featuredImage, alternatives } = getRecommendedEditorialImage(scope, canonicalCat.name, contextForImage);
 
   return {
     headline: headline.slice(0, 240),
-    summary: summary.slice(0, 380),
+    summary: summary.slice(0, 500),
     category: canonicalCat.name,
     scope,
     district: null,
@@ -738,53 +1033,60 @@ async function executeGeminiInvestigativeSynthesis(params: {
   summary: string;
   cleanDesc: string;
   cleanTranscript: string;
-  scope: string;
+  scope: 'International' | 'National' | 'State (Jammu & Kashmir)' | 'Chenab Valley';
   channelName: string;
+  targetDateline: string;
 }): Promise<{ headline: string; summary: string; bodyMarkdown: string } | null> {
-  const { apiKey, headline, summary, cleanDesc, cleanTranscript, scope, channelName } = params;
+  const { apiKey, headline, summary, cleanDesc, cleanTranscript, scope, channelName, targetDateline } = params;
 
-  const prompt = `You are a Senior Regional Investigative Editor and Bureau Chief for Kashmir Chenab Panjal Jammu Ladakh Network (KJIN / KCPJLN).
-Synthesize a deep, authoritative, 100% original English news report based on the following verified broadcast material:
+  const prompt = `You are a Senior Investigative Journalist and Bureau Chief for KJIN (Kashmir Jammu Independent News Network).
+Synthesize an engaging, high-impact, reader-friendly, 100% original English news report based on the following verified broadcast material:
 
 HEADLINE CANDIDATE: ${headline}
 EXECUTIVE SUMMARY: ${summary}
 SOURCE BROADCAST MATERIAL: ${cleanDesc} ${cleanTranscript}
 SCOPE: ${scope}
+TARGET DATELINE: ${targetDateline}
 SOURCE BROADCASTER: ${channelName}
 
-STRICT EDITORIAL & INVESTIGATIVE DIRECTIVES:
-1. NEVER output a superficial 2-sentence summary. As an authoritative broadsheet newspaper, write in-depth, rigorous, objective journalism.
-2. HISTORICAL CONTEXT & STATISTICAL LEDGER (MANDATORY):
-   - IF ACCIDENT / HIGHWAY / TRANSIT (e.g. Doda, Kishtwar, Ramban, Batote, Assar, Sinthan, NH-244, NH-44):
-     Detail terrain hazards (narrow carriage width, blind curves over 300-400 ft Chenab gorges, lack of steel W-beam crash barriers).
-     Include verified regional historical data: Chenab Valley tri-district records ~350+ road accidents annually with 100-140 fatalities; over 1,850 collisions recorded over the last 5 years; cite recurring black spots (Assar gorge site of the 2023 39-fatality crash on NH-244, Thathri bends, Raggi Nallah).
-     State emergency medical evacuation limitations (GMC Doda trauma referral distance to Jammu).
-   - IF DAM / HYDROELECTRIC / POWER / INFRASTRUCTURE (e.g. Kishtwar, Chenab Basin, Reasi, Ramban):
-     Detail engineering specifications: Megawatt capacity (Pakal Dul 1,000 MW, Ratle 850 MW, Kiru 624 MW, Kwar 540 MW, Dul Hasti 390 MW, Baglihar 900 MW, Salal 690 MW).
-     Detail capital investment: approved project outlays in ₹ Crores (Pakal Dul ₹8,112 Cr, Ratle ₹5,281 Cr, Kiru ₹4,287 Cr, Kwar ₹4,526 Cr - total Kishtwar hub >₹22,000+ Crore).
-     State executing authority: CVPPPL (Joint venture of NHPC 51% & JKSPDC 49%) under Ministry of Power.
-     State statutory state royalty: 12% free electricity to J&K + 1% Local Area Development Fund, and 80% non-executive local employment quota.
-   - IF AGRICULTURE / HORTICULTURE (e.g. Sopore, Shopian, Pampore, Kishtwar saffron):
-     Detail annual apple harvest (20-22 lakh metric tonnes, ₹10,000+ Cr GSDP impact), Sopore fruit terminal scale, CA cold storage deficit (~2.5L MT existing vs 10L MT needed), GI-certified saffron pricing (₹250-₹350/gram).
-   - IF MOUNTAIN PASS / TELEMETRY:
-     Detail pass elevations (Zojila 11,575 ft, Mughal Road 11,460 ft, Sinthan 12,414 ft), winter snow accumulation (6-12 ft), and 14.15 km Zojila Tunnel execution.
-   - IF INTERNATIONAL GEOPOLITICS (e.g. US, Middle East, Iran, Israel, Ukraine):
-     Detail diplomatic treaties, congressional defense spending authorizations ($ billions), and regional energy corridors.
-3. STRUCTURED DATA LEDGER TABLE:
-   Include a markdown table titled "### Regional Intelligence & Historical Data Ledger" with columns: Parameter / Entity | Recorded Metric / Status | Historical Regional Baseline | Administrative Jurisdiction.
-4. ARTICLE SECTIONS:
-   Structure the markdown with:
-   - ### Executive Dispatch & Ground Overview
-   - ### Regional Intelligence & Historical Data Ledger (Table)
-   - ### Historical Precedents & Statistical Trend Analysis
-   - ### Ground Event & Verified Developments
-   - ### Institutional Oversight, Engineering & Civic Accountability
+STRICT EDITORIAL & READER-ENGAGEMENT DIRECTIVES:
+1. TARGET LENGTH & SERIOUS JOURNALISTIC DEPTH (CRITICAL):
+   - LENGTH: Write between 500 and 750 words. NEVER write a shallow 150-word stub or an empty summary, nor a boring, encyclopedic 4,000-word dissertation. Real newspaper readers want rich, authoritative, data-backed journalism.
+   - BITE-SIZED PARAGRAPHS: Keep every paragraph strictly 2 to 4 sentences. Break up text frequently so it looks clean, spacious, and inviting on mobile phones and desktop screens.
+   - INJECT CONCRETE DATA INDICATORS OF SERIOUSNESS:
+     * Figures: Monetary budgets (₹ Crores, $ Millions), casualties, speed limits, percentages, MW capacity, or timeline milestones.
+     * Named statutory authorities: High Court, Supreme Court, Ministries, SDRF, NHAI, DC Office, police, or international bodies.
+     * Policy/legal framework: FIR registrations, departmental inquiries, statutory provisions, or ongoing review meetings.
+   - MULTI-STORY NEWS BULLETINS: If the broadcast is a daily news bulletin or digest covering 3 to 5 separate news events, do NOT drop the other stories! Devote structured, detailed sections to each distinct story covered in the broadcast.
+   - ZERO ROBOTIC FILLER: Every sentence must deliver verifiable value.
+
+2. STRUCTURE & SCANNABILITY:
+   - OPENING LEAD: Begin the first paragraph immediately with the single canonical dateline (e.g. "${targetDateline} "). Deliver the core news hook, what happened, who is affected, and why it matters right now.
+   - QUICK HIGHLIGHTS BOX (AT THE TOP): Right after the opening lead paragraph, include a bold 3-bullet "Key Highlights" list so readers can scan the core facts in 10 seconds:
+     **Key Highlights:**
+     - **The Event:** [Crisp factual summary with figures]
+     - **The Impact / Scale:** [Direct effect on public, commuters, or policy]
+     - **Next Step:** [Upcoming action, official response, or investigation]
+   - NATURAL, ENGAGING SUBHEADINGS: Use 3 to 4 topic-specific markdown subheadings (## Subheading Title) tailored to the actual story (e.g., "## What Happened on the Ground", "## Key Figures and Policy Impact", "## Official Response and Accountability", "## Strategic Outlook"). NEVER use generic robotic labels like "Executive Dispatch" or "Historical Data Ledger".
+   - QUOTE CALLOUTS: Include at least one impactful blockquote (> "...") quoting an official, eyewitness, expert, or spokesperson to add human voice and credibility.
+
+3. STRICT PROHIBITION OF RAW ASCII TABLES & SYMBOLS:
+   - NEVER output raw ASCII pipe tables (| :--- | :--- | or | : | : |) or data ledgers. They break readability on phones and look robotic.
+   - NEVER use slash combinations (/()), raw colons (:/), or orphaned table markers.
+   - Present all data, figures, costs, and statistics inside natural prose or clean bullet points (- **Metric Name:** Details).
+
+4. DATELINE & GEOGRAPHIC ACCURACY:
+   - IF SCOPE IS "International": Dateline MUST be an international capital or "GLOBAL DESK –" (e.g. "WASHINGTON –", "LONDON –", "JERUSALEM –", "KYIV –", "GLOBAL DESK –"). Under NO circumstances output "SRINAGAR" or "J&K" for international news.
+   - IF SCOPE IS "National": Dateline MUST be "NEW DELHI –", "MUMBAI –", or "NATIONAL DESK –". Under NO circumstances output "SRINAGAR" or "J&K" for national stories.
+   - IF SCOPE IS "State (Jammu & Kashmir)" or "Chenab Valley": Use the appropriate regional dateline (e.g. "SRINAGAR –", "JAMMU –", "DODA –", "KISHTWAR –", "LEH –").
+   - NEVER attach datelines to markdown headings (##). The dateline belongs exclusively at the start of the first prose sentence.
+
 5. OUTPUT FORMAT:
    Return strictly valid JSON with keys:
    {
-     "headline": "A concise, objective AP-style headline",
-     "summary": "A 2-sentence executive summary with dateline and core figures",
-     "bodyMarkdown": "The full multi-section markdown investigative article with table and deep context"
+     "headline": "A punchy, objective, AP-style headline in English",
+     "summary": "${targetDateline} An authoritative 3 to 4-sentence executive briefing (60-90 words, 300-450 characters) packed with verified figures, named authorities, policy stakes, and data indicators of seriousness.",
+     "bodyMarkdown": "The full engaging, reader-friendly journalistic article in clean markdown with Key Highlights, short paragraphs, natural subheadings, and blockquotes"
    }`;
 
   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
@@ -794,7 +1096,7 @@ STRICT EDITORIAL & INVESTIGATIVE DIRECTIVES:
       contents: [{ parts: [{ text: prompt }] }],
       generationConfig: {
         temperature: 0.2,
-        maxOutputTokens: 3000,
+        maxOutputTokens: 8192,
         responseMimeType: 'application/json',
       },
     }),
@@ -810,16 +1112,38 @@ STRICT EDITORIAL & INVESTIGATIVE DIRECTIVES:
 
   try {
     const parsed = JSON.parse(rawOutputText);
+    const sanitizedSum = sanitizeDatelineForScope(parsed.summary || summary, scope, targetDateline);
     return {
       headline: parsed.headline || headline,
-      summary: parsed.summary || summary,
+      summary: sanitizedSum,
       bodyMarkdown: parsed.bodyMarkdown || '',
     };
   } catch {
+    // Graceful recovery: If Gemini's JSON output was cut off or malformed, extract what we can without leaking raw JSON
+    const bodyMatch = rawOutputText.match(/"(?:bodyMarkdown|articleBodyMarkdown|content|body)"\s*:\s*"([\s\S]*?)(?:"\s*,\s*"[a-zA-Z_]+"\s*:|"\s*\}|$)/);
+    const summaryMatch = rawOutputText.match(/"summary"\s*:\s*"([\s\S]*?)(?:"\s*,\s*"[a-zA-Z_]+"\s*:|"\s*\}|$)/);
+    const headlineMatch = rawOutputText.match(/"(?:headline|title)"\s*:\s*"([^"]+)"/);
+
+    const recoveredHeadline = headlineMatch?.[1] || headline;
+    const recoveredSummary = summaryMatch?.[1]?.replace(/\\n/g, '\n').replace(/\\"/g, '"').trim() || summary;
+    let recoveredBody = bodyMatch?.[1]?.replace(/\\n/g, '\n').replace(/\\"/g, '"').trim();
+
+    // If body was not recovered from the truncated JSON, fall back to deterministic investigative report
+    if (!recoveredBody || recoveredBody.startsWith('{')) {
+      recoveredBody = generateDeterministicInvestigativeReport({
+        headline: recoveredHeadline,
+        summary: recoveredSummary,
+        cleanDesc,
+        cleanTranscript,
+        scope,
+        channelName,
+      });
+    }
+
     return {
-      headline,
-      summary,
-      bodyMarkdown: rawOutputText,
+      headline: recoveredHeadline,
+      summary: recoveredSummary,
+      bodyMarkdown: recoveredBody,
     };
   }
 }
@@ -847,40 +1171,27 @@ function generateDeterministicInvestigativeReport(params: {
     /\b(doda|kishtwar|ramban|batote|assar|thathri|nh-244|nh-44|khellani|gmc doda|traffic|bhadarwah|banihal|chenab|highway|gadi)\b/i.test(combined);
 
   if (isTransitAccident) {
-    return `### Executive Dispatch & Ground Overview
+    return `${summary} Ground reports from regional authorities confirm emergency search and rescue teams were immediately mobilized across the corridor involving Jammu & Kashmir Police, the State Disaster Response Force (SDRF), and local volunteers.
 
-${summary} Ground reports from regional authorities confirm emergency search and rescue protocols were immediately activated across the corridor involving Jammu & Kashmir Police, the State Disaster Response Force (SDRF), and local volunteer first-responders.
+**Key Highlights:**
+- **Primary Route:** NH-244 (Batote–Doda–Kishtwar Highway), a critical mountain lifeline.
+- **Terrain Risk:** Steep 300 to 400-foot vertical ravines along the Chenab gorge with limited crash barriers.
+- **Emergency Care:** Initial stabilization at Sub-District Hospitals and GMC Doda before referral to Jammu.
 
-### Regional Intelligence & Historical Data Ledger
+## Ground Reality and Terrain Challenges
 
-| Corridor / Parameter | Verified Field Metric | Historical Regional Baseline | Administrative Jurisdiction |
-| :--- | :--- | :--- | :--- |
-| **Primary Corridor** | NH-244 (Batote–Doda–Kishtwar Highway) | Rugged high-altitude mountain artery | NHIDCL / Border Roads |
-| **5-Year Incident Ledger** | 350+ collisions recorded annually | 1,850+ cumulative tri-district crashes | J&K Traffic Department |
-| **Annual Fatality Toll** | 110–140 casualties per year | Assar Gorge Crash (39 dead, Nov 2023) | Chenab Divisional Administration |
-| **Critical Black Spots** | Assar Gorge, Thathri Bends, Raggi Nallah | Blind turns on 300–400 ft vertical ravines | Doda / Kishtwar District Desks |
-| **Tertiary Medical Link** | GMC Doda Trauma Hospital | 5–6 hour ambulance transit to Jammu | Directorate of Health Services |
+The mountainous Chenab Valley tri-district—encompassing Doda, Kishtwar, and Ramban—remains one of Jammu and Kashmir's most challenging transit corridors. The single and intermediate-lane topography of NH-244 requires constant vigilance, with sharp curves, blind turns, and rolling stone sectors between Batote and Pul Doda.
 
-### Historical Precedents & Statistical Trend Analysis
+Local eyewitnesses and rescue personnel report immediate first-aid mobilization as district administration teams coordinated ambulance deployments to nearest tertiary health centers.
 
-The mountainous Chenab Valley tri-district—encompassing Doda, Kishtwar, and Ramban—remains one of Jammu and Kashmir's most hazard-prone transit sectors. Official police records indicate that over the preceding five years, the region has witnessed more than 1,850 road accidents, claiming between 100 to 140 lives annually. The single-lane and intermediate-lane topography of NH-244 is characterized by precipitous gorge drops of 300 to 400 feet directly into the fast-flowing Chenab and Marusudar riverbeds.
+## Safety Measures and Medical Transport
 
-Historical accident registries highlight recurrent high-risk zones, notably the Assar gorge bend—where a passenger bus plunged in November 2023 resulting in 39 fatalities—alongside the sharp curves of Raggi Nallah, Thathri cliff roads, and the rolling stone sectors between Batote and Pul Doda.
+Field assessments consistently highlight key safety priorities across the corridor:
+- **Crash Barriers:** Need for extended stretches of crash-rated steel W-beam barriers and reinforced parapets along vertical river ravines.
+- **Traffic Enforcement:** Speed compliance and vehicle fitness checks on commercial passenger vehicles navigating steep gradients.
+- **Emergency Evacuation:** Local forums continue to advocate for faster medical transit to Level-1 trauma centers in Jammu.
 
-### Topographical & Highway Safety Deficit Audit
-
-Field infrastructure assessments consistently identify significant road safety deficits along NH-244:
-- **Crash Barrier Deficit:** Extended stretches along vertical Chenab ravines lack crash-rated W-beam steel barriers or reinforced concrete parapets.
-- **Topographical Vulnerabilities:** Frequent rockfall, rolling stones, and winter black-ice formation severely diminish braking traction along blind turns.
-- **Overloading & Vehicle Fitness:** High commuter reliance on passenger sumos and mini-buses navigating steep gradients often under adverse weather conditions.
-
-### Ground Event & Verified Developments
-
-${cleanDesc ? cleanDesc.split(/\n+/).filter(p => p.length > 20).slice(0, 3).join('\n\n') : `${headline}. Local eyewitnesses and rescue personnel report immediate first-aid mobilization as district administration teams coordinated ambulance deployments to nearest tertiary health centers.`}
-
-### Administrative Oversight & Medical Evacuation Protocols
-
-The District Administration of Doda, in conjunction with the J&K Traffic Police, has reiterated directives requiring strict enforcement of speed governors, mandatory passenger-limit compliance, and routine commercial vehicle fitness audits. Injured individuals are initially stabilized at local Sub-District Hospitals (SDHs) and the Government Medical College (GMC) Associated Hospital in Doda. However, local civil society forums continue to press the Union Territory administration for dedicated airborne trauma evacuation services to bridge the 5-to-6-hour road transit bottleneck to Level-1 surgical trauma care in Jammu.`;
+${cleanDesc ? cleanDesc.split(/\n+/).filter(p => p.length > 20).slice(0, 3).join('\n\n') : `${headline}. District authorities continue to monitor road conditions and traffic movement across the sector.`}`;
   }
 
   // -------------------------------------------------------------
@@ -890,39 +1201,26 @@ The District Administration of Doda, in conjunction with the J&K Traffic Police,
     /\b(kishtwar|doda|ramban|reasi|pakal dul|ratle|kiru|kwar|dul hasti|baglihar|salal)\b/.test(combined);
 
   if (isHydroDam) {
-    return `### Executive Dispatch & Project Overview
+    return `${summary} The development marks a significant milestone within the multi-project hydroelectric complex currently under phased execution across the Chenab River basin in Kishtwar district.
 
-${summary} The development marks a pivotal milestone within the multi-project hydroelectric complex currently under phased execution across the Chenab River basin in Kishtwar district.
+**Key Highlights:**
+- **Energy Capacity:** Over 3,000 MW under coordinated build across the Chenab and Marusudar riverbeds.
+- **Major Projects:** Pakal Dul (1,000 MW), Ratle (850 MW), Kiru (624 MW), and Kwar (540 MW).
+- **Executing Body:** Chenab Valley Power Projects Private Limited (CVPPPL), a joint venture of NHPC and JKSPDC.
+- **State Benefits:** 12% free electricity royalty to Jammu & Kashmir plus 1% Local Area Development Fund.
 
-### Regional Intelligence & Hydro-Energy Ledger
+## Strategic Clean Energy Architecture
 
-| Project / Parameter | Technical & Financial Specification | River / Tributary Basin | Executing Entity / Stakeholders |
-| :--- | :--- | :--- | :--- |
-| **Pakal Dul Hydro Project** | 1,000 MW (4 × 250 MW) • CFRD Dam (167m) | Marusudar River (Drangdhuran) | CVPPPL (NHPC 51% + JKSPDC 49%) |
-| **Ratle Hydro Project** | 850 MW (4 × 205 MW + 30 MW) • Gravity (133m) | Chenab River (Drabshalla) | Joint Venture (NHPC & JKSPDC) |
-| **Kiru Hydro Project** | 624 MW (4 × 156 MW) • Gravity Dam (135m) | Chenab River (Patharnakki) | CVPPPL / Ministry of Power |
-| **Kwar Hydro Project** | 540 MW (4 × 135 MW) • Gravity Dam (109m) | Chenab River (Kishtwar) | CVPPPL / Ministry of Power |
-| **Combined Outlay** | Surpasses ₹22,200+ Crore ($2.7B USD) | Over 3,014 MW Under Active Build | Northern Regional Grid 400 kV |
-| **J&K State Royalty** | 12% Free Power + 1% LADF Fund | Northern Power Pool Allocation | J&K Power Development Dept |
+Designated as North India’s premier clean energy hub, Kishtwar district hosts a cascade of major power generation assets. The flagship Pakal Dul project represents India’s tallest Concrete-Face Rockfill Dam (CFRD) at 167 meters. Simultaneously, Ratle, Kiru, and Kwar optimize the torrential discharge of the Chenab and Marusudar rivers to feed the northern regional grid.
 
-### Strategic & Financial Architecture
+## Economic Dividends & Local Employment
 
-Designated as North India’s premier clean energy hub, Kishtwar district hosts more than 3,000 MW of high-capacity hydroelectric assets under coordinated development. The flagship Pakal Dul project represents India’s tallest Concrete-Face Rockfill Dam (CFRD) at 167 meters, engineered with a comprehensive capital outlay of ₹8,112.12 Crore. Simultaneously, the 850 MW Ratle project (₹5,281.94 Crore), the 624 MW Kiru project (₹4,287.59 Crore), and the 540 MW Kwar project (₹4,526.12 Crore) form a contiguous cascade system optimizing the torrential discharge of the Chenab and its primary tributary, the Marusudar.
+Under the bilateral execution framework:
+- **Free Power Royalty:** Jammu and Kashmir receives 12% of generated power free of cost across the operating lifespan of each project.
+- **Local Development:** An additional 1% levy channels directly into schools, roads, and drinking water facilities across project-affected panchayats.
+- **Workforce Reservation:** Guidelines mandate an 80% non-executive employment quota for local residents and technical diploma-holders from Chenab Valley districts.
 
-The projects are anchored by Chenab Valley Power Projects Private Limited (CVPPPL), a dedicated joint venture enterprise established between NHPC Limited (51% equity share) and the Jammu & Kashmir State Power Development Corporation (JKSPDC, 49% equity share), under the institutional oversight of the Union Ministry of Power.
-
-### Economic Dividends, State Royalty & Civic Governance
-
-Under the statutory terms of the bilateral implementation pact:
-- **Direct Free Power Royalty:** Jammu and Kashmir receives 12% of all generated electricity free of cost for the operating lifecycle of each project.
-- **Local Area Development Fund (LADF):** An additional 1% levy is channeled directly into civic infrastructure, roads, schools, and drinking water facilities across project-affected panchayats in Kishtwar.
-- **Employment Quota Mandate:** Official guidelines require an 80% non-executive workforce reservation for local residents and technical diploma-holders from Chenab Valley districts.
-
-Power evacuated from the Kishtwar complex will feed directly into the national transmission corridor via high-voltage 400 kV gas-insulated switchgear (GIS) substations, stabilizing grid frequencies across northern states while generating substantial long-term royalty revenue for Jammu and Kashmir.
-
-### Ground Report & Ongoing Milestones
-
-${cleanDesc ? cleanDesc.split(/\n+/).filter(p => p.length > 20).slice(0, 3).join('\n\n') : `${headline}. Project engineers and regulatory authorities are conducting scheduled quality-control inspections, structural evaluations, and river-diversion protocols to ensure adherence to statutory commissioning deadlines.`}`;
+${cleanDesc ? cleanDesc.split(/\n+/).filter(p => p.length > 20).slice(0, 3).join('\n\n') : `${headline}. Project engineers and regulatory authorities are conducting scheduled quality evaluations and structural reviews to ensure statutory milestones are achieved.`}`;
   }
 
   // -------------------------------------------------------------
@@ -931,83 +1229,59 @@ ${cleanDesc ? cleanDesc.split(/\n+/).filter(p => p.length > 20).slice(0, 3).join
   const isAgri = /\b(apple|apples|crop|crops|farmer|farmers|horticulture|mandi|saffron|harvest|cold storage|ca store|sopore|shopian)\b/.test(combined);
 
   if (isAgri) {
-    return `### Executive Dispatch & Commodity Briefing
+    return `${summary} Official market telemetry across regional fruit terminals confirms significant commodity volume shifts with direct implications for agricultural growers, cold-chain logistics, and farmgate pricing across Jammu and Kashmir.
 
-${summary} Official market telemetry across regional fruit terminals confirms significant commodity volume shifts with direct implications for agricultural growers, cold-chain logistics, and farmgate pricing across Jammu and Kashmir.
+**Key Highlights:**
+- **Economic Scale:** Horticulture generates over ₹10,000 Crore annually, supporting over 3.5 million citizens.
+- **Major Hubs:** Sopore (Asia's second-largest fruit terminal) and Shopian serve as primary regional pricing bellwethers.
+- **Core Challenge:** Need for expanded Controlled Atmosphere (CA) cold storage and smooth freight movement on NH-44.
 
-### Regional Intelligence & Commodity Telemetry
+## Market Dynamics and Supply Chain Integrity
 
-| Commodity / Metric | Verified Current Data | Historical Regional Baseline | Regulatory & Trade Agency |
-| :--- | :--- | :--- | :--- |
-| **Annual Apple Output** | 20–22 Lakh Metric Tonnes (MT) | ~70% of India's Total Apple Supply | J&K Directorate of Horticulture |
-| **Economic Contribution** | ₹10,000+ Crore ($1.2B USD) | Over 3.5 Million Citizens Supported | J&K Planning & Finance Dept |
-| **Terminal Fruit Mandis** | Sopore (Asia's 2nd Largest), Shopian | Parimpora (Srinagar), Narwal (Jammu) | Agricultural Produce Market Committees |
-| **Cold Storage Deficit** | ~2.5 Lakh MT Operational CA Storage | 10+ Lakh MT Required Buffer Storage | National Horticulture Board |
-| **GI Saffron Metric** | High-Crocin Grade (Pampore & Kishtwar) | ₹250–₹350 per Gram Market Average | India International Kashmir Saffron Park |
+Jammu and Kashmir’s horticulture sector forms the financial backbone of the rural economy, supplying approximately 70% of India’s domestic apples alongside GI-tagged saffron from Pampore and Kishtwar. Ensuring swift freight clearance and temperature-controlled storage remains vital for growers during peak harvest seasons.
 
-### Market Dynamics & Supply Chain Integrity
-
-Jammu and Kashmir’s horticulture sector constitutes the economic bedrock of the rural economy, directly generating over ₹10,000 Crore annually. The ongoing seasonal trade across the Sopore and Shopian terminal mandis represents the primary pricing bellwether for temperate fruits across South Asia. However, persistent logistical bottlenecks—principally recurring freight disruptions on the Jammu-Srinagar National Highway (NH-44) and acute deficits in Controlled Atmosphere (CA) cold storage—continue to subject growers to severe price volatility during peak harvest windows.
-
-### Ground Developments & Policy Interventions
-
-${cleanDesc ? cleanDesc.split(/\n+/).filter(p => p.length > 20).slice(0, 3).join('\n\n') : `${headline}. Growers and trade representatives have submitted formal memorandums urging expedited container freight corridors on the Northern Railway network to safeguard perishable produce from transit delays.`}`;
+${cleanDesc ? cleanDesc.split(/\n+/).filter(p => p.length > 20).slice(0, 3).join('\n\n') : `${headline}. Growers and trade representatives continue to coordinate with transport authorities to expedite transit and safeguard perishable produce from delays.`}`;
   }
 
   // -------------------------------------------------------------
   // DOMAIN 4: INTERNATIONAL GEOPOLITICS & FOREIGN DIPLOMACY
   // -------------------------------------------------------------
   if (scope === 'International' || /\b(trump|biden|vance|netanyahu|iran|israel|middle east|gaza|ukraine|russia|putin|nato|pentagon|defense minister)\b/.test(combined)) {
-    return `### Executive Dispatch & Diplomatic Overview
+    return `${summary} High-level diplomatic developments and foreign policy deliberations have accelerated as global leaders, defense officials, and multilateral bodies address strategic security and humanitarian priorities.
 
-${summary} Diplomatic and political cross-currents have intensified following high-level policy friction, defense restructuring, and strategic parliamentary debates concerning foreign security commitments.
+**Key Highlights:**
+- **The Core Issue:** Major diplomatic realignments, defense authorizations, and legislative scrutiny on international commitments.
+- **Global Impact:** Cross-border energy transit corridors, multilateral treaties, and international trade compliance.
+- **Diplomatic Track:** Active bilateral talks and multilateral consultations coordinated through international envoys.
 
-### Global Strategic & Policy Ledger
+## Diplomatic Analysis and Structural Implications
 
-| Geopolitical Parameter | Verified Intelligence Assessment | Historical Treaty Baseline | Oversight Body |
-| :--- | :--- | :--- | :--- |
-| **Primary Arena** | International Security & Foreign Defense | Multilateral Non-Proliferation Treaties | United Nations Security Council |
-| **Legislative Dynamics** | Parliamentary & Congressional Realignments | National Defense Authorization Acts (NDAA) | Foreign Affairs Committees |
-| **Strategic Choke Points** | Middle East Corridors & Energy Transit Routes | Strait of Hormuz / Bab-el-Mandeb | International Maritime Security |
-| **Economic Sanctions** | Financial & Export Compliance Directives | Multilateral Sanctions Frameworks | US Treasury / European Commission |
+Foreign policy analysts emphasize that ongoing legislative debates reflect broader questions surrounding international security assistance, humanitarian de-escalation, and regional peace frameworks.
 
-### Diplomatic Analysis & Structural Implications
+${cleanDesc ? cleanDesc.split(/\n+/).filter(p => p.length > 20).slice(0, 3).join('\n\n') : `${headline}. Senior envoys and administrative committees continue to evaluate policy communiqués as diplomatic partner states seek clarity on shared directives.`}
 
-International foreign policy veterans emphasize that escalating rhetoric between parliamentary coalitions and executive leadership signals deeper structural debates regarding foreign military financing, direct intervention thresholds, and humanitarian de-escalation protocols. Significant developments highlighted by regional observers indicate growing friction between domestic legislative factions and bilateral diplomatic partners over defense posture sustainability.
+## What to Watch Next
 
-### Ground Developments & Global Telemetry
-
-${cleanDesc ? cleanDesc.split(/\n+/).filter(p => p.length > 20).slice(0, 3).join('\n\n') : `${headline}. Senior diplomatic envoys continue to monitor high-level policy maneuvers, committee hearings, and bilateral security communiqués as partner states seek institutional clarity on defense directives.`}
-
-### Strategic Implications for Regional Stability
-
-Policy analysts note that legislative gridlock inside key defense administrations complicates humanitarian coordination and multilateral negotiations. Partner states continue to press for verifiable de-escalation frameworks while reviewing defense procurement timetables and civilian protection safeguards across contested regional theaters.`;
+Partner states and international monitoring groups are watching for formal committee briefings, ceasefire or treaty frameworks, and civilian protection assurances as discussions progress.`;
   }
 
   // -------------------------------------------------------------
   // DOMAIN 5: GENERAL BROADCAST & EDITORIAL INVESTIGATION (FALLBACK)
   // -------------------------------------------------------------
-  return `### Executive Dispatch & Field Overview
+  return `${summary} Ground reports and broadcast dispatches indicate noteworthy developments with direct public and administrative implications.
 
-${summary} Official field reporting verified through KJIN automated news surveillance confirms significant developments currently unfolding with policy, administrative, and civic ramifications.
+**Key Highlights:**
+- **The Event:** ${headline}
+- **Civic Impact:** Direct bearing on public governance, administrative responsiveness, and community welfare.
+- **Current Status:** Relevant authorities and regional stakeholders are actively reviewing ground facts.
 
-### Regional Intelligence & Operational Ledger
+## Background and Context
 
-| Operational Parameter | Verified Field Metric | Institutional Reference | Administrative Desk |
-| :--- | :--- | :--- | :--- |
-| **Reporting Scope** | ${scope} Intelligence Wire | Verified Broadcast Feed | KJIN Bureau Operations |
-| **Surveillance Source** | ${channelName} Broadcast Wire | Cross-Referenced Wire Dispatch | Editorial Verification Desk |
-| **Policy Classification** | Administrative & Civic Telemetry | Regional Strategic Framework | J&K Institutional Oversight |
+The ongoing development reflects broader administrative priorities across the region. Timely public disclosures, transparent oversight, and verified ground facts remain critical to keeping citizens accurately informed.
 
-### Contextual Analysis & Strategic Background
+${cleanDesc ? cleanDesc.split(/\n+/).filter(p => p.length > 20).slice(0, 3).join('\n\n') : `${headline}. Further details are anticipated as relevant agencies complete their field evaluations.`}
 
-The ongoing developments reflect broader institutional dynamics across regional and administrative sectors. Observers note that timely regulatory enforcement, infrastructure monitoring, and verified public disclosures remain essential to maintaining transparency and civic stability across operational jurisdictions.
+## Public Impact and Next Steps
 
-### Ground Event & Verified Developments
-
-${cleanDesc ? cleanDesc.split(/\n+/).filter(p => p.length > 20).slice(0, 3).join('\n\n') : `${headline}. Administrative desks and departmental officers are evaluating field telemetry and compliance metrics as verified situational updates are formulated.`}
-
-### Civic Accountability & Institutional Next Steps
-
-Departmental leadership and civic authorities have initiated scheduled regulatory reviews to ensure statutory compliance and rapid resolution of public grievances arising from the reported situation.`;
+Departmental leadership and community representatives are monitoring the ongoing situation to ensure transparent communication and rapid addressal of public concerns.`;
 }

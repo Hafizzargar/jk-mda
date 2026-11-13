@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { sanitizeArticleHtml, safeJsonLd, isAllowedImageSrc, isValidHostname } from '@/lib/sanitize';
+import { sanitizeArticleHtml, safeJsonLd, isAllowedImageSrc, isValidHostname, extractCleanArticleText, markdownToHtml } from '@/lib/sanitize';
 import { parsePageParam, getPaginationRange } from '@/lib/pagination';
 import { isValidCategory, isValidDistrict, isValidRegion, getCategoryDisplayName, getDistrictDisplayName, getRegion } from '@/lib/taxonomy';
 import { SITE_URL } from '@/lib/config';
@@ -39,6 +39,31 @@ describe('P0: Article HTML XSS Prevention', () => {
     const richText = '<h2>Headline</h2><p>Paragraph with <strong>bold</strong> and <em>italic</em>.</p><blockquote>Quote</blockquote>';
     const cleaned = sanitizeArticleHtml(richText);
     assert.strictEqual(cleaned, richText);
+  });
+
+  it('strips raw AI JSON wrappers and envelopes so readers never see JSON keys in content', () => {
+    // 1. Truncated AI JSON (like the Namit Malhotra issue from screenshot)
+    const rawTruncatedJson = `{ "headline": "Namit Malhotra's 'Ramayana' Epic Garners Global Acclaim, Redefining Indian Storytelling on World Stage", "summary": "SRINAGAR, J&K – Producer Namit Malhotra and director Nitesh Tiwari's ambitious ₹4,000-crore epic, 'Ramayana: The Rise of Legend,' has achieved significant international critical acclaim following its worldwide theatrical release on November 5, marking a pivotal moment for Indian cinema's global aspirations`;
+    const cleaned = extractCleanArticleText(rawTruncatedJson);
+    assert.ok(!cleaned.startsWith('{'), 'must not start with JSON bracket');
+    assert.ok(!cleaned.includes('"headline":'), 'must not contain headline JSON key');
+    assert.ok(!cleaned.includes('"summary":'), 'must not contain summary JSON key');
+    assert.ok(cleaned.includes("Producer Namit Malhotra and director Nitesh Tiwari's ambitious ₹4,000-crore epic"), 'must preserve actual story text');
+
+    // 2. Full JSON with bodyMarkdown
+    const fullJson = JSON.stringify({
+      headline: 'Court Reopens Bridge Inquest',
+      summary: 'Judicial inquiry into collapsed span begins.',
+      bodyMarkdown: '### Executive Overview\n\nThe judicial commission began hearings today in Jammu.'
+    });
+    const cleanedFull = extractCleanArticleText(fullJson);
+    assert.ok(!cleanedFull.includes('"bodyMarkdown"'), 'must not include raw JSON');
+    assert.ok(cleanedFull.includes('### Executive Overview'), 'must extract the markdown body');
+
+    // 3. markdownToHtml cleanly renders extracted prose into proper HTML paragraphs
+    const html = markdownToHtml(rawTruncatedJson);
+    assert.ok(!html.includes('{ "headline":'), 'rendered HTML must not contain JSON');
+    assert.ok(html.startsWith('<p>'), 'must be wrapped in proper paragraph tag');
   });
 
   it('enforces approved image hosts with no-referrer and lazy loading', () => {

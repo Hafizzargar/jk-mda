@@ -8,6 +8,8 @@ import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/Button';
 import {
   getRecommendedEditorialImage,
+  determineDatelineForScope,
+  sanitizeDatelineForScope,
   EditorialImageOption,
 } from '@/lib/newsroom/ai-synthesizer';
 import {
@@ -61,6 +63,14 @@ interface YouTubeVideo {
     articleBodyMarkdown?: string;
     featured_image_url?: string;
     uncertaintyNotes?: string;
+    is_multi_story_bulletin?: boolean;
+    stories?: Array<{
+      headline: string;
+      scope: string;
+      category: string;
+      summary: string;
+      keyFacts?: string[];
+    }>;
   } | null;
   youtube_sources?: {
     channel_name: string;
@@ -78,6 +88,41 @@ export default function YouTubeMonitorPage() {
   const [videos, setVideos] = useState<YouTubeVideo[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isDiscovering, setIsDiscovering] = useState(false);
+  const [discoveryStats, setDiscoveryStats] = useState<{
+    publishedToday?: number;
+    discoveredToday: number;
+    regionalCount?: number;
+    nationalInternationalCount?: number;
+    regionalSharePercent?: number;
+    dailyTarget: number;
+    minDailyTotal?: number;
+    maxDailyTotal?: number;
+  } | null>(null);
+  const [discoveryRegions, setDiscoveryRegions] = useState<Array<{
+    id: string;
+    name: string;
+    shortName: string;
+    current: number;
+    published?: number;
+    min: number;
+    max: number;
+    deficit: number;
+    isMet: boolean;
+    isMaxReached: boolean;
+    isRegional: boolean;
+  }>>([]);
+  const [discoveredArticles, setDiscoveredArticles] = useState<Array<{
+    id: string;
+    title: string;
+    slug: string;
+    status: string;
+    category: string;
+    district: string | null;
+    created_at: string;
+    source_name: string | null;
+    source_url: string | null;
+  }>>([]);
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterScope, setFilterScope] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -121,9 +166,77 @@ export default function YouTubeMonitorPage() {
   const [isQuickIngesting, setIsQuickIngesting] = useState(false);
   const [showQuickIngestBox, setShowQuickIngestBox] = useState(false);
 
+  const [autoPilot, setAutoPilot] = useState<boolean>(true);
+  const [autoPilotIntervalMinutes, setAutoPilotIntervalMinutes] = useState<number>(5);
+  const [countdown, setCountdown] = useState<number>(300);
+  const isSyncingRef = useRef(false);
+
   useEffect(() => {
     loadData();
+    // Immediate background auto-sync on page mount
+    handleSyncNow(true);
   }, []);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (autoPilot) {
+      timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            if (!isSyncingRef.current) {
+              handleSyncNow(true);
+            }
+            return autoPilotIntervalMinutes * 60;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [autoPilot, autoPilotIntervalMinutes]);
+
+  function formatCountdownTime(totalSeconds: number): string {
+    if (totalSeconds >= 3600) {
+      const hours = Math.floor(totalSeconds / 3600);
+      const mins = Math.floor((totalSeconds % 3600) / 60);
+      return `${hours}h ${mins}m`;
+    }
+    if (totalSeconds >= 60) {
+      const mins = Math.floor(totalSeconds / 60);
+      const secs = totalSeconds % 60;
+      return `${mins}m ${secs.toString().padStart(2, '0')}s`;
+    }
+    return `${totalSeconds}s`;
+  }
+
+  async function handleUpdateAutoPilotSettings(newInterval: number, newEnabled: boolean) {
+    setAutoPilotIntervalMinutes(newInterval);
+    setAutoPilot(newEnabled);
+    setCountdown(newInterval * 60);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) return;
+      await fetch('/api/newsroom/youtube/settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+        body: JSON.stringify({
+          interval_minutes: newInterval,
+          auto_pilot_enabled: newEnabled,
+        }),
+      });
+      setFeedback({
+        text: `Auto-Pilot adjusted: Syncing every ${newInterval >= 60 ? `${newInterval / 60} hour(s)` : `${newInterval} minute(s)`} (${newEnabled ? 'Active' : 'Paused'}).`,
+        type: 'success',
+      });
+    } catch (err) {
+      console.error('Failed to save auto-pilot settings:', err);
+    }
+  }
 
   async function loadData() {
     setLoading(true);
@@ -135,14 +248,42 @@ export default function YouTubeMonitorPage() {
       }
       const token = sessionData.session.access_token;
 
-      const [channelsRes, videosRes] = await Promise.all([
+      const [channelsRes, videosRes, settingsRes, discoveryRes] = await Promise.all([
         fetch('/api/newsroom/youtube/channels', {
           headers: { Authorization: `Bearer ${token}` },
         }),
         fetch('/api/newsroom/youtube/videos?limit=40', {
           headers: { Authorization: `Bearer ${token}` },
         }),
+        fetch('/api/newsroom/youtube/settings', {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch('/api/newsroom/discovery/run', {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
       ]);
+
+      if (discoveryRes && discoveryRes.ok) {
+        const dData = await discoveryRes.json();
+        if (dData.stats) {
+          setDiscoveryStats(dData.stats);
+        }
+        if (Array.isArray(dData.regions)) {
+          setDiscoveryRegions(dData.regions);
+        }
+        if (Array.isArray(dData.recentDiscoveries)) {
+          setDiscoveredArticles(dData.recentDiscoveries);
+        }
+      }
+
+      if (settingsRes.ok) {
+        const sData = await settingsRes.json();
+        const mins = Number(sData.interval_minutes) || 5;
+        const enabled = sData.auto_pilot_enabled !== false;
+        setAutoPilotIntervalMinutes(mins);
+        setAutoPilot(enabled);
+        setCountdown(mins * 60);
+      }
 
       if (channelsRes.ok) {
         const cData = await channelsRes.json();
@@ -161,9 +302,13 @@ export default function YouTubeMonitorPage() {
     }
   }
 
-  async function handleSyncNow() {
-    setIsSyncing(true);
-    setFeedback(null);
+  async function handleSyncNow(silent = false) {
+    if (isSyncingRef.current) return;
+    isSyncingRef.current = true;
+    if (!silent) {
+      setIsSyncing(true);
+      setFeedback(null);
+    }
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) return;
@@ -178,18 +323,58 @@ export default function YouTubeMonitorPage() {
 
       const data = await res.json();
       if (res.ok) {
-        setFeedback({
-          text: `Sync complete! Checked ${data.channelsChecked} channels. Discovered ${data.newVideosFound} new videos (${data.draftsProposed} Gemini drafts generated).`,
-          type: 'success',
-        });
+        if (!silent || (data.newVideosFound && data.newVideosFound > 0)) {
+          setFeedback({
+            text: `Sync complete! Checked ${data.channelsChecked} channels. Discovered ${data.newVideosFound} new videos (${data.draftsProposed} Gemini drafts generated, ${data.articlesPublished || 0} auto-published).`,
+            type: 'success',
+          });
+        }
         await loadData();
-      } else {
+      } else if (!silent) {
         setFeedback({ text: data.error || 'Sync failed.', type: 'error' });
       }
     } catch (err: any) {
-      setFeedback({ text: err.message || 'Sync network error.', type: 'error' });
+      if (!silent) {
+        setFeedback({ text: err.message || 'Sync network error.', type: 'error' });
+      }
     } finally {
       setIsSyncing(false);
+      isSyncingRef.current = false;
+    }
+  }
+
+  async function handleDiscoverNow() {
+    if (isDiscovering) return;
+    setIsDiscovering(true);
+    setFeedback(null);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) return;
+
+      const res = await fetch('/api/newsroom/discovery/run', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success && data.discovered) {
+        setFeedback({
+          text: `✨ Discovered breaking story: "${data.headline}" (${data.scope} • ${data.beat})! Sent to Pending Approval queue.`,
+          type: 'success',
+        });
+        await loadData();
+      } else if (data.skipped) {
+        setFeedback({ text: `ℹ️ ${data.reason}`, type: 'success' });
+      } else {
+        setFeedback({ text: data.reason || data.error || 'Discovery cycle finished. No new breaking events detected.', type: 'error' });
+      }
+    } catch (err: any) {
+      setFeedback({ text: err.message || 'Discovery network error.', type: 'error' });
+    } finally {
+      setIsDiscovering(false);
     }
   }
 
@@ -438,20 +623,21 @@ export default function YouTubeMonitorPage() {
     setShowEditBody(false);
 
     // Auto-detect scope (Local News J&K, National, International)
-    const rawScope = (video.ai_analysis?.scope as string) || (video.youtube_sources?.region as string) || '';
+    const rawScope = (video.ai_analysis?.scope as string) || '';
     let scope: 'Local News (J&K)' | 'National' | 'International' = 'National';
     if (
+      rawScope === 'International' ||
       rawScope.toLowerCase().includes('international') ||
       rawScope.toLowerCase().includes('global') ||
       video.youtube_sources?.country?.toLowerCase() !== 'india'
     ) {
       scope = 'International';
     } else if (
+      rawScope === 'State (Jammu & Kashmir)' ||
+      rawScope === 'Chenab Valley' ||
       rawScope.toLowerCase().includes('kashmir') ||
-      rawScope.toLowerCase().includes('jammu') ||
       rawScope.toLowerCase().includes('chenab') ||
-      rawScope.toLowerCase().includes('state') ||
-      rawScope.toLowerCase().includes('local')
+      rawScope.toLowerCase().includes('state')
     ) {
       scope = 'Local News (J&K)';
     } else {
@@ -464,8 +650,7 @@ export default function YouTubeMonitorPage() {
       video.proposed_category || video.youtube_sources?.category,
       scope
     );
-    const topic = (canonical.name === 'National' || canonical.name === 'International') ? 'Politics' : canonical.name;
-    setEditCategory(topic);
+    setEditCategory(canonical.name);
 
     // District: ONLY preserved if Local J&K, otherwise empty
     setEditDistrict(scope === 'Local News (J&K)' ? (video.ai_analysis?.district?.toLowerCase() || '') : '');
@@ -486,7 +671,16 @@ export default function YouTubeMonitorPage() {
       .trim();
 
     setEditHeadline(video.proposed_headline || video.title);
-    setEditSummary(video.proposed_summary || video.description?.slice(0, 300) || '');
+    const targetDateline = determineDatelineForScope(
+      scope === 'Local News (J&K)' ? 'State (Jammu & Kashmir)' : scope,
+      `${video.proposed_headline || video.title} ${video.proposed_summary || video.description || ''}`
+    );
+    const cleanSummary = sanitizeDatelineForScope(
+      video.proposed_summary || video.description?.slice(0, 300) || '',
+      scope === 'Local News (J&K)' ? 'State (Jammu & Kashmir)' : scope,
+      targetDateline
+    );
+    setEditSummary(cleanSummary);
     setEditBody(cleanBody);
 
     // If non-English characters or hashtags are detected, automatically run AI English synthesis
@@ -629,62 +823,74 @@ export default function YouTubeMonitorPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
         <div>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xl">🤖</span>
+            <span className="text-xl">🌐</span>
             <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight">
-              AI Newsroom &amp; Verification Desk
+              Autonomous News Intelligence Radar
             </h1>
             <span className="rounded-full bg-purple-100 text-purple-800 dark:bg-purple-500/20 dark:text-purple-300 text-[10px] sm:text-xs font-bold px-2 py-0.5 border border-purple-200 dark:border-purple-500/30">
-              Gemini 2.5 Flash
+              Multi-Source Intelligence
             </span>
-            <span className="rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 text-[10px] sm:text-xs font-bold px-2 py-0.5 border border-emerald-200 dark:border-emerald-500/30">
-              80/10/10 Quota Active
+            <span className="rounded-full bg-cyan-100 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-300 text-[10px] sm:text-xs font-bold px-2 py-0.5 border border-cyan-200 dark:border-cyan-800">
+              Zero Channels Needed
             </span>
+            <button
+              type="button"
+              onClick={() => handleUpdateAutoPilotSettings(autoPilotIntervalMinutes, !autoPilot)}
+              className={`rounded-full text-[10px] sm:text-xs font-bold px-2.5 py-0.5 border flex items-center gap-1.5 transition ${
+                autoPilot
+                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/40 hover:bg-emerald-200'
+                  : 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 border-amber-300 dark:border-amber-500/40 hover:bg-amber-200'
+              }`}
+              title="Click to toggle automatic background news discovery"
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${autoPilot ? 'bg-emerald-500 animate-ping' : 'bg-amber-500'}`} />
+              {autoPilot ? `Autonomous Radar: Active (${formatCountdownTime(countdown)})` : 'Autonomous Radar: Paused'}
+            </button>
           </div>
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            Autonomous multi-platform news surveillance (YouTube, FB, Insta). Gemini drafts original, copyright-free reports for 1-click verification before live broadcast.
+            Independently researches breaking news across Google News, local newspapers (Daily Excelsior, Greater Kashmir, etc.), PIB, official disaster portals and global wires. No channel list required.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={() => setShowStats(!showStats)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2.5 py-1.5 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition shadow-2xs"
-            title={showStats ? 'Hide stats and metrics' : 'Expand stats and metrics'}
-          >
-            <span>{showStats ? 'Hide Stats' : 'Overview & Stats'}</span>
-            <svg
-              className={`h-3.5 w-3.5 text-slate-400 transition-transform duration-200 ${showStats ? 'rotate-180' : ''}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+          {/* Frequency Control Selector */}
+          <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2.5 py-1 text-xs shadow-2xs">
+            <span className="text-slate-500 dark:text-slate-400 font-semibold text-[11px]">⏱️ Schedule:</span>
+            <select
+              value={autoPilotIntervalMinutes}
+              onChange={(e) => handleUpdateAutoPilotSettings(Number(e.target.value), autoPilot)}
+              className="bg-transparent font-bold text-slate-800 dark:text-slate-100 text-xs outline-none cursor-pointer"
+              title="Select how often autonomous discovery runs"
             >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            icon="🔄"
-            disabled={isSyncing}
-            isLoading={isSyncing}
-            onClick={handleSyncNow}
-            title="Poll active YouTube feeds right now"
-          >
-            {isSyncing ? 'Syncing...' : 'Sync (60m)'}
-          </Button>
+              <option value={15}>Every 15 Min</option>
+              <option value={30}>Every 30 Min</option>
+              <option value={60}>Every 1 Hour (Standard)</option>
+              <option value={120}>Every 2 Hours</option>
+              <option value={360}>Every 6 Hours</option>
+            </select>
+          </div>
 
           <Button
             type="button"
             variant="primary"
             size="sm"
-            icon="➕"
-            onClick={() => setShowAddModal(true)}
+            icon="🔍"
+            disabled={isDiscovering}
+            isLoading={isDiscovering}
+            onClick={handleDiscoverNow}
+            className="bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-xs cursor-pointer"
+            title="Trigger real-time multi-source news discovery across all beats right now"
           >
-            Add Channel
+            {isDiscovering ? 'Discovering News...' : 'Discover News Now'}
           </Button>
+
+          <Link
+            href="/articles?status=review"
+            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition shadow-2xs"
+          >
+            <span>⏳</span>
+            <span>Pending Approval</span>
+          </Link>
         </div>
       </div>
 
@@ -702,6 +908,212 @@ export default function YouTubeMonitorPage() {
           </button>
         </div>
       )}
+
+      {/* KJIN Autonomous News Discovery Radar */}
+      <div className="rounded-2xl border border-purple-200 dark:border-purple-900/50 bg-gradient-to-r from-purple-50/70 via-indigo-50/40 to-white dark:from-purple-950/20 dark:via-slate-900 dark:to-slate-900 p-4 shadow-xs space-y-3">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-300 text-[11px] font-bold border border-purple-200 dark:border-purple-800">
+                <span className="h-1.5 w-1.5 rounded-full bg-purple-600 animate-pulse" />
+                Autonomous News Intelligence Engine
+              </span>
+              <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
+                Gemini 2.5 + Google Search Grounding
+              </span>
+              <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/50 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800/40">
+                ~65% Regional Ground Priority
+              </span>
+              <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/50 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-800/40">
+                100% Pending Approval (0 Auto-Publish)
+              </span>
+            </div>
+            <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed max-w-3xl">
+              Independently monitors developing public stories across <strong>Chenab Valley</strong> (Doda, Kishtwar, Ramban), <strong>Jammu</strong>, <strong>Kashmir</strong>, <strong>Leh/Ladakh</strong>, <strong>Pir Panjal</strong>, and National/World wires. Dynamically prioritizes underrepresented beats without forcing artificial coverage.
+            </p>
+            <div className="flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400 pt-0.5 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 px-2.5 py-0.5 rounded-md font-semibold border border-emerald-200 dark:border-emerald-800/40">
+                📰 Today Published News: <strong className="text-emerald-900 dark:text-emerald-200 ml-0.5">{discoveryStats?.publishedToday ?? 0}</strong> stories
+              </span>
+              <span>•</span>
+              <span>🎯 Discovered / Target: <strong>{discoveryStats?.discoveredToday ?? 0} / {discoveryStats?.dailyTarget ?? 25}</strong> stories (Range: 17–32)</span>
+              <span>•</span>
+              <span>⏱️ Cadence: <strong>Every 60 mins</strong></span>
+              <span>•</span>
+              <span>⛰️ Regional Coverage: <strong>{discoveryStats?.regionalCount ?? 0} stories ({discoveryStats?.regionalSharePercent ?? 65}% of minimum)</strong></span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              type="button"
+              variant="primary"
+              size="sm"
+              icon="🔍"
+              disabled={isDiscovering}
+              isLoading={isDiscovering}
+              onClick={handleDiscoverNow}
+              className="bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-xs cursor-pointer"
+              title="Trigger real-time Google Search news discovery across underrepresented beats right now"
+            >
+              {isDiscovering ? 'Discovering Breaking News...' : 'Discover News Now'}
+            </Button>
+            <Link
+              href="/articles?status=review"
+              className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition shadow-2xs"
+            >
+              <span>⏳</span>
+              <span>Pending Approval</span>
+            </Link>
+          </div>
+        </div>
+
+        {/* 7 Regional Editorial Distribution Indicators */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 pt-1 border-t border-purple-100 dark:border-purple-900/30">
+          {[
+            { id: 'chenab_valley', name: 'Chenab Valley', min: 3, max: 6, priority: true, subtitle: 'Doda, Kishtwar, Ramban' },
+            { id: 'jammu', name: 'Jammu Plains', min: 2, max: 5, subtitle: 'Jammu, Samba, Kathua' },
+            { id: 'kashmir', name: 'Kashmir Valley', min: 2, max: 5, subtitle: 'Srinagar & Valley' },
+            { id: 'leh_ladakh', name: 'Leh & Ladakh', min: 2, max: 3, subtitle: 'Leh, Kargil (UT)' },
+            { id: 'pir_panjal', name: 'Pir Panjal', min: 2, max: 3, subtitle: 'Poonch, Rajouri' },
+            { id: 'national', name: 'National (India)', min: 2, max: 5, subtitle: 'Pan-India Policy' },
+            { id: 'international', name: 'International', min: 4, max: 5, subtitle: 'Global Diplomacy' },
+          ].map((target) => {
+            const live = discoveryRegions.find((r) => r.id === target.id);
+            const current = live?.current ?? 0;
+            const published = live?.published ?? 0;
+            const isMet = current >= target.min;
+            const isMax = current >= target.max;
+
+            return (
+              <div
+                key={target.id}
+                className={`p-2 rounded-xl border text-xs transition flex flex-col justify-between ${
+                  target.priority
+                    ? 'border-cyan-300 dark:border-cyan-800 bg-cyan-50/60 dark:bg-cyan-950/20'
+                    : isMet
+                    ? 'border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/40 dark:bg-emerald-950/10'
+                    : 'border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/60'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-1 mb-1">
+                  <span className="font-bold text-[11px] truncate text-slate-800 dark:text-slate-200" title={target.name}>
+                    {target.name}
+                  </span>
+                  {target.priority ? (
+                    <span className="text-[9px] px-1 py-0.2 rounded bg-cyan-200 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-300 font-extrabold uppercase">
+                      Top
+                    </span>
+                  ) : published > 0 ? (
+                    <span className="text-[9px] px-1 py-0.2 rounded bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 font-extrabold">
+                      {published} Live
+                    </span>
+                  ) : null}
+                </div>
+                <div className="flex items-baseline justify-between">
+                  <span className="text-base font-black text-slate-900 dark:text-white">
+                    {current}
+                    <span className="text-[10px] font-normal text-slate-400 ml-0.5">
+                      / {target.min}–{target.max}
+                    </span>
+                  </span>
+                  <span className={`text-[10px] font-bold ${isMet ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                    {published > 0 ? `${published} published` : isMax ? 'Maxed' : isMet ? '✓ Met' : `${target.min - current} needed`}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500 truncate mt-0.5">
+                  <span className="truncate" title={target.subtitle}>{target.subtitle}</span>
+                  {published > 0 && <span className="font-semibold text-emerald-600 dark:text-emerald-400 shrink-0">({published} pub)</span>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Live Discovered Stories Queue from Autonomous Intelligence */}
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800 mb-3">
+          <div className="flex items-center gap-2">
+            <span className="text-base">🛰️</span>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+              Autonomous Discovered Stories Queue ({discoveredArticles.length})
+            </h2>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400">
+              • Researched independently across Google News, local newspapers, PIB & disaster portals
+            </span>
+          </div>
+          <Link
+            href="/articles?status=review"
+            className="text-xs font-bold text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1"
+          >
+            <span>Review Full Pending Queue ({discoveredArticles.length})</span>
+            <span>→</span>
+          </Link>
+        </div>
+
+        {discoveredArticles.length === 0 ? (
+          <div className="py-8 text-center text-xs text-slate-500">
+            <span className="text-2xl block mb-2">🔍</span>
+            <p className="font-semibold text-slate-700 dark:text-slate-300">No autonomous stories in queue yet today.</p>
+            <p className="mt-1 text-[11px] text-slate-400">
+              Click &quot;Discover News Now&quot; above to trigger an immediate multi-source research cycle across the internet.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {discoveredArticles.map((art) => (
+              <div
+                key={art.id}
+                className="rounded-xl border border-slate-200 dark:border-slate-800 p-3.5 flex flex-col justify-between hover:border-purple-300 dark:hover:border-purple-800 transition bg-slate-50/50 dark:bg-slate-950/40"
+              >
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px] gap-2">
+                    <span className="font-bold px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300">
+                      {art.category}
+                    </span>
+                    {art.district && (
+                      <span className="font-semibold text-slate-600 dark:text-slate-400">
+                        📍 {art.district}
+                      </span>
+                    )}
+                  </div>
+                  <Link
+                    href={`/articles/${art.id}`}
+                    className="font-bold text-xs text-slate-900 dark:text-slate-100 hover:text-purple-600 dark:hover:text-purple-300 line-clamp-2 leading-snug"
+                  >
+                    {art.title}
+                  </Link>
+                </div>
+
+                <div className="pt-2 mt-2 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between text-[11px]">
+                  <div className="truncate max-w-[160px] text-slate-500 dark:text-slate-400">
+                    {art.source_url ? (
+                      <a
+                        href={art.source_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:underline text-indigo-600 dark:text-indigo-400 font-medium"
+                        title={art.source_name || art.source_url}
+                      >
+                        🌐 {art.source_name || 'Source Link'} ↗
+                      </a>
+                    ) : (
+                      <span>{art.source_name || 'Web Intelligence'}</span>
+                    )}
+                  </div>
+                  <Link
+                    href={`/articles/${art.id}/edit`}
+                    className="px-2.5 py-1 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-bold text-[11px] transition shrink-0"
+                  >
+                    Review &amp; Publish →
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* 4 Metric Cards - Collapsible / Mostly Hidden */}
       {!showStats ? (
@@ -1072,6 +1484,32 @@ export default function YouTubeMonitorPage() {
                             <p className="text-slate-600 dark:text-slate-300 text-xs line-clamp-2">
                               {video.proposed_summary}
                             </p>
+                          )}
+
+                          {/* Multi-story news bulletin breakdown */}
+                          {video.ai_analysis?.is_multi_story_bulletin && Array.isArray(video.ai_analysis.stories) && video.ai_analysis.stories.length > 0 && (
+                            <div className="mt-2.5 pt-2 border-t border-purple-500/20 space-y-1.5">
+                              <div className="flex items-center gap-1.5 font-bold text-amber-600 dark:text-amber-400 text-[11px]">
+                                <span>📺</span>
+                                <span>Multi-Story Bulletin ({video.ai_analysis.stories.length} Distinct Stories Extracted from Subtitles):</span>
+                              </div>
+                              <div className="space-y-1.5 pl-1">
+                                {video.ai_analysis.stories.map((st, i) => (
+                                  <div key={i} className="flex items-start gap-1.5 text-[11px] bg-slate-900/40 p-1.5 rounded-lg border border-purple-500/20">
+                                    <span className="font-bold text-amber-500 shrink-0">{i + 1}.</span>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-1.5 flex-wrap">
+                                        <span className="font-semibold text-slate-200">{st.headline}</span>
+                                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-900/60 text-purple-200 border border-purple-700/50 uppercase font-bold">{st.scope}</span>
+                                      </div>
+                                      {st.summary && (
+                                        <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-1">{st.summary}</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
                           )}
                         </div>
                       )}
@@ -1490,10 +1928,23 @@ export default function YouTubeMonitorPage() {
                       if (newScope !== 'Local News (J&K)') {
                         setEditDistrict('');
                       }
-                      const rec = getRecommendedEditorialImage(newScope, editCategory);
+                      const defaultCat = newScope === 'International' ? 'International' : newScope === 'National' ? 'National' : 'Local News';
+                      setEditCategory(defaultCat);
+                      const rec = getRecommendedEditorialImage(newScope, defaultCat);
                       setImageAlternatives(rec.alternatives);
-                      if (!editImage || editImage === reviewVideo.thumbnail_url) {
+                      if (!editImage || editImage === reviewVideo?.thumbnail_url) {
                         setEditImage(rec.featuredImage);
+                      }
+                      if (editSummary) {
+                        const targetDateline = determineDatelineForScope(
+                          newScope === 'Local News (J&K)' ? 'State (Jammu & Kashmir)' : newScope,
+                          `${editHeadline} ${editSummary}`
+                        );
+                        setEditSummary(sanitizeDatelineForScope(
+                          editSummary,
+                          newScope === 'Local News (J&K)' ? 'State (Jammu & Kashmir)' : newScope,
+                          targetDateline
+                        ));
                       }
                     }}
                     className="mt-1 w-full rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-950 p-2 text-slate-900 dark:text-white text-xs outline-none focus:border-cyan-500 font-medium"

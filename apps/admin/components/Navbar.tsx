@@ -22,8 +22,8 @@ export function Navbar({
   userRole,
   theme = 'light',
   onToggleTheme,
-  brandName = 'KCPJLN',
-  brandLogo = '/kcpjln-symbol.webp',
+  brandName = 'KJIN',
+  brandLogo = '/kjin-emblem.png',
 }: NavbarProps) {
   return (
     <header className="sticky top-0 z-30 flex h-13 w-full items-center justify-between border-b border-slate-200/90 bg-white/95 px-3 sm:px-4 md:px-6 shadow-2xs backdrop-blur-md dark:bg-slate-950/95 dark:border-slate-800 transition-all">

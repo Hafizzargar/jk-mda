@@ -17,7 +17,7 @@ export default function FooterSettingsPage() {
   const [form, setForm] = useState<FooterContactSettings>(DEFAULT_FOOTER_CONTACT);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'bureaus' | 'phones' | 'emails' | 'statutory' | 'social'>('bureaus');
+  const [activeTab, setActiveTab] = useState<'emails' | 'bureaus' | 'phones' | 'statutory' | 'social'>('emails');
 
   useEffect(() => {
     async function loadSettings() {
@@ -43,7 +43,7 @@ export default function FooterSettingsPage() {
         const role = profile.role_key;
         setUserRole(role);
 
-        if (role !== 'owner' && role !== 'superadmin') {
+        if (role !== 'owner' && role !== 'superadmin' && role !== 'admin') {
           router.push('/');
           return;
         }
@@ -182,16 +182,16 @@ export default function FooterSettingsPage() {
             <div className="flex items-center gap-2 mb-1">
               <span className="text-xs font-mono uppercase tracking-widest text-cyan-400">Settings</span>
               <span className="text-slate-600">•</span>
-              <span className="text-xs text-slate-400">Public Contact & Disclosures</span>
+              <span className="text-xs text-slate-400">Public Contact &amp; Disclosures</span>
             </div>
             <h1 className="text-2xl md:text-3xl font-black tracking-tight text-white flex items-center gap-3">
-              Footer & Bureaus
+              Contact Emails, Footer &amp; Bureaus
               <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
                 Live
               </span>
             </h1>
             <p className="text-xs text-slate-400 mt-1">
-              Bureau addresses, editorial hotlines, and public legal disclosures.
+              Centrally manage newsdesk emails (Editorial, Careers, Grievances, Press), hotlines, bureau headquarters, and statutory compliance.
             </p>
           </div>
 
@@ -206,7 +206,7 @@ export default function FooterSettingsPage() {
                 size="md"
                 icon="💾"
               >
-                {saving ? 'Saving...' : 'Save Footer Changes'}
+                {saving ? 'Saving...' : 'Save & Broadcast Changes'}
               </Button>
             )}
             <Button
@@ -244,9 +244,9 @@ export default function FooterSettingsPage() {
         {/* Navigation Tabs */}
         <div className="flex items-center gap-2 border-b border-slate-800 overflow-x-auto pb-px">
           {[
+            { id: 'emails', label: 'Newsdesk Emails', icon: '✉️' },
             { id: 'bureaus', label: 'Bureaus & Addresses', icon: '📍' },
             { id: 'phones', label: 'Newsdesk & Phones', icon: '📞' },
-            { id: 'emails', label: 'Emails & Grievance', icon: '✉️' },
             { id: 'statutory', label: 'Statutory & Policy', icon: '⚖️' },
             { id: 'social', label: 'Social Channels', icon: '🌐' },
           ].map((tab) => (
@@ -453,8 +453,37 @@ export default function FooterSettingsPage() {
             {activeTab === 'emails' && (
               <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 space-y-6">
                 <div>
-                  <h2 className="text-lg font-bold text-white mb-1">Official Emails & Grievances</h2>
-                  <p className="text-xs text-slate-400">Addresses for editorial inquiries, press communications, and statutory complaints.</p>
+                  <h2 className="text-lg font-bold text-white mb-1">Official Newsdesk Emails &amp; Inboxes</h2>
+                  <p className="text-xs text-slate-400">Configure newsdesk inboxes across Editorial, Careers, Grievances, and Press communications. Changes saved here reflect immediately on the live website and footer.</p>
+                </div>
+
+                {/* Quick 1-Click Default Preset */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl bg-cyan-950/40 border border-cyan-500/30">
+                  <div className="space-y-0.5">
+                    <span className="text-xs font-bold text-cyan-300 flex items-center gap-1.5">
+                      <span>⚡</span> Primary Newsdesk Mailbox Preset
+                    </span>
+                    <p className="text-[11px] text-slate-400">
+                      Use <strong>h26412301@gmail.com</strong> across all public contact desks, or enter custom emails below.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setForm((prev) => ({
+                        ...prev,
+                        email_editorial: 'h26412301@gmail.com',
+                        email_careers: 'h26412301@gmail.com',
+                        email_grievance: 'h26412301@gmail.com',
+                        email_press: 'h26412301@gmail.com',
+                      }));
+                      setSuccessMsg('Set h26412301@gmail.com to all email fields. Click "Save & Broadcast Changes" above to publish.');
+                    }}
+                    className="shrink-0 px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+                  >
+                    <span>⚡</span>
+                    <span>Set All to h26412301@gmail.com</span>
+                  </button>
                 </div>
 
                 <div className="space-y-4">
@@ -467,20 +496,49 @@ export default function FooterSettingsPage() {
                       value={form.email_editorial}
                       onChange={(e) => handleChange('email_editorial', e.target.value)}
                       className="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:border-cyan-500 focus:outline-none font-mono"
-                      placeholder="e.g. editorial@kjin.org"
+                      placeholder="e.g. h26412301@gmail.com"
                     />
+                    <p className="text-[11px] text-slate-500 mt-1">Displayed in website footer under &quot;Editorial&quot;.</p>
                   </div>
 
                   <div>
                     <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-                      Press Releases & Media Email
+                      Careers &amp; Resumes Email
+                    </label>
+                    <input
+                      type="email"
+                      value={form.email_careers}
+                      onChange={(e) => handleChange('email_careers', e.target.value)}
+                      className="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:border-cyan-500 focus:outline-none font-mono"
+                      placeholder="e.g. h26412301@gmail.com"
+                    />
+                    <p className="text-[11px] text-slate-500 mt-1">Displayed in website footer and Careers portal for candidate submissions.</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+                      Public Grievances &amp; Ethics Email
+                    </label>
+                    <input
+                      type="email"
+                      value={form.email_grievance}
+                      onChange={(e) => handleChange('email_grievance', e.target.value)}
+                      className="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:border-cyan-500 focus:outline-none font-mono"
+                      placeholder="e.g. h26412301@gmail.com"
+                    />
+                    <p className="text-[11px] text-slate-500 mt-1">Displayed in website footer under &quot;Grievances&quot; for reader complaints.</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
+                      Press Releases &amp; Media Communications Email
                     </label>
                     <input
                       type="email"
                       value={form.email_press}
                       onChange={(e) => handleChange('email_press', e.target.value)}
                       className="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:border-cyan-500 focus:outline-none font-mono"
-                      placeholder="e.g. press@kjin.org"
+                      placeholder="e.g. h26412301@gmail.com"
                     />
                   </div>
 
@@ -499,19 +557,6 @@ export default function FooterSettingsPage() {
                         onChange={(e) => handleChange('grievance_officer_name', e.target.value)}
                         className="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:border-cyan-500 focus:outline-none"
                         placeholder="e.g. Adv. Bashir Ahmad (Public Grievance Redressal Officer)"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-                        Public Grievance Email
-                      </label>
-                      <input
-                        type="email"
-                        value={form.email_grievance}
-                        onChange={(e) => handleChange('email_grievance', e.target.value)}
-                        className="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:border-cyan-500 focus:outline-none font-mono"
-                        placeholder="e.g. grievance@kjin.org"
                       />
                     </div>
                   </div>
@@ -703,12 +748,16 @@ export default function FooterSettingsPage() {
                   <span className="font-mono text-emerald-400 font-semibold">{form.phone_secondary}</span>
                 </div>
                 <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Careers &amp; Resumes:</span>
+                  <span className="font-mono text-cyan-300">{form.email_careers || 'h26412301@gmail.com'}</span>
+                </div>
+                <div className="flex items-center justify-between">
                   <span className="text-slate-400">Editorial:</span>
-                  <span className="font-mono text-slate-200">{form.email_editorial}</span>
+                  <span className="font-mono text-slate-200">{form.email_editorial || 'h26412301@gmail.com'}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-slate-400">Grievances:</span>
-                  <span className="font-mono text-amber-300">{form.email_grievance}</span>
+                  <span className="font-mono text-amber-300">{form.email_grievance || 'h26412301@gmail.com'}</span>
                 </div>
               </div>
 

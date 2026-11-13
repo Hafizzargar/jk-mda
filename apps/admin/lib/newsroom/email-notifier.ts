@@ -152,7 +152,7 @@ export async function sendNewsApprovalAlert(params: NewsApprovalAlertParams): Pr
     </div>
 
     <div class="footer">
-      Kashmir &amp; Jammu Investigative Newsroom (KJIN / KCPJLN)<br>
+      Kashmir &amp; Jammu Investigative Newsroom (KJIN)<br>
       Automated Editorial Gatekeeper • Powered by Google Gemini 2.5 Flash
     </div>
   </div>

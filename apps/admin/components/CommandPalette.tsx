@@ -26,38 +26,22 @@ const COMMANDS: CommandItem[] = [
     icon: '📊',
   },
   {
-    id: 'articles',
-    title: 'All Articles',
+    id: 'live-news',
+    title: 'Live News',
     category: 'Editorial',
-    description: 'Manage, edit, publish, or retract stories',
-    href: '/articles',
-    icon: '📰',
-  },
-  {
-    id: 'new-article',
-    title: 'Create New Article',
-    category: 'Editorial',
-    description: 'Compose a fresh news report or editorial',
-    href: '/articles/new',
-    icon: '✍️',
-    badge: 'Draft',
-  },
-  {
-    id: 'area-problems',
-    title: 'Area Problems & Civic Grievances',
-    category: 'Civic & Areas',
-    description: 'Filter local issues, roads, water, power & district reports',
-    href: '/articles?category=Local',
-    icon: '🏛️',
-    badge: 'Civic Priority',
-  },
-  {
-    id: 'live-articles',
-    title: 'Live Published Articles',
-    category: 'Editorial',
-    description: 'View active public stories on the newsdesk',
+    description: 'View active public stories on the live broadsheet',
     href: '/articles?status=published',
-    icon: '🟢',
+    icon: '📡',
+    badge: 'Live',
+  },
+  {
+    id: 'pending-approval',
+    title: 'Pending Approval',
+    category: 'Editorial',
+    description: 'Review and approve pending news submissions',
+    href: '/articles?status=review',
+    icon: '⏳',
+    badge: 'Need Approval',
   },
   {
     id: 'inactive-articles',
@@ -106,12 +90,12 @@ const COMMANDS: CommandItem[] = [
   },
   {
     id: 'footer-settings',
-    title: 'Footer & Bureau Contact Info',
+    title: 'Contact Emails, Footer & Bureaus',
     category: 'Settings',
-    description: 'Manage bureau phone numbers, addresses, and grievance cell',
+    description: 'Change newsdesk emails (editorial, careers, grievances, press), phone lines, and bureau addresses',
     href: '/settings/footer',
-    icon: '📑',
-    roles: ['owner', 'superadmin'],
+    icon: '✉️',
+    roles: ['owner', 'superadmin', 'admin'],
   },
   {
     id: 'public-site',
@@ -309,7 +293,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
               <kbd className="rounded bg-slate-800 px-1.5 py-0.5 font-mono text-[10px] text-slate-300 border border-slate-700">↵</kbd> to select
             </span>
           </div>
-          <span className="text-slate-500 font-mono">{brandName || 'KCPJLN'} Command OS</span>
+          <span className="text-slate-500 font-mono">{brandName || 'KJIN'} Command OS</span>
         </div>
       </div>
     </div>

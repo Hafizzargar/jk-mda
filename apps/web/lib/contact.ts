@@ -14,6 +14,7 @@ export interface FooterContactSettings {
   phone_secondary: string;
   phone_secondary_label: string;
   email_editorial: string;
+  email_careers: string;
   email_grievance: string;
   email_press: string;
   grievance_officer_name: string;
@@ -38,9 +39,10 @@ export const DEFAULT_FOOTER_CONTACT: FooterContactSettings = {
   phone_primary_label: 'Editorial Newsdesk Hotline',
   phone_secondary: '+91 94190 12345',
   phone_secondary_label: 'WhatsApp Secure Tip Line',
-  email_editorial: 'editorial@kjin.org',
-  email_grievance: 'grievance@kjin.org',
-  email_press: 'press@kjin.org',
+  email_editorial: 'h26412301@gmail.com',
+  email_careers: 'h26412301@gmail.com',
+  email_grievance: 'h26412301@gmail.com',
+  email_press: 'h26412301@gmail.com',
   grievance_officer_name: 'Adv. Bashir Ahmad (Public Grievance Redressal Officer)',
   registration_number: 'JK/REG/2026/0842 • Compliant with Information Technology (Intermediary Guidelines & Digital Media Ethics Code) Rules, 2021',
   social_twitter: 'https://twitter.com/kjin_live',
@@ -51,8 +53,14 @@ export const DEFAULT_FOOTER_CONTACT: FooterContactSettings = {
 };
 
 export function sanitizeContactSettings(input: Partial<FooterContactSettings>): FooterContactSettings {
+  const rawOrg = String(input.organization_name || DEFAULT_FOOTER_CONTACT.organization_name).trim();
+  const orgName = rawOrg
+    .replace(/\bKCPJLN\b/g, 'KJIN')
+    .replace(/Kashmir Chenab Panjal Jammu Ladakh Network/gi, 'Kashmir & Jammu Information Network')
+    .slice(0, 150);
+
   return {
-    organization_name: String(input.organization_name || DEFAULT_FOOTER_CONTACT.organization_name).trim().slice(0, 150),
+    organization_name: orgName || 'KJIN (Kashmir & Jammu Information Network)',
     tagline: String(input.tagline || DEFAULT_FOOTER_CONTACT.tagline).trim().slice(0, 200),
     description: String(input.description || DEFAULT_FOOTER_CONTACT.description).trim().slice(0, 500),
     primary_address: String(input.primary_address || DEFAULT_FOOTER_CONTACT.primary_address).trim().slice(0, 300),
@@ -64,9 +72,18 @@ export function sanitizeContactSettings(input: Partial<FooterContactSettings>): 
     phone_primary_label: String(input.phone_primary_label || DEFAULT_FOOTER_CONTACT.phone_primary_label).trim().slice(0, 100),
     phone_secondary: String(input.phone_secondary || DEFAULT_FOOTER_CONTACT.phone_secondary).trim().slice(0, 50),
     phone_secondary_label: String(input.phone_secondary_label || DEFAULT_FOOTER_CONTACT.phone_secondary_label).trim().slice(0, 100),
-    email_editorial: String(input.email_editorial || DEFAULT_FOOTER_CONTACT.email_editorial).trim().slice(0, 100),
-    email_grievance: String(input.email_grievance || DEFAULT_FOOTER_CONTACT.email_grievance).trim().slice(0, 100),
-    email_press: String(input.email_press || DEFAULT_FOOTER_CONTACT.email_press).trim().slice(0, 100),
+    email_editorial: typeof input.email_editorial === 'string' && input.email_editorial.trim() && input.email_editorial.trim() !== 'editorial@kjin.org'
+      ? input.email_editorial.trim().slice(0, 100)
+      : 'h26412301@gmail.com',
+    email_careers: typeof input.email_careers === 'string' && input.email_careers.trim() && input.email_careers.trim() !== 'careers@kjin.org'
+      ? input.email_careers.trim().slice(0, 100)
+      : 'h26412301@gmail.com',
+    email_grievance: typeof input.email_grievance === 'string' && input.email_grievance.trim() && input.email_grievance.trim() !== 'grievance@kjin.org'
+      ? input.email_grievance.trim().slice(0, 100)
+      : 'h26412301@gmail.com',
+    email_press: typeof input.email_press === 'string' && input.email_press.trim() && input.email_press.trim() !== 'press@kjin.org'
+      ? input.email_press.trim().slice(0, 100)
+      : 'h26412301@gmail.com',
     grievance_officer_name: String(input.grievance_officer_name || DEFAULT_FOOTER_CONTACT.grievance_officer_name).trim().slice(0, 150),
     registration_number: String(input.registration_number || DEFAULT_FOOTER_CONTACT.registration_number).trim().slice(0, 200),
     social_twitter: String(input.social_twitter || DEFAULT_FOOTER_CONTACT.social_twitter).trim().slice(0, 200),

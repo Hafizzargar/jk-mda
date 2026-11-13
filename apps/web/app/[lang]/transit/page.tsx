@@ -61,8 +61,8 @@ export default async function TransitPage({ params }: TransitPageProps) {
       <main className="flex-1 w-full">
         <PassTransitTopography
           telemetry={telemetry}
-          brandName={brandSettings.name || 'KCPJLN'}
-          brandFullName={brandSettings.full_name || 'Kashmir Chenab Panjal Jammu Ladakh Network'}
+          brandName={brandSettings.name || 'KJIN'}
+          brandFullName={brandSettings.full_name || 'Kashmir & Jammu Information Network'}
         />
       </main>
 

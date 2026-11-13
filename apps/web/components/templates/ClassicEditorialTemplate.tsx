@@ -44,7 +44,13 @@ export function ClassicEditorialTemplate({
 }: TemplateProps) {
   const activeTelemetry = telemetry || DEFAULT_TELEMETRY_SETTINGS;
   const lang = langPrefix ? langPrefix.replace('/', '') : 'en';
-  const brandName = navbarSettings?.brand?.name || 'KCPJLN';
+  const brandName = navbarSettings?.brand?.name || 'KJIN';
+  const cleanAuthor = (author?: string | null): string => {
+    if (!author || author === 'KCPJLN' || author.startsWith('KCPJLN')) {
+      return brandName;
+    }
+    return author;
+  };
 
   const isNational = scope?.type === 'national';
   const isInternational = scope?.type === 'international';
@@ -541,7 +547,7 @@ export function ClassicEditorialTemplate({
                     </div>
                     <div className="min-w-0 truncate">
                       <span className="font-bold text-stone-800 truncate">
-                        {heroArticle?.author_display_name || 'KCPJLN Bureau'}
+                        {cleanAuthor(heroArticle?.author_display_name)}
                       </span>
                       <span className="text-stone-400 font-normal">
                         {' '}• {heroArticle?.district ? getDistrictDisplayName(heroArticle.district) : 'Srinagar'}
@@ -639,7 +645,7 @@ export function ClassicEditorialTemplate({
                         )}
                       </div>
                       <div className="pt-2 mt-2 border-t border-stone-100 flex items-center justify-between text-[10px] text-stone-400">
-                        <span>By {art.author_display_name || 'Correspondent'}</span>
+                        <span>By {cleanAuthor(art.author_display_name)}</span>
                         <span suppressHydrationWarning>{formatArticleDate(art.published_at)}</span>
                       </div>
                     </article>
@@ -1110,7 +1116,7 @@ export function ClassicEditorialTemplate({
                         )}
                       </div>
                       <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-[10px] text-stone-400">
-                        <span>By {art.author_display_name || 'Correspondent'}</span>
+                        <span>By {cleanAuthor(art.author_display_name)}</span>
                         <span suppressHydrationWarning>{formatArticleDate(art.published_at)}</span>
                       </div>
                     </article>
@@ -1355,7 +1361,7 @@ export function ClassicEditorialTemplate({
                         <Link href={getArtHref(art)}>{art.title}</Link>
                       </h4>
                       <div className="mt-1.5 flex items-center justify-between text-[10px] text-slate-400">
-                        <span>By {art.author_display_name || 'Staff'}</span>
+                        <span>By {cleanAuthor(art.author_display_name)}</span>
                         <span className="text-emerald-600 font-bold">✓ Vetted</span>
                       </div>
                     </article>
@@ -1363,10 +1369,10 @@ export function ClassicEditorialTemplate({
                 </div>
 
                 <Link
-                  href={`${langPrefix}/latest`}
+                  href={`${langPrefix}/map`}
                   className="mt-4 block w-full py-2 bg-slate-900 text-white text-center text-[11px] font-bold uppercase tracking-wider rounded-xl shadow-sm hover:bg-slate-800 transition"
                 >
-                  View All District Filings →
+                  View All District Filings on Map →
                 </Link>
               </div>
             );
@@ -1490,7 +1496,7 @@ export function ClassicEditorialTemplate({
                       </span>
                     </div>
 
-                    <h1 className="text-2xl sm:text-4xl font-extrabold text-[#0F172A] leading-tight mb-3 hover:text-slate-700 transition">
+                    <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-[#0F172A] leading-[1.18] mb-3 hover:text-slate-700 transition text-balance">
                       <Link href={getArtHref(leadArticle)}>
                         {leadArticle.title}
                       </Link>
@@ -1508,7 +1514,7 @@ export function ClassicEditorialTemplate({
                           {leadArticle.author_display_name ? leadArticle.author_display_name[0]?.toUpperCase() : 'K'}
                         </div>
                         <div>
-                          <span className="font-bold text-[#0F172A] block">{leadArticle.author_display_name || 'Staff Correspondent'}</span>
+                          <span className="font-bold text-[#0F172A] block">{cleanAuthor(leadArticle.author_display_name)}</span>
                           <span className="text-[10px]">{leadArticle.district ? getDistrictDisplayName(leadArticle.district) : 'Newsdesk'}</span>
                         </div>
                       </div>
@@ -1581,7 +1587,7 @@ export function ClassicEditorialTemplate({
                         )}
                       </div>
                       <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-                        <span>By {art.author_display_name || 'Correspondent'}</span>
+                        <span>By {cleanAuthor(art.author_display_name)}</span>
                         <span>4 min read</span>
                       </div>
                     </article>
@@ -1611,7 +1617,7 @@ export function ClassicEditorialTemplate({
                             {getDistrictDisplayName(problemArticle.district)}
                           </span>
                         )}
-                        <span className="text-[10px] text-slate-400">By {problemArticle.author_display_name || 'Editor'}</span>
+                        <span className="text-[10px] text-slate-400">By {cleanAuthor(problemArticle.author_display_name)}</span>
                       </div>
                       <h3 className="font-serif text-base font-bold text-[#0F172A] leading-snug mb-2 hover:text-[#0891B2] transition">
                         <Link href={getArtHref(problemArticle)}>
@@ -1688,7 +1694,7 @@ export function ClassicEditorialTemplate({
                           International
                         </span>
                         <span className="text-[10px] text-slate-400">
-                          {internationalArticle.author_display_name || 'Diplomatic Desk'}
+                          {cleanAuthor(internationalArticle.author_display_name)}
                         </span>
                       </div>
 
@@ -2042,7 +2048,7 @@ export function ClassicEditorialTemplate({
                           )}
                         </div>
                         <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-                          <span>By {art.author_display_name || 'Correspondent'}</span>
+                          <span>By {cleanAuthor(art.author_display_name)}</span>
                           <span suppressHydrationWarning>{formatArticleDate(art.published_at)}</span>
                         </div>
                       </article>
@@ -2220,7 +2226,7 @@ export function ClassicEditorialTemplate({
                           </div>
                         </div>
                         <div className="px-5 py-3 bg-[#f5f3f0] border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-                          <span>By {art.author_display_name || 'Correspondent'}</span>
+                          <span>By {cleanAuthor(art.author_display_name)}</span>
                           <span suppressHydrationWarning>{formatArticleDate(art.published_at)}</span>
                         </div>
                       </article>

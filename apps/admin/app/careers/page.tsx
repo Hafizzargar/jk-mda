@@ -47,7 +47,7 @@ export default function CareersAdminPage() {
   // Selected candidate for detailed view drawer
   const [selectedApp, setSelectedApp] = useState<JobApplication | null>(null);
   const [editingNote, setEditingNote] = useState<string>('');
-  const [quickEmail, setQuickEmail] = useState<string>('careers@kjin.org');
+  const [quickEmail, setQuickEmail] = useState<string>('h26412301@gmail.com');
   const [jobVisibilityFilter, setJobVisibilityFilter] = useState<'all' | 'active' | 'paused'>('all');
 
   useEffect(() => {
@@ -97,7 +97,7 @@ export default function CareersAdminPage() {
           const json = await res.json();
           if (json.careers_settings) {
             setCareers(json.careers_settings);
-            setQuickEmail(json.careers_settings.contact_email || 'careers@kjin.org');
+            setQuickEmail(json.careers_settings.contact_email || 'h26412301@gmail.com');
           }
           setCanManage(Boolean(json.can_manage));
         } else {

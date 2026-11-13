@@ -49,6 +49,7 @@ function ArticlesPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialCategory = searchParams?.get('category');
+  const initialStatus = searchParams?.get('status') || 'all';
   const initialTopic: TopicMode =
     initialCategory === 'Local' ? 'civic' : (searchParams?.get('topic') as TopicMode) || 'news';
   
@@ -70,11 +71,23 @@ function ArticlesPageContent() {
   const [categories, setCategories] = useState<DynamicCategoryItem[]>(() => formatCategoryOptions([]));
   const [topicFilter, setTopicFilter] = useState<TopicMode>(initialTopic);
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>(initialStatus);
   const [categoryFilter, setCategoryFilter] = useState<string>(initialCategory || 'all');
   const [districtFilter, setDistrictFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState<number>(DEFAULT_PAGE_SIZE);
+
+  // Sync state if URL query params change (e.g. clicking sidebar links)
+  useEffect(() => {
+    const s = searchParams?.get('status') || 'all';
+    setStatusFilter(s);
+    const cat = searchParams?.get('category') || 'all';
+    setCategoryFilter(cat);
+    if (cat === 'Local') {
+      setTopicFilter('civic');
+    }
+    setPage(1);
+  }, [searchParams]);
 
   // Modal States
   const [retractArticle, setRetractArticle] = useState<Article | null>(null);

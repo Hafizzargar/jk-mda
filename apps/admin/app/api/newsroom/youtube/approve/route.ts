@@ -1,10 +1,39 @@
 import { authorizeEmployeeRequest, isEmployeeAuthorization } from '@/lib/employee-server';
 import { generateSlug } from '@/lib/newsroom/gemini-drafter';
 import { getCanonicalCategory } from '@/lib/taxonomy-options';
+import { determineDatelineForScope, sanitizeDatelineForScope } from '@/lib/newsroom/ai-synthesizer';
 
-function cleanEditorialText(text: string): string {
+function cleanEditorialText(text: string, preserveLinebreaks = false): string {
   if (!text) return '';
-  return text
+  let cleaned = text.trim();
+
+  // Strip accidental JSON object wrappers
+  if (cleaned.startsWith('{') || /^\s*\{\s*"(?:headline|title|summary|articleBodyMarkdown|bodyMarkdown)"/i.test(cleaned)) {
+    try {
+      const parsed = JSON.parse(cleaned);
+      if (typeof parsed === 'object' && parsed !== null) {
+        cleaned = String(parsed.articleBodyMarkdown || parsed.bodyMarkdown || parsed.content || parsed.summary || parsed.headline || '');
+      }
+    } catch {
+      const bodyMatch = cleaned.match(/"(?:articleBodyMarkdown|bodyMarkdown|content|body)"\s*:\s*"([\s\S]*?)(?:"\s*,\s*"[a-zA-Z_]+"\s*:|"\s*\}|$)/);
+      const summaryMatch = cleaned.match(/"summary"\s*:\s*"([\s\S]*?)(?:"\s*,\s*"[a-zA-Z_]+"\s*:|"\s*\}|$)/);
+      const summaryTailMatch = cleaned.match(/"(?:summary|bodyMarkdown|articleBodyMarkdown|content|body)"\s*:\s*"?([\s\S]+)$/i);
+      if (bodyMatch && bodyMatch[1] && bodyMatch[1].trim()) {
+        cleaned = bodyMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
+      } else if (summaryMatch && summaryMatch[1] && summaryMatch[1].trim()) {
+        cleaned = summaryMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
+      } else if (summaryTailMatch && summaryTailMatch[1]) {
+        cleaned = summaryTailMatch[1].replace(/["}\]\s]+$/, '').replace(/\\n/g, '\n').replace(/\\"/g, '"');
+      } else {
+        cleaned = cleaned
+          .replace(/^\{\s*"(?:headline|title)"\s*:\s*(?:"(?:\\.|[^"\\])*"|'[^']*'),?\s*/i, '')
+          .replace(/^"(?:summary|lead|description|body|content)"\s*:\s*"?/i, '')
+          .replace(/["}\]\s]+$/, '');
+      }
+    }
+  }
+
+  const result = cleaned
     // Remove hashtags
     .replace(/#[a-zA-Z0-9_\u0900-\u097F]+/g, '')
     // Remove trailing social blocks and promotional text
@@ -20,9 +49,13 @@ function cleanEditorialText(text: string): string {
     .replace(/https?:\/\/[^\s]+/gi, '')
     .replace(/www\.[^\s]+/gi, '')
     // Remove long dashed dividers
-    .replace(/[-=_~*]{3,}/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+    .replace(/[-=_~*]{3,}/g, ' ');
+
+  if (preserveLinebreaks) {
+    return result.replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n\n').trim();
+  }
+
+  return result.replace(/\s+/g, ' ').trim();
 }
 
 export async function POST(request: Request) {
@@ -63,21 +96,17 @@ export async function POST(request: Request) {
     }
 
     const finalTitle = cleanEditorialText(headline || videoRecord.proposed_headline || videoRecord.title);
-    const finalSummary = cleanEditorialText(summary || videoRecord.proposed_summary || videoRecord.description || '').slice(0, 400);
+    const rawSummary = cleanEditorialText(summary || videoRecord.proposed_summary || videoRecord.description || '').slice(0, 400);
 
     // Determine 2-way distribution: Scope (Tier 1) + Topic (Tier 2) + District
     const effectiveScope = scope || videoRecord.ai_analysis?.scope || 'National';
     const isLocalScope = effectiveScope.includes('Local') || effectiveScope.includes('State') || effectiveScope.includes('Jammu') || effectiveScope.includes('Chenab');
 
-    let canonicalCat: { name: string; slug: string };
-    if (!isLocalScope && (effectiveScope === 'International' || category === 'International')) {
-      canonicalCat = { name: 'International', slug: 'international' };
-    } else if (!isLocalScope && (effectiveScope === 'National' || category === 'National')) {
-      canonicalCat = { name: 'National', slug: 'national' };
-    } else {
-      canonicalCat = getCanonicalCategory(category || videoRecord.proposed_category, 'Local News (J&K)');
-    }
+    const canonicalCat = getCanonicalCategory(category || videoRecord.proposed_category, effectiveScope);
     const finalCategory = canonicalCat.name;
+
+    const targetDateline = determineDatelineForScope(effectiveScope, `${finalTitle} ${rawSummary}`);
+    const finalSummary = sanitizeDatelineForScope(rawSummary, effectiveScope, targetDateline);
 
     // Resolve category_id from public.categories
     const { data: catRecord } = await service
@@ -88,8 +117,8 @@ export async function POST(request: Request) {
 
     const rawContent = (body_markdown || videoRecord.ai_analysis?.articleBodyMarkdown || videoRecord.description || '').trim();
 
-    // Ensure 100% clean, professional article script
-    const linkFreeContent = cleanEditorialText(rawContent);
+    // Ensure 100% clean, professional article script with correct dateline and preserved markdown formatting
+    const linkFreeContent = sanitizeDatelineForScope(cleanEditorialText(rawContent, true), effectiveScope, targetDateline);
 
     // Priority for featured image:
     // If client explicitly sent featured_image_url (including "" or null to indicate text-only without image), respect it!

@@ -55,7 +55,7 @@ export default function HomepageCuratorPage() {
   const [selectedArticleForModal, setSelectedArticleForModal] = useState<PublishedArticle | null>(null);
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
   const [brand, setBrand] = useState<{ name: string; est_badge_text?: string; show_est_badge?: boolean; tagline?: string }>({
-    name: 'KCPJLN',
+    name: 'KJIN',
     est_badge_text: 'EST. 1948',
     show_est_badge: true,
     tagline: '',
@@ -139,7 +139,7 @@ export default function HomepageCuratorPage() {
         } | undefined;
         if (brandVal) {
           setBrand({
-            name: brandVal.name || 'KCPJLN',
+            name: brandVal.name || 'KJIN',
             est_badge_text: brandVal.est_badge_text || 'EST. 1948',
             show_est_badge: brandVal.show_est_badge ?? true,
             tagline: brandVal.tagline || '',

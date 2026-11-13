@@ -337,12 +337,12 @@ export function PassTransitTopography({ telemetry, brandName, brandFullName }: P
   const handleSos = () => {
     const confirmSos = confirm('Broadcast offline emergency SOS message with last known GPS altitude and telemetry to J&K Disaster Rapid Response Cell?');
     if (confirmSos) {
-      window.location.href = `sms:112?body=${encodeURIComponent(telemetry.offline_sos_message || 'KCPJLN SOS HIGH-ALTITUDE PASS RESCUE NEEDED')}`;
+      window.location.href = `sms:112?body=${encodeURIComponent(telemetry.offline_sos_message || 'KJIN SOS HIGH-ALTITUDE PASS RESCUE NEEDED')}`;
     }
   };
 
   const copySmsSyntax = () => {
-    navigator.clipboard.writeText('KCPJLN SOS [PASS_NAME] [VEHICLE_NO] [PERSONS]');
+    navigator.clipboard.writeText('KJIN SOS [PASS_NAME] [VEHICLE_NO] [PERSONS]');
     setCopiedSmsSyntax(true);
     setTimeout(() => setCopiedSmsSyntax(false), 2000);
   };
@@ -1163,7 +1163,7 @@ export function PassTransitTopography({ telemetry, brandName, brandFullName }: P
                     </button>
                   </div>
                   <div className="bg-[#0F172A] p-2 rounded font-mono text-xs text-[#0891B2] select-all border border-slate-900">
-                    KCPJLN SOS [PASS_NAME] [VEHICLE_NO] [PERSONS]
+                    KJIN SOS [PASS_NAME] [VEHICLE_NO] [PERSONS]
                   </div>
                   <span className="text-[11px] text-slate-400 block font-mono">
                     SMS Gateway Toll-Free: <strong>56161</strong> or <strong>+91 94190 00112</strong>
@@ -1264,7 +1264,7 @@ export function PassTransitTopography({ telemetry, brandName, brandFullName }: P
           </div>
 
           <div className="pt-4 border-t border-slate-800 flex flex-col md:flex-row items-center justify-between text-xs text-slate-500 font-mono">
-            <span>© 2026 {brandFullName || brandName || 'KCPJLN'}. Broadsheet Telemetry Edition.</span>
+            <span>© 2026 {brandFullName || brandName || 'KJIN'}. Broadsheet Telemetry Edition.</span>
             <div className="flex items-center space-x-3 mt-2 md:mt-0 uppercase">
               <span>Editorial Code</span>
               <span>•</span>

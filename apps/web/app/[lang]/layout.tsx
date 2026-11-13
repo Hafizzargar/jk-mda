@@ -18,7 +18,7 @@ import { getCachedSiteSetting } from '@/lib/site-settings-cache';
 export async function generateMetadata(): Promise<Metadata> {
   let brandName = SITE_SHORT_NAME;
   let brandFullName = SITE_NAME;
-  let logo = '/kcpjln-symbol.webp';
+  let logo = '/kjin-emblem.png';
   let tagline = 'Independent, verified, multilingual news and information for Jammu and Kashmir.';
 
   try {

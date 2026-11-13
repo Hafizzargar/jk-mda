@@ -11,7 +11,7 @@ export function CleanNordicWhiteTemplate({
   trendingArticles,
   navbarSettings,
 }: TemplateProps) {
-  const brandName = navbarSettings?.brand?.name || 'KCPJLN';
+  const brandName = navbarSettings?.brand?.name || 'KJIN';
   const brandTagline = navbarSettings?.brand?.tagline || 'Verified Independent Journalism';
 
   return (
@@ -60,7 +60,7 @@ export function CleanNordicWhiteTemplate({
               </div>
 
               <Link href={`${langPrefix}/${heroArticle.category.toLowerCase()}/${heroArticle.slug}`}>
-                <h1 className="text-3xl md:text-5xl font-normal tracking-tight text-neutral-950 leading-[1.15] mb-6 hover:text-neutral-600 transition">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-[2.65rem] font-normal tracking-tight text-neutral-950 leading-[1.15] mb-6 hover:text-neutral-600 transition text-balance">
                   {heroArticle.title}
                 </h1>
               </Link>

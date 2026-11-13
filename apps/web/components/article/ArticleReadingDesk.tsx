@@ -161,7 +161,7 @@ export function ArticleReadingDesk({
           <article className="lg:col-span-8 flex flex-col space-y-6">
             {/* Header & Sub-deck */}
             <header className="space-y-4">
-              <h1 className="font-serif text-3xl sm:text-5xl font-extrabold text-[#0F172A] tracking-tight leading-tight">
+              <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl lg:text-[2.65rem] font-extrabold text-[#0F172A] tracking-tight leading-[1.15] text-balance">
                 {article.title}
               </h1>
 

@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { Metadata } from 'next';
 import { createServerAnonClient } from '@/lib/supabase-server';
 import { ViewTracker } from '@/components/ViewTracker';
-import { sanitizeArticleHtml, safeJsonLd, markdownToHtml } from '@/lib/sanitize';
+import { sanitizeArticleHtml, safeJsonLd, markdownToHtml, sanitizeDatelineByScope, extractCleanArticleText } from '@/lib/sanitize';
 import { SITE_URL, SITE_NAME, SITE_SHORT_NAME, DEFAULT_LOCALE } from '@/lib/config';
 import { getTemplateTheme, type TemplateId } from '@/lib/templates';
 import { SiteNavbar } from '@/components/navigation/SiteNavbar';
@@ -199,9 +199,12 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   const dbTemplateId = (settingRow?.value as { template_id?: string } | null)?.template_id as TemplateId | undefined;
   const theme = getTemplateTheme(dbTemplateId);
 
-  // Convert markdown blocks and sanitize article HTML using strict allowlist before rendering to prevent stored XSS
-  const rawHtml = markdownToHtml(displayArticle.content || '');
+  // Extract clean text, enforce accurate geographic dateline by category, and sanitize article HTML using strict allowlist before rendering
+  const cleanedRawText = extractCleanArticleText(displayArticle.content || '');
+  const datelineCorrectedContent = sanitizeDatelineByScope(cleanedRawText, displayArticle.category);
+  const rawHtml = markdownToHtml(datelineCorrectedContent);
   const sanitizedContent = sanitizeArticleHtml(rawHtml);
+  const sanitizedExcerpt = sanitizeDatelineByScope(extractCleanArticleText(displayArticle.excerpt || ''), displayArticle.category);
 
   const langPrefix = resolvedParams.lang === 'en' ? '' : `/${resolvedParams.lang}`;
 
@@ -226,6 +229,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
           <ArticleReadingDesk
             article={{
               ...displayArticle,
+              excerpt: sanitizedExcerpt,
               content: sanitizedContent,
             }}
             brandName={brandSettings.name || SITE_SHORT_NAME}

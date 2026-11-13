@@ -24,15 +24,18 @@ export function SiteFooter({
   const langPrefix = lang === 'en' ? '' : `/${lang}`;
   const isDark = theme?.isDark ?? false;
 
-  // Unified brand resolution: Brand name (e.g. KCPL), full form (e.g. Kashmir Central Press...)
-  const brandName = brandSettings?.name?.trim() ||
+  // Unified brand resolution: Brand name (e.g. KJIN), full form (e.g. Kashmir & Jammu Information Network)
+  const rawBrandName = brandSettings?.name?.trim() ||
     (contact.organization_name?.includes('(') ? contact.organization_name.split('(')[0].trim() : contact.organization_name?.trim()) ||
     SITE_SHORT_NAME;
+  const brandName = rawBrandName.replace(/\bKCPJLN\b/g, 'KJIN') || 'KJIN';
 
-  const brandFullName = brandSettings?.full_name?.trim() ||
+  const rawBrandFullName = brandSettings?.full_name?.trim() ||
     (contact.organization_name?.includes('(')
       ? contact.organization_name.match(/\((.*?)\)/)?.[1]?.trim()
       : '');
+  const brandFullName = (rawBrandFullName || 'Kashmir & Jammu Information Network')
+    .replace(/Kashmir Chenab Panjal Jammu Ladakh Network/gi, 'Kashmir & Jammu Information Network');
 
   // Tagline logic: respect "if empty then empty"
   const activeTagline = brandSettings?.tagline !== undefined
@@ -124,21 +127,30 @@ export function SiteFooter({
               </div>
               <div className="space-y-1">
                 <div>
-                  <span className={`text-[10px] ${textMuted} block`}>Editorial:</span>
+                  <span className={`text-[10px] ${textMuted} block`}>Careers &amp; Resumes:</span>
                   <a
-                    href={`mailto:${contact.email_editorial}`}
+                    href={`mailto:${contact.email_careers || 'h26412301@gmail.com'}`}
                     className={`font-mono text-[11px] ${textPrimary} hover:underline break-all`}
                   >
-                    {contact.email_editorial}
+                    {contact.email_careers || 'h26412301@gmail.com'}
+                  </a>
+                </div>
+                <div>
+                  <span className={`text-[10px] ${textMuted} block`}>Editorial:</span>
+                  <a
+                    href={`mailto:${contact.email_editorial || 'h26412301@gmail.com'}`}
+                    className={`font-mono text-[11px] ${textPrimary} hover:underline break-all`}
+                  >
+                    {contact.email_editorial || 'h26412301@gmail.com'}
                   </a>
                 </div>
                 <div>
                   <span className={`text-[10px] ${textMuted} block`}>Grievances:</span>
                   <a
-                    href={`mailto:${contact.email_grievance}`}
+                    href={`mailto:${contact.email_grievance || 'h26412301@gmail.com'}`}
                     className={`font-mono text-[11px] ${isDark ? 'text-amber-400' : 'text-amber-700'} hover:underline break-all`}
                   >
-                    {contact.email_grievance}
+                    {contact.email_grievance || 'h26412301@gmail.com'}
                   </a>
                 </div>
               </div>
@@ -290,13 +302,25 @@ export function SiteFooter({
 
               <div>
                 <span className={`text-[10px] font-bold uppercase tracking-wider ${textMuted} block`}>
+                  Careers &amp; Resume Submissions
+                </span>
+                <a
+                  href="mailto:h26412301@gmail.com"
+                  className={`font-mono font-bold ${accentText} hover:underline break-all`}
+                >
+                  h26412301@gmail.com
+                </a>
+              </div>
+
+              <div>
+                <span className={`text-[10px] font-bold uppercase tracking-wider ${textMuted} block`}>
                   Editorial Newsdesk
                 </span>
                 <a
-                  href={`mailto:${contact.email_editorial}`}
+                  href={`mailto:${contact.email_editorial || 'h26412301@gmail.com'}`}
                   className={`font-mono ${textPrimary} hover:underline break-all`}
                 >
-                  {contact.email_editorial}
+                  {contact.email_editorial || 'h26412301@gmail.com'}
                 </a>
               </div>
 

@@ -360,7 +360,7 @@ export default function NavbarSettingsPage() {
                   {form.brand.show_name && (
                     <div className="flex items-baseline space-x-1.5">
                       <span className="text-xl font-black font-masthead tracking-tight leading-none text-stone-900">
-                        {form.brand.name || 'KCPJLN'}
+                        {form.brand.name || 'KJIN'}
                       </span>
                       {(form.brand.show_est_badge ?? true) && (
                         <span className="text-[9px] font-serif font-bold text-amber-800 tracking-widest uppercase bg-amber-100/70 px-1 py-0.5 rounded">

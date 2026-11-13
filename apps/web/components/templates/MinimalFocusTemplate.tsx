@@ -49,7 +49,7 @@ export function MinimalFocusTemplate({
                 <span>4 min read</span>
               </div>
 
-              <h1 className="text-3xl md:text-5xl font-serif font-extrabold text-stone-900 group-hover:text-stone-600 transition leading-tight tracking-tight">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-[2.65rem] font-serif font-extrabold text-stone-900 group-hover:text-stone-600 transition leading-[1.15] tracking-tight text-balance">
                 {heroArticle.title}
               </h1>
 

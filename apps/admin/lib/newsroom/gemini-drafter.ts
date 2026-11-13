@@ -22,7 +22,7 @@ export interface DraftEventInput {
 
 export const DraftOutputZodSchema = z.object({
   title: z.string().trim().min(5).max(200),
-  excerpt: z.string().trim().min(10).max(450),
+  excerpt: z.string().trim().min(10).max(500),
   content: z.string().min(50).max(50_000),
   suggestedDistrict: z.string().nullable(),
   suggestedCategory: z.string().default('General'),
@@ -88,31 +88,19 @@ ${officialResponseContext}
 
 STRICT EDITORIAL RULES:
 1. 'title': Factual headline without sensationalism. Do NOT append '— Jammu and Kashmir' unless the story specifically pertains to Jammu and Kashmir.
-2. 'excerpt': 1-2 sentence lead paragraph.
-3. 'content': Clean HTML body paragraphs (<p>, <h2>, <h3>, <ul>, <li>, <table>, <tr>, <th>, <td>). Include source attributions and links as anchors (<a href="...">source</a>).
+2. 'excerpt': Substantive 3-4 sentence executive briefing (60-90 words, 300-450 characters) incorporating key data indicators, figures, affected parties, and policy context.
+3. 'content': Engaging, reader-friendly HTML body paragraphs (<p>, <h2>, <ul>, <li>, <blockquote>).
+   - TARGET LENGTH: 500 to 750 words. Never write a shallow stub or an unformatted 4,000-word wall of text.
+   - BITE-SIZED PARAGRAPHS: Keep paragraphs strictly 2 to 4 sentences so it is pleasant and readable on phones and desktops.
+   - QUICK HIGHLIGHTS BOX: Include a 3-bullet "Key Highlights" box near the top.
+   - NATURAL SUBHEADINGS: Use natural, story-specific subheadings (<h2>What Happened</h2>, <h2>Civic Impact</h2>). Never use robotic headings or forced tables.
+   - ZERO RAW ASCII TABLES: Present all metrics, figures, and data within natural text or clean bullet points (<ul><li>...</li></ul>). Include source links as anchors (<a href="...">source</a>).
 4. CRITICAL: If no matching official government order or response was confirmed, explicitly state: "As of this reporting, no official advisory or order has been confirmed by relevant administrative authorities in the portals checked." NEVER fabricate an order or quote an unverified official.
 5. GEOGRAPHIC INTEGRITY: If the story is an international or national report (e.g. Yemen, Sudan, UN, WHO, Middle East), use the actual foreign country or Global Desk dateline. NEVER label foreign international stories with a Jammu & Kashmir dateline.
 6. 'claimsToVerify': List 2-4 factual claims that an editor must independently confirm before publication (e.g. casualty counts, road reopening timings, exact FIR details).
 7. 'missingInformationWarning': If vital details are missing or conflicting between sources, state them clearly.
-8. MANDATORY DEEP HISTORICAL & STATISTICAL LEDGER (INVESTIGATIVE DATA DEPTH):
-- NEVER write a generic 2-sentence summary. As an authoritative broadsheet investigative publication, enrich every report with deep contextual data:
-  a) IF TRANSIT / ACCIDENT / ROAD MISHAP (especially Doda, Kishtwar, Ramban, Batote, Assar, Sinthan, NH-244, NH-44):
-     - Detail the topography (blind gorge curves, narrow carriage width, lack of crash-rated steel W-beam barriers and concrete retaining parapets along vertical 300-400 ft ravines).
-     - Include verified regional historical statistics: Chenab Valley tri-district records ~350+ road accidents annually with 100-140 fatalities; over 1,850 collisions recorded over the last 5 years; cite recurring black spots (Assar gorge site of the 2023 39-fatality crash on NH-244, Thathri bends, Raggi Nallah, and Khellani curves).
-     - State trauma medical evacuation bottlenecks (GMC Doda referral distance of 5-6 hours to Jammu).
-  b) IF HYDROELECTRIC / DAM / POWER / INFRASTRUCTURE (especially Kishtwar, Chenab Basin, Reasi, Ramban):
-     - Detail engineering & energy specifications: Megawatt capacity (Pakal Dul 1,000 MW, Ratle 850 MW, Kiru 624 MW, Kwar 540 MW, Dul Hasti 390 MW, Baglihar 900 MW, Salal 690 MW).
-     - Detail financial investment: approved project outlays in ₹ Crores (Pakal Dul ₹8,112 Cr, Ratle ₹5,281 Cr, Kiru ₹4,287 Cr, Kwar ₹4,526 Cr - total Kishtwar hub >₹22,000+ Crore).
-     - State executing authority: CVPPPL (Joint venture between NHPC 51% & JKSPDC 49%) under Ministry of Power.
-     - State state royalty entitlement (12% free power to J&K + 1% Local Area Development Fund) and 80% non-executive local employment reservation.
-  c) IF AGRICULTURE / HORTICULTURE (e.g. Sopore, Shopian, Pampore, Kishtwar saffron):
-     - Detail annual apple harvest (20-22 lakh metric tonnes), Sopore fruit terminal scale, CA cold storage deficit (~2.5L MT existing vs 10L MT needed), GI-certified saffron metrics (₹250-₹350/gram).
-  d) IF MOUNTAIN PASS / TELEMETRY:
-     - Detail pass elevations (Zojila 11,575 ft, Mughal Road 11,460 ft, Sinthan 12,414 ft), winter snow accumulation (6-12 ft), and 14.15 km Zojila Tunnel execution.
-  e) IF INTERNATIONAL GEOPOLITICS:
-     - Detail treaties, diplomatic accords, defense budget authorizations ($ billions), and regional energy choke points.
-9. STRUCTURED DATA LEDGER TABLE:
-- In the content body, include a structured table or data card titled 'Regional Intelligence & Historical Data Ledger' summarizing key parameters, recorded values, and historical baselines.`;
+8. FACTUAL CONTEXT & CIVIC DEPTH:
+- Enrich reports with accurate factual context (e.g., NH-244 terrain context for accidents, project capacity for dams, seasonal harvest scale for horticulture) without bogging down the reader in bureaucratic ledgers.`;
 
   // If running in development without an active Gemini API key, provide an intelligent deterministic fallback
   if (!apiKey) {

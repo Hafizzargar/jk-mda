@@ -3,6 +3,10 @@ import { env } from '@kjin/config';
 import { authorizeEmployeeRequest, isEmployeeAuthorization } from '@/lib/employee-server';
 import { runYouTubeHourlySync } from '@/lib/newsroom/youtube-monitor';
 
+export async function GET(request: Request) {
+  return POST(request);
+}
+
 export async function POST(request: Request) {
   try {
     const authHeader = request.headers.get('authorization');
@@ -44,7 +48,7 @@ export async function POST(request: Request) {
       // safe fallback
     }
 
-    const result = await runYouTubeHourlySync(serviceClient, { force, autoPublish: true });
+    const result = await runYouTubeHourlySync(serviceClient, { force, autoPublish: false });
     return Response.json(result);
   } catch (err) {
     console.error('Error during YouTube sync route:', err);

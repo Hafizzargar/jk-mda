@@ -138,7 +138,7 @@ export async function fetchLiveEarthquakes(): Promise<LiveHazardAlert[]> {
         safetyInstructions: [
           'Follow standard national disaster protocol: Drop, Cover, and Hold.',
           'Inspect residential masonry before re-entry.',
-          'Monitor civic news alerts on KCPJLN for emergency helpline updates.',
+          'Monitor civic news alerts on KJIN for emergency helpline updates.',
         ],
         source: 'USGS Real-Time Seismic' as const,
         dotColor: '#ef4444',

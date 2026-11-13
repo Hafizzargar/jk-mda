@@ -1,7 +1,13 @@
 import { generateText } from 'ai';
 import { google } from '@ai-sdk/google';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { synthesizeEnglishNewsDraft, getRecommendedEditorialImage } from './ai-synthesizer.ts';
+import {
+  synthesizeEnglishNewsDraft,
+  getRecommendedEditorialImage,
+  determineAccurateNewsScope,
+  determineDatelineForScope,
+  sanitizeDatelineForScope,
+} from './ai-synthesizer.ts';
 import { getCanonicalCategory } from '../taxonomy-options.ts';
 import { sendNewsApprovalAlert } from './email-notifier.ts';
 import { generateSlug } from './gemini-drafter.ts';
@@ -22,6 +28,14 @@ export interface IngestedYouTubeVideo {
   authorName: string;
 }
 
+export interface ExtractedBulletinStory {
+  headline: string;
+  scope: string;
+  category: string;
+  summary: string;
+  keyFacts?: string[];
+}
+
 export interface GeminiVideoAnalysis {
   headline: string;
   summary: string;
@@ -35,6 +49,8 @@ export interface GeminiVideoAnalysis {
   uncertaintyNotes?: string;
   is_priority_eligible?: boolean;
   rejection_reason?: string | null;
+  is_multi_story_bulletin?: boolean;
+  stories?: ExtractedBulletinStory[];
 }
 
 /**
@@ -158,6 +174,7 @@ export async function fetchChannelLatestVideos(
 
 /**
  * Attempts to retrieve video captions/subtitles if publicly available.
+ * Checks both manual and auto-generated (ASR) caption tracks across Hindi, English, and Urdu.
  */
 export async function fetchVideoTranscript(videoId: string): Promise<string | null> {
   try {
@@ -166,19 +183,44 @@ export async function fetchVideoTranscript(videoId: string): Promise<string | nu
       headers: {
         'User-Agent':
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept-Language': 'hi,en-US,en;q=0.9,ur;q=0.8',
       },
     });
 
     if (!res.ok) return null;
     const html = await res.text();
 
-    // Check for captions track in player response
-    const captionMatch = html.match(/"captionTracks":\s*(\[[^\]]+\])/);
-    if (!captionMatch || !captionMatch[1]) return null;
+    // 1. Check for captions track in player response
+    let tracks: Array<{ baseUrl: string; languageCode?: string; kind?: string }> = [];
 
-    const tracks = JSON.parse(captionMatch[1]);
+    const playerMatch = html.match(/ytInitialPlayerResponse\s*=\s*({[\s\S]+?});(?:var\s|const\s|<\/script>)/);
+    if (playerMatch && playerMatch[1]) {
+      try {
+        const player = JSON.parse(playerMatch[1]);
+        tracks = player?.captions?.playerCaptionsTracklistRenderer?.captionTracks || [];
+      } catch {
+        // Continue to fallback regex
+      }
+    }
+
+    if (!tracks.length) {
+      const captionMatch = html.match(/"captionTracks":\s*(\[[\s\S]*?\])(?:,\s*"|})/);
+      if (captionMatch && captionMatch[1]) {
+        try {
+          tracks = JSON.parse(captionMatch[1]);
+        } catch {
+          // Fallback failed
+        }
+      }
+    }
+
+    if (!tracks.length) return null;
+
+    // Prioritize English, Hindi (manual or ASR auto-generated), and Urdu
     const preferredTrack =
-      tracks.find((t: { languageCode: string }) => t.languageCode === 'en' || t.languageCode === 'hi' || t.languageCode === 'ur') ||
+      tracks.find((t) => t.languageCode === 'en' || t.languageCode?.startsWith('en')) ||
+      tracks.find((t) => t.languageCode === 'hi' || t.languageCode?.startsWith('hi')) ||
+      tracks.find((t) => t.languageCode === 'ur' || t.languageCode?.startsWith('ur')) ||
       tracks[0];
 
     if (!preferredTrack?.baseUrl) return null;
@@ -189,13 +231,28 @@ export async function fetchVideoTranscript(videoId: string): Promise<string | nu
     const transcriptXml = await transcriptRes.text();
     const texts = transcriptXml.match(/<text[^>]*>([^<]*)<\/text>/gi) || [];
 
-    const lines = texts
-      .map((t) => t.replace(/<[^>]+>/g, '').trim())
-      .filter((t) => t.length > 0)
-      .map(decodeXmlEntities);
+    const lines: string[] = [];
+    if (texts.length > 0) {
+      for (const t of texts) {
+        const cleanLine = t.replace(/<[^>]+>/g, '').trim();
+        if (cleanLine.length > 0) {
+          lines.push(decodeXmlEntities(cleanLine));
+        }
+      }
+    } else {
+      // Fallback for JSON-formatted transcript payloads
+      const jsonMatches = transcriptXml.match(/"utf8":\s*"([^"]+)"/g);
+      if (jsonMatches) {
+        for (const m of jsonMatches) {
+          const val = m.replace(/"utf8":\s*"/, '').replace(/"$/, '').trim();
+          if (val) lines.push(decodeXmlEntities(val));
+        }
+      }
+    }
 
     const fullTranscript = lines.join(' ');
-    return fullTranscript.length > 50 ? fullTranscript.slice(0, 8000) : null;
+    // Retain up to 25,000 characters to capture multi-topic 15-minute news bulletins in full
+    return fullTranscript.length > 50 ? fullTranscript.slice(0, 25000) : null;
   } catch {
     return null;
   }
@@ -257,42 +314,7 @@ export function detectNewsScope(
   description: string,
   sourceRegion?: string
 ): 'International' | 'National' | 'State (Jammu & Kashmir)' | 'Chenab Valley' {
-  const combined = `${title} ${description} ${sourceRegion || ''}`.toLowerCase();
-
-  // 1. Chenab Valley local markers
-  const chenabTerms = [
-    'doda', 'kishtwar', 'ramban', 'chenab', 'bhadarwah', 'banihal', 'batote',
-    'sinthan', 'chhatroo', 'thathri', 'gundoh', 'bhalessa', 'assadullah', 'padder'
-  ];
-  if (chenabTerms.some((term) => combined.includes(term))) {
-    return 'Chenab Valley';
-  }
-
-  // 2. Jammu & Kashmir state markers
-  const jkTerms = [
-    'kashmir', 'jammu', 'srinagar', 'anantnag', 'baramulla', 'pulwama', 'kulgam',
-    'kupwara', 'ganderbal', 'budgam', 'shopian', 'bandipora', 'poonch', 'rajouri',
-    'udhampur', 'kathua', 'reasi', 'samba', 'j&k', 'lg sinha', 'jammu and kashmir',
-    'article 370', 'kashmir valley', 'dal lake', 'pattan', 'gulmarg'
-  ];
-  if (jkTerms.some((term) => combined.includes(term))) {
-    return 'State (Jammu & Kashmir)';
-  }
-
-  // 3. International markers
-  const internationalTerms = [
-    'united nations', 'security council', 'white house', 'pentagon', 'biden', 'trump',
-    'israel', 'gaza', 'palestine', 'ukraine', 'russia', 'putin', 'zelensky',
-    'china', 'beijing', 'taiwan', 'iran', 'tehran', 'pakistan', 'islamabad',
-    'bangladesh', 'london', 'britain', 'uk', 'europe', 'middle east', 'nato',
-    'foreign affairs', 'global summit', 'geopolitics'
-  ];
-  if (internationalTerms.some((term) => combined.includes(term))) {
-    return 'International';
-  }
-
-  // 4. Default to National (India)
-  return 'National';
+  return determineAccurateNewsScope(title, description, sourceRegion);
 }
 
 /**
@@ -318,66 +340,80 @@ RAW SOURCE MATERIAL (FOR FACT EXTRACTION ONLY):
 - Raw Broadcast Title: ${video.title}
 - Published Date: ${new Date(video.publishedAt).toLocaleDateString()}
 - Extracted Broadcast Information:
-${cleanDescription ? cleanDescription.slice(0, 1500) : 'No description provided.'}
+${cleanDescription ? cleanDescription.slice(0, 2500) : 'No description provided.'}
 
-${cleanTranscript ? `ACCESSIBLE TRANSCRIPT (EXCERPT):\n${cleanTranscript.slice(0, 3000)}` : 'TRANSCRIPT: Not available. Strictly use verified facts extracted from title/description.'}
+${cleanTranscript ? `ACCESSIBLE TRANSCRIPT (FULL SUBTITLES / TRANSCRIPT EXCERPT):\n${cleanTranscript.slice(0, 20000)}` : 'TRANSCRIPT: Not available. Strictly use verified facts extracted from title/description.'}
 
 EDITORIAL INSTRUCTIONS:
-1. DETERMINE NEWS SCOPE & J&K REGIONAL WEIGHTAGE:
-   KJIN assigns strict sub-regional distribution across Jammu & Kashmir and Ladakh (80% total quota):
-   - "Chenab Valley" (30% Target Weightage): Doda, Kishtwar, Ramban, Bhadarwah, Banihal, Sinthan, Padder, Thathri, NH-244.
-   - "Srinagar" (30% Target Weightage): Srinagar & Kashmir Valley (Dal Lake, Budgam, Ganderbal, Anantnag, Pulwama, Shopian, Kulgam, Baramulla, Kupwara, Bandipora).
-   - "Jammu" (30% Target Weightage): Jammu city, Samba, Kathua, Udhampur, Reasi (Jammu Plains).
-   - "Pir Panjal" (10% Target Weightage): Rajouri, Poonch, Mendhar, Thannamandi, Surankote, Mughal Road.
-   - "Leh & Ladakh" (10% Target Weightage): Leh, Kargil, Zanskar, Drass.
-   Outside regions:
-   - "National" (10% Target Weightage)
-   - "International" (10% Target Weightage)
+1. DETERMINE NEWS SCOPE & REGIONAL CATEGORIZATION:
+   - "Chenab Valley": Doda, Kishtwar, Ramban, Bhadarwah, Banihal, Sinthan, Padder, Thathri, NH-244.
+   - "Srinagar": Srinagar & Kashmir Valley (Dal Lake, Budgam, Ganderbal, Anantnag, Pulwama, Shopian, Kulgam, Baramulla, Kupwara, Bandipora).
+   - "Jammu": Jammu city, Samba, Kathua, Udhampur, Reasi (Jammu Plains).
+   - "Pir Panjal": Rajouri, Poonch, Mendhar, Thannamandi, Surankote, Mughal Road.
+   - "Leh & Ladakh": Leh, Kargil, Zanskar, Drass.
+   - "National": All-India national affairs, Union ministries, Parliament, Supreme Court, national economy, Bollywood/national cinema, ISRO, national issues.
+   - "International": Global developments, US, Europe, Middle East, Asia, world geopolitics, international diplomacy, scientific discoveries.
 
 2. REWRITE THE HEADLINE FROM ZERO:
    - DO NOT copy or translate the YouTube broadcast title directly.
    - Discard all clickbait phrases, exclamation marks, emotional teasers, channel watermarks, and Hindi/Urdu idioms.
    - Formulate an entirely new, objective, high-caliber journalistic news headline in English (AP / Reuters style).
 
-3. WRITE AN ORIGINAL JOURNALISTIC REPORT FROM ZERO:
-   - Write the entire article from scratch as an authoritative, independent news dispatch.
-   - EVENT-PROPORTIONAL DEPTH:
-     * Major geopolitical conflicts, wars, political elections, constitutional crises, ministerial shakeups, and major infrastructure milestones: write a comprehensive, in-depth 450-700 word report covering complete background, timelines, direct quotes, political friction, and domestic/international fallout.
-     * Medium-scale developments: write 300-450 words.
-     * Local briefs or routine advisories: write 150-250 words.
+3. SUBSTANTIVE EXECUTIVE SUMMARY / EXCERPT (CRITICAL):
+   - "summary": Formulate an authoritative, data-backed 3 to 4-sentence executive summary (60-90 words, 300-450 characters).
+   - Begin immediately with the single canonical dateline (e.g. "GLOBAL DESK –", "NEW DELHI –", "SRINAGAR –", "JAMMU –", "DODA –").
+   - MUST integrate verifiable data indicators of seriousness: specific dates, key figures, monetary amounts (e.g. ₹ Crores or $ Millions), casualty/injury counts, affected population, infrastructure specs, or named statutory bodies (e.g. Ministry, Supreme Court, SDRF, NHAI, DC Office).
+   - NEVER output a superficial, 1-sentence blurb. A serious journal of record requires an informative executive brief that stands on its own.
+
+4. MULTI-STORY NEWS BULLETINS & INSIDE SUBTITLE STORIES (CRITICAL):
+   - Broadcasters frequently deliver MULTI-STORY NEWS BULLETINS (daily roundups, evening updates, or digests) covering 3 to 5 completely distinct, separate news developments in one single video!
+   - The video's YouTube title often only highlights ONE of those stories. You must NOT overlook or drop the other 3-4 news developments explained inside the video subtitles!
+   - MULTI-STORY DETECTION & COVERAGE:
+     * Check if the broadcast covers multiple distinct developments (e.g. Story 1: Transit accident, Story 2: High Court judgment, Story 3: Weather/avalanche warning, Story 4: Government employee DA/pension update).
+     * If multiple distinct developments are present:
+       1. Set "is_multi_story_bulletin": true.
+       2. Populate "stories": Return an array of all distinct stories extracted from the subtitles/broadcast (2 to 5 distinct stories), each with:
+          - "headline": Specific headline for that distinct development
+          - "scope": "Chenab Valley" | "State (Jammu & Kashmir)" | "National" | "International"
+          - "category": Appropriate category
+          - "summary": Substantive 2-3 sentence brief with specific data points
+          - "keyFacts": Key numbers, dates, and named authorities
+       3. In "articleBodyMarkdown": Write an authoritative comprehensive News Bulletin Dispatch with dedicated, in-depth sections for EVERY distinct news story:
+          * Opening lead summarizing the multi-topic developments covered across the bulletin.
+          * Quick Highlights box covering all stories.
+          * Dedicated section for Story 1 (## 1. [Story 1 Headline] with facts, background, figures, and quotes).
+          * Dedicated section for Story 2 (## 2. [Story 2 Headline] with facts, background, figures, and quotes).
+          * Dedicated section for Story 3 (## 3. [Story 3 Headline] with facts, background, figures, and quotes).
+          * Dedicated section for Story 4 (if present).
+       4. In "summary": Deliver an executive briefing that summarizes the key headlines and figures across the bulletin.
+     * If the video is a single-topic deep dive:
+       Set "is_multi_story_bulletin": false, "stories": [], and write an in-depth 550-800 word investigation with deep data metrics.
+
+5. WRITE AN ORIGINAL JOURNALISTIC REPORT FROM ZERO:
+   - Write the entire article from scratch as an authoritative, independent broadsheet news dispatch.
+   - TARGET LENGTH: 500 to 750 words. NEVER produce a shallow 150-word stub or a superficial summary. Every story must be treated with serious investigative depth.
+   - INJECT CONCRETE DATA INDICATORS OF SERIOUSNESS:
+     * Concrete figures: budgets, monetary allocations, death/injury counts, project capacity (megawatts, kilometers, lane width), speed limits, percentages, or timeline milestones.
+     * Named institutional authorities: Ministries, Directorates, Courts (Supreme Court, High Court), District Administration, Police/SDRF/NDRF, or multilateral agencies.
+     * Named stakeholders & spokespersons with attributed quotes or direct statements.
+     * Policy/legal ramifications: FIR registrations, departmental inquiries, statutory provisions, or regulatory compliance.
    - 100% FACTUAL EVENT FOCUS: Focus strictly on what happened, who was involved, where it occurred, and why it matters. Do NOT include vague generic filler, boilerplate rhetoric, or hallucinated facts.
    - NEVER copy lines verbatim from the source.
    - NEVER embed ANY URLs, YouTube links, social media handles, phone numbers, or promotional calls.
-   - Organize the article in clear Markdown with the following structured sections:
-     ### Executive Overview
-     (An authoritative lead answering Who, What, Where, When, and Why in professional English)
-     ### Background & Context
-     (The underlying geopolitical, legislative, or regional context leading to this development)
-     ### Key Developments & Statements
-     (The verified facts, official statements, key political stances, and developments)
-     ### Strategic Implications & Outlook
-     (What this means for governance, regional stability, or affected citizens moving forward)
+   - ZERO RAW ASCII TABLES: NEVER output raw pipe tables (| :--- | :--- | or | : | : |) or data ledgers. Present all data within clean bullet points or natural prose.
 
-4. CLEAN EDITORIAL FORMATTING (NO METADATA FOOTNOTES):
-   - Do NOT include any external links or URLs.
-   - Do NOT append meta-statements like "Report synthesized by KJIN" or "dispatch synthesized from broadcast intelligence". End the text cleanly with the final journalistic analysis paragraph.
+6. STRICT DATELINE & SCOPE RULES (CRITICAL):
+   - If scope is "International", the dateline in summary and article body MUST be an international city/capital or "GLOBAL DESK –" (e.g. "WASHINGTON –", "LONDON –", "JERUSALEM –", "KYIV –", "GLOBAL DESK –"). Under NO circumstances output "SRINAGAR" or "J&K" for international news. The category MUST be "International".
+   - If scope is "National", the dateline in summary and article body MUST be "NEW DELHI –", "MUMBAI –", or "NATIONAL DESK –". Under NO circumstances output "SRINAGAR" or "J&K" for national stories unless the event physically occurred in Jammu & Kashmir. The category MUST be "National" or a specific thematic category (e.g. "Politics", "Economy", "Culture", "Sports").
+   - If scope is "State (Jammu & Kashmir)" or "Chenab Valley", use the appropriate regional dateline (e.g., "SRINAGAR –", "JAMMU –", "DODA –", "KISHTWAR –", "LEH –").
 
-5. STRICT EDITORIAL WEIGHTAGE GATEKEEPER:
-   - Mandate: 80% J&K (Srinagar 30%, Chenab Valley 30%, Jammu 30%, Pir Panjal 10%, Leh 10%) | 10% National | 10% International.
+7. EDITORIAL GATEKEEPER:
    - "is_priority_eligible": boolean (true/false)
    - RULES:
      * J&K Sub-regions (Chenab Valley, Srinagar, Jammu, Pir Panjal, Leh): ALWAYS true (Core territory priority).
-     * National: True ONLY for high-impact governance (Supreme Court, Union Cabinet, national economy). False for trivial outer state politics.
-     * International (STRICT ZERO-BAKWAS MANDATE):
-       - ALLOWED ONLY (true):
-         1. Major Wars & Geopolitical Conflicts (e.g. Middle East war, Russia-Ukraine, cross-border strikes, missile tests, global defense security).
-         2. Groundbreaking Scientific & Medical Discoveries (e.g. scientists developing new vaccines, disease cures, medical research breakthroughs, WHO epidemic alerts).
-         3. Macro Global Energy / Trade Chokepoints (crude oil supplies, Bab el-Mandeb shipping disruptions).
-       - STRICTLY REJECTED (false):
-         1. NO International Sports (European football, Champions League, Premier League, NBA, tennis, foreign clubs - REJECT).
-         2. NO Pop Culture, Hollywood, Celebrity Gossip, or Royal Family drama (REJECT).
-         3. NO Foreign Local Municipal Affairs or petty foreign domestic crimes (REJECT).
-   - "rejection_reason": string | null (If false, state why e.g. "Outer state local news without J&K or pan-India relevance")
+     * National: True for verified national governance, policy, national events, economy, supreme court, major national interest, or prominent cultural milestones. (False ONLY for low-quality spam or promotional fluff).
+     * International: True for major world events, geopolitics, wars, global diplomacy, health/science discoveries, macro trade, and international milestones. (False ONLY for trivial foreign local municipal trivia).
+   - "rejection_reason": string | null (If false, state why)
 
 Output your response strictly as valid JSON with keys:
 {
@@ -391,7 +427,17 @@ Output your response strictly as valid JSON with keys:
   "articleBodyMarkdown": string,
   "uncertaintyNotes": string,
   "is_priority_eligible": boolean,
-  "rejection_reason": string | null
+  "rejection_reason": string | null,
+  "is_multi_story_bulletin": boolean,
+  "stories": [
+    {
+      "headline": string,
+      "scope": string,
+      "category": string,
+      "summary": string,
+      "keyFacts": string[]
+    }
+  ]
 }
 `;
 
@@ -407,7 +453,7 @@ Output your response strictly as valid JSON with keys:
       const parsed = JSON.parse(cleaned);
 
       // Strip any accidental markdown URLs or links from the generated article body
-      const sanitizedArticleBody = (parsed.articleBodyMarkdown || '')
+      const sanitizedArticleBodyRaw = (parsed.articleBodyMarkdown || '')
         .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
         .replace(/https?:\/\/[^\s]+/g, '')
         .trim();
@@ -415,23 +461,41 @@ Output your response strictly as valid JSON with keys:
       const effectiveScope = parsed.scope || detectedScope;
       const canonical = getCanonicalCategory(parsed.category || source.category, effectiveScope);
 
+      // Resolve and enforce the accurate dateline
+      const targetDateline = determineDatelineForScope(
+        effectiveScope,
+        `${parsed.headline || video.title} ${parsed.summary || cleanDescription}`
+      );
+      const sanitizedSummary = sanitizeDatelineForScope(
+        parsed.summary || cleanDescription.slice(0, 200) || video.title,
+        effectiveScope,
+        targetDateline
+      );
+      const finalArticleBody = sanitizeDatelineForScope(
+        sanitizedArticleBodyRaw,
+        effectiveScope,
+        targetDateline
+      );
+
       // Semantic content-aware image matching (e.g. Doctor, Forest, Aviation, Court)
       const imageContext = `${parsed.headline || video.title} ${parsed.summary || cleanDescription} ${canonical.name}`;
       const recommendedImage = getRecommendedEditorialImage(effectiveScope, canonical.name, imageContext);
 
       return {
         headline: (parsed.headline || video.title).trim(),
-        summary: (parsed.summary || cleanDescription.slice(0, 200) || video.title).trim(),
+        summary: sanitizedSummary.trim(),
         category: canonical.name,
         scope: effectiveScope,
-        division: parsed.division || source.region || 'Jammu & Kashmir',
-        district: parsed.district || null,
+        division: parsed.division || (effectiveScope === 'National' ? 'National' : effectiveScope === 'International' ? 'International' : source.region || 'Jammu & Kashmir'),
+        district: effectiveScope === 'National' || effectiveScope === 'International' ? null : (parsed.district || null),
         keyFacts: Array.isArray(parsed.keyFacts) ? parsed.keyFacts : [parsed.headline || video.title],
-        articleBodyMarkdown: sanitizedArticleBody,
+        articleBodyMarkdown: finalArticleBody,
         featured_image_url: recommendedImage.featuredImage,
         uncertaintyNotes: parsed.uncertaintyNotes || (transcript ? 'Based on verified transcript translated to English.' : 'Based on broadcast intelligence; verified in English.'),
         is_priority_eligible: parsed.is_priority_eligible !== false,
         rejection_reason: parsed.rejection_reason || null,
+        is_multi_story_bulletin: Boolean(parsed.is_multi_story_bulletin),
+        stories: Array.isArray(parsed.stories) ? parsed.stories : [],
       };
     } catch (err) {
       console.warn('[Gemini YouTube Analyzer] API call failed, falling back to English news synthesizer:', err);
@@ -462,9 +526,37 @@ Output your response strictly as valid JSON with keys:
   };
 }
 
-function cleanEditorialBroadcastText(text: string): string {
+function cleanEditorialBroadcastText(text: string, preserveLinebreaks = false): string {
   if (!text) return '';
-  return text
+  let cleaned = text.trim();
+
+  // Strip accidental JSON object wrappers
+  if (cleaned.startsWith('{') || /^\s*\{\s*"(?:headline|title|summary|articleBodyMarkdown|bodyMarkdown)"/i.test(cleaned)) {
+    try {
+      const parsed = JSON.parse(cleaned);
+      if (typeof parsed === 'object' && parsed !== null) {
+        cleaned = String(parsed.articleBodyMarkdown || parsed.bodyMarkdown || parsed.content || parsed.summary || parsed.headline || '');
+      }
+    } catch {
+      const bodyMatch = cleaned.match(/"(?:articleBodyMarkdown|bodyMarkdown|content|body)"\s*:\s*"([\s\S]*?)(?:"\s*,\s*"[a-zA-Z_]+"\s*:|"\s*\}|$)/);
+      const summaryMatch = cleaned.match(/"summary"\s*:\s*"([\s\S]*?)(?:"\s*,\s*"[a-zA-Z_]+"\s*:|"\s*\}|$)/);
+      const summaryTailMatch = cleaned.match(/"(?:summary|bodyMarkdown|articleBodyMarkdown|content|body)"\s*:\s*"?([\s\S]+)$/i);
+      if (bodyMatch && bodyMatch[1] && bodyMatch[1].trim()) {
+        cleaned = bodyMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
+      } else if (summaryMatch && summaryMatch[1] && summaryMatch[1].trim()) {
+        cleaned = summaryMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"');
+      } else if (summaryTailMatch && summaryTailMatch[1]) {
+        cleaned = summaryTailMatch[1].replace(/["}\]\s]+$/, '').replace(/\\n/g, '\n').replace(/\\"/g, '"');
+      } else {
+        cleaned = cleaned
+          .replace(/^\{\s*"(?:headline|title)"\s*:\s*(?:"(?:\\.|[^"\\])*"|'[^']*'),?\s*/i, '')
+          .replace(/^"(?:summary|lead|description|body|content)"\s*:\s*"?/i, '')
+          .replace(/["}\]\s]+$/, '');
+      }
+    }
+  }
+
+  const result = cleaned
     .replace(/#[a-zA-Z0-9_\u0900-\u097F]+/g, '')
     .replace(/(?:social\s*links|channel\s*link|join\s+.*?channel|follow\s+us|connect\s+with\s+us|subscribe\s+to)[\s\S]*$/gi, '')
     .replace(/(?:facebook|instagram|twitter|telegram|whatsapp)\s*:\s*[^\s.,;]+/gi, '')
@@ -474,9 +566,13 @@ function cleanEditorialBroadcastText(text: string): string {
     .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
     .replace(/https?:\/\/[^\s]+/gi, '')
     .replace(/www\.[^\s]+/gi, '')
-    .replace(/[-=_~*]{3,}/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
+    .replace(/[-=_~*]{3,}/g, ' ');
+
+  if (preserveLinebreaks) {
+    return result.replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n\n').trim();
+  }
+
+  return result.replace(/\s+/g, ' ').trim();
 }
 
 async function autoPublishEligibleDraft(
@@ -494,25 +590,20 @@ async function autoPublishEligibleDraft(
 
     const authorProfile = authors?.[0] || null;
     const authorId = authorProfile?.id || null;
-    if (!authorId || !authorProfile) {
-      console.warn('[AutoPublish] No author profile found in public.profiles, draft saved for manual review.');
-      return null;
-    }
+    const authorName = authorProfile?.display_name || 'KJIN Newsroom Desk';
 
     const cleanTitle = cleanEditorialBroadcastText(analysis.headline || video.title).slice(0, 250);
-    const cleanSummary = cleanEditorialBroadcastText(analysis.summary || video.description || '').slice(0, 400);
-    const cleanContent = cleanEditorialBroadcastText(analysis.articleBodyMarkdown || video.description || '').trim();
-
     const effectiveScope = analysis.scope || 'National';
+    const targetDateline = determineDatelineForScope(effectiveScope, `${cleanTitle} ${analysis.summary || video.description || ''}`);
+
+    const rawSummary = cleanEditorialBroadcastText(analysis.summary || video.description || '').slice(0, 500);
+    const cleanSummary = sanitizeDatelineForScope(rawSummary, effectiveScope, targetDateline);
+
+    const rawContent = cleanEditorialBroadcastText(analysis.articleBodyMarkdown || video.description || '', true).trim();
+    const cleanContent = sanitizeDatelineForScope(rawContent, effectiveScope, targetDateline);
+
     const isLocalScope = effectiveScope.includes('Local') || effectiveScope.includes('State') || effectiveScope.includes('Jammu') || effectiveScope.includes('Chenab');
-    let canonicalCat: { name: string; slug: string };
-    if (!isLocalScope && (effectiveScope === 'International' || analysis.category === 'International')) {
-      canonicalCat = { name: 'International', slug: 'international' };
-    } else if (!isLocalScope && (effectiveScope === 'National' || analysis.category === 'National')) {
-      canonicalCat = { name: 'National', slug: 'national' };
-    } else {
-      canonicalCat = getCanonicalCategory(analysis.category, 'Local News (J&K)');
-    }
+    const canonicalCat = getCanonicalCategory(analysis.category, effectiveScope);
 
     const { data: catRecord } = await service
       .from('categories')
@@ -522,7 +613,6 @@ async function autoPublishEligibleDraft(
 
     const baseSlug = generateSlug(cleanTitle);
     const finalSlug = `${baseSlug || 'news-report'}-${Date.now().toString(36).slice(-4)}`;
-    const authorName = authorProfile.display_name || 'KJIN Newsroom';
     const finalDistrict = isLocalScope ? (analysis.district || null) : null;
     const finalImageUrl = analysis.featured_image_url || video.thumbnailUrl || null;
 
@@ -653,7 +743,9 @@ export async function runYouTubeHourlySync(
     }
   }
 
-  const isAutoPublish = options?.autoPublish ?? true;
+  // Strict Policy: 100% Pending Approval. Auto-publish is permanently DISABLED.
+  // No broadcast draft is ever published live without explicit human review and approval.
+  const isAutoPublish = false;
 
   const syncResults = {
     channelsChecked: 0,
@@ -748,20 +840,8 @@ export async function runYouTubeHourlySync(
 
             if (isEligible) {
               syncResults.draftsProposed += 1;
-
-              // Automatic News Generation: directly publish to broadsheet feed
-              if (isAutoPublish) {
-                const pubId = await autoPublishEligibleDraft(
-                  service,
-                  insertedVideo.id,
-                  video,
-                  channel,
-                  analysis
-                );
-                if (pubId) {
-                  syncResults.articlesPublished += 1;
-                }
-              }
+              // Every broadcast draft strictly remains in draft_proposed (Awaiting Approval).
+              // Zero auto-publish: Nothing publishes until the editor clicks "Review & Approve".
 
               // Dispatch instant email alert to editor to verify & approve on dashboard
               sendNewsApprovalAlert({
@@ -815,37 +895,8 @@ export async function runYouTubeHourlySync(
       }
     }
 
-    // Auto-publish any existing eligible draft backlogs
-    if (isAutoPublish) {
-      const { data: backloggedDrafts } = await service
-        .from('youtube_videos')
-        .select('*, youtube_sources(channel_name)')
-        .eq('processing_status', 'draft_proposed')
-        .limit(5);
-
-      if (backloggedDrafts && backloggedDrafts.length > 0) {
-        for (const draft of backloggedDrafts) {
-          if (draft.ai_analysis) {
-            const pubId = await autoPublishEligibleDraft(
-              service,
-              draft.id,
-              {
-                title: draft.title,
-                videoUrl: draft.video_url,
-                thumbnailUrl: draft.thumbnail_url,
-                description: draft.description,
-              },
-              { channel_name: draft.youtube_sources?.channel_name || 'Broadcast News' },
-              draft.ai_analysis
-            );
-            if (pubId) {
-              syncResults.articlesPublished += 1;
-            }
-          }
-        }
-      }
-    }
-
+    // All proposed drafts remain in draft_proposed awaiting explicit human review and approval.
+    // Zero auto-publishing.
     return {
       success: true,
       ...syncResults,

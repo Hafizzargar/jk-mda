@@ -10,7 +10,7 @@ export function VisualStoriesTemplate({
   recentArticles,
   navbarSettings,
 }: TemplateProps) {
-  const brandName = navbarSettings?.brand?.name || 'KCPJLN';
+  const brandName = navbarSettings?.brand?.name || 'KJIN';
   const storyBubbles = [
     { label: 'Srinagar', icon: '🏔️', color: 'from-amber-400 to-rose-500' },
     { label: 'Jammu', icon: '🏛️', color: 'from-fuchsia-500 to-indigo-500' },

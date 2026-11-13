@@ -43,8 +43,7 @@ export async function GET() {
     ]);
 
     if (articlesResult.error) {
-      console.error('Error fetching articles for view analytics:', articlesResult.error);
-      return NextResponse.json({ error: 'Failed to query article views' }, { status: 500 });
+      console.warn('[Analytics API] Non-fatal error querying articles:', articlesResult.error.message);
     }
 
     const allArticles = articlesResult.data ?? [];

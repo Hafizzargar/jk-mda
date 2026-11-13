@@ -53,8 +53,8 @@ export function Sidebar({
   userRole,
   userEmail,
   onSignOut,
-  brandName = 'KCPJLN',
-  brandLogo = '/kcpjln-symbol.webp',
+  brandName = 'KJIN',
+  brandLogo = '/kjin-emblem.png',
 }: SidebarProps) {
   const pathname = usePathname();
   const [loggingOut, setLoggingOut] = useState(false);
@@ -90,49 +90,44 @@ export function Sidebar({
         },
         {
           name: 'Articles & Stories',
-          description: 'News reports, new story drafts & civic problems',
+          description: 'Live news publications & pending approvals queue',
           href: '/articles',
           icon: '📰',
           exact: false,
           children: [
             {
-              name: 'All Stories',
-              href: '/articles',
-              icon: '📄',
+              name: 'Live News',
+              href: '/articles?status=published',
+              icon: '📡',
+              badge: 'Live',
+              badgeColor:
+                'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40 font-bold',
             },
             {
-              name: 'New Story',
-              href: '/articles/new',
-              icon: '✍️',
-              badge: 'Draft',
+              name: 'Pending Approval',
+              href: '/articles?status=review',
+              icon: '⏳',
+              badge: 'Need Approval',
               badgeColor:
-                'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/40',
-            },
-            {
-              name: 'Area Problems',
-              href: '/articles?category=Local',
-              icon: '🏛️',
-              badge: 'Civic',
-              badgeColor:
-                'bg-amber-100 text-amber-900 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40',
+                'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40 font-bold',
             },
           ],
         },
         {
-          name: 'AI Newsroom & Monitor',
-          description: 'Gemini 2.5 surveillance, automated ingestion & approval queue',
+          name: 'Autonomous News Intelligence',
+          description: 'Independent multi-source web discovery & editorial verification',
           href: '/newsroom/youtube',
-          icon: '🤖',
-          badge: 'Gemini AI',
+          icon: '🌐',
+          badge: 'Autonomous',
           badgeColor:
             'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-500/20 dark:text-purple-300 font-bold',
           roles: ['owner', 'superadmin', 'admin', 'editor'],
           children: [
             {
-              name: 'Pending AI Approval',
+              name: 'Discovery Radar & Queue',
               href: '/newsroom/youtube',
-              icon: '🤖',
-              badge: 'Review',
+              icon: '🛰️',
+              badge: 'Live',
               badgeColor: 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 font-bold',
             },
             {
@@ -257,10 +252,13 @@ export function Sidebar({
                 'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/40 font-bold',
             },
             {
-              name: 'Footer & Bureaus',
+              name: 'Contact & Emails',
               href: '/settings/footer',
-              icon: '📑',
-              roles: ['owner', 'superadmin'],
+              icon: '✉️',
+              roles: ['owner', 'superadmin', 'admin'],
+              badge: 'Emails',
+              badgeColor:
+                'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/40 font-bold',
             },
             {
               name: 'Regional Telemetry & Passes',
@@ -309,11 +307,17 @@ export function Sidebar({
   };
 
   const isSubItemActive = (sub: SubNavItem) => {
+    if (sub.href.includes('?status=published')) {
+      return pathname === '/articles' && (currentSearch.includes('status=published') || (!currentSearch.includes('status=review') && !currentSearch.includes('status=draft') && !currentSearch.includes('status=archived')));
+    }
+    if (sub.href.includes('?status=review')) {
+      return pathname === '/articles' && (currentSearch.includes('status=review') || currentSearch.includes('status=draft'));
+    }
     if (sub.href.includes('?category=Local')) {
       return pathname === '/articles' && currentSearch.includes('category=Local');
     }
     if (sub.href === '/articles') {
-      return pathname === '/articles' && !currentSearch.includes('category=Local');
+      return pathname === '/articles' && !currentSearch.includes('status=');
     }
     if (sub.exact) {
       return pathname === sub.href;
@@ -382,7 +386,7 @@ export function Sidebar({
           >
             <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white border border-slate-200 p-1 shadow-xs dark:bg-slate-900 dark:border-slate-700">
               <Image
-                src={brandLogo || '/kcpjln-symbol.webp'}
+                src={brandLogo || '/kjin-emblem.png'}
                 alt={`${brandName} Symbol`}
                 width={26}
                 height={26}

@@ -48,7 +48,7 @@ export const DEFAULT_CAREERS_SETTINGS: CareersSettings = {
   page_title: 'Work With Us • Careers at KJIN',
   page_subtitle: 'Join Jammu & Kashmir’s Premier Independent Journal of Record',
   hiring_status: 'open',
-  contact_email: 'careers@kjin.org',
+  contact_email: 'h26412301@gmail.com',
   culture_statement:
     'At Kashmir & Jammu Information Network (KJIN), we hold reporting integrity, verified sourcing, and ground public-interest documentation above all else. We are building an authoritative, multilingual editorial team across the Kashmir Valley, Jammu Plains, Chenab Valley, Pir Panjal, and Ladakh.',
   benefits: [
@@ -256,7 +256,9 @@ export function sanitizeCareersSettings(raw: unknown): CareersSettings {
     page_title: typeof obj.page_title === 'string' && obj.page_title.trim() ? obj.page_title.trim().slice(0, 150) : DEFAULT_CAREERS_SETTINGS.page_title,
     page_subtitle: typeof obj.page_subtitle === 'string' && obj.page_subtitle.trim() ? obj.page_subtitle.trim().slice(0, 200) : DEFAULT_CAREERS_SETTINGS.page_subtitle,
     hiring_status,
-    contact_email: typeof obj.contact_email === 'string' && obj.contact_email.trim() ? obj.contact_email.trim().slice(0, 150) : DEFAULT_CAREERS_SETTINGS.contact_email,
+    contact_email: typeof obj.contact_email === 'string' && obj.contact_email.trim() && obj.contact_email.trim() !== 'careers@kjin.org'
+      ? obj.contact_email.trim().slice(0, 150)
+      : 'h26412301@gmail.com',
     culture_statement: typeof obj.culture_statement === 'string' && obj.culture_statement.trim() ? obj.culture_statement.trim().slice(0, 1500) : DEFAULT_CAREERS_SETTINGS.culture_statement,
     benefits: Array.isArray(obj.benefits)
       ? obj.benefits.map((b) => String(b || '').trim().slice(0, 300)).filter(Boolean)

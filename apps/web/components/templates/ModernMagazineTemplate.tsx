@@ -84,7 +84,7 @@ export function ModernMagazineTemplate({
                     </span>
                   </div>
 
-                  <h1 className="text-3xl md:text-5xl font-black tracking-tight leading-tight text-white group-hover:text-blue-300 transition mb-4">
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-[2.65rem] font-black tracking-tight leading-[1.15] text-white group-hover:text-blue-300 transition mb-4 text-balance">
                     {heroArticle.title}
                   </h1>
 

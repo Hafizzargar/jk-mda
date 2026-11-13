@@ -241,18 +241,18 @@ export async function sendLoginAlertEmail(params: SendLoginAlertParams): Promise
 
   const defaultAdminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001';
   const logoutUrl = params.logoutUrl || `${defaultAdminUrl}/auth/logout-all`;
-  const fromAddress = process.env.SMTP_FROM?.trim() || `"KCPJLN Newsroom" <${process.env.SMTP_USER}>`;
+  const fromAddress = process.env.SMTP_FROM?.trim() || `"KJIN Newsroom" <${process.env.SMTP_USER}>`;
   const now = params.loginTime || new Date();
   const timeIST = now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'full', timeStyle: 'medium' });
   const timeUTC = now.toUTCString();
   const name = params.displayName || params.to.split('@')[0];
 
-  const subject = `Security Alert: New Sign-in to KCPJLN Newsroom (${timeIST})`;
+  const subject = `Security Alert: New Sign-in to KJIN Newsroom (${timeIST})`;
 
   const textContent = `
 Hello ${name},
 
-A new sign-in was detected on your KCPJLN Newsroom account.
+A new sign-in was detected on your KJIN Newsroom account.
 
 Login Details:
 - Time (IST): ${timeIST}
@@ -269,7 +269,7 @@ ${logoutUrl}
 After logging out, please sign in again and change your account password.
 
 Best regards,
-KCPJLN Newsroom Security
+KJIN Newsroom Security
 `.trim();
 
   const htmlContent = `
@@ -300,7 +300,7 @@ KCPJLN Newsroom Security
     <span class="badge">🔔 Security Notification</span>
     <h1>New Sign-in Detected</h1>
     <p>Hello <strong>${name}</strong>,</p>
-    <p>A new sign-in was recorded on your <strong>KCPJLN Newsroom</strong> administrative portal.</p>
+    <p>A new sign-in was recorded on your <strong>KJIN Newsroom</strong> administrative portal.</p>
     
     <div class="info-box">
       <div class="info-row">
@@ -346,7 +346,7 @@ KCPJLN Newsroom Security
     </div>
   </div>
   <div class="footer">
-    &copy; ${now.getFullYear()} KCPJLN Newsroom Security &bull; Automated Telemetry Alert
+    &copy; ${now.getFullYear()} KJIN Newsroom Security &bull; Automated Telemetry Alert
   </div>
 </body>
 </html>
@@ -388,9 +388,9 @@ export async function sendMfaResetEmail(params: SendMfaResetEmailParams): Promis
     return { success: false, error: 'SMTP transporter not configured' };
   }
 
-  const fromAddress = process.env.SMTP_FROM || 'KCPJLN Newsroom <hafezzargar987@gmail.com>';
-  const subject = `Your KCPJLN MFA Reset Code: ${params.code}`;
-  const textContent = `Hello ${params.displayName},\n\nA request was made to reset your Two-Factor Authentication (MFA) device for your KCPJLN account.\n\nYour 6-digit recovery code is:\n\n${params.code}\n\nThis code expires in 15 minutes. If you did not request this, please notify newsroom security immediately.`;
+  const fromAddress = process.env.SMTP_FROM || 'KJIN Newsroom <hafezzargar987@gmail.com>';
+  const subject = `Your KJIN MFA Reset Code: ${params.code}`;
+  const textContent = `Hello ${params.displayName},\n\nA request was made to reset your Two-Factor Authentication (MFA) device for your KJIN account.\n\nYour 6-digit recovery code is:\n\n${params.code}\n\nThis code expires in 15 minutes. If you did not request this, please notify newsroom security immediately.`;
 
   const htmlContent = `
 <!DOCTYPE html>

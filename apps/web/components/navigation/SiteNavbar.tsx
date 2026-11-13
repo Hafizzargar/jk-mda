@@ -217,8 +217,8 @@ export function SiteNavbar({
               <div className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-full p-0.5 bg-gradient-to-tr from-amber-600 via-amber-200 to-amber-700 shadow-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
                 <div className="w-full h-full bg-stone-900 rounded-full flex flex-col items-center justify-center p-0.5 sm:p-1 text-center border border-amber-300/40 relative overflow-hidden">
                   <Image
-                    src={navSettings.brand.logo_url || '/kcpjln-symbol.webp'}
-                    alt={navSettings.brand.name || 'KCPJLN'}
+                    src={navSettings.brand.logo_url || '/kjin-emblem.png'}
+                    alt={navSettings.brand.name || 'KJIN'}
                     fill
                     className="object-contain p-0.5 rounded-full"
                     decoding="async"
@@ -230,7 +230,7 @@ export function SiteNavbar({
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline space-x-1 sm:space-x-1.5">
                 <h1 className="font-masthead text-lg sm:text-xl font-black text-stone-900 tracking-tight leading-none truncate">
-                  {navSettings.brand.name || 'KCPJLN'}
+                  {navSettings.brand.name || 'KJIN'}
                 </h1>
                 {(navSettings.brand.show_est_badge ?? true) && (
                   <span className="text-[8px] sm:text-[9px] font-serif font-bold text-amber-800 tracking-widest uppercase bg-amber-100/70 px-1 py-0.5 rounded shrink-0">
@@ -716,7 +716,7 @@ export function SiteNavbar({
             {/* 7. Institutional Footer Seal */}
             <div className="pt-2 pb-6 border-t border-stone-200 text-center font-serif text-[10px] text-stone-600 space-y-1">
               <p className="font-bold uppercase tracking-wider text-stone-700">
-                KCPJLN Institutional Dispatch
+                {navSettings.brand.name || 'KJIN'} Institutional Dispatch
               </p>
               <p className="text-[9px] text-stone-600">
                 Independent Field Press of Record &bull; Certified Editorial Standards

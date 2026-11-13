@@ -125,7 +125,7 @@ export default function BrandSettingsPage() {
         ...fullNavSettings,
         brand: {
           ...brand,
-          name: brand.name.trim() || 'KCPJLN',
+          name: brand.name.trim() || 'KJIN',
           full_name: brand.full_name?.trim() || '',
           tagline: brand.tagline.trim(),
           logo_url: brand.logo_url.trim() || '/kcpjln-symbol.webp',
@@ -170,23 +170,6 @@ export default function BrandSettingsPage() {
     }
   };
 
-  const applyKCPJLNPreset = () => {
-    setBrand({
-      ...brand,
-      name: 'KCPJLN',
-      full_name: 'Kashmir Chenab Panjal Jammu Ladakh Network',
-      tagline: 'One Region, Many Voices, Trusted News',
-      logo_url: '/kcpjln-symbol.webp',
-      loader_text: 'Kashmir Chenab Panjal Jammu Ladakh Network',
-      show_name: true,
-      show_tagline: true,
-      show_logo_image: true,
-      est_badge_text: 'EST. 1948',
-      show_est_badge: true,
-    });
-    toast.info('Applied KCPJLN identity preset. Click "Save & Broadcast Changes" to publish.');
-  };
-
   const applyKJINPreset = () => {
     setBrand({
       ...brand,
@@ -200,8 +183,9 @@ export default function BrandSettingsPage() {
       show_logo_image: true,
       est_badge_text: 'EST. 1948',
       show_est_badge: true,
+      show_loader_emblem: true,
     });
-    toast.info('Applied KJIN identity preset. Click "Save & Broadcast Changes" to publish.');
+    toast.info('Applied KJIN (Kashmir & Jammu Information Network) identity preset.');
   };
 
   if (loading) {
@@ -231,7 +215,7 @@ export default function BrandSettingsPage() {
             <span>🎨</span> One-Place Brand &amp; Identity Control
           </h1>
           <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 mt-1 max-w-3xl">
-            Control the site short acronym (e.g. <strong>KCPJLN</strong> or <strong>KJIN</strong>), company full name, official tagline, and emblem logo from this single hub. Any modification saved here is automatically and immediately reflected across the web frontend, mobile drawer, page titles, footer, and admin portal.
+            Control the site short acronym (<strong>KJIN</strong>), company full name, official tagline, and emblem logo from this single hub. Any modification saved here is automatically and immediately reflected across the web frontend, mobile drawer, page titles, footer, and admin portal.
           </p>
         </div>
 
@@ -271,27 +255,20 @@ export default function BrandSettingsPage() {
         <div>
           <div className="text-xs font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400 font-bold flex items-center gap-1.5">
             <span>⚡</span>
-            <span>Quick 1-Click Identity Presets</span>
+            <span>Official Identity Preset</span>
           </div>
           <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
-            Switch between the official KCPJLN network identity and legacy KJIN identity with one click:
+            Apply the official KJIN (Kashmir &amp; Jammu Information Network) broadsheet identity:
           </p>
         </div>
         <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
           <button
             type="button"
-            onClick={applyKCPJLNPreset}
-            className="px-3.5 py-1.5 rounded-xl border border-cyan-500/60 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 text-xs font-bold hover:bg-cyan-500/20 transition flex items-center gap-2 shadow-2xs"
+            onClick={applyKJINPreset}
+            className="px-4 py-2 rounded-xl border border-cyan-500/60 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 text-xs font-bold hover:bg-cyan-500/20 transition flex items-center gap-2 shadow-2xs"
           >
             <span className="w-2 h-2 rounded-full bg-cyan-400" />
-            <span>Apply KCPJLN Preset</span>
-          </button>
-          <button
-            type="button"
-            onClick={applyKJINPreset}
-            className="px-3.5 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-700 transition shadow-2xs"
-          >
-            <span>Apply KJIN Preset</span>
+            <span>Apply KJIN Official Preset</span>
           </button>
         </div>
       </div>
@@ -323,7 +300,7 @@ export default function BrandSettingsPage() {
               {brand.show_name && (
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-black font-serif tracking-tight text-slate-950 dark:text-white uppercase leading-none">
-                    {brand.name || 'KCPJLN'}
+                    {brand.name || 'KJIN'}
                   </span>
                   {(brand.show_est_badge ?? true) && (
                     <span className="text-[10px] font-serif font-bold text-amber-800 tracking-widest uppercase bg-amber-100/70 dark:bg-amber-900/40 dark:text-amber-300 px-1.5 py-0.5 rounded">
@@ -370,7 +347,7 @@ export default function BrandSettingsPage() {
                 type="text"
                 value={brand.name}
                 onChange={(e) => setBrand({ ...brand, name: e.target.value })}
-                placeholder="e.g. KCPJLN or KJIN"
+                placeholder="e.g. KJIN"
                 className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-medium focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
                 required
               />
@@ -389,7 +366,7 @@ export default function BrandSettingsPage() {
                 type="text"
                 value={brand.full_name || ''}
                 onChange={(e) => setBrand({ ...brand, full_name: e.target.value })}
-                placeholder="e.g. Kashmir Chenab Panjal Jammu Ladakh Network"
+                placeholder="e.g. Kashmir & Jammu Information Network"
                 className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-medium focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
               />
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
@@ -423,7 +400,7 @@ export default function BrandSettingsPage() {
                 type="text"
                 value={brand.loader_text || ''}
                 onChange={(e) => setBrand({ ...brand, loader_text: e.target.value })}
-                placeholder="e.g. Kashmir Chenab Panjal Jammu Ladakh Network"
+                placeholder="e.g. Jammu & Kashmir Journal of Record"
                 className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-medium focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
               />
               <p className="text-[11px] text-slate-500 dark:text-slate-400">

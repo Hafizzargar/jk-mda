@@ -57,8 +57,8 @@ export default function Loading() {
     };
   }, []);
 
-  const logoSrc = brand.logo_url || '/kcpjln-symbol.webp';
-  const brandName = brand.name || 'KCPJLN';
+  const logoSrc = brand.logo_url || '/kjin-emblem.png';
+  const brandName = brand.name || 'KJIN';
   const subtitle = brand.loader_text || brand.tagline || 'ONE REGION, MANY VOICES, TRUSTED NEWS';
 
   return (

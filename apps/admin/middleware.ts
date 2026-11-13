@@ -4,9 +4,10 @@ import { requiresMfa } from '@/lib/mfa';
 import { buildAdminCspHeader } from '@/lib/csp';
 
 export async function middleware(request: NextRequest) {
-  // Generate a cryptographically secure random nonce for this request
-  const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
-  const cspHeader = buildAdminCspHeader({ nonce });
+  try {
+    // Generate a cryptographically secure random nonce for this request
+    const nonce = Buffer.from(crypto.randomUUID()).toString('base64');
+    const cspHeader = buildAdminCspHeader({ nonce });
 
   // Attach nonce and CSP to request headers so Next.js internals pick up the nonce for inline bootstrap scripts
   const requestHeaders = new Headers(request.headers);
@@ -142,6 +143,14 @@ export async function middleware(request: NextRequest) {
   }
 
   return supabaseResponse;
+  } catch (error) {
+    console.error('[Admin Middleware Error]:', error);
+    // If auth verification or connection fails unexpectedly, fail closed to /login instead of dumping 500 Internal Server Error
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
+    url.searchParams.set('error', 'session_verification_failed');
+    return NextResponse.redirect(url);
+  }
 }
 
 export const config = {

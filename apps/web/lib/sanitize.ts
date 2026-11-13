@@ -322,19 +322,150 @@ export function parseInlineMarkdown(text: string): string {
 }
 
 /**
+ * Strips raw AI JSON wrappers, malformed JSON envelopes, and unparsed JSON keys
+ * from article markdown/content so readers never see raw JSON artifacts.
+ */
+export function extractCleanArticleText(raw: string | null | undefined): string {
+  if (!raw) return '';
+  let text = raw.trim();
+
+  // 1. If wrapped in markdown code blocks like ```json ... ```
+  if (text.startsWith('```')) {
+    text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+  }
+
+  // 2. If text starts with or contains raw JSON structure
+  if (text.startsWith('{') || /^\s*\{\s*"(?:headline|title|summary|articleBodyMarkdown|bodyMarkdown)"/i.test(text)) {
+    // Try clean JSON.parse
+    try {
+      const parsed = JSON.parse(text);
+      if (typeof parsed === 'object' && parsed !== null) {
+        if (parsed.bodyMarkdown || parsed.articleBodyMarkdown || parsed.content || parsed.body) {
+          return String(parsed.bodyMarkdown || parsed.articleBodyMarkdown || parsed.content || parsed.body).trim();
+        }
+        if (parsed.summary) {
+          return String(parsed.summary).trim();
+        }
+        if (parsed.headline && !parsed.summary && !parsed.bodyMarkdown) {
+          return '';
+        }
+      }
+    } catch {
+      // Malformed or truncated JSON from AI generation:
+      // A. Check for body / articleBodyMarkdown
+      const bodyMatch = text.match(/"(?:bodyMarkdown|articleBodyMarkdown|content|body)"\s*:\s*"([\s\S]*?)(?:"\s*,\s*"[a-zA-Z_]+"\s*:|"\s*\}|$)/);
+      if (bodyMatch && bodyMatch[1] && bodyMatch[1].trim()) {
+        return bodyMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').trim();
+      }
+
+      // B. Check for summary
+      const summaryMatch = text.match(/"summary"\s*:\s*"([\s\S]*?)(?:"\s*,\s*"[a-zA-Z_]+"\s*:|"\s*\}|$)/);
+      if (summaryMatch && summaryMatch[1] && summaryMatch[1].trim()) {
+        return summaryMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"').trim();
+      }
+
+      // C. Fallback: Extract from the start of the summary value to end of string
+      const summaryTailMatch = text.match(/"summary"\s*:\s*"?([\s\S]+)$/i);
+      if (summaryTailMatch && summaryTailMatch[1]) {
+        return summaryTailMatch[1]
+          .replace(/["}\]\s]+$/, '')
+          .replace(/\\n/g, '\n')
+          .replace(/\\"/g, '"')
+          .trim();
+      }
+
+      // D. Fallback: Strip leading JSON envelope
+      const stripped = text
+        .replace(/^\{\s*"(?:headline|title)"\s*:\s*(?:"(?:\\.|[^"\\])*"|'[^']*'),?\s*/i, '')
+        .replace(/^"(?:summary|lead|description|body|content|bodyMarkdown|articleBodyMarkdown)"\s*:\s*"?/i, '')
+        .replace(/["}\]\s]+$/, '')
+        .trim();
+      if (stripped && !stripped.startsWith('{')) {
+        return stripped;
+      }
+    }
+  }
+
+  // 3. In case raw JSON is embedded inside an introductory line or paragraph
+  if (/^\{\s*"(?:headline|title|summary|bodyMarkdown)"/i.test(text)) {
+    text = text
+      .replace(/^\{\s*"(?:headline|title)"\s*:\s*(?:"(?:\\.|[^"\\])*"|'[^']*'),?\s*/i, '')
+      .replace(/^"(?:summary|lead|description|body|content|bodyMarkdown|articleBodyMarkdown)"\s*:\s*"?/i, '')
+      .replace(/["}\]\s]+$/, '')
+      .trim();
+  }
+
+  return text;
+}
+
+/**
+ * Dynamically sanitizes datelines based on the article's category / geographic scope:
+ * - National news stories are guaranteed to display "NEW DELHI –" (never local J&K datelines like Srinagar).
+ * - International news stories are guaranteed to display "GLOBAL DESK –" (never Indian local datelines).
+ */
+export function sanitizeDatelineByScope(text: string | null | undefined, categoryOrScope: string | null | undefined): string {
+  if (!text) return '';
+  const cat = (categoryOrScope || '').toLowerCase().trim();
+  const isNational = cat === 'national' || cat.includes('national');
+  const isInternational = cat === 'international' || cat.includes('international');
+
+  let sanitized = text.trim();
+
+  // 1. Strip any accidental dateline directly prepended before a markdown heading (e.g. "NEW DELHI – ### Heading" -> "### Heading")
+  sanitized = sanitized.replace(/^[A-Z\s,–—-]+(?=#{1,6}\s+)/i, '').trim();
+
+  // 2. If the text begins with a markdown heading, apply dateline only to the first actual prose paragraph
+  if (/^#{1,6}\s+/.test(sanitized)) {
+    const blocks = sanitized.split(/\n\s*\n+/);
+    for (let i = 0; i < blocks.length; i++) {
+      const block = blocks[i].trim();
+      if (block && !block.startsWith('#') && !block.startsWith('|') && !block.startsWith('>')) {
+        blocks[i] = sanitizeDatelineByScope(block, categoryOrScope);
+        return blocks.join('\n\n');
+      }
+    }
+    return sanitized;
+  }
+
+  if (isInternational) {
+    // Under no circumstances allow Indian local/state datelines on international stories
+    sanitized = sanitized.replace(/^(?:SRINAGAR|JAMMU|DODA|KISHTWAR|LEH|KASHMIR|NEW DELHI|MUMBAI)(?:,\s*[A-Z&]+)?\s*[-–—]\s*/i, 'GLOBAL DESK – ');
+  } else if (isNational) {
+    // Under no circumstances allow J&K local datelines on national stories
+    sanitized = sanitized.replace(/^(?:SRINAGAR|JAMMU|DODA|KISHTWAR|LEH|KASHMIR)(?:,\s*[A-Z&]+)?\s*[-–—]\s*/i, 'NEW DELHI – ');
+  }
+
+  // 3. Clean up any duplicate dateline repetition (e.g. "NEW DELHI – NEW DELHI –" or "GLOBAL DESK – GLOBAL DESK –")
+  sanitized = sanitized.replace(/^(?:NEW DELHI\s*[-–—]\s*){2,}/i, 'NEW DELHI – ');
+  sanitized = sanitized.replace(/^(?:GLOBAL DESK\s*[-–—]\s*){2,}/i, 'GLOBAL DESK – ');
+
+  return sanitized;
+}
+
+/**
  * Converts markdown or plaintext blocks to clean HTML even if mixed with HTML elements.
  */
 export function markdownToHtml(raw: string | null | undefined): string {
   if (!raw) return '';
-  const trimmed = raw.trim();
+  const cleanedText = extractCleanArticleText(raw);
+  if (!cleanedText) return '';
+  const trimmed = cleanedText.trim();
 
   // Split into paragraphs / blocks by blank lines
   const rawBlocks = trimmed.split(/\n\s*\n+/);
   const processedBlocks: string[] = [];
 
   for (let i = 0; i < rawBlocks.length; i++) {
-    const b = rawBlocks[i].trim();
+    let b = rawBlocks[i].trim();
     if (!b) continue;
+
+    // Strip accidental dateline prepended directly before a markdown heading (e.g. "NEW DELHI – ### Heading" -> "### Heading")
+    b = b.replace(/^[A-Z\s,–—-]+(?=#{1,6}\s+)/i, '').trim();
+
+    // Discard any orphaned markdown table separator or delimiter line (e.g. "| : | : |" or "| :--- | :--- |")
+    if (/^[|\s:-]+$/.test(b) && b.includes('|')) {
+      continue;
+    }
 
     // 1. If it's a standalone HTML block container (like a callout div, table, figure, or pre-rendered block)
     if (/^<(div|table|figure|section|aside|header|footer|article)/i.test(b)) {
@@ -393,7 +524,38 @@ export function markdownToHtml(raw: string | null | undefined): string {
       continue;
     }
 
-    // 5. Unordered List (- item or * item)
+    // 5. Markdown Table (e.g. | Column 1 | Column 2 |\n| :--- | :--- |\n| Val 1 | Val 2 |)
+    const tableLines = b.split('\n').map(l => l.trim()).filter(Boolean);
+    const isTable = tableLines.length >= 2 &&
+      tableLines[0].startsWith('|') && tableLines[0].endsWith('|') &&
+      /^[|\s:-]+$/.test(tableLines[1]);
+
+    if (isTable) {
+      const parseCells = (row: string) => row.replace(/^\||\|$/g, '').split('|').map(c => parseInlineMarkdown(c.trim()));
+      const headerCells = parseCells(tableLines[0]);
+      const bodyRows = tableLines.slice(2).map(parseCells);
+
+      let tableHtml = '<div class="overflow-x-auto my-6 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm">\n';
+      tableHtml += '  <table class="w-full text-left text-sm border-collapse">\n';
+      tableHtml += '    <thead class="bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">\n      <tr>\n';
+      for (const h of headerCells) {
+        tableHtml += `        <th class="p-3 border-r last:border-r-0 border-slate-200 dark:border-slate-800">${h}</th>\n`;
+      }
+      tableHtml += '      </tr>\n    </thead>\n';
+      tableHtml += '    <tbody class="divide-y divide-slate-200 dark:divide-slate-800 bg-white dark:bg-slate-950/40">\n';
+      for (const row of bodyRows) {
+        tableHtml += '      <tr>\n';
+        for (const cell of row) {
+          tableHtml += `        <td class="p-3 border-r last:border-r-0 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300">${cell}</td>\n`;
+        }
+        tableHtml += '      </tr>\n';
+      }
+      tableHtml += '    </tbody>\n  </table>\n</div>';
+      processedBlocks.push(tableHtml);
+      continue;
+    }
+
+    // 6. Unordered List (- item or * item)
     const lines = b.split('\n').map(l => l.trim()).filter(Boolean);
     const isList = lines.length > 0 && lines.every(l => /^[-*]\s+/.test(l));
     if (isList) {
