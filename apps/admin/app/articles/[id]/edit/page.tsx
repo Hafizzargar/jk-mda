@@ -1,8 +1,8 @@
 'use client';
 
-import { FormEvent, useEffect, useState, use } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import {
   DISTRICT_GROUPS,
@@ -32,9 +32,10 @@ type Article = {
   author_id: string;
 };
 
-export default function EditArticlePage({ params }: { params: Promise<{ id: string }> }) {
+export default function EditArticlePage({ params }: { params?: Promise<{ id: string }> }) {
   const router = useRouter();
-  const { id } = use(params);
+  const routeParams = useParams<{ id: string }>();
+  const id = routeParams?.id || '';
 
   const [authStatus, setAuthStatus] = useState('Checking authorization...');
   const [isAuthorized, setIsAuthorized] = useState<boolean | null>(null);

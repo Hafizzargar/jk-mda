@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState, use } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
@@ -40,8 +40,9 @@ type ArticleVersion = {
   profiles?: { display_name: string } | null;
 };
 
-export default function ArticleViewPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+export default function ArticleViewPage({ params }: { params?: Promise<{ id: string }> }) {
+  const routeParams = useParams<{ id: string }>();
+  const id = routeParams?.id || '';
   const router = useRouter();
   
   const [isLoading, setIsLoading] = useState(true);
