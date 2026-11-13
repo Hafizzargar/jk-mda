@@ -178,7 +178,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
         .eq('status', 'published')
         .not('category', 'in', EXCLUDED_CATEGORIES_FILTER)
         .order('published_at', { ascending: false, nullsFirst: false })
-        .limit(6)
+        .limit(12)
     ).catch(() => ({ data: [], error: null })),
     // Dedicated Dossier query to ensure 4-6 rich investigative/cultural features at the bottom
     Promise.resolve(
@@ -288,33 +288,49 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
 
   const subArticles: ArticleItem[] =
     safeCuration.sub_lead_ids && safeCuration.sub_lead_ids.length > 0
-      ? (safeCuration.sub_lead_ids.map((id) => curatedArticlesMap.get(id)).filter(Boolean) as ArticleItem[])
+      ? (safeCuration.sub_lead_ids
+          .map((id) => curatedArticlesMap.get(id))
+          .filter(Boolean) as ArticleItem[])
+          .filter((a) => a.id !== heroArticle.id)
       : safeRemaining.slice(0, 2);
 
   const subArticleIds = new Set(subArticles.map((a) => a.id));
-  const streamArticles = safeRemaining.filter((a) => !subArticleIds.has(a.id));
+
+  // Wire candidate pool: strictly exclude heroArticle and subArticles to eliminate duplicate news
+  const wireCandidates = translatedWire.filter(
+    (a) => a.id !== heroArticle.id && !subArticleIds.has(a.id)
+  );
 
   const wireArticles: ArticleItem[] =
     safeCuration.wire_ids && safeCuration.wire_ids.length > 0
-      ? (safeCuration.wire_ids.map((id) => curatedArticlesMap.get(id)).filter(Boolean) as ArticleItem[])
-      : translatedWire.length > 0
-      ? translatedWire
-      : safeRemaining.slice(2, 7);
+      ? (safeCuration.wire_ids
+          .map((id) => curatedArticlesMap.get(id))
+          .filter(Boolean) as ArticleItem[])
+          .filter((a) => a.id !== heroArticle.id && !subArticleIds.has(a.id))
+      : wireCandidates.length > 0
+      ? wireCandidates.slice(0, 5)
+      : safeRemaining.filter((a) => !subArticleIds.has(a.id)).slice(0, 5);
+
+  const wireArticleIds = new Set(wireArticles.map((a) => a.id));
+
+  // Center column broadsheet stream: remaining articles not used in hero, sub-leads, or wire
+  const uniqueStream = safeRemaining.filter((a) => !subArticleIds.has(a.id) && !wireArticleIds.has(a.id));
+  const streamArticles = uniqueStream.length > 0 ? uniqueStream : safeRemaining.filter((a) => !subArticleIds.has(a.id));
 
   const dossierArticles: ArticleItem[] =
     safeCuration.dossier_ids && safeCuration.dossier_ids.length > 0
       ? (safeCuration.dossier_ids.map((id) => curatedArticlesMap.get(id)).filter(Boolean) as ArticleItem[])
       : translatedDossier.length > 0
-      ? translatedDossier
+      ? translatedDossier.filter((a) => a.id !== heroArticle.id)
       : latestArticles.filter((a) => {
           const c = (a.category || '').toLowerCase();
-          return c === 'investigation' || c === 'culture' || c === 'environment' || c === 'economy';
+          return a.id !== heroArticle.id && (c === 'investigation' || c === 'culture' || c === 'environment' || c === 'economy');
         }).slice(0, 6);
 
   const editorialArticle: ArticleItem | null =
     (safeCuration.editorial_id ? curatedArticlesMap.get(safeCuration.editorial_id) : null) ||
-    latestArticles.find((a) => (a.category || '').toLowerCase() === 'opinion') ||
-    FALLBACK_BROADSHEET_ARTICLES.find((a) => a.category.toLowerCase() === 'opinion') ||
+    latestArticles.find((a) => a.id !== heroArticle.id && (a.category || '').toLowerCase() === 'opinion') ||
+    FALLBACK_BROADSHEET_ARTICLES.find((a) => a.id !== heroArticle.id && a.category.toLowerCase() === 'opinion') ||
     null;
 
   // 8. Fetch Territorial Corridor Trending News (dynamic real-time stories for all 5 corridors)

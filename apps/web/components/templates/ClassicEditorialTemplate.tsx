@@ -94,14 +94,31 @@ export function ClassicEditorialTemplate({
   const leftRailAd = findAdForSlot('left_rail_sponsor');
   const sidebarAd = findAdForSlot('sidebar_banner');
 
-  // Curated vs Fallback story splitting for broadsheet columns
-  const subArticles = propSubArticles && propSubArticles.length > 0 ? propSubArticles : recentArticles.slice(0, 2);
-  const wireArticles = propWireArticles && propWireArticles.length > 0 ? propWireArticles : recentArticles.slice(2, 7);
-  const streamArticles = propStreamArticles && propStreamArticles.length > 0 ? propStreamArticles : recentArticles.slice(2);
-  const dossierArticles = propDossierArticles && propDossierArticles.length > 0 ? propDossierArticles : recentArticles.slice(7, 13);
+  // Lead Story resolution (used to guarantee 0 duplication across other slots)
+  const leadArticle = heroArticle || recentArticles[0] || allArticles[0] || FALLBACK_BROADSHEET_ARTICLES[0];
+  const leadId = leadArticle?.id;
+
+  // Curated vs Fallback story splitting for broadsheet columns with strict cross-slot deduplication
+  const candidateSub = propSubArticles && propSubArticles.length > 0 ? propSubArticles : recentArticles.slice(0, 2);
+  const subArticles = candidateSub.filter((art) => art.id !== leadId);
+  const subIds = new Set(subArticles.map((art) => art.id));
+
+  const candidateWire = propWireArticles && propWireArticles.length > 0 ? propWireArticles : recentArticles.slice(2, 7);
+  const cleanWire = candidateWire.filter((art) => art.id !== leadId && !subIds.has(art.id));
+  const wireArticles =
+    cleanWire.length > 0
+      ? cleanWire
+      : recentArticles.filter((art) => art.id !== leadId && !subIds.has(art.id)).slice(0, 5);
+
+  const candidateStream = propStreamArticles && propStreamArticles.length > 0 ? propStreamArticles : recentArticles.slice(2);
+  const streamArticles = candidateStream.filter((art) => art.id !== leadId && !subIds.has(art.id));
+
+  const candidateDossier = propDossierArticles && propDossierArticles.length > 0 ? propDossierArticles : recentArticles.slice(7, 13);
+  const dossierArticles = candidateDossier.filter((art) => art.id !== leadId);
+
   const conflictNews = propConflictNews || [];
   const discoverNews = propDiscoverNews || [];
-  const editorialArticle = propEditorialArticle || null;
+  const editorialArticle = propEditorialArticle?.id === leadId ? null : propEditorialArticle || null;
 
   // Scoped Developing Alert Text
   const isCurationActive = Boolean(curation?.developing_is_active && curation?.developing_headline?.trim());
@@ -1313,7 +1330,10 @@ export function ClassicEditorialTemplate({
                 <p className="text-[11px] text-slate-500 mb-4">{wireColumnDesc}</p>
 
                 <div className="space-y-3.5">
-                  {(wireArticles.length > 0 ? wireArticles : recentArticles.slice(0, 5)).map((art, idx) => (
+                  {(wireArticles.length > 0
+                    ? wireArticles
+                    : recentArticles.filter((art) => art.id !== leadId && !subIds.has(art.id)).slice(0, 5)
+                  ).map((art, idx) => (
                     <article key={art.id} className="p-3 bg-[#f5f3f0] rounded-xl hover:bg-slate-100 transition">
                       <div className="flex items-center justify-between mb-1 text-[10px] text-slate-500">
                         <span className="font-bold text-[#0891B2] uppercase">
