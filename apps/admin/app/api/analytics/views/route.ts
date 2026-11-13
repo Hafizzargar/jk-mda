@@ -130,9 +130,30 @@ export async function GET() {
     });
   } catch (err: unknown) {
     console.error('Error in GET /api/analytics/views:', err);
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Internal analytics error' },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      success: false,
+      timestamp: new Date().toISOString(),
+      overview: {
+        totalViews: 0,
+        totalArticles: 0,
+        verifiedViewsCount: 0,
+        todayViews: 0,
+        topRegion: 'N/A',
+        topRegionViews: 0,
+        topRegionPercent: 0,
+      },
+      byRegion: {
+        kashmir: 0,
+        jammu: 0,
+        chenab: 0,
+        pir_panjal: 0,
+        ladakh: 0,
+        national_international: 0,
+      },
+      byCategory: {},
+      topArticles: [],
+      recentLogs: [],
+      warning: err instanceof Error ? err.message : 'Analytics database temporarily unreachable',
+    });
   }
 }

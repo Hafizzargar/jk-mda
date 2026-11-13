@@ -312,7 +312,7 @@ export default function AnalyticsPage() {
                   <td className="py-3 px-3 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <a
-                        href={`http://localhost:3000/en/${article.category.toLowerCase()}/${article.slug}`}
+                        href={`http://localhost:3000/en/${(article.category || 'general').toLowerCase()}/${article.slug}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         title="View story on reader site"
