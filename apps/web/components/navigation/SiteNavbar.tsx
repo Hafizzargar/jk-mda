@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
@@ -138,6 +138,39 @@ export function SiteNavbar({
     setMobileMenuOpen(false);
     setRegionsOpen(false);
   }, [pathname]);
+
+  // Territorial Corridors Horizontal Scroll Indicator & Helpers
+  const corridorsScrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollCorridorsLeft, setCanScrollCorridorsLeft] = useState(false);
+  const [canScrollCorridorsRight, setCanScrollCorridorsRight] = useState(true);
+
+  const checkCorridorsScroll = useCallback(() => {
+    const el = corridorsScrollRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    setCanScrollCorridorsLeft(scrollLeft > 4);
+    setCanScrollCorridorsRight(scrollLeft + clientWidth < scrollWidth - 6);
+  }, []);
+
+  useEffect(() => {
+    checkCorridorsScroll();
+    const el = corridorsScrollRef.current;
+    if (!el) return;
+    const onScroll = () => checkCorridorsScroll();
+    el.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', checkCorridorsScroll);
+    return () => {
+      el.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', checkCorridorsScroll);
+    };
+  }, [checkCorridorsScroll, mounted]);
+
+  const scrollCorridors = (direction: 'left' | 'right') => {
+    const el = corridorsScrollRef.current;
+    if (!el) return;
+    const offset = direction === 'left' ? -180 : 180;
+    el.scrollBy({ left: offset, behavior: 'smooth' });
+  };
 
   const isDark = theme?.isDark ?? false;
   const corridors = (navSettings.actions.daily_corridor_rotation ?? true)
@@ -450,33 +483,75 @@ export function SiteNavbar({
         className="w-full border-t border-stone-200/80 bg-stone-100/60"
       >
         <div className="w-full max-w-7xl 2xl:max-w-[1440px] mx-auto px-3 sm:px-4 md:px-8 py-1.5 flex items-center justify-between gap-3">
-          <div className="flex items-center space-x-2 text-[11px] font-semibold tracking-wide whitespace-nowrap overflow-x-auto no-scrollbar py-0.5 min-w-0">
-            <Link
-              href={`${langPrefix}/`}
-              className={`shrink-0 px-2.5 py-1 rounded-full shadow-xs flex items-center space-x-1.5 transition-colors ${
-                !activeRegion
-                  ? 'bg-stone-900 text-stone-100'
-                  : 'bg-white border border-stone-300 text-stone-700 hover:bg-stone-50'
-              }`}
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-              <span>ALL BUREAUS</span>
-            </Link>
-            {corridors.map((c) => {
-              const isActive = activeRegion === c.id || activeRegion === c.slug;
-              return (
-                <Link
-                  key={c.id}
-                  href={`${langPrefix}/region/${c.slug}`}
-                  className={`shrink-0 px-2.5 py-1 rounded-full border transition-colors flex items-center space-x-1.5 ${
-                    isActive ? c.activeClass : c.idleClass
-                  }`}
+          {/* Scrollable pill container wrapped in relative flex with interactive chevron buttons */}
+          <div className="relative flex items-center min-w-0 flex-1">
+            {/* Left Scroll Indicator Arrow */}
+            {canScrollCorridorsLeft && (
+              <div className="absolute left-0 top-0 bottom-0 z-10 flex items-center pr-2 bg-gradient-to-r from-stone-100 via-stone-100/90 to-transparent">
+                <button
+                  type="button"
+                  onClick={() => scrollCorridors('left')}
+                  aria-label="Scroll regional bureaus left"
+                  title="Previous bureaus"
+                  className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white border border-stone-300 shadow-xs text-stone-700 hover:text-stone-900 hover:bg-stone-50 flex items-center justify-center transition cursor-pointer"
                 >
-                  <span className={`w-1.5 h-1.5 rounded-full ${c.dotColor}`}></span>
-                  <span>{c.name}</span>
-                </Link>
-              );
-            })}
+                  <svg className="w-3 h-3 text-stone-700" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+              </div>
+            )}
+
+            {/* Scrollable Bureaus Pills */}
+            <div
+              ref={corridorsScrollRef}
+              onScroll={checkCorridorsScroll}
+              className="flex items-center space-x-2 text-[11px] font-semibold tracking-wide whitespace-nowrap overflow-x-auto no-scrollbar py-0.5 min-w-0 scroll-smooth w-full"
+            >
+              <Link
+                href={`${langPrefix}/`}
+                className={`shrink-0 px-2.5 py-1 rounded-full shadow-xs flex items-center space-x-1.5 transition-colors ${
+                  !activeRegion
+                    ? 'bg-stone-900 text-stone-100'
+                    : 'bg-white border border-stone-300 text-stone-700 hover:bg-stone-50'
+                }`}
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                <span>ALL BUREAUS</span>
+              </Link>
+              {corridors.map((c) => {
+                const isActive = activeRegion === c.id || activeRegion === c.slug;
+                return (
+                  <Link
+                    key={c.id}
+                    href={`${langPrefix}/region/${c.slug}`}
+                    className={`shrink-0 px-2.5 py-1 rounded-full border transition-colors flex items-center space-x-1.5 ${
+                      isActive ? c.activeClass : c.idleClass
+                    }`}
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full ${c.dotColor}`}></span>
+                    <span>{c.name}</span>
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* Right Scroll Indicator Arrow (Guides reader that more bureaus exist) */}
+            {canScrollCorridorsRight && (
+              <div className="absolute right-0 top-0 bottom-0 z-10 flex items-center pl-3 bg-gradient-to-l from-stone-100 via-stone-100/95 to-transparent">
+                <button
+                  type="button"
+                  onClick={() => scrollCorridors('right')}
+                  aria-label="Scroll more regional bureaus"
+                  title="More regional bureaus"
+                  className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-white border border-stone-300 shadow-xs text-stone-700 hover:text-stone-900 hover:bg-stone-50 flex items-center justify-center transition cursor-pointer group"
+                >
+                  <svg className="w-3 h-3 text-stone-700 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Right Status / Telemetry Link on Desktop to Balance Large Screens */}
