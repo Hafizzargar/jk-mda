@@ -14,6 +14,7 @@ import { formatArticleDate } from '@/lib/date';
 import { getOptimizedMediaUrl } from '@/lib/media';
 import { FALLBACK_BROADSHEET_ARTICLES } from '@/lib/seed-articles';
 import { TerritorialBureauTelemetrySlider } from '@/components/telemetry/TerritorialBureauTelemetrySlider';
+import { SafeEditorialImage } from '@/components/common/SafeEditorialImage';
 
 export function ClassicEditorialTemplate({
   langPrefix,
@@ -775,15 +776,13 @@ export function ClassicEditorialTemplate({
                   {internationalArticle ? (
                     <>
                       {internationalArticle.featured_image_url && (
-                        <div className="relative w-full h-28 rounded-lg overflow-hidden mb-2 border border-sky-100 shadow-2xs">
-                          <Image
-                            src={getOptimizedMediaUrl(internationalArticle.featured_image_url, 400)}
-                            alt={internationalArticle.title}
-                            fill
-                            className="object-cover"
-                            sizes="(max-width: 640px) 100vw, 360px"
-                          />
-                        </div>
+                        <SafeEditorialImage
+                          src={getOptimizedMediaUrl(internationalArticle.featured_image_url, 400)}
+                          alt="Global Spotlight"
+                          badge="Global Spotlight"
+                          containerClassName="relative w-full h-28 rounded-lg overflow-hidden mb-2 border border-sky-100 shadow-2xs bg-slate-900/5"
+                          sizes="(max-width: 640px) 100vw, 360px"
+                        />
                       )}
                       <h4 className="font-serif text-sm font-bold text-[#0F172A] leading-snug mb-1 hover:text-[#0891B2] transition">
                         <Link href={getArtHref(internationalArticle)}>
@@ -985,15 +984,12 @@ export function ClassicEditorialTemplate({
                     <article key={art.id} className="p-3 bg-white rounded-xl border border-stone-200 shadow-xs flex flex-col justify-between">
                       <div>
                         {art.featured_image_url && (
-                          <div className="relative w-full h-32 rounded-lg overflow-hidden bg-stone-100 mb-2">
-                            <Image
-                              src={getOptimizedMediaUrl(art.featured_image_url, 400)}
-                              alt={art.title}
-                              fill
-                              sizes="(max-width: 640px) 100vw, 360px"
-                              className="object-cover"
-                            />
-                          </div>
+                          <SafeEditorialImage
+                            src={getOptimizedMediaUrl(art.featured_image_url, 400)}
+                            alt=""
+                            containerClassName="relative w-full h-32 rounded-lg overflow-hidden bg-stone-100 mb-2"
+                            sizes="(max-width: 640px) 100vw, 360px"
+                          />
                         )}
                         <div className="flex items-center gap-1.5 mb-1.5 text-[9.5px]">
                           <span className="px-1.5 py-0.5 rounded font-bold uppercase bg-stone-100 text-stone-800">
@@ -1552,18 +1548,13 @@ export function ClassicEditorialTemplate({
                   {internationalArticle ? (
                     <>
                       {internationalArticle.featured_image_url && (
-                        <div className="relative w-full h-32 rounded-xl overflow-hidden mb-3 border border-sky-100 shadow-xs">
-                          <Image
-                            src={getOptimizedMediaUrl(internationalArticle.featured_image_url, 450)}
-                            alt={internationalArticle.title}
-                            fill
-                            className="object-cover"
-                            sizes="(max-width: 1024px) 100vw, 320px"
-                          />
-                          <div className="absolute top-2 left-2 bg-[#0F172A]/85 backdrop-blur-xs text-white px-2 py-0.5 text-[9px] uppercase font-bold tracking-wider rounded">
-                            Global Spotlight
-                          </div>
-                        </div>
+                        <SafeEditorialImage
+                          src={getOptimizedMediaUrl(internationalArticle.featured_image_url, 450)}
+                          alt="Global Spotlight"
+                          badge="Global Spotlight"
+                          containerClassName="relative w-full h-32 rounded-xl overflow-hidden mb-3 border border-sky-100 shadow-xs bg-slate-900/5"
+                          sizes="(max-width: 1024px) 100vw, 320px"
+                        />
                       )}
 
                       <div className="flex items-center gap-2 mb-1.5">
