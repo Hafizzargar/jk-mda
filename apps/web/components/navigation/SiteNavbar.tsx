@@ -36,9 +36,7 @@ export function SiteNavbar({
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSearchQuery, setMobileSearchQuery] = useState('');
-  const [regionsOpen, setRegionsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -122,21 +120,9 @@ export function SiteNavbar({
     year: 'numeric',
   });
 
-  // Close dropdown on outside click
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setRegionsOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
   // Close mobile menu on route change
   useEffect(() => {
     setMobileMenuOpen(false);
-    setRegionsOpen(false);
   }, [pathname]);
 
   // Territorial Corridors Horizontal Scroll Indicator & Helpers
@@ -299,118 +285,7 @@ export function SiteNavbar({
             );
           })}
 
-          {/* Regional Divisions Dropdown */}
-          {navSettings.actions.show_regions_dropdown && (
-            <div className="relative" ref={dropdownRef}>
-              <button
-                type="button"
-                onClick={() => setRegionsOpen(!regionsOpen)}
-                className={`px-2.5 py-1.5 rounded-lg transition flex items-center gap-1.5 ${
-                  activeRegion || regionsOpen
-                    ? `${accentText} font-extrabold ${subtleBg}`
-                    : `${textMuted} hover:${textPrimary} hover:${subtleBg}`
-                }`}
-                aria-expanded={regionsOpen}
-                aria-label="Regional Desks Menu"
-              >
-                <span>Regions</span>
-                <svg
-                  className={`w-3.5 h-3.5 transition-transform duration-200 ${regionsOpen ? 'rotate-180' : ''}`}
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
-                </svg>
-              </button>
 
-              {/* Dropdown Panel */}
-              {regionsOpen && (
-                <div
-                  className={`absolute top-full right-0 mt-2 w-88 sm:w-96 rounded-2xl border shadow-2xl p-2.5 z-50 animate-in fade-in slide-in-from-top-2 duration-150 font-sans normal-case tracking-normal ${
-                    isDark ? 'bg-slate-900 border-slate-800 text-slate-200' : 'bg-white border-slate-200 text-slate-800'
-                  }`}
-                >
-                  <div className="px-3 py-2 flex items-center justify-between border-b border-slate-200/80 dark:border-slate-800/80 mb-2">
-                    <div>
-                      <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono">
-                        J&amp;K Coverage Desks
-                      </p>
-                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                        5 Regional Divisions &bull; 22 Districts
-                      </p>
-                    </div>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full font-bold bg-cyan-100 text-cyan-800 dark:bg-cyan-900/50 dark:text-cyan-300">
-                      Live
-                    </span>
-                  </div>
-
-                  <div className="space-y-1">
-                    {Object.values(REGIONAL_DIVISIONS).map((reg) => {
-                      const icons: Record<string, string> = {
-                        'pir-panjal': '🏔️',
-                        'chenab-valley': '🌊',
-                        'kashmir': '🍁',
-                        'jammu': '🏛️',
-                        'leh': '❄️',
-                      };
-                      const icon = icons[reg.id] || '📍';
-                      const districtCount = reg.districts.length;
-                      const districtListPreview = reg.districts
-                        .slice(0, 3)
-                        .map((d) => d.charAt(0).toUpperCase() + d.slice(1))
-                        .join(', ') + (reg.districts.length > 3 ? ` +${reg.districts.length - 3} more` : '');
-
-                      return (
-                        <Link
-                          key={reg.id}
-                          href={`${langPrefix}/region/${reg.id}`}
-                          onClick={() => setRegionsOpen(false)}
-                          className={`group flex items-start gap-3 p-2.5 rounded-xl transition-all ${
-                            activeRegion === reg.id
-                              ? `${accentText} font-bold bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-200 dark:border-cyan-800`
-                              : 'hover:bg-slate-50 dark:hover:bg-slate-800/70 border border-transparent'
-                          }`}
-                        >
-                          <span className="text-xl shrink-0 p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 group-hover:scale-110 transition-transform">
-                            {icon}
-                          </span>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-xs font-bold text-slate-900 dark:text-white group-hover:text-cyan-700 dark:group-hover:text-cyan-400 transition-colors">
-                                {reg.name}
-                              </span>
-                              <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 shrink-0">
-                                {districtCount} {districtCount === 1 ? 'district' : 'districts'}
-                              </span>
-                            </div>
-                            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight mt-0.5 line-clamp-1">
-                              {reg.tagline}
-                            </p>
-                            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-mono mt-0.5">
-                              {districtListPreview}
-                            </p>
-                          </div>
-                        </Link>
-                      );
-                    })}
-                  </div>
-
-                  <div className="mt-2 pt-2 border-t border-slate-200/80 dark:border-slate-800/80 px-2 py-1 flex items-center justify-between text-[11px]">
-                    <span className="text-slate-500 dark:text-slate-400">Looking for civic ground reports?</span>
-                    <Link
-                      href={`${langPrefix}/map`}
-                      onClick={() => setRegionsOpen(false)}
-                      className="font-bold text-cyan-700 dark:text-cyan-400 hover:underline flex items-center gap-1"
-                    >
-                      <span>🗺️</span>
-                      <span>Map Overview &rarr;</span>
-                    </Link>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Map Overview Link */}
           <Link
