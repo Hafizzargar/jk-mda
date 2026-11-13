@@ -37,6 +37,7 @@ export function SiteNavbar({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSearchQuery, setMobileSearchQuery] = useState('');
   const [mounted, setMounted] = useState(false);
+  const [loadingRegion, setLoadingRegion] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -120,10 +121,17 @@ export function SiteNavbar({
     year: 'numeric',
   });
 
-  // Close mobile menu on route change
+  // Close mobile menu & clear corridor loading on route change
   useEffect(() => {
     setMobileMenuOpen(false);
+    setLoadingRegion(null);
   }, [pathname]);
+
+  const handlePillClick = (targetId: string, isAlreadyActive: boolean) => {
+    if (!isAlreadyActive) {
+      setLoadingRegion(targetId);
+    }
+  };
 
   // Territorial Corridors Horizontal Scroll Indicator & Helpers
   const corridorsScrollRef = useRef<HTMLDivElement>(null);
@@ -197,7 +205,13 @@ export function SiteNavbar({
   };
 
   return (
-    <header className={`w-full max-w-full overflow-x-hidden sticky top-0 z-50 backdrop-blur-md ${navBg} ${navBorder} transition-colors duration-200`}>
+    <header className={`w-full max-w-full overflow-x-hidden sticky top-0 z-50 backdrop-blur-md ${navBg} ${navBorder} transition-colors duration-200 relative`}>
+      {/* Top loader bar when user clicks Chenab, Jammu, or any regional bureau */}
+      {loadingRegion && (
+        <div className="absolute top-0 inset-x-0 h-[2.5px] bg-amber-100 z-50 overflow-hidden">
+          <div className="h-full bg-gradient-to-r from-amber-500 via-red-600 to-amber-500 w-full animate-pulse" />
+        </div>
+      )}
       {/* 1. Slim Top Utility Strip */}
       {navSettings.top_strip.enabled && (
         <div className="w-full border-b border-stone-200/80">
@@ -385,27 +399,56 @@ export function SiteNavbar({
             >
               <Link
                 href={`${langPrefix}/`}
-                className={`shrink-0 px-2.5 py-1 rounded-full shadow-xs flex items-center space-x-1.5 transition-colors ${
+                onClick={() => handlePillClick('all', !activeRegion)}
+                className={`shrink-0 px-2.5 py-1 rounded-full shadow-xs flex items-center space-x-1.5 transition-all ${
                   !activeRegion
-                    ? 'bg-stone-900 text-stone-100'
+                    ? 'bg-stone-900 text-stone-100 ring-2 ring-stone-900/20'
+                    : loadingRegion === 'all'
+                    ? 'bg-stone-100 border border-stone-400 text-stone-900 ring-2 ring-stone-400/40'
                     : 'bg-white border border-stone-300 text-stone-700 hover:bg-stone-50'
                 }`}
               >
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                {loadingRegion === 'all' ? (
+                  <svg className="w-3 h-3 animate-spin text-stone-800 shrink-0" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                ) : (
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
+                )}
                 <span>ALL BUREAUS</span>
+                {loadingRegion === 'all' && (
+                  <span className="text-[9px] font-mono opacity-75 animate-pulse">loading...</span>
+                )}
               </Link>
               {corridors.map((c) => {
                 const isActive = activeRegion === c.id || activeRegion === c.slug;
+                const isLoading = loadingRegion === c.id || loadingRegion === c.slug;
                 return (
                   <Link
                     key={c.id}
                     href={`${langPrefix}/region/${c.slug}`}
-                    className={`shrink-0 px-2.5 py-1 rounded-full border transition-colors flex items-center space-x-1.5 ${
-                      isActive ? c.activeClass : c.idleClass
+                    onClick={() => handlePillClick(c.id, isActive)}
+                    className={`shrink-0 px-2.5 py-1 rounded-full border transition-all flex items-center space-x-1.5 ${
+                      isLoading
+                        ? 'bg-amber-100/90 border-amber-500 text-amber-950 font-bold ring-2 ring-amber-400/30'
+                        : isActive
+                        ? c.activeClass
+                        : c.idleClass
                     }`}
                   >
-                    <span className={`w-1.5 h-1.5 rounded-full ${c.dotColor}`}></span>
+                    {isLoading ? (
+                      <svg className="w-3 h-3 animate-spin text-amber-700 shrink-0" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                    ) : (
+                      <span className={`w-1.5 h-1.5 rounded-full ${c.dotColor} shrink-0`}></span>
+                    )}
                     <span>{c.name}</span>
+                    {isLoading && (
+                      <span className="text-[9px] font-mono font-medium opacity-85 animate-pulse">loading...</span>
+                    )}
                   </Link>
                 );
               })}
@@ -564,7 +607,10 @@ export function SiteNavbar({
                       <Link
                         key={reg.id}
                         href={`${langPrefix}/region/${reg.id}`}
-                        onClick={() => setMobileMenuOpen(false)}
+                        onClick={() => {
+                          setMobileMenuOpen(false);
+                          handlePillClick(reg.id, isActive);
+                        }}
                         className={`flex items-center justify-between p-3 rounded-xl border transition shadow-xs ${
                           isActive
                             ? 'bg-amber-50 border-amber-400 text-amber-950 font-bold'
