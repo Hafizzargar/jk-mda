@@ -666,7 +666,7 @@ export default function YouTubeMonitorPage() {
         setEditScope(synthScope);
         setEditDistrict(synthScope === 'Local News (J&K)' ? (data.draft.district || '') : '');
         setEditBody(data.draft.body_markdown);
-        setEditImage(data.draft.featured_image_url);
+        setEditImage(data.draft.featured_image_url || '');
         setImageAlternatives(data.draft.alternative_images || []);
 
         setVideos((prev) =>
@@ -803,7 +803,7 @@ export default function YouTubeMonitorPage() {
     const contextForImage = `${video.proposed_headline || video.title} ${video.proposed_summary || video.description || ''}`;
     const recommended = getRecommendedEditorialImage(scope, canonical.name, contextForImage);
     setImageAlternatives(recommended.alternatives);
-    const initialImage = video.ai_analysis?.featured_image_url || recommended.featuredImage;
+    const initialImage = video.ai_analysis?.featured_image_url || recommended.featuredImage || '';
     setEditImage(initialImage);
 
     // Ensure 100% link-free script without hashtags
@@ -1126,8 +1126,8 @@ export default function YouTubeMonitorPage() {
             const current = live?.current ?? 0;
             const published = live?.published ?? 0;
             const quota = beatQuotas[beatId] || { min: base.min, max: base.max };
-            const minVal = live?.min ?? quota.min;
-            const maxVal = live?.max ?? quota.max;
+            const minVal = quota?.min ?? live?.min ?? base.min;
+            const maxVal = quota?.max ?? live?.max ?? base.max;
             const isMet = current >= minVal;
             const isMax = current >= maxVal;
 
@@ -2084,7 +2084,7 @@ export default function YouTubeMonitorPage() {
                       const rec = getRecommendedEditorialImage(newScope, defaultCat);
                       setImageAlternatives(rec.alternatives);
                       if (!editImage || editImage === reviewVideo?.thumbnail_url) {
-                        setEditImage(rec.featuredImage);
+                        setEditImage(rec.featuredImage || '');
                       }
                       if (editSummary) {
                         const targetDateline = determineDatelineForScope(
@@ -2119,7 +2119,7 @@ export default function YouTubeMonitorPage() {
                       const rec = getRecommendedEditorialImage(editScope, nextTopic);
                       setImageAlternatives(rec.alternatives);
                       if (!editImage || editImage === reviewVideo.thumbnail_url) {
-                        setEditImage(rec.featuredImage);
+                        setEditImage(rec.featuredImage || '');
                       }
                     }}
                     className="mt-1 w-full rounded-xl border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-950 p-2 text-slate-900 dark:text-white text-xs outline-none focus:border-cyan-500 font-medium"
@@ -2381,7 +2381,7 @@ export default function YouTubeMonitorPage() {
                         type="button"
                         onClick={() => {
                           const recommended = getRecommendedEditorialImage(editScope, editCategory);
-                          setEditImage(recommended.featuredImage);
+                          setEditImage(recommended.featuredImage || '');
                         }}
                         className={`px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition ${
                           editImage && editImage !== reviewVideo.thumbnail_url && !editImage.includes('/article-images/') && !editImage.includes('supabase.co/storage')

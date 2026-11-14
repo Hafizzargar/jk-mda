@@ -26,7 +26,7 @@ export interface SynthesizedDraft {
   district: string | null;
   division: string;
   body_markdown: string;
-  featured_image_url: string;
+  featured_image_url: string | null;
   alternative_images: EditorialImageOption[];
   source_language_detected?: string;
 }
@@ -693,8 +693,9 @@ export function determineAccurateNewsScope(
 export function getRecommendedEditorialImage(
   scope: string,
   category?: string,
-  contextText?: string
-): { featuredImage: string; alternatives: EditorialImageOption[] } {
+  contextText?: string,
+  allowGenericFallback: boolean = true
+): { featuredImage: string | null; alternatives: EditorialImageOption[]; hasConfidentMatch: boolean } {
   const combined = `${contextText || ''} ${category || ''} ${scope || ''}`.toLowerCase();
 
   let matchedCategoryImages: EditorialImageOption[] | undefined;
@@ -709,7 +710,7 @@ export function getRecommendedEditorialImage(
   }
   // 2. Road Transit / Highway / Traffic / Accidents / Crashes / NH-44 / NH-244 / Vehicles / Bus
   else if (
-    /\b(highway|highways|road|roads|traffic|transit|nh-44|nh-244|mughal road|vehicle|vehicles|bus|buses|truck|trucks|accident|accidents|crash|crashes|mishap|mishaps|gorge|collision|overturned|transport|jam|chakka jam)\b/i.test(
+    /\b(highway|highways|road|roads|traffic|transit|nh-44|nh-244|mughal road|vehicle|vehicles|bus|buses|truck|trucks|accident|accidents|crash|crashes|mishap|mishaps|gorge|collision|overturned|transport|chakka jam)\b/i.test(
       combined
     )
   ) {
@@ -741,7 +742,7 @@ export function getRecommendedEditorialImage(
   }
   // 6. Space / ISRO / Rocket / Satellite / Artificial Intelligence / Semiconductor / High Tech
   else if (
-    /\b(isro|rocket|satellite|chandrayaan|gaganyaan|spacecraft|aerospace|semiconductor|microchip|artificial intelligence|\bai\b|computing|deep learning)\b/i.test(
+    /\b(isro|rocket|satellite|chandrayaan|gaganyaan|spacecraft|aerospace|semiconductor|microchip|artificial intelligence|\bai\b|deep learning)\b/i.test(
       combined
     )
   ) {
@@ -749,7 +750,7 @@ export function getRecommendedEditorialImage(
   }
   // 7. Science / Laboratory / Vaccine / Virology / Medical Breakthroughs
   else if (
-    /\b(scientist|scientists|vaccine|vaccines|virology|immunology|breakthrough|laboratory|lab|cure|pathogen|genomics)\b|clinical trial|pandemic|epidemic|outbreak|who alert/i.test(
+    /\b(scientist|scientists|vaccine|vaccines|virology|immunology|breakthrough|laboratory|lab|cure|pathogen|genomics|clinical trial|pandemic|epidemic|outbreak|who alert)\b/i.test(
       combined
     )
   ) {
@@ -757,37 +758,45 @@ export function getRecommendedEditorialImage(
   }
   // 8. Healthcare / Doctor / Medical / Hospital
   else if (
-    /\b(doctor|doctors|hospital|hospitals|medical|patient|patients|nurse|nurses|surgery|clinic|clinics|health|healthcare|mbbs|paramedic|medicines|icu|ward|wards)\b/i.test(
+    /\b(doctor|doctors|hospital|hospitals|medical|patient|patients|nurse|nurses|surgery|surgeon|surgeons|clinic|clinics|healthcare|mbbs|paramedic|medicines|icu)\b|\b(hospital ward|medical ward)\b/i.test(
       combined
     )
   ) {
     matchedCategoryImages = EDITORIAL_NEWS_IMAGES.Healthcare;
   }
-  // 9. International Conflict / War / Geopolitical Strikes
+  // 9. United Nations / Global Diplomacy / International Summits
   else if (
-    /\b(war|wars|warfare|missile|missiles|airstrike|airstrikes|artillery|ceasefire|frontline|invasion|bombardment)\b|military conflict|gaza|ukraine war|russia-ukraine|defense ministry|air strike/i.test(
+    /\b(united nations|\bun\b|secretary-general|security council|\bunsc\b|diplomacy|diplomat|diplomats|envoy|ambassador|ceasefire|treaty|foreign minister|foreign affairs|international summit|geopolitics|sudan war|middle east tension)\b/i.test(
+      combined
+    )
+  ) {
+    matchedCategoryImages = EDITORIAL_NEWS_IMAGES.International;
+  }
+  // 10. International Conflict / War / Geopolitical Strikes
+  else if (
+    /\b(war|wars|warfare|missile|missiles|airstrike|airstrikes|artillery|frontline|invasion|bombardment|military conflict|gaza|ukraine war|russia-ukraine|defense ministry|air strike)\b/i.test(
       combined
     )
   ) {
     matchedCategoryImages = EDITORIAL_NEWS_IMAGES.Conflict || EDITORIAL_NEWS_IMAGES.International;
   }
-  // 10. Forest / Land / Trees / Environment / Wildlife
+  // 11. Forest / Timber / Environment / Wildlife
   else if (
-    /\b(forest|forests|tree|trees|timber|wildlife|jungle|land|lands|greenery|environment|ecology|flora|fauna|deforestation|woodland|plantation|wetland|wetlands)\b/i.test(
+    /\b(forest|forests|tree|trees|timber|wildlife|jungle|greenery|environment|ecology|flora|fauna|deforestation|woodland|plantation|wetland|wetlands)\b|\b(forest land|grazing land|wetlands)\b/i.test(
       combined
     )
   ) {
     matchedCategoryImages = EDITORIAL_NEWS_IMAGES.Forest;
   }
-  // 11. Aviation / Airport / Flight
+  // 12. Aviation / Airport / Flight
   else if (
-    /\b(airport|airports|airline|airlines|flight|flights|aviation|aircraft|runway|csmia|pilot|airspace)\b|air india|indigo/i.test(
+    /\b(airport|airports|airline|airlines|flight|flights|aviation|aircraft|runway|csmia|pilot|airspace|air india|indigo)\b/i.test(
       combined
     )
   ) {
     matchedCategoryImages = EDITORIAL_NEWS_IMAGES.Aviation;
   }
-  // 12. Agriculture / Farmers / Crops / Apples
+  // 13. Agriculture / Farmers / Crops / Apples
   else if (
     /\b(farmer|farmers|kisan|crop|crops|harvest|apple|apples|orchard|orchards|horticulture|agriculture|paddy|saffron|mandi)\b/i.test(
       combined
@@ -795,66 +804,68 @@ export function getRecommendedEditorialImage(
   ) {
     matchedCategoryImages = EDITORIAL_NEWS_IMAGES.Agriculture;
   }
-  // 13. Judiciary / Court / Gavel / Law
+  // 14. Judiciary / Court / Gavel / Law
   else if (
-    /\b(court|courts|judge|judges|judiciary|lawyer|lawyers|bench|bail|hearing|verdict|legal|justice|advocate|advocates|law|laws)\b|supreme court|high court|bar association/i.test(
+    /\b(court|courts|judge|judges|judiciary|lawyer|lawyers|bench|bail|hearing|verdict|legal|justice|advocate|advocates|law|laws|supreme court|high court|bar association)\b/i.test(
       combined
     )
   ) {
     matchedCategoryImages = EDITORIAL_NEWS_IMAGES.Judiciary;
   }
-  // 14. Police / Crime / Security / Investigation
+  // 15. Police / Crime / Security / Investigation
   else if (
-    /police|fir|arrest|crime|investigation|encounter|security forces|cops|checkpoint|\bdsp\b|\bsp\b|\bnia\b|\bcbi\b/i.test(
+    /\b(police|fir|arrest|arrested|crime|investigation|encounter|security forces|cops|checkpoint|dsp|sp|nia|cbi|manhunt|militants|terrorists|terrorist)\b/i.test(
       combined
     )
   ) {
     matchedCategoryImages = EDITORIAL_NEWS_IMAGES.Security;
   }
-  // 15. Education / University / Students
+  // 16. Education / University / Students
   else if (
-    /student|school|college|university|exam|education|syllabus|teacher|professor|degree|campus|scholarship/i.test(
+    /\b(student|students|school|schools|college|colleges|university|universities|education|syllabus|teacher|teachers|professor|professors|campus|scholarship|board exam|academics)\b/i.test(
       combined
     )
   ) {
     matchedCategoryImages = EDITORIAL_NEWS_IMAGES.Education;
   }
-  // 16. Sports / Cricket
+  // 17. Sports / Cricket
   else if (
-    /cricket|match|tournament|stadium|trophy|ipl|sports|athlete|football|championship|wicket|runs/i.test(
+    /\b(cricket|football|tournament|stadium|trophy|ipl|sports|athlete|athletes|championship|wicket|cricket match|football match|athletic)\b/i.test(
       combined
     )
   ) {
     matchedCategoryImages = EDITORIAL_NEWS_IMAGES.Sports;
   }
-  // 17. Politics / Parliament / Legislative Assembly
+  // 18. Politics / Parliament / Legislative Assembly
   else if (
-    /\b(parliament|lok sabha|rajya sabha|assembly|legislative|cabinet|minister|ministers|election|elections|vote|voting|mla|mlas|\bmp\b|secretariat|governance|policy)\b|pm modi|amit shah|rahul gandhi/i.test(
+    /\b(parliament|lok sabha|rajya sabha|assembly|legislative|cabinet|minister|ministers|election|elections|vote|voting|mla|mlas|mp|mps|secretariat|governance|policy|pm modi|amit shah|rahul gandhi)\b/i.test(
       combined
     )
   ) {
     matchedCategoryImages = EDITORIAL_NEWS_IMAGES.National;
   }
-  // 18. Economy / Markets / Banking
+  // 19. Economy / Markets / Banking
   else if (
-    /economy|economic|market|stock|rupee|dollar|inflation|gdp|finance|banking|bank|trade|traders|tax|gst/i.test(
+    /\b(economy|economic|market|markets|stock|stocks|rupee|dollar|inflation|gdp|finance|banking|bank|banks|trade|traders|tax|gst)\b/i.test(
       combined
     )
   ) {
     matchedCategoryImages = EDITORIAL_NEWS_IMAGES.Economy;
   }
 
+  const hasConfidentMatch = Boolean(matchedCategoryImages);
+
   // 10. J&K Sub-Regional Geography Matching (30% Chenab, 30% Srinagar, 30% Jammu, 10% Pir Panjal, 10% Leh)
   let subRegionImages: EditorialImageOption[] | undefined;
-  if (/chenab|doda|kishtwar|ramban|bhadarwah|banihal|thathri|bhalessa|padder|sinthan|nh-244/i.test(combined)) {
+  if (/\b(chenab|doda|kishtwar|ramban|bhadarwah|banihal|thathri|bhalessa|padder|sinthan|nh-244)\b/i.test(combined)) {
     subRegionImages = EDITORIAL_NEWS_IMAGES['Chenab Valley'];
-  } else if (/srinagar|dal lake|lal chowk|kashmir|anantnag|baramulla|pulwama|shopian|kulgam|kupwara|ganderbal|budgam|bandipora/i.test(combined)) {
+  } else if (/\b(srinagar|dal lake|lal chowk|kashmir|anantnag|baramulla|pulwama|shopian|kulgam|kupwara|ganderbal|budgam|bandipora)\b/i.test(combined)) {
     subRegionImages = EDITORIAL_NEWS_IMAGES.Srinagar;
-  } else if (/jammu|tawi|kathua|samba|udhampur|reasi/i.test(combined)) {
+  } else if (/\b(jammu|tawi|kathua|samba|udhampur|reasi)\b/i.test(combined)) {
     subRegionImages = EDITORIAL_NEWS_IMAGES.Jammu;
-  } else if (/pir panjal|rajouri|poonch|mendhar|thannamandi|mughal road|surankote/i.test(combined)) {
+  } else if (/\b(pir panjal|rajouri|poonch|mendhar|thannamandi|mughal road|surankote)\b/i.test(combined)) {
     subRegionImages = EDITORIAL_NEWS_IMAGES['Pir Panjal'];
-  } else if (/leh|ladakh|kargil|zanskar|drass/i.test(combined)) {
+  } else if (/\b(leh|ladakh|kargil|zanskar|drass)\b/i.test(combined)) {
     subRegionImages = EDITORIAL_NEWS_IMAGES['Leh & Ladakh'];
   }
 
@@ -865,7 +876,7 @@ export function getRecommendedEditorialImage(
   const scopeImages = EDITORIAL_NEWS_IMAGES[scopeKey] || EDITORIAL_NEWS_IMAGES[scope] || EDITORIAL_NEWS_IMAGES.National;
   const generalImages = EDITORIAL_NEWS_IMAGES.General;
 
-  const priorityList = matchedCategoryImages || subRegionImages || scopeImages;
+  const priorityList = matchedCategoryImages || (allowGenericFallback ? (subRegionImages || scopeImages) : []);
   const combinedList = [...priorityList, ...(subRegionImages || []), ...scopeImages, ...generalImages];
 
   // De-duplicate URLs
@@ -878,9 +889,19 @@ export function getRecommendedEditorialImage(
     }
   }
 
+  // If allowGenericFallback is false and no confident thematic match was identified,
+  // return null so the article publishes cleanly as an authoritative Text-Only Editorial News Dispatch.
+  let featuredImage: string | null = null;
+  if (hasConfidentMatch && matchedCategoryImages && matchedCategoryImages[0]) {
+    featuredImage = matchedCategoryImages[0].url;
+  } else if (allowGenericFallback) {
+    featuredImage = uniqueAlternatives[0]?.url || 'https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&w=1200&q=80';
+  }
+
   return {
-    featuredImage: uniqueAlternatives[0]?.url || 'https://images.unsplash.com/photo-1495020689067-958852a7765e?auto=format&fit=crop&w=1200&q=80',
+    featuredImage,
     alternatives: uniqueAlternatives,
+    hasConfidentMatch,
   };
 }
 

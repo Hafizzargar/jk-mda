@@ -45,7 +45,7 @@ export interface GeminiVideoAnalysis {
   division: string;
   keyFacts: string[];
   articleBodyMarkdown: string;
-  featured_image_url?: string;
+  featured_image_url?: string | null;
   uncertaintyNotes?: string;
   is_priority_eligible?: boolean;
   rejection_reason?: string | null;

@@ -372,8 +372,15 @@ export function selectNextPrioritizedBeat(stats: RegionalDailyStats): RegionalTa
       return (targetB?.weight || 1) - (targetA?.weight || 1);
     });
 
-    const selectedTarget = KJIN_REGIONAL_TARGETS.find((t) => t.id === underrepresented[0].id);
-    if (selectedTarget) return selectedTarget;
+    const statRegion = underrepresented[0];
+    const baseTarget = KJIN_REGIONAL_TARGETS.find((t) => t.id === statRegion.id);
+    if (baseTarget) {
+      return {
+        ...baseTarget,
+        min: statRegion.min,
+        max: statRegion.max,
+      };
+    }
   }
 
   // 2. All regions have met their minimum. Check regions with headroom below maximum.
@@ -388,8 +395,15 @@ export function selectNextPrioritizedBeat(stats: RegionalDailyStats): RegionalTa
       return (targetB?.weight || 1) - (targetA?.weight || 1);
     });
 
-    const selectedTarget = KJIN_REGIONAL_TARGETS.find((t) => t.id === eligibleBelowMax[0].id);
-    if (selectedTarget) return selectedTarget;
+    const statRegion = eligibleBelowMax[0];
+    const baseTarget = KJIN_REGIONAL_TARGETS.find((t) => t.id === statRegion.id);
+    if (baseTarget) {
+      return {
+        ...baseTarget,
+        min: statRegion.min,
+        max: statRegion.max,
+      };
+    }
   }
 
   // 3. All regions are at or above daily maximum
@@ -743,15 +757,17 @@ Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with k
 
     // 6. Check Breaking News Override vs Maximum Quota
     const isBreaking = isBreakingNewsEvent(cleanHeadline, cleanSummary, Boolean(parsed.isBreakingPriority));
-    const currentRegionCount = stats.regions.find((r) => r.id === beat.id)?.current ?? 0;
+    const regionStat = stats.regions.find((r) => r.id === beat.id);
+    const currentRegionCount = regionStat?.current ?? 0;
+    const maxQuota = regionStat?.max ?? beat.max;
 
-    if (currentRegionCount >= beat.max && !isBreaking && !options?.force) {
-      console.log(`[AutonomousDiscovery] Beat "${beat.shortName}" reached daily maximum (${currentRegionCount}/${beat.max}) and story is not breaking priority. Skipping.`);
+    if (currentRegionCount >= maxQuota && !isBreaking && !options?.force) {
+      console.log(`[AutonomousDiscovery] Beat "${beat.shortName}" reached daily maximum (${currentRegionCount}/${maxQuota}) and story is not breaking priority. Skipping.`);
       return {
         success: true,
         skipped: true,
         discovered: false,
-        reason: `${beat.shortName} daily quota reached (${currentRegionCount}/${beat.max}). Skipped non-breaking story.`,
+        reason: `${beat.shortName} daily quota reached (${currentRegionCount}/${maxQuota}). Skipped non-breaking story.`,
         dailyStats: stats,
       };
     }
@@ -766,7 +782,13 @@ Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with k
     // 8. Controlled Regional Taxonomy & Image Matching
     const canonicalCat = getCanonicalCategory(parsed.category || 'General', effectiveScope);
     const imageContext = `${cleanHeadline} ${cleanSummary} ${canonicalCat.name}`;
-    const { featuredImage } = getRecommendedEditorialImage(effectiveScope, canonicalCat.name, imageContext);
+    const { featuredImage, hasConfidentMatch } = getRecommendedEditorialImage(
+      effectiveScope,
+      canonicalCat.name,
+      imageContext,
+      false // Strict: Only attach image if there is an exact thematic subject match; otherwise publish as clean text-only editorial
+    );
+    const finalFeaturedImage = hasConfidentMatch ? featuredImage : null;
 
     const sourceUrl = groundedUrl || parsed.sourceUrl || 'https://kjin.in';
     const sourceName = groundedTitle || parsed.sourceName || 'Grounded Web Surveillance';
@@ -798,7 +820,7 @@ Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with k
         author_display_name: 'KJIN AI Discovery',
         source_name: sourceName,
         source_url: sourceUrl,
-        featured_image_url: featuredImage,
+        featured_image_url: finalFeaturedImage,
       })
       .select('id, title, slug, status, category')
       .single();

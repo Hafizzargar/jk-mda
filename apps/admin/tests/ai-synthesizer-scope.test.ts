@@ -134,7 +134,7 @@ describe('AI Newsroom Scope, Dateline & Category Routing Integrity', () => {
       "Namit Malhotra's 'Ramayana' Epic Garners Global Acclaim, Redefining Indian Cinema on World Stage"
     );
     assert.equal(cinemaImg.alternatives[0]?.category, 'Culture & Entertainment');
-    assert.ok(cinemaImg.featuredImage.includes('photo-1489599849927-2ee91cede3ba'));
+    assert.ok(cinemaImg.featuredImage?.includes('photo-1489599849927-2ee91cede3ba'));
 
     // 2. Highway / Transit / Accidents
     const transitImg = getRecommendedEditorialImage(
@@ -143,7 +143,7 @@ describe('AI Newsroom Scope, Dateline & Category Routing Integrity', () => {
       'Fatal road mishap on NH-244: Passenger bus plunges into gorge near Assar in Doda district'
     );
     assert.equal(transitImg.alternatives[0]?.category, 'Transit & Infrastructure');
-    assert.ok(transitImg.featuredImage.includes('photo-1469854523086-cc02fe5d8800'));
+    assert.ok(transitImg.featuredImage?.includes('photo-1469854523086-cc02fe5d8800'));
 
     // 3. Hydropower / Dam / Ratle
     const hydroImg = getRecommendedEditorialImage(
@@ -152,7 +152,7 @@ describe('AI Newsroom Scope, Dateline & Category Routing Integrity', () => {
       'Ratle 850MW Hydroelectric Dam project on Chenab river reaches major milestone with CVPPPL'
     );
     assert.equal(hydroImg.alternatives[0]?.category, 'Hydropower & Energy');
-    assert.ok(hydroImg.featuredImage.includes('photo-1578328819058-b69f3a3b0f6b'));
+    assert.ok(hydroImg.featuredImage?.includes('photo-1578328819058-b69f3a3b0f6b'));
 
     // 4. Agriculture / Apple Orchards
     const agriImg = getRecommendedEditorialImage(
@@ -161,7 +161,7 @@ describe('AI Newsroom Scope, Dateline & Category Routing Integrity', () => {
       'Apple orchard farmers in Shopian and Sopore mandi report bumper harvest output'
     );
     assert.equal(agriImg.alternatives[0]?.category, 'Agriculture');
-    assert.ok(agriImg.featuredImage.includes('photo-1560493676-04071c5f467b'));
+    assert.ok(agriImg.featuredImage?.includes('photo-1560493676-04071c5f467b'));
 
     // 5. Law & Judiciary / Court
     const legalImg = getRecommendedEditorialImage(
@@ -170,7 +170,7 @@ describe('AI Newsroom Scope, Dateline & Category Routing Integrity', () => {
       'Supreme Court constitutional bench delivers landmark verdict on judicial appointments'
     );
     assert.equal(legalImg.alternatives[0]?.category, 'Law & Justice');
-    assert.ok(legalImg.featuredImage.includes('photo-1589829545856-d10d557cf95f'));
+    assert.ok(legalImg.featuredImage?.includes('photo-1589829545856-d10d557cf95f'));
   });
 });
 

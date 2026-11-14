@@ -1660,9 +1660,16 @@ export function ClassicEditorialTemplate({
             };
 
             const renderCorridorVoices = (key = 'corridor_voices') => {
-              const dummyIds = new Set(['voice-kishtwar-saffron', 'voice-poonch-tourism', 'voice-ladakh-zojila', 'v1', 'v2', 'v3']);
+              const dummyIds = new Set(['voice-kishtwar-saffron', 'voice-poonch-tourism', 'voice-ladakh-zojila', 'voice-drass-transit', 'v1', 'v2', 'v3', 'quote-1', 'quote-2', 'quote-3']);
               const corridorVoices = editorialDeskSettings?.voices_of_corridors && editorialDeskSettings.voices_of_corridors.length > 0
-                ? editorialDeskSettings.voices_of_corridors.filter((v) => v.enabled !== false && !dummyIds.has(v.id))
+                ? editorialDeskSettings.voices_of_corridors.filter(
+                    (v) =>
+                      v.enabled !== false &&
+                      !dummyIds.has(v.id) &&
+                      !v.speaker?.includes('Ghulam Rasool Wani') &&
+                      !v.speaker?.includes('Fatima Bukhari') &&
+                      !v.speaker?.includes('Stanzin Dorjey')
+                  )
                 : [];
 
               if (!corridorVoices || corridorVoices.length === 0) return null;
