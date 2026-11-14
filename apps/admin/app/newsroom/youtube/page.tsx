@@ -871,23 +871,27 @@ export default function YouTubeMonitorPage() {
 
         <div className="flex items-center gap-2 shrink-0 flex-wrap">
           {/* Frequency Control Selector */}
-          <div className="flex items-center gap-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2.5 py-1 text-xs shadow-2xs">
-            <span className="text-slate-500 dark:text-slate-400 font-semibold text-[11px]">⏱️ Schedule:</span>
+          <div className="flex items-center gap-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900/90 px-3 py-1.5 text-xs shadow-xs">
+            <label htmlFor="radar-schedule-select" className="text-slate-700 dark:text-slate-200 font-bold text-xs whitespace-nowrap flex items-center gap-1 cursor-pointer">
+              <span>⏱️</span>
+              <span>Schedule:</span>
+            </label>
             <select
+              id="radar-schedule-select"
               value={autoPilotIntervalMinutes}
               onChange={(e) => handleUpdateAutoPilotSettings(Number(e.target.value), autoPilot)}
-              className="bg-transparent font-bold text-slate-800 dark:text-slate-100 text-xs outline-none cursor-pointer"
+              className="rounded-md border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs px-2.5 py-1 outline-none cursor-pointer focus:ring-2 focus:ring-purple-500 [color-scheme:light] dark:[color-scheme:dark]"
               title="Select how often autonomous discovery runs"
             >
-              <option value={1}>Every 1 Min (Rapid Realtime)</option>
-              <option value={3}>Every 3 Min (Fast Track)</option>
-              <option value={5}>Every 5 Min</option>
-              <option value={10}>Every 10 Min</option>
-              <option value={15}>Every 15 Min</option>
-              <option value={30}>Every 30 Min</option>
-              <option value={60}>Every 1 Hour (Standard)</option>
-              <option value={120}>Every 2 Hours</option>
-              <option value={360}>Every 6 Hours</option>
+              <option value={1} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 1 Min (Rapid Realtime)</option>
+              <option value={3} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 3 Min (Fast Track)</option>
+              <option value={5} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 5 Min</option>
+              <option value={10} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 10 Min</option>
+              <option value={15} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 15 Min</option>
+              <option value={30} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 30 Min</option>
+              <option value={60} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 1 Hour (Standard)</option>
+              <option value={120} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 2 Hours</option>
+              <option value={360} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 6 Hours</option>
             </select>
           </div>
 
@@ -1327,7 +1331,7 @@ export default function YouTubeMonitorPage() {
                     setFilterStatus(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1 text-xs text-slate-800 dark:text-slate-200"
+                  className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1 text-xs text-slate-900 dark:text-white font-medium outline-none [color-scheme:light] dark:[color-scheme:dark]"
                 >
                   <option value="all">All Statuses ({videos.length})</option>
                   <option value="draft_proposed">Proposed Drafts ({pendingDraftsCount})</option>
@@ -1345,7 +1349,7 @@ export default function YouTubeMonitorPage() {
                     setFilterScope(e.target.value);
                     setCurrentPage(1);
                   }}
-                  className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1 text-xs text-slate-800 dark:text-slate-200"
+                  className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2.5 py-1 text-xs text-slate-900 dark:text-white font-medium outline-none [color-scheme:light] dark:[color-scheme:dark]"
                 >
                   <option value="all">All Scopes</option>
                   <option value="International">🌍 International</option>
