@@ -1660,9 +1660,10 @@ export function ClassicEditorialTemplate({
             };
 
             const renderCorridorVoices = (key = 'corridor_voices') => {
+              const dummyIds = new Set(['voice-kishtwar-saffron', 'voice-poonch-tourism', 'voice-ladakh-zojila', 'v1', 'v2', 'v3']);
               const corridorVoices = editorialDeskSettings?.voices_of_corridors && editorialDeskSettings.voices_of_corridors.length > 0
-                ? editorialDeskSettings.voices_of_corridors.filter((v) => v.enabled !== false)
-                : activeTelemetry.voices_of_corridors;
+                ? editorialDeskSettings.voices_of_corridors.filter((v) => v.enabled !== false && !dummyIds.has(v.id))
+                : [];
 
               if (!corridorVoices || corridorVoices.length === 0) return null;
 
