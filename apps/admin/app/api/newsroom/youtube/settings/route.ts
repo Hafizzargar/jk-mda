@@ -14,7 +14,9 @@ export async function GET(request: Request) {
       .eq('key', 'newsroom_auto_pilot')
       .maybeSingle();
 
-    const intervalMinutes = data?.value?.interval_minutes ? Number(data.value.interval_minutes) : 5;
+    const intervalMinutes = data?.value?.interval_minutes !== undefined && !isNaN(Number(data.value.interval_minutes))
+      ? Math.max(1, Number(data.value.interval_minutes))
+      : 1;
     const autoPilotEnabled = data?.value?.auto_pilot_enabled !== false;
     const beatQuotas = data?.value?.beat_quotas || null;
 
@@ -36,7 +38,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const intervalMinutes = Math.max(1, Number(body.interval_minutes) || 5);
+    const intervalMinutes = Math.max(1, Number(body.interval_minutes) || 1);
     const autoPilotEnabled = body.auto_pilot_enabled !== false;
     const beatQuotas = body.beat_quotas !== undefined ? body.beat_quotas : undefined;
 

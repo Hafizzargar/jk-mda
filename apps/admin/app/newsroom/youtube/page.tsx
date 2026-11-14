@@ -176,9 +176,27 @@ export default function YouTubeMonitorPage() {
   const [isQuickIngesting, setIsQuickIngesting] = useState(false);
   const [showQuickIngestBox, setShowQuickIngestBox] = useState(false);
 
-  const [autoPilot, setAutoPilot] = useState<boolean>(true);
-  const [autoPilotIntervalMinutes, setAutoPilotIntervalMinutes] = useState<number>(5);
-  const [countdown, setCountdown] = useState<number>(300);
+  const [autoPilot, setAutoPilot] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('kjin_autopilot_enabled');
+      if (saved !== null) return saved === 'true';
+    }
+    return true;
+  });
+  const [autoPilotIntervalMinutes, setAutoPilotIntervalMinutes] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('kjin_autopilot_interval');
+      if (saved && !isNaN(Number(saved))) return Number(saved);
+    }
+    return 1;
+  });
+  const [countdown, setCountdown] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('kjin_autopilot_interval');
+      if (saved && !isNaN(Number(saved))) return Number(saved) * 60;
+    }
+    return 60;
+  });
   const isSyncingRef = useRef(false);
   const isDiscoveringRef = useRef(false);
 
@@ -246,6 +264,10 @@ export default function YouTubeMonitorPage() {
     setAutoPilotIntervalMinutes(newInterval);
     setAutoPilot(newEnabled);
     setCountdown(newInterval * 60);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('kjin_autopilot_interval', String(newInterval));
+      localStorage.setItem('kjin_autopilot_enabled', String(newEnabled));
+    }
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) return;
@@ -347,11 +369,17 @@ export default function YouTubeMonitorPage() {
 
       if (settingsRes.ok) {
         const sData = await settingsRes.json();
-        const mins = Number(sData.interval_minutes) || 5;
+        const mins = sData.interval_minutes !== undefined && !isNaN(Number(sData.interval_minutes))
+          ? Number(sData.interval_minutes)
+          : 1;
         const enabled = sData.auto_pilot_enabled !== false;
         setAutoPilotIntervalMinutes(mins);
         setAutoPilot(enabled);
         setCountdown(mins * 60);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('kjin_autopilot_interval', String(mins));
+          localStorage.setItem('kjin_autopilot_enabled', String(enabled));
+        }
         if (sData.beat_quotas) {
           setBeatQuotas((prev) => ({ ...prev, ...sData.beat_quotas }));
         }
