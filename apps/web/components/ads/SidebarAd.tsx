@@ -45,14 +45,21 @@ export function SidebarAd({ ad }: SidebarAdProps) {
         </p>
       )}
 
-      <a
-        href={ad.destination_url}
-        target="_blank"
-        rel="noopener noreferrer sponsored"
-        className={`block text-center w-full px-4 py-2.5 rounded-xl text-xs uppercase tracking-wider transition-all duration-200 transform group-hover:scale-[1.02] ${styles.ctaButton}`}
-      >
-        {ad.cta_text || 'Visit Sponsor'} &rarr;
-      </a>
+      {/* Button is only displayed if sponsor has a destination URL */}
+      {ad.destination_url &&
+      ad.destination_url.trim() &&
+      ad.destination_url.trim() !== 'https://' &&
+      ad.destination_url.trim() !== 'http://' &&
+      ad.destination_url.trim() !== '#' && (
+        <a
+          href={ad.destination_url}
+          target="_blank"
+          rel="noopener noreferrer sponsored"
+          className={`block text-center w-full px-4 py-2.5 rounded-xl text-xs uppercase tracking-wider transition-all duration-200 transform group-hover:scale-[1.02] ${styles.ctaButton}`}
+        >
+          {ad.cta_text || 'Learn More'} &rarr;
+        </a>
+      )}
     </div>
   );
 }

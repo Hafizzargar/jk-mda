@@ -51,17 +51,23 @@ export function LeaderboardAd({ ad }: LeaderboardAdProps) {
           </div>
         </div>
 
-        {/* Right: CTA Button */}
-        <div className="shrink-0 w-full sm:w-auto">
-          <a
-            href={ad.destination_url}
-            target="_blank"
-            rel="noopener noreferrer sponsored"
-            className={`block sm:inline-block text-center w-full px-6 py-3 rounded-xl text-xs sm:text-sm uppercase tracking-wider transition-all duration-200 transform group-hover:scale-[1.02] ${styles.ctaButton}`}
-          >
-            {ad.cta_text || 'Learn More'} &rarr;
-          </a>
-        </div>
+        {/* Right: CTA Button (only rendered if destination URL exists) */}
+        {ad.destination_url &&
+        ad.destination_url.trim() &&
+        ad.destination_url.trim() !== 'https://' &&
+        ad.destination_url.trim() !== 'http://' &&
+        ad.destination_url.trim() !== '#' && (
+          <div className="shrink-0 w-full sm:w-auto">
+            <a
+              href={ad.destination_url}
+              target="_blank"
+              rel="noopener noreferrer sponsored"
+              className={`block sm:inline-block text-center w-full px-6 py-3 rounded-xl text-xs sm:text-sm uppercase tracking-wider transition-all duration-200 transform group-hover:scale-[1.02] ${styles.ctaButton}`}
+            >
+              {ad.cta_text || 'Learn More'} &rarr;
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );

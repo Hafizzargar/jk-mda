@@ -883,9 +883,11 @@ export default function AdsSettingsPage() {
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-[10px] text-slate-400 italic">⠿ Drag to swap</span>
-                      <span className="px-3 py-1 rounded bg-amber-500 text-slate-950 font-bold text-xs">
-                        {slotAd.cta_text || 'Learn More'} &rarr;
-                      </span>
+                      {slotAd.destination_url && slotAd.destination_url.trim() && slotAd.destination_url.trim() !== 'https://' && (
+                        <span className="px-3 py-1 rounded bg-amber-500 text-slate-950 font-bold text-xs">
+                          {slotAd.cta_text || 'Learn More'} &rarr;
+                        </span>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -976,12 +978,14 @@ export default function AdsSettingsPage() {
                         )}
                         <h4 className="font-bold text-white text-xs line-clamp-2">{slotAd.title}</h4>
                         <p className="text-[11px] text-slate-300 line-clamp-2">{slotAd.description}</p>
-                        <button
-                          type="button"
-                          className="w-full py-1 rounded bg-emerald-500 text-slate-950 font-bold text-[11px]"
-                        >
-                          {slotAd.cta_text || 'Learn More'} &rarr;
-                        </button>
+                        {slotAd.destination_url && slotAd.destination_url.trim() && slotAd.destination_url.trim() !== 'https://' && (
+                          <button
+                            type="button"
+                            className="w-full py-1 rounded bg-emerald-500 text-slate-950 font-bold text-[11px]"
+                          >
+                            {slotAd.cta_text || 'Learn More'} &rarr;
+                          </button>
+                        )}
                       </div>
                     ) : (
                       <div className="py-6 text-center">
@@ -1077,9 +1081,11 @@ export default function AdsSettingsPage() {
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
                           <span className="text-[10px] text-slate-400 italic">⠿ Drag to move</span>
-                          <span className="px-3 py-1 rounded bg-cyan-500 text-slate-950 font-bold text-xs">
-                            {slotAd.cta_text || 'Explore'} &rarr;
-                          </span>
+                          {slotAd.destination_url && slotAd.destination_url.trim() && slotAd.destination_url.trim() !== 'https://' && (
+                            <span className="px-3 py-1 rounded bg-cyan-500 text-slate-950 font-bold text-xs">
+                              {slotAd.cta_text || 'Explore'} &rarr;
+                            </span>
+                          )}
                         </div>
                       </div>
                     ) : (
@@ -1165,12 +1171,14 @@ export default function AdsSettingsPage() {
                         )}
                         <h4 className="font-bold text-white text-xs line-clamp-2">{slotAd.title}</h4>
                         <p className="text-[11px] text-slate-300 line-clamp-2">{slotAd.description}</p>
-                        <button
-                          type="button"
-                          className="w-full py-1 rounded bg-indigo-500 text-white font-bold text-[11px]"
-                        >
-                          {slotAd.cta_text || 'Learn More'} &rarr;
-                        </button>
+                        {slotAd.destination_url && slotAd.destination_url.trim() && slotAd.destination_url.trim() !== 'https://' && (
+                          <button
+                            type="button"
+                            className="w-full py-1 rounded bg-indigo-500 text-white font-bold text-[11px]"
+                          >
+                            {slotAd.cta_text || 'Learn More'} &rarr;
+                          </button>
+                        )}
                       </div>
                     ) : (
                       <div className="py-6 text-center">
@@ -1254,9 +1262,11 @@ export default function AdsSettingsPage() {
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-[10px] text-slate-400 italic">⠿ Drag to move</span>
-                      <span className="px-3 py-1 rounded bg-rose-500 text-white font-bold text-xs">
-                        {slotAd.cta_text || 'View Story'} &rarr;
-                      </span>
+                      {slotAd.destination_url && slotAd.destination_url.trim() && slotAd.destination_url.trim() !== 'https://' && (
+                        <span className="px-3 py-1 rounded bg-rose-500 text-white font-bold text-xs">
+                          {slotAd.cta_text || 'View Story'} &rarr;
+                        </span>
+                      )}
                     </div>
                   </div>
                 ) : (
@@ -1582,28 +1592,48 @@ export default function AdsSettingsPage() {
               {/* Destination URL & CTA Text */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
-                    Destination Link (URL)
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
+                      Destination Link (URL)
+                    </label>
+                    {activePlacement.destination_url && activePlacement.destination_url.trim() && activePlacement.destination_url.trim() !== 'https://' && (
+                      <button
+                        type="button"
+                        onClick={() => updatePlacement(activeIndex, 'destination_url', '')}
+                        className="text-[10px] text-amber-600 dark:text-amber-400 hover:underline font-bold cursor-pointer"
+                        title="Clear link to hide the button"
+                      >
+                        🚫 No Website (Hide Button)
+                      </button>
+                    )}
+                  </div>
                   <input
                     type="url"
                     value={activePlacement.destination_url}
                     onChange={(e) => updatePlacement(activeIndex, 'destination_url', e.target.value)}
-                    placeholder="https://example.com"
+                    placeholder="https://example.com (leave blank if no website)"
                     className="w-full rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3.5 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:border-cyan-500 focus:outline-none transition"
                   />
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                    {activePlacement.destination_url && activePlacement.destination_url.trim() && activePlacement.destination_url.trim() !== 'https://'
+                      ? '✓ Website linked. Call-to-action button will be displayed on the ad.'
+                      : 'ℹ️ No website link provided. Button is hidden (informational display ad mode).'}
+                  </p>
                 </div>
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
-                    Call-to-Action (CTA Button)
+                    Call-to-Action (CTA Button Text)
                   </label>
                   <input
                     type="text"
                     value={activePlacement.cta_text}
                     onChange={(e) => updatePlacement(activeIndex, 'cta_text', e.target.value)}
-                    placeholder="e.g. Book Home Pickup / Visit Website"
+                    placeholder="e.g. Learn More / Visit Website"
                     className="w-full rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3.5 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:border-cyan-500 focus:outline-none transition"
                   />
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                    Button label text (only rendered when a Destination Link is set above).
+                  </p>
                 </div>
               </div>
 
@@ -1739,14 +1769,31 @@ export default function AdsSettingsPage() {
                     </p>
                   )}
 
-                  <div
-                    className={`block text-center w-full px-4 py-2 rounded-xl text-xs uppercase tracking-wider font-bold ${activeStyles.ctaButton}`}
-                  >
-                    {activePlacement.cta_text || 'Visit Sponsor'} &rarr;
-                  </div>
+                  {/* Button is ONLY rendered if sponsor has a destination URL */}
+                  {activePlacement.destination_url &&
+                  activePlacement.destination_url.trim() &&
+                  activePlacement.destination_url.trim() !== 'https://' &&
+                  activePlacement.destination_url.trim() !== 'http://' &&
+                  activePlacement.destination_url.trim() !== '#' ? (
+                    <div
+                      className={`block text-center w-full px-4 py-2 rounded-xl text-xs uppercase tracking-wider font-bold ${activeStyles.ctaButton}`}
+                    >
+                      {activePlacement.cta_text || 'Learn More'} &rarr;
+                    </div>
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-white/20 bg-white/5 py-2 px-3 text-center text-[11px] text-slate-300 font-medium">
+                      📢 Informational Display Ad (No website link — button is hidden)
+                    </div>
+                  )}
 
                   <div className="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between text-[10px] text-slate-400 font-mono">
-                    <span className="truncate max-w-[200px]">Link: {activePlacement.destination_url || 'https://...'}</span>
+                    <span className="truncate max-w-[200px]">
+                      {activePlacement.destination_url &&
+                      activePlacement.destination_url.trim() &&
+                      activePlacement.destination_url.trim() !== 'https://'
+                        ? `Link: ${activePlacement.destination_url}`
+                        : 'Link: None (No button rendered)'}
+                    </span>
                     <span className="uppercase">{activePlacement.theme_accent}</span>
                   </div>
                 </div>

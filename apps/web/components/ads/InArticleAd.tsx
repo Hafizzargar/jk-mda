@@ -48,14 +48,21 @@ export function InArticleAd({ ad }: InArticleAdProps) {
             </p>
           )}
 
-          <a
-            href={ad.destination_url}
-            target="_blank"
-            rel="noopener noreferrer sponsored"
-            className={`inline-block px-5 py-2 rounded-lg text-xs uppercase tracking-wider ${styles.ctaButton}`}
-          >
-            {ad.cta_text || 'Learn More'} &rarr;
-          </a>
+          {/* Button is only displayed if sponsor has a destination URL */}
+          {ad.destination_url &&
+          ad.destination_url.trim() &&
+          ad.destination_url.trim() !== 'https://' &&
+          ad.destination_url.trim() !== 'http://' &&
+          ad.destination_url.trim() !== '#' && (
+            <a
+              href={ad.destination_url}
+              target="_blank"
+              rel="noopener noreferrer sponsored"
+              className={`inline-block px-5 py-2 rounded-lg text-xs uppercase tracking-wider ${styles.ctaButton}`}
+            >
+              {ad.cta_text || 'Learn More'} &rarr;
+            </a>
+          )}
         </div>
       </div>
     </aside>
