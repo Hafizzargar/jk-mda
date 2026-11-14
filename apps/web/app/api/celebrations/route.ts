@@ -20,3 +20,4 @@ export async function GET() {
     return Response.json({ error: 'Failed to retrieve celebrations' }, { status: 500 });
   }
 }
+
