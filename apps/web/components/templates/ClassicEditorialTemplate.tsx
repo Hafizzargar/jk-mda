@@ -161,41 +161,42 @@ export function ClassicEditorialTemplate({
     ? `Chronological grassroots dispatches filed from resident correspondents across ${scope?.title}.`
     : 'Chronological field dispatches vetted by resident correspondents.';
 
-  const takeawaysTitle = isNational
+  const dynamicTakeaways: string[] = (() => {
+    if (curation?.takeaways && curation.takeaways.length > 0) {
+      return curation.takeaways;
+    }
+    if (!heroArticle?.excerpt) {
+      return [];
+    }
+    const sentences = heroArticle.excerpt
+      .split(/(?<=[.!?])\s+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 15);
+
+    if (sentences.length >= 2) {
+      return sentences.slice(0, 3);
+    }
+    if (sentences.length === 1) {
+      return [
+        sentences[0],
+        `Primary field dispatch filed under ${heroArticle.category}${heroArticle.district ? ` from ${heroArticle.district}` : ''}.`,
+        'Verified through resident field correspondents and editorial desk telemetry.'
+      ];
+    }
+    return [];
+  })();
+
+  const takeawaysTitle = curation?.takeaways && curation.takeaways.length > 0
+    ? 'KEY ANALYTICAL TAKEAWAYS — EDITORIAL DESK'
+    : heroArticle
+    ? `KEY ANALYTICAL TAKEAWAYS — ${(heroArticle.category || 'EDITORIAL').toUpperCase()} DESK${heroArticle.district ? ` (${heroArticle.district.toUpperCase()})` : ''}`
+    : isNational
     ? 'KEY ANALYTICAL TAKEAWAYS — NATIONAL POLICY & UNION DESK'
     : isInternational
     ? 'KEY ANALYTICAL TAKEAWAYS — INTERNATIONAL & DIPLOMATIC DESK'
     : isRegion
     ? `KEY ANALYTICAL TAKEAWAYS — ${(scope?.title || 'REGIONAL').toUpperCase()} BUREAU`
-    : 'KEY ANALYTICAL TAKEAWAYS — BUREAU ECONOMIC DESK';
-
-  const defaultTakeaways = isNational
-    ? [
-        'Union fiscal policy emphasizes inter-state infrastructure corridors and digital public goods.',
-        'Supreme Court jurisprudence upholds constitutional safeguards on federal administrative autonomy.',
-        'Macroeconomic indicators project resilient manufacturing and domestic agricultural demand.',
-      ]
-    : isInternational
-    ? [
-        'Multilateral accords focus on global supply chain diversification and climate transition finance.',
-        'Diplomatic delegations prioritize bilateral security dialogues and multilateral trade frameworks.',
-        'International tribunals reinforce maritime navigation rights and treaty compliance protocols.',
-      ]
-    : isRegion
-    ? [
-        `Resident correspondents report sustained civic, infrastructure, and agricultural progress across ${scope?.title}.`,
-        'District administrative councils coordinate on regional connectivity, weather contingencies, and public services.',
-        'Grassroots field reporting highlights ongoing community developments and cultural initiatives.',
-      ]
-    : [
-        '€4.2M allocated towards high-resolution hyperspectral scanning of Sharda, Dogra, and Persian scripts.',
-        'Establishment of twin digital archive locales in Graz and Srinagar to safeguard provenance records.',
-        'Direct scholarship endowments created for doctoral linguistics research at Jammu and Kashmir universities.',
-      ];
-
-  const takeaways = (curation?.takeaways && curation.takeaways.length > 0 && !isNational && !isInternational && !isRegion)
-    ? curation.takeaways
-    : defaultTakeaways;
+    : 'KEY ANALYTICAL TAKEAWAYS';
 
   const dossiersTitle = isNational
     ? 'National Feature Dossiers & Union In-Depth'
@@ -523,29 +524,24 @@ export function ClassicEditorialTemplate({
                   </div>
                 </div>
               )}
-              <div
-                className="p-2.5 sm:p-3.5 bg-amber-50/60 border-t border-amber-200/70 font-sans"
-                data-purpose="analytical-takeaways"
-              >
-                <div className="flex items-center space-x-1.5 text-stone-800 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider mb-1.5 min-w-0">
-                  <svg className="w-3.5 h-3.5 text-amber-700 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14H8a4 4 0 01-.82-7.915A5 5 0 0116.82 8.5 4.002 4.002 0 0112 14z"></path>
-                  </svg>
-                  <span className="text-amber-950 font-bold truncate">Key Analytical Takeaways • Bureau Economic Desk</span>
+              {dynamicTakeaways.length > 0 && (
+                <div
+                  className="p-2.5 sm:p-3.5 bg-amber-50/60 border-t border-amber-200/70 font-sans"
+                  data-purpose="analytical-takeaways"
+                >
+                  <div className="flex items-center space-x-1.5 text-stone-800 text-[10px] sm:text-[11px] font-bold uppercase tracking-wider mb-1.5 min-w-0">
+                    <svg className="w-3.5 h-3.5 text-amber-700 shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14H8a4 4 0 01-.82-7.915A5 5 0 0116.82 8.5 4.002 4.002 0 0112 14z"></path>
+                    </svg>
+                    <span className="text-amber-950 font-bold truncate">{takeawaysTitle}</span>
+                  </div>
+                  <ul className="text-[11px] sm:text-[12px] text-stone-700 space-y-1 sm:space-y-1.5 list-disc list-inside leading-snug">
+                    {dynamicTakeaways.map((bullet, bIdx) => (
+                      <li key={bIdx}>{bullet}</li>
+                    ))}
+                  </ul>
                 </div>
-                <ul className="text-[11px] sm:text-[12px] text-stone-700 space-y-1 sm:space-y-1.5 list-disc list-inside leading-snug">
-                  {(curation?.takeaways && curation.takeaways.length > 0
-                    ? curation.takeaways
-                    : [
-                        '€4.2M allocated toward high-resolution hyperspectral scanning of Sharda, Dogra, and Persian scripts.',
-                        'Establishment of twin digital archival nodes in Graz and Srinagar to safeguard provenance records.',
-                        'Direct scholarship endowments created for doctoral linguistics research at Jammu and Kashmir universities.',
-                      ]
-                  ).map((bullet, bIdx) => (
-                    <li key={bIdx}>{bullet}</li>
-                  ))}
-                </ul>
-              </div>
+              )}
             </article>
 
             {/* Top Sub-Lead Stories (Mobile 2-Card Deck) */}
@@ -1416,27 +1412,22 @@ export function ClassicEditorialTemplate({
                     )}
 
                     {/* Key Analytical Takeaways Box */}
-                    <div className="p-4 bg-[#fbf9f4] rounded-xl border border-amber-200/80 font-sans">
-                      <h3 className="text-xs font-bold uppercase tracking-wider text-[#0F172A] mb-2.5 flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-sm bg-[#DC2626] inline-block" />
-                        <span>KEY ANALYTICAL TAKEAWAYS — BUREAU ECONOMIC DESK</span>
-                      </h3>
-                      <ul className="space-y-2 text-xs text-slate-700">
-                        {(curation?.takeaways && curation.takeaways.length > 0
-                          ? curation.takeaways
-                          : [
-                              '€4.2M allocated towards high-resolution hyperspectral scanning of Sharda, Dogra, and Persian scripts.',
-                              'Establishment of twin digital archive locales in Graz and Srinagar to safeguard provenance records.',
-                              'Direct scholarship endowments created for doctoral linguistics research at Jammu and Kashmir universities.'
-                            ]
-                        ).map((point, pIdx) => (
-                          <li key={pIdx} className="flex items-start gap-2">
-                            <span className="text-[#0891B2] font-bold mt-0.5">•</span>
-                            <span className="leading-relaxed">{point}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+                    {dynamicTakeaways.length > 0 && (
+                      <div className="p-4 bg-[#fbf9f4] rounded-xl border border-amber-200/80 font-sans">
+                        <h3 className="text-xs font-bold uppercase tracking-wider text-[#0F172A] mb-2.5 flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-sm bg-[#DC2626] inline-block" />
+                          <span>{takeawaysTitle}</span>
+                        </h3>
+                        <ul className="space-y-2 text-xs text-slate-700">
+                          {dynamicTakeaways.map((point, pIdx) => (
+                            <li key={pIdx} className="flex items-start gap-2">
+                              <span className="text-[#0891B2] font-bold mt-0.5">•</span>
+                              <span className="leading-relaxed">{point}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </article>
                 )}
 
