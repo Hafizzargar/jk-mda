@@ -171,8 +171,15 @@ export async function sendNewsApprovalAlert(params: NewsApprovalAlertParams): Pr
 
     console.log(`[EmailNotifier] Alert sent to ${editorEmail} (MessageId: ${info.messageId})`);
     return true;
-  } catch (err) {
-    console.error('[EmailNotifier] Failed to send editorial alert email:', err);
+  } catch (err: any) {
+    if (err?.code === 'EAUTH' || err?.responseCode === 535) {
+      cachedTransporter = null; // Invalidate cache so fresh credentials take effect
+      console.error(
+        '[EmailNotifier] Google SMTP Auth Failed (535 BadCredentials). Your Google App Password in apps/admin/.env.local (SMTP_PASS) is invalid or revoked. Generate a new 16-character App Password at https://myaccount.google.com/apppasswords and update SMTP_PASS.'
+      );
+    } else {
+      console.error('[EmailNotifier] Failed to send editorial alert email:', err);
+    }
     return false;
   }
 }

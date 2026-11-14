@@ -1,5 +1,6 @@
 import { authorizeEmployeeRequest, isEmployeeAuthorization } from '@/lib/employee-server';
 import { generateNewsroomDraft, generateSlug } from '@/lib/newsroom/gemini-drafter';
+import { sendNewsApprovalAlert } from '@/lib/newsroom/email-notifier';
 
 export async function POST(request: Request) {
   try {
@@ -173,6 +174,24 @@ export async function POST(request: Request) {
         updated_at: new Date().toISOString(),
       })
       .eq('id', event.id);
+
+    // Dispatch real-time editorial email alert to editor
+    Promise.resolve(
+      sendNewsApprovalAlert({
+        headline: draftResult.title,
+        summary: draftResult.excerpt,
+        category: targetCategory,
+        scope: isJKStory ? 'State (Jammu & Kashmir)' : 'National',
+        division: targetDistrict || 'Jammu & Kashmir',
+        district: targetDistrict,
+        platform: 'Newsroom Event Ground Wire',
+        sourceName: primarySource?.source_name || primarySource?.sourceName || 'KJIN Wire',
+        sourceUrl: primarySource?.url || null,
+        dashboardUrl: `${process.env.ADMIN_URL || process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001'}/newsroom/youtube`,
+      })
+    ).catch((mailErr) => {
+      console.warn('[DraftAPI] Email alert dispatch error:', mailErr);
+    });
 
     return Response.json({
       success: true,

@@ -28,6 +28,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { generateSlug } from './gemini-drafter.ts';
 import { getCanonicalCategory } from '../taxonomy-options.ts';
+import { sendNewsApprovalAlert } from './email-notifier.ts';
 import {
   getRecommendedEditorialImage,
   determineDatelineForScope,
@@ -818,6 +819,24 @@ Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with k
     }
 
     console.log(`[AutonomousDiscovery] Successfully queued in Pending Approval: "${cleanHeadline}" (ID: ${newArticle.id}, Beat: ${beat.shortName}${isBreaking ? ' [BREAKING OVERRIDE]' : ''})`);
+
+    // Dispatch real-time editorial email alert to editor
+    Promise.resolve(
+      sendNewsApprovalAlert({
+        headline: cleanHeadline,
+        summary: cleanSummary,
+        category: canonicalCat.name,
+        scope: effectiveScope,
+        division: beat.name,
+        district: finalDistrict,
+        platform: 'Autonomous Web Intelligence Radar',
+        sourceName: sourceName,
+        sourceUrl: sourceUrl,
+        dashboardUrl: `${process.env.ADMIN_URL || process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001'}/newsroom/youtube`,
+      })
+    ).catch((mailErr) => {
+      console.warn('[AutonomousDiscovery] Email alert dispatch error:', mailErr);
+    });
 
     // Record initial version
     if (authorId) {

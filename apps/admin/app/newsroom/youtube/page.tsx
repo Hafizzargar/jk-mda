@@ -213,6 +213,7 @@ export default function YouTubeMonitorPage() {
   const [isQuotasModalOpen, setIsQuotasModalOpen] = useState(false);
   const [isSavingQuotas, setIsSavingQuotas] = useState(false);
   const [editingQuotas, setEditingQuotas] = useState<Record<string, { min: number; max: number }>>({});
+  const [isTestingEmail, setIsTestingEmail] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -326,6 +327,40 @@ export default function YouTubeMonitorPage() {
       setFeedback({ text: err.message || 'Failed to save beat quotas.', type: 'error' });
     } finally {
       setIsSavingQuotas(false);
+    }
+  }
+
+  async function handleTestEmail() {
+    setIsTestingEmail(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        setFeedback({ text: 'Authentication required to test email.', type: 'error' });
+        return;
+      }
+      const res = await fetch('/api/newsroom/test-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setFeedback({
+          text: `Email alert failed: ${data.error || 'Google rejected credentials. Please update SMTP_PASS with a fresh App Password.'}`,
+          type: 'error',
+        });
+      } else {
+        setFeedback({
+          text: `✅ ${data.message}`,
+          type: 'success',
+        });
+      }
+    } catch (err: any) {
+      setFeedback({ text: `Failed to test email: ${err.message}`, type: 'error' });
+    } finally {
+      setIsTestingEmail(false);
     }
   }
 
@@ -1010,6 +1045,17 @@ export default function YouTubeMonitorPage() {
             <span>⏳</span>
             <span>Pending Approval</span>
           </Link>
+
+          <button
+            type="button"
+            onClick={handleTestEmail}
+            disabled={isTestingEmail}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition shadow-2xs cursor-pointer disabled:opacity-50"
+            title="Send a test editorial verification alert to your email"
+          >
+            <span>{isTestingEmail ? '⏳' : '📧'}</span>
+            <span>{isTestingEmail ? 'Sending...' : 'Test Email Alert'}</span>
+          </button>
         </div>
       </div>
 
