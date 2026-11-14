@@ -27,18 +27,18 @@ export interface FestiveCelebrationSettings {
 }
 
 export const DEFAULT_FESTIVE_SETTINGS: FestiveCelebrationSettings = {
-  enabled: false,
-  force_active_now: false,
+  enabled: true,
+  force_active_now: true,
   mode: 'scheduled',
   start_date: '2026-11-14T00:00',
   end_date: '2026-11-14T23:59',
-  occasion_name: 'Special Broadsheet Occasion',
-  greeting_title: 'Warm Festive Greetings',
-  greeting_message: 'Celebrating peace, unity, and progress across the corridors of Jammu & Kashmir and Ladakh.',
+  occasion_name: 'Diwali — Festival of Lights',
+  greeting_title: 'Happy Deepavali to All!',
+  greeting_message: 'May the festival of lights bring peace, brightness, and warmth to every home across Jammu & Kashmir and Ladakh.',
   effect_type: 'firelight_sparkles',
-  colors: ['#F59E0B', '#EF4444', '#FBBF24', '#10B981'],
-  duration_seconds: 7,
-  play_frequency: 'once_per_session',
+  colors: ['#F59E0B', '#EF4444', '#FBBF24', '#D97706', '#10B981'],
+  duration_seconds: 8,
+  play_frequency: 'always',
   show_greeting_banner: true,
   sound_enabled: false,
 };
@@ -99,3 +99,4 @@ export async function getFestiveSettings(
     return DEFAULT_FESTIVE_SETTINGS;
   }
 }
+

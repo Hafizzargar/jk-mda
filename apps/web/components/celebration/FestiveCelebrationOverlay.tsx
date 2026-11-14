@@ -12,12 +12,15 @@ interface FestiveCelebrationOverlayProps {
 
 export function FestiveCelebrationOverlay({ initialSettings }: FestiveCelebrationOverlayProps) {
   const [settings, setSettings] = useState<FestiveCelebrationSettings | null>(initialSettings || null);
-  const [isVisible, setIsVisible] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
   const [showBanner, setShowBanner] = useState(false);
-  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const burstTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const fadeTimerRef = useRef<NodeJS.Timeout | null>(null);
+
   const particlesRef = useRef<Array<{
     x: number;
     y: number;
@@ -32,19 +35,17 @@ export function FestiveCelebrationOverlay({ initialSettings }: FestiveCelebratio
 
   const isRunningRef = useRef(false);
 
-  // If no initialSettings passed from SSR, fetch from API on mount
+  // Always fetch freshest settings on mount from API to ensure instant real-time sync with admin changes
   useEffect(() => {
-    if (!initialSettings) {
-      fetch('/api/settings/celebrations')
-        .then((r) => (r.ok ? r.json() : null))
-        .then((data) => {
-          if (data?.celebrations) {
-            setSettings(data.celebrations);
-          }
-        })
-        .catch(() => {});
-    }
-  }, [initialSettings]);
+    fetch('/api/celebrations')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.celebrations) {
+          setSettings(data.celebrations);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const triggerBurst = useCallback(() => {
     const canvas = canvasRef.current;
@@ -55,50 +56,52 @@ export function FestiveCelebrationOverlay({ initialSettings }: FestiveCelebratio
     canvas.width = width;
     canvas.height = height;
 
-    const colors = settings.colors.length > 0 ? settings.colors : ['#F59E0B', '#EF4444', '#10B981', '#3B82F6'];
+    const colors = settings.colors && settings.colors.length > 0
+      ? settings.colors
+      : ['#F59E0B', '#EF4444', '#10B981', '#06B6D4', '#EC4899'];
 
+    const isFirelight = settings.effect_type === 'firelight_sparkles';
+    const count = isFirelight ? 100 : 130;
     const newParticles = [];
-    const count = settings.effect_type === 'firelight_sparkles' ? 90 : 120;
 
-    // Fire from multiple launch points for broadsheet coverage
-    const origins = [
-      { x: width * 0.2, y: height * 0.35 },
-      { x: width * 0.5, y: height * 0.25 },
-      { x: width * 0.8, y: height * 0.35 },
-    ];
-
-    if (settings.effect_type === 'firelight_sparkles') {
-      // Ambient rising firelight embers from bottom
+    if (isFirelight) {
+      // Warm rising firelight embers & diya sparkles from bottom
       for (let i = 0; i < count; i++) {
         newParticles.push({
           x: Math.random() * width,
-          y: height + Math.random() * 40,
-          vx: (Math.random() - 0.5) * 1.5,
-          vy: -(Math.random() * 2.5 + 1.2),
+          y: height + Math.random() * 50,
+          vx: (Math.random() - 0.5) * 1.6,
+          vy: -(Math.random() * 2.8 + 1.2),
           size: Math.random() * 4.5 + 2,
           color: colors[Math.floor(Math.random() * colors.length)],
           alpha: 1,
           life: 0,
-          maxLife: Math.random() * 120 + 80,
+          maxLife: Math.random() * 140 + 80,
         });
       }
     } else {
-      // Fireworks / Bursts from sky origins
+      // Sky Fireworks & Color Bursts from multiple broadsheet focal points
+      const origins = [
+        { x: width * 0.22, y: height * 0.32 },
+        { x: width * 0.5, y: height * 0.24 },
+        { x: width * 0.78, y: height * 0.32 },
+      ];
+
       origins.forEach((origin) => {
         const burstCount = Math.floor(count / origins.length);
         for (let i = 0; i < burstCount; i++) {
           const angle = Math.random() * Math.PI * 2;
-          const speed = Math.random() * 6 + 1.5;
+          const speed = Math.random() * 6.5 + 1.8;
           newParticles.push({
-            x: origin.x + (Math.random() - 0.5) * 30,
-            y: origin.y + (Math.random() - 0.5) * 30,
+            x: origin.x + (Math.random() - 0.5) * 40,
+            y: origin.y + (Math.random() - 0.5) * 40,
             vx: Math.cos(angle) * speed,
             vy: Math.sin(angle) * speed,
-            size: Math.random() * 3.5 + 1.8,
+            size: Math.random() * 3.8 + 2,
             color: colors[Math.floor(Math.random() * colors.length)],
             alpha: 1,
             life: 0,
-            maxLife: Math.random() * 70 + 40,
+            maxLife: Math.random() * 80 + 45,
           });
         }
       });
@@ -106,12 +109,18 @@ export function FestiveCelebrationOverlay({ initialSettings }: FestiveCelebratio
 
     particlesRef.current = newParticles;
     isRunningRef.current = true;
-    setIsVisible(true);
+    setIsAnimating(true);
     setShowBanner(true);
 
     if (!animationFrameRef.current) {
       animate();
     }
+
+    // Auto-dissolve canvas after configured duration
+    if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+    fadeTimerRef.current = setTimeout(() => {
+      setIsAnimating(false);
+    }, (settings.duration_seconds || 7) * 1000);
   }, [settings]);
 
   const animate = useCallback(() => {
@@ -132,10 +141,10 @@ export function FestiveCelebrationOverlay({ initialSettings }: FestiveCelebratio
       p.life++;
 
       if (isFirelight) {
-        p.vy -= 0.015; // rising buoyancy
-        p.vx += (Math.random() - 0.5) * 0.15;
+        p.vy -= 0.012; // warm air rising
+        p.vx += (Math.random() - 0.5) * 0.12;
       } else {
-        p.vy += 0.07; // gravitational pull
+        p.vy += 0.075; // gravity fall
       }
 
       p.alpha = Math.max(0, 1 - p.life / p.maxLife);
@@ -150,7 +159,7 @@ export function FestiveCelebrationOverlay({ initialSettings }: FestiveCelebratio
       ctx.fill();
       ctx.restore();
 
-      if (p.life >= p.maxLife || p.y < -50 || p.y > canvas.height + 60) {
+      if (p.life >= p.maxLife || p.y < -60 || p.y > canvas.height + 60) {
         particles.splice(i, 1);
       }
     }
@@ -160,40 +169,50 @@ export function FestiveCelebrationOverlay({ initialSettings }: FestiveCelebratio
     } else {
       isRunningRef.current = false;
       animationFrameRef.current = null;
-      setIsVisible(false);
+      setIsAnimating(false);
     }
   }, [settings]);
 
+  // Activate on mount if current settings qualify
   useEffect(() => {
     if (!settings) return;
 
     const active = isFestiveCelebrationActive(settings);
-    if (!active) return;
-
-    // Check session storage if once_per_session
-    const sessionKey = `kjin_festive_${settings.occasion_name}_${settings.start_date}`;
-    const alreadyPlayed = typeof window !== 'undefined' ? sessionStorage.getItem(sessionKey) : null;
-
-    if (alreadyPlayed && settings.play_frequency === 'once_per_session' && !settings.force_active_now) {
+    if (!active) {
+      setShowBanner(false);
+      setIsAnimating(false);
       return;
     }
 
-    // Mark as played
-    if (typeof window !== 'undefined') {
-      try {
-        sessionStorage.setItem(sessionKey, 'true');
-      } catch {}
+    // Check session frequency
+    const sessionKey = `kjin_festive_${settings.occasion_name}_${settings.start_date}`;
+    let alreadyPlayed = false;
+    try {
+      alreadyPlayed = !!sessionStorage.getItem(sessionKey);
+    } catch {}
+
+    if (alreadyPlayed && settings.play_frequency === 'once_per_session' && !settings.force_active_now) {
+      // Don't auto-burst, but keep banner available
+      return;
     }
 
-    // Launch burst after small mount delay
-    const timer = setTimeout(() => {
-      triggerBurst();
-    }, 600);
+    try {
+      sessionStorage.setItem(sessionKey, 'true');
+    } catch {}
 
-    return () => clearTimeout(timer);
+    // Trigger celebration burst
+    burstTimerRef.current = setTimeout(() => {
+      triggerBurst();
+    }, 400);
+
+    return () => {
+      if (burstTimerRef.current) clearTimeout(burstTimerRef.current);
+      if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+    };
   }, [settings, triggerBurst]);
 
-  // Window resize handler
+  // Handle window resize
   useEffect(() => {
     const handleResize = () => {
       if (canvasRef.current) {
@@ -205,26 +224,22 @@ export function FestiveCelebrationOverlay({ initialSettings }: FestiveCelebratio
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  if (!settings || (!isVisible && !showBanner)) {
-    return null;
-  }
-
-  const primaryColor = settings.colors[0] || '#F59E0B';
+  const primaryColor = settings?.colors?.[0] || '#F59E0B';
 
   return (
     <>
-      {/* 1. Fullscreen Non-Blocking Canvas */}
+      {/* 1. Fullscreen Non-Blocking Canvas (Always Mounted in DOM) */}
       <canvas
         ref={canvasRef}
-        className={`fixed inset-0 pointer-events-none z-50 w-full h-full transition-opacity duration-1000 ${
-          isVisible ? 'opacity-100' : 'opacity-0'
+        className={`fixed inset-0 pointer-events-none z-[100] w-full h-full transition-opacity duration-1000 ${
+          isAnimating ? 'opacity-100' : 'opacity-0'
         }`}
         style={{ pointerEvents: 'none' }}
       />
 
       {/* 2. Sleek Broadsheet Celebration Notification Banner */}
-      {showBanner && !bannerDismissed && settings.show_greeting_banner && (
-        <div className="fixed top-3 left-1/2 -translate-x-1/2 z-50 w-full max-w-lg px-4 transition-all duration-500 animate-in fade-in slide-in-from-top-4">
+      {showBanner && !dismissed && settings && settings.show_greeting_banner && (
+        <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[101] w-full max-w-lg px-4 transition-all duration-500 animate-in fade-in slide-in-from-top-4">
           <div
             className="rounded-2xl bg-slate-950/95 text-white p-3.5 sm:p-4 shadow-2xl border backdrop-blur-md flex items-start justify-between gap-3"
             style={{
@@ -278,7 +293,7 @@ export function FestiveCelebrationOverlay({ initialSettings }: FestiveCelebratio
               <button
                 type="button"
                 onClick={() => {
-                  setBannerDismissed(true);
+                  setDismissed(true);
                   setShowBanner(false);
                 }}
                 className="w-6 h-6 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 flex items-center justify-center text-xs transition cursor-pointer"
