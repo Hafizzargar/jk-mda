@@ -1,14 +1,19 @@
 import { createServerAnonClient } from '@/lib/supabase-server';
-import { getFestiveSettings } from '@/lib/festive';
+import { getAllCelebrations } from '@/lib/festive';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
     const supabase = createServerAnonClient();
-    const celebrations = await getFestiveSettings(supabase);
+    const { items, active } = await getAllCelebrations(supabase);
+
     return Response.json(
-      { celebrations },
+      {
+        celebration: active,
+        celebrations: active, // Backwards-compatibility
+        items,
+      },
       {
         headers: {
           'Cache-Control': 'no-store, max-age=0',
@@ -20,4 +25,3 @@ export async function GET() {
     return Response.json({ error: 'Failed to retrieve celebrations' }, { status: 500 });
   }
 }
-

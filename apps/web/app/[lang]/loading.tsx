@@ -58,8 +58,9 @@ export default function Loading() {
     fetch('/api/celebrations')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (isMounted && data?.celebrations) {
-          setFestive(data.celebrations);
+        const active = data?.celebration || data?.celebrations;
+        if (isMounted && active) {
+          setFestive(active);
         }
       })
       .catch(() => {});

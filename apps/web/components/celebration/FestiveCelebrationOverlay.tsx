@@ -40,8 +40,9 @@ export function FestiveCelebrationOverlay({ initialSettings }: FestiveCelebratio
     fetch('/api/celebrations')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data?.celebrations) {
-          setSettings(data.celebrations);
+        const active = data?.celebration || data?.celebrations;
+        if (active) {
+          setSettings(active);
         }
       })
       .catch(() => {});
