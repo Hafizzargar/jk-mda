@@ -713,6 +713,29 @@ export default function EditArticlePage({ params }: { params?: Promise<{ id: str
                 />
               </label>
             </div>
+
+            {/* Mobile Actions Toolbar (< lg screens) */}
+            <div className="flex lg:hidden items-center justify-between gap-3 pt-5 border-t border-slate-100 dark:border-slate-800">
+              <Button
+                href={`/articles/${id}`}
+                variant="secondary"
+                size="md"
+                className="flex-1 justify-center"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                size="md"
+                disabled={isSubmitting}
+                isLoading={isSubmitting}
+                icon={<span>💾</span>}
+                className="flex-1 justify-center font-bold shadow-sm"
+              >
+                {isSubmitting ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
           </div>
 
 
@@ -721,8 +744,8 @@ export default function EditArticlePage({ params }: { params?: Promise<{ id: str
 
       {/* AI Attractive Title & Description Modal */}
       {showEnhanceModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-4 animate-in fade-in duration-150">
-          <div className="relative w-full max-w-2xl rounded-2xl border border-purple-500/30 bg-slate-900 p-6 shadow-2xl text-white space-y-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-3 sm:p-4 animate-in fade-in duration-150">
+          <div className="relative w-full max-w-2xl rounded-2xl border border-purple-500/30 bg-slate-900 p-4 sm:p-6 shadow-2xl text-white space-y-4 sm:space-y-5">
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="flex items-center gap-2.5">
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500/20 text-purple-400 font-bold text-lg border border-purple-500/30">

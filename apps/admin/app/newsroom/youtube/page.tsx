@@ -993,9 +993,9 @@ export default function YouTubeMonitorPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0 flex-wrap">
+        <div className="flex items-center gap-2 shrink-0 flex-wrap w-full sm:w-auto">
           {/* Frequency Control Selector */}
-          <div className="flex items-center gap-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900/90 px-3 py-1.5 text-xs shadow-xs">
+          <div className="flex items-center justify-between sm:justify-start w-full sm:w-auto gap-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900/90 px-3 py-1.5 text-xs shadow-xs">
             <label htmlFor="radar-schedule-select" className="text-slate-700 dark:text-slate-200 font-bold text-xs whitespace-nowrap flex items-center gap-1 cursor-pointer">
               <span>⏱️</span>
               <span>Schedule:</span>
@@ -1004,7 +1004,7 @@ export default function YouTubeMonitorPage() {
               id="radar-schedule-select"
               value={autoPilotIntervalMinutes}
               onChange={(e) => handleUpdateAutoPilotSettings(Number(e.target.value), autoPilot)}
-              className="rounded-md border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs px-2.5 py-1 outline-none cursor-pointer focus:ring-2 focus:ring-purple-500 [color-scheme:light] dark:[color-scheme:dark]"
+              className="flex-1 sm:flex-initial rounded-md border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs px-2.5 py-1 outline-none cursor-pointer focus:ring-2 focus:ring-purple-500 [color-scheme:light] dark:[color-scheme:dark]"
               title="Select how often autonomous discovery runs"
             >
               <option value={1} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 1 Min (Rapid Realtime)</option>
@@ -1032,7 +1032,7 @@ export default function YouTubeMonitorPage() {
             disabled={isDiscovering}
             isLoading={isDiscovering}
             onClick={() => handleDiscoverNow(false)}
-            className="bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-xs cursor-pointer"
+            className="w-full sm:w-auto justify-center bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-xs cursor-pointer"
             title="Trigger real-time multi-source news discovery across all beats right now"
           >
             {isDiscovering ? 'Discovering News...' : 'Discover News Now'}
@@ -1040,7 +1040,7 @@ export default function YouTubeMonitorPage() {
 
           <Link
             href="/articles?status=review"
-            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition shadow-2xs"
+            className="flex-1 sm:flex-initial justify-center inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition shadow-2xs"
           >
             <span>⏳</span>
             <span>Pending Approval</span>
@@ -1050,7 +1050,7 @@ export default function YouTubeMonitorPage() {
             type="button"
             onClick={handleTestEmail}
             disabled={isTestingEmail}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition shadow-2xs cursor-pointer disabled:opacity-50"
+            className="flex-1 sm:flex-initial justify-center inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition shadow-2xs cursor-pointer disabled:opacity-50"
             title="Send a test editorial verification alert to your email"
           >
             <span>{isTestingEmail ? '⏳' : '📧'}</span>
@@ -1098,7 +1098,7 @@ export default function YouTubeMonitorPage() {
                   setEditingQuotas({ ...beatQuotas });
                   setIsQuotasModalOpen(true);
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-xs transition cursor-pointer ml-auto"
+                className="w-full sm:w-auto justify-center inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-xs transition cursor-pointer mt-1 sm:mt-0 sm:ml-auto"
                 title="Click to adjust min and max story targets for each region"
               >
                 <span>🎯</span>
@@ -1138,7 +1138,7 @@ export default function YouTubeMonitorPage() {
                   setEditingQuotas({ ...beatQuotas });
                   setIsQuotasModalOpen(true);
                 }}
-                className={`p-2 rounded-xl border text-xs transition flex flex-col justify-between cursor-pointer hover:shadow-sm ${
+                className={`p-2 rounded-xl border text-xs transition flex flex-col justify-between cursor-pointer hover:shadow-sm last:col-span-2 sm:last:col-span-1 ${
                   base.priority
                     ? 'border-cyan-300 dark:border-cyan-800 bg-cyan-50/60 dark:bg-cyan-950/20 hover:border-cyan-400'
                     : isMet
@@ -1994,8 +1994,8 @@ export default function YouTubeMonitorPage() {
 
       {/* Review & Approve Draft Modal */}
       {reviewVideo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-xs">
-          <div className="w-full max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 sm:p-4 backdrop-blur-xs">
+          <div className="w-full max-w-3xl max-h-[88vh] sm:max-h-[90vh] overflow-y-auto rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 p-4 sm:p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
               <div>
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">
@@ -2459,23 +2459,25 @@ export default function YouTubeMonitorPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between border-t border-slate-200 dark:border-slate-800 pt-3">
+            <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-2 border-t border-slate-200 dark:border-slate-800 pt-3">
               <Button
                 type="button"
                 variant="secondary"
                 size="md"
                 onClick={() => setReviewVideo(null)}
+                className="w-full sm:w-auto justify-center"
               >
                 Cancel
               </Button>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 <Button
                   type="button"
                   variant="secondary"
                   size="md"
                   disabled={isApproving}
                   onClick={() => handleApproveDraft('draft')}
+                  className="w-full sm:w-auto justify-center"
                 >
                   Save as Draft
                 </Button>
@@ -2486,6 +2488,7 @@ export default function YouTubeMonitorPage() {
                   disabled={isApproving}
                   isLoading={isApproving}
                   onClick={() => handleApproveDraft('review')}
+                  className="w-full sm:w-auto justify-center font-bold"
                 >
                   Approve to Editorial Review →
                 </Button>
@@ -2497,8 +2500,8 @@ export default function YouTubeMonitorPage() {
 
       {/* Editorial Beat Quotas Configuration Modal */}
       {isQuotasModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-xl rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="w-full max-w-xl rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl p-4 sm:p-6 space-y-4 sm:space-y-5 animate-in fade-in zoom-in-95 duration-150">
             <div className="flex items-start justify-between">
               <div>
                 <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -2582,7 +2585,7 @@ export default function YouTubeMonitorPage() {
               })}
             </div>
 
-            <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-slate-200 dark:border-slate-800">
               <button
                 type="button"
                 onClick={() => {
@@ -2592,18 +2595,19 @@ export default function YouTubeMonitorPage() {
                   });
                   setEditingQuotas(defaults);
                 }}
-                className="text-xs font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 cursor-pointer"
+                className="text-xs font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 cursor-pointer text-left sm:text-center"
               >
                 Reset to Standard Defaults
               </button>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
                 <Button
                   type="button"
                   variant="secondary"
                   size="sm"
                   onClick={() => setIsQuotasModalOpen(false)}
                   disabled={isSavingQuotas}
+                  className="flex-1 sm:flex-initial justify-center"
                 >
                   Cancel
                 </Button>
@@ -2614,7 +2618,7 @@ export default function YouTubeMonitorPage() {
                   isLoading={isSavingQuotas}
                   disabled={isSavingQuotas}
                   onClick={() => handleSaveBeatQuotas(editingQuotas)}
-                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold"
+                  className="flex-1 sm:flex-initial justify-center bg-purple-600 hover:bg-purple-700 text-white font-bold"
                 >
                   Save Beat Quotas
                 </Button>

@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Sidebar } from './Sidebar';
 import { Navbar } from './Navbar';
+import { MobileBottomBar } from './MobileBottomBar';
 import { CommandPalette } from './CommandPalette';
 import { Toaster } from './Toast';
 import { LogoutModal } from './LogoutModal';
@@ -258,8 +259,14 @@ export function AdminShell({ children }: AdminShellProps) {
             brandLogo={brandLogo}
           />
 
-          <main className="flex-1 min-w-0 w-full overflow-x-hidden pb-8">{children}</main>
+          <main className="flex-1 min-w-0 w-full overflow-x-hidden pb-24 lg:pb-8">{children}</main>
         </div>
+
+        {/* Mobile Persistent Quick-Action Bottom Bar (< lg screens) */}
+        <MobileBottomBar
+          onOpenMenu={() => setMobileOpen(true)}
+          userRole={userRole}
+        />
 
         {/* Command Palette Modal */}
         <CommandPalette
