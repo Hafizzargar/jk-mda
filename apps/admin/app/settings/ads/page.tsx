@@ -92,6 +92,7 @@ export default function AdsSettingsPage() {
   // Auto-Sync and Drag-and-Drop state
   const [syncStatus, setSyncStatus] = useState<'idle' | 'saving' | 'synced' | 'error'>('synced');
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'studio' | 'wireframe'>('studio');
   const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
   const [draggedAdId, setDraggedAdId] = useState<string | null>(null);
   const [dragOverSlot, setDragOverSlot] = useState<AdSlotType | null>(null);
@@ -346,6 +347,7 @@ export default function AdsSettingsPage() {
 
     setForm(updatedSettings);
     setActivePlacementId(newId);
+    setViewMode('studio');
     triggerAutoSync(
       updatedSettings,
       '✨ New ad created & auto-synced! Drag it into any slot below or edit details.'
@@ -551,63 +553,91 @@ export default function AdsSettingsPage() {
   });
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 pb-24 px-4 sm:px-6">
-      {/* 1. Header with Title, Auto-Sync Status & Main Actions */}
+    <div className="mx-auto max-w-7xl space-y-5 pb-24 px-4 sm:px-6">
+      {/* 1. Sleek Modern Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
         <div>
-          <div className="flex flex-wrap items-center gap-2.5">
-            <span className="text-2xl">💰</span>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white font-serif">
-              Commercial Ads &amp; Sponsor Placement Desk
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white">
+              Commercial Ads &amp; Sponsors
             </h1>
-            <span className="rounded-full bg-cyan-500/10 px-2.5 py-0.5 text-xs font-mono font-medium text-cyan-700 dark:text-cyan-400 border border-cyan-500/20">
-              {form.placements.length} Ads Total
+            <span className="rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 text-xs font-semibold text-slate-600 dark:text-slate-300">
+              {form.placements.length} {form.placements.length === 1 ? 'Ad' : 'Ads'}
             </span>
 
             {/* Live Auto-Sync Status Badge */}
             {syncStatus === 'saving' ? (
-              <span className="flex items-center gap-1.5 rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-mono font-bold text-amber-600 dark:text-amber-400 border border-amber-500/30 animate-pulse">
+              <span className="inline-flex items-center gap-1.5 text-xs text-amber-500 font-medium">
                 <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
-                <span>Auto-syncing to site...</span>
+                <span>Syncing...</span>
               </span>
             ) : syncStatus === 'synced' ? (
-              <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-mono font-semibold text-emerald-700 dark:text-emerald-400 border border-emerald-500/20">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                <span>⚡ Auto-Synced to Live Site {lastSyncedAt ? `(${lastSyncedAt})` : ''}</span>
+              <span className="inline-flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span>Live Synced {lastSyncedAt ? `(${lastSyncedAt})` : ''}</span>
               </span>
             ) : syncStatus === 'error' ? (
-              <span className="flex items-center gap-1.5 rounded-full bg-rose-500/15 px-2.5 py-0.5 text-xs font-mono font-bold text-rose-600 dark:text-rose-400 border border-rose-500/30">
+              <span className="inline-flex items-center gap-1.5 text-xs text-rose-500 font-medium">
                 <span>⚠️ Sync Error</span>
               </span>
             ) : null}
           </div>
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            Drag any ad directly onto the homepage preview slots below. When you create or move an ad, it automatically syncs straight to the live website.
+            Configure homepage broadsheet banners, right rail sponsors, and in-article announcements.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Header Right Actions: Compact Monetization Switch + Create Ad */}
+        <div className="flex items-center gap-2.5 flex-wrap">
+          {/* Compact Master Monetization Toggle */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs">
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+              Site Monetization:
+            </span>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.monetization_enabled}
+                onChange={(e) => {
+                  const nextVal = e.target.checked;
+                  const nextSettings = { ...form, monetization_enabled: nextVal };
+                  setForm(nextSettings);
+                  triggerAutoSync(
+                    nextSettings,
+                    nextVal ? 'Monetization enabled: Ads are now visible on site.' : 'Monetization paused: All ads hidden.'
+                  );
+                }}
+                disabled={!canManage}
+                className="sr-only peer"
+              />
+              <div className="w-9 h-5 bg-slate-300 dark:bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+            </label>
+            <span className={`text-[11px] font-bold ${form.monetization_enabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
+              {form.monetization_enabled ? 'Active' : 'Paused'}
+            </span>
+          </div>
+
           <Button
             type="button"
             onClick={() => handleCreateNewAd()}
             variant="primary"
             size="sm"
-            icon={<span>➕</span>}
+            icon={<span>+</span>}
+            className="font-bold shadow-xs"
           >
-            Create New Ad
+            New Ad
           </Button>
 
           {canManage && (
             <Button
               type="button"
               onClick={handleSubmit}
-              variant="cyan"
+              variant="secondary"
               size="sm"
               disabled={saving}
               isLoading={saving}
-              icon={<span>💾</span>}
             >
-              {saving ? 'Publishing...' : 'Save & Publish All'}
+              {saving ? 'Publishing...' : 'Publish'}
             </Button>
           )}
 
@@ -617,34 +647,59 @@ export default function AdsSettingsPage() {
             variant="secondary"
             size="sm"
           >
-            Public Site ↗
+            Live Site ↗
           </Button>
         </div>
       </div>
 
-      {/* 2. Editorial & Ad Workflow Nav Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2 text-xs overflow-x-auto">
-        <span className="font-bold text-slate-500 uppercase tracking-wider text-[11px] mr-2 whitespace-nowrap">
-          Workflows:
-        </span>
-        <Link
-          href="/settings/layout"
-          className="px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 hover:text-indigo-600 font-medium flex items-center gap-1.5 transition whitespace-nowrap"
-        >
-          <span>🔀</span>
-          <span>1. Section Drag &amp; Drop Builder</span>
-        </Link>
-        <span className="px-3 py-1 rounded-lg bg-cyan-600 text-white font-bold flex items-center gap-1.5 shadow-xs whitespace-nowrap">
-          <span>📢</span>
-          <span>2. Ads Drag &amp; Drop Placements &amp; Preview</span>
-        </span>
-        <Link
-          href="/settings/curation"
-          className="px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 font-medium flex items-center gap-1.5 transition whitespace-nowrap"
-        >
-          <span>📰</span>
-          <span>3. Story Slotting Desk</span>
-        </Link>
+      {/* 2. Unified Navigation & View Switcher */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+        {/* Navigation Breadcrumbs / Pills */}
+        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900/90 p-1 rounded-xl border border-slate-200 dark:border-slate-800 overflow-x-auto no-scrollbar">
+          <Link
+            href="/settings/layout"
+            className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition whitespace-nowrap"
+          >
+            1. Layout Canvas
+          </Link>
+          <span className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs shadow-2xs whitespace-nowrap">
+            2. Ads &amp; Sponsors
+          </span>
+          <Link
+            href="/settings/curation"
+            className="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition whitespace-nowrap"
+          >
+            3. Story Slotting
+          </Link>
+        </div>
+
+        {/* View Switcher: Studio & Editor vs Visual Wireframe */}
+        <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-900/90 p-1 rounded-xl border border-slate-200 dark:border-slate-800 shrink-0">
+          <button
+            type="button"
+            onClick={() => setViewMode('studio')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+              viewMode === 'studio'
+                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs'
+                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+            }`}
+          >
+            <span>📋</span>
+            <span>Ad Studio &amp; Editor</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('wireframe')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+              viewMode === 'wireframe'
+                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs'
+                : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+            }`}
+          >
+            <span>🗺️</span>
+            <span>Broadsheet Wireframe</span>
+          </button>
+        </div>
       </div>
 
       {/* Messages */}
@@ -695,57 +750,16 @@ export default function AdsSettingsPage() {
         </div>
       )}
 
-      {/* 3. Master Monetization Switch Bar */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <span className="text-sm font-bold text-slate-900 dark:text-white">Enable Site-Wide Monetization</span>
-            {form.monetization_enabled ? (
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-500/20">
-                🟢 Active &amp; Serving All Enabled Ads
-              </span>
-            ) : (
-              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">
-                ⏸️ Paused (All Ads Hidden on Website)
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            When enabled, active sponsor ads are rendered in their assigned broadsheet slots.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={form.monetization_enabled}
-              onChange={(e) => {
-                const nextVal = e.target.checked;
-                const nextSettings = { ...form, monetization_enabled: nextVal };
-                setForm(nextSettings);
-                triggerAutoSync(
-                  nextSettings,
-                  nextVal ? 'Monetization enabled: Ads are now visible on site.' : 'Monetization paused: All ads hidden.'
-                );
-              }}
-              disabled={!canManage}
-              className="sr-only peer"
-            />
-            <div className="w-12 h-6 bg-slate-200 dark:bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
-          </label>
-        </div>
-      </div>
-
       {/* ========================================================================= */}
       {/* 4. VISUAL HOMEPAGE AD PLACEMENT PREVIEW & DRAG-AND-DROP CANVAS           */}
       {/* ========================================================================= */}
+      {viewMode === 'wireframe' && (
       <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-5 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
           <div>
             <div className="flex items-center gap-2">
               <span className="text-xl">🗺️</span>
-              <h2 className="text-base font-bold text-slate-900 dark:text-white font-serif">
+              <h2 className="text-base font-bold text-slate-900 dark:text-white">
                 Homepage Ad Wireframe &amp; Drag-and-Drop Placement Canvas
               </h2>
             </div>
@@ -791,12 +805,12 @@ export default function AdsSettingsPage() {
           }`}
         >
           {/* Mock Top Telemetry Bar */}
-          <div className="rounded-lg bg-amber-500/10 border border-amber-500/30 px-3 py-1.5 text-[11px] font-mono flex items-center justify-between text-amber-700 dark:text-amber-400">
+          <div className="rounded-lg bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 px-3 py-1.5 text-[11px] font-mono flex items-center justify-between text-slate-600 dark:text-slate-400">
             <span className="flex items-center gap-1">
               <span>🏔️</span>
-              <span>CORRIDOR MOUNTAIN TRANSIT &amp; PASS TELEMETRY</span>
+              <span className="font-semibold">CORRIDOR MOUNTAIN TRANSIT &amp; PASS TELEMETRY</span>
             </span>
-            <span className="text-[10px] opacity-80">Peer Ki Gali • Zojila • Banihal</span>
+            <span className="text-[10px] opacity-70">Peer Ki Gali &bull; Zojila &bull; Banihal</span>
           </div>
 
           {/* ========================================================================= */}
@@ -805,7 +819,6 @@ export default function AdsSettingsPage() {
           {(() => {
             const slotAd = getAdInSlot('leaderboard_top');
             const isTarget = dragOverSlot === 'leaderboard_top';
-            const styles = slotAd ? getThemeStyles(slotAd.theme_accent) : null;
             return (
               <div
                 onDragOver={(e) => handleDragOver(e, 'leaderboard_top')}
@@ -815,12 +828,12 @@ export default function AdsSettingsPage() {
                   isTarget
                     ? 'border-cyan-400 bg-cyan-500/15 ring-4 ring-cyan-500/30 scale-[1.01]'
                     : slotAd
-                    ? 'border-amber-500/40 bg-slate-900/90 text-white shadow-md'
+                    ? 'border-slate-700 bg-slate-900/90 text-white shadow-md'
                     : 'border-dashed border-slate-300 dark:border-slate-700 bg-white/60 dark:bg-slate-900/40 text-slate-500'
                 }`}
               >
                 <div className="flex items-center justify-between gap-2 mb-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 flex items-center gap-1">
                     <span>🌟</span>
                     <span>Slot 1: Homepage Top Leaderboard Banner (100% Width)</span>
                   </span>
@@ -828,15 +841,18 @@ export default function AdsSettingsPage() {
                     <div className="flex items-center gap-1.5">
                       <button
                         type="button"
-                        onClick={() => setActivePlacementId(slotAd.id)}
-                        className="text-[11px] px-2 py-0.5 rounded bg-cyan-600 hover:bg-cyan-500 text-white font-semibold transition"
+                        onClick={() => {
+                          setActivePlacementId(slotAd.id);
+                          setViewMode('studio');
+                        }}
+                        className="text-[11px] px-2.5 py-0.5 rounded bg-cyan-600 hover:bg-cyan-500 text-white font-semibold transition cursor-pointer"
                       >
                         ✏️ Edit Ad
                       </button>
                       <button
                         type="button"
                         onClick={() => clearAdFromSlot('leaderboard_top')}
-                        className="text-[11px] px-1.5 py-0.5 rounded bg-red-950/60 text-red-400 hover:bg-red-900 font-semibold transition"
+                        className="text-[11px] px-1.5 py-0.5 rounded bg-red-950/60 text-red-400 hover:bg-red-900 font-semibold transition cursor-pointer"
                         title="Remove ad from this slot"
                       >
                         ✕
@@ -937,24 +953,36 @@ export default function AdsSettingsPage() {
                       isTarget
                         ? 'border-cyan-400 bg-cyan-500/15 ring-4 ring-cyan-500/30 scale-[1.02]'
                         : slotAd
-                        ? 'border-emerald-500/40 bg-slate-900 text-white shadow-md'
+                        ? 'border-slate-700 bg-slate-900 text-white shadow-md'
                         : 'border-dashed border-slate-300 dark:border-slate-700 bg-white/60 dark:bg-slate-900/40 text-slate-500'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-1 mb-2">
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 flex items-center gap-1">
                         <span>📌</span>
                         <span>Slot 2: Left Column Sponsor</span>
                       </span>
                       {slotAd && (
-                        <button
-                          type="button"
-                          onClick={() => clearAdFromSlot('left_rail_sponsor')}
-                          className="text-[10px] px-1.5 py-0.5 rounded bg-red-950/60 text-red-400 hover:bg-red-900"
-                          title="Clear slot"
-                        >
-                          ✕
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActivePlacementId(slotAd.id);
+                              setViewMode('studio');
+                            }}
+                            className="text-[10px] px-2 py-0.5 rounded bg-cyan-600 hover:bg-cyan-500 text-white font-semibold transition cursor-pointer"
+                          >
+                            ✏️ Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => clearAdFromSlot('left_rail_sponsor')}
+                            className="text-[10px] px-1.5 py-0.5 rounded bg-red-950/60 text-red-400 hover:bg-red-900 cursor-pointer"
+                            title="Clear slot"
+                          >
+                            ✕
+                          </button>
+                        </div>
                       )}
                     </div>
 
@@ -962,11 +990,14 @@ export default function AdsSettingsPage() {
                       <div
                         draggable
                         onDragStart={(e) => handleDragStart(e, slotAd.id)}
-                        onClick={() => setActivePlacementId(slotAd.id)}
-                        className="p-3 rounded-lg bg-black/40 border border-white/10 space-y-2 cursor-grab active:cursor-grabbing hover:border-emerald-400 transition"
+                        onClick={() => {
+                          setActivePlacementId(slotAd.id);
+                          setViewMode('studio');
+                        }}
+                        className="p-3 rounded-lg bg-black/40 border border-white/10 space-y-2 cursor-grab active:cursor-grabbing hover:border-cyan-400 transition"
                       >
                         <div className="flex items-center justify-between">
-                          <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
+                          <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">
                             {slotAd.badge_label || 'SPONSOR'}
                           </span>
                           <span className="text-[10px] text-slate-400">⠿ Drag to move</span>
@@ -981,7 +1012,7 @@ export default function AdsSettingsPage() {
                         {slotAd.destination_url && slotAd.destination_url.trim() && slotAd.destination_url.trim() !== 'https://' && (
                           <button
                             type="button"
-                            className="w-full py-1 rounded bg-emerald-500 text-slate-950 font-bold text-[11px]"
+                            className="w-full py-1 rounded bg-slate-800 border border-slate-700 text-white font-bold text-[11px]"
                           >
                             {slotAd.cta_text || 'Learn More'} &rarr;
                           </button>
@@ -1029,24 +1060,36 @@ export default function AdsSettingsPage() {
                       isTarget
                         ? 'border-cyan-400 bg-cyan-500/15 ring-4 ring-cyan-500/30 scale-[1.01]'
                         : slotAd
-                        ? 'border-cyan-500/40 bg-slate-900 text-white shadow-md'
+                        ? 'border-slate-700 bg-slate-900 text-white shadow-md'
                         : 'border-dashed border-slate-300 dark:border-slate-700 bg-white/60 dark:bg-slate-900/40 text-slate-500'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-1 mb-2">
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-600 dark:text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 flex items-center gap-1">
                         <span>📰</span>
                         <span>Slot 3: Mid-Feed Center Banner (Below Stories &amp; Pagination)</span>
                       </span>
                       {slotAd && (
-                        <button
-                          type="button"
-                          onClick={() => clearAdFromSlot('leaderboard_feed')}
-                          className="text-[10px] px-1.5 py-0.5 rounded bg-red-950/60 text-red-400 hover:bg-red-900"
-                          title="Clear slot"
-                        >
-                          ✕
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActivePlacementId(slotAd.id);
+                              setViewMode('studio');
+                            }}
+                            className="text-[10px] px-2 py-0.5 rounded bg-cyan-600 hover:bg-cyan-500 text-white font-semibold transition cursor-pointer"
+                          >
+                            ✏️ Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => clearAdFromSlot('leaderboard_feed')}
+                            className="text-[10px] px-1.5 py-0.5 rounded bg-red-950/60 text-red-400 hover:bg-red-900 cursor-pointer"
+                            title="Clear slot"
+                          >
+                            ✕
+                          </button>
+                        </div>
                       )}
                     </div>
 
@@ -1054,7 +1097,10 @@ export default function AdsSettingsPage() {
                       <div
                         draggable
                         onDragStart={(e) => handleDragStart(e, slotAd.id)}
-                        onClick={() => setActivePlacementId(slotAd.id)}
+                        onClick={() => {
+                          setActivePlacementId(slotAd.id);
+                          setViewMode('studio');
+                        }}
                         className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg bg-black/40 border border-white/10 cursor-grab active:cursor-grabbing hover:border-cyan-400 transition"
                       >
                         <div className="flex items-center gap-3">
@@ -1063,12 +1109,12 @@ export default function AdsSettingsPage() {
                               <Image src={slotAd.image_url} alt="" fill className="object-cover" unoptimized />
                             </div>
                           ) : (
-                            <div className="w-16 h-12 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 flex items-center justify-center font-bold text-xs shrink-0">
+                            <div className="w-16 h-12 rounded bg-slate-800 text-slate-300 border border-slate-700 flex items-center justify-center font-bold text-xs shrink-0">
                               MID-FEED
                             </div>
                           )}
                           <div>
-                            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300">
+                            <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-slate-800 text-slate-300">
                               {slotAd.badge_label || 'PARTNER'}
                             </span>
                             <h4 className="font-bold text-white text-xs truncate max-w-xs mt-0.5">
@@ -1082,7 +1128,7 @@ export default function AdsSettingsPage() {
                         <div className="flex items-center gap-2 shrink-0">
                           <span className="text-[10px] text-slate-400 italic">⠿ Drag to move</span>
                           {slotAd.destination_url && slotAd.destination_url.trim() && slotAd.destination_url.trim() !== 'https://' && (
-                            <span className="px-3 py-1 rounded bg-cyan-500 text-slate-950 font-bold text-xs">
+                            <span className="px-3 py-1 rounded bg-slate-800 border border-slate-700 text-white font-bold text-xs">
                               {slotAd.cta_text || 'Explore'} &rarr;
                             </span>
                           )}
@@ -1112,7 +1158,7 @@ export default function AdsSettingsPage() {
               </div>
 
               <div className="p-2.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-[11px]">
-                <span className="font-serif font-bold text-slate-900 dark:text-white">EDITORIAL OF RECORD</span>
+                <span className="font-semibold text-slate-900 dark:text-white">EDITORIAL OF RECORD</span>
                 <p className="text-[10px] text-slate-500 italic mt-0.5">&quot;The Pluralistic Pulse of the Corridors...&quot;</p>
               </div>
 
@@ -1120,7 +1166,6 @@ export default function AdsSettingsPage() {
               {(() => {
                 const slotAd = getAdInSlot('sidebar_banner');
                 const isTarget = dragOverSlot === 'sidebar_banner';
-                const styles = slotAd ? getThemeStyles(slotAd.theme_accent) : null;
                 return (
                   <div
                     onDragOver={(e) => handleDragOver(e, 'sidebar_banner')}
@@ -1130,24 +1175,36 @@ export default function AdsSettingsPage() {
                       isTarget
                         ? 'border-cyan-400 bg-cyan-500/15 ring-4 ring-cyan-500/30 scale-[1.02]'
                         : slotAd
-                        ? 'border-indigo-500/40 bg-slate-900 text-white shadow-md'
+                        ? 'border-slate-700 bg-slate-900 text-white shadow-md'
                         : 'border-dashed border-slate-300 dark:border-slate-700 bg-white/60 dark:bg-slate-900/40 text-slate-500'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-1 mb-2">
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 border border-indigo-500/30 flex items-center gap-1">
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 flex items-center gap-1">
                         <span>📑</span>
                         <span>Slot 4: Right Rail Sidebar Sponsor</span>
                       </span>
                       {slotAd && (
-                        <button
-                          type="button"
-                          onClick={() => clearAdFromSlot('sidebar_banner')}
-                          className="text-[10px] px-1.5 py-0.5 rounded bg-red-950/60 text-red-400 hover:bg-red-900"
-                          title="Clear slot"
-                        >
-                          ✕
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActivePlacementId(slotAd.id);
+                              setViewMode('studio');
+                            }}
+                            className="text-[10px] px-2 py-0.5 rounded bg-cyan-600 hover:bg-cyan-500 text-white font-semibold transition cursor-pointer"
+                          >
+                            ✏️ Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => clearAdFromSlot('sidebar_banner')}
+                            className="text-[10px] px-1.5 py-0.5 rounded bg-red-950/60 text-red-400 hover:bg-red-900 cursor-pointer"
+                            title="Clear slot"
+                          >
+                            ✕
+                          </button>
+                        </div>
                       )}
                     </div>
 
@@ -1155,11 +1212,14 @@ export default function AdsSettingsPage() {
                       <div
                         draggable
                         onDragStart={(e) => handleDragStart(e, slotAd.id)}
-                        onClick={() => setActivePlacementId(slotAd.id)}
-                        className="p-3 rounded-lg bg-black/40 border border-white/10 space-y-2 cursor-grab active:cursor-grabbing hover:border-indigo-400 transition"
+                        onClick={() => {
+                          setActivePlacementId(slotAd.id);
+                          setViewMode('studio');
+                        }}
+                        className="p-3 rounded-lg bg-black/40 border border-white/10 space-y-2 cursor-grab active:cursor-grabbing hover:border-cyan-400 transition"
                       >
                         <div className="flex items-center justify-between">
-                          <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300">
+                          <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">
                             {slotAd.badge_label || 'SPONSOR'}
                           </span>
                           <span className="text-[10px] text-slate-400">⠿ Drag to move</span>
@@ -1174,7 +1234,7 @@ export default function AdsSettingsPage() {
                         {slotAd.destination_url && slotAd.destination_url.trim() && slotAd.destination_url.trim() !== 'https://' && (
                           <button
                             type="button"
-                            className="w-full py-1 rounded bg-indigo-500 text-white font-bold text-[11px]"
+                            className="w-full py-1 rounded bg-slate-800 border border-slate-700 text-white font-bold text-[11px]"
                           >
                             {slotAd.cta_text || 'Learn More'} &rarr;
                           </button>
@@ -1200,7 +1260,6 @@ export default function AdsSettingsPage() {
           {(() => {
             const slotAd = getAdInSlot('in_article_native');
             const isTarget = dragOverSlot === 'in_article_native';
-            const styles = slotAd ? getThemeStyles(slotAd.theme_accent) : null;
             return (
               <div
                 onDragOver={(e) => handleDragOver(e, 'in_article_native')}
@@ -1210,24 +1269,36 @@ export default function AdsSettingsPage() {
                   isTarget
                     ? 'border-cyan-400 bg-cyan-500/15 ring-4 ring-cyan-500/30 scale-[1.01]'
                     : slotAd
-                    ? 'border-rose-500/40 bg-slate-900 text-white shadow-md'
+                    ? 'border-slate-700 bg-slate-900 text-white shadow-md'
                     : 'border-dashed border-slate-300 dark:border-slate-700 bg-white/60 dark:bg-slate-900/40 text-slate-500'
                 }`}
               >
                 <div className="flex items-center justify-between gap-1 mb-2">
-                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-rose-500/20 text-rose-600 dark:text-rose-300 border border-rose-500/30 flex items-center gap-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 flex items-center gap-1">
                     <span>📖</span>
                     <span>Slot 5: In-Article Native Story Sponsor (Inside Dispatches &amp; Article Pages)</span>
                   </span>
                   {slotAd && (
-                    <button
-                      type="button"
-                      onClick={() => clearAdFromSlot('in_article_native')}
-                      className="text-[10px] px-1.5 py-0.5 rounded bg-red-950/60 text-red-400 hover:bg-red-900"
-                      title="Clear slot"
-                    >
-                      ✕
-                    </button>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActivePlacementId(slotAd.id);
+                          setViewMode('studio');
+                        }}
+                        className="text-[10px] px-2 py-0.5 rounded bg-cyan-600 hover:bg-cyan-500 text-white font-semibold transition cursor-pointer"
+                      >
+                        ✏️ Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => clearAdFromSlot('in_article_native')}
+                        className="text-[10px] px-1.5 py-0.5 rounded bg-red-950/60 text-red-400 hover:bg-red-900 cursor-pointer"
+                        title="Clear slot"
+                      >
+                        ✕
+                      </button>
+                    </div>
                   )}
                 </div>
 
@@ -1235,8 +1306,11 @@ export default function AdsSettingsPage() {
                   <div
                     draggable
                     onDragStart={(e) => handleDragStart(e, slotAd.id)}
-                    onClick={() => setActivePlacementId(slotAd.id)}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg bg-black/40 border border-white/10 cursor-grab active:cursor-grabbing hover:border-rose-400 transition"
+                    onClick={() => {
+                      setActivePlacementId(slotAd.id);
+                      setViewMode('studio');
+                    }}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg bg-black/40 border border-white/10 cursor-grab active:cursor-grabbing hover:border-cyan-400 transition"
                   >
                     <div className="flex items-center gap-3">
                       {slotAd.image_url ? (
@@ -1244,12 +1318,12 @@ export default function AdsSettingsPage() {
                           <Image src={slotAd.image_url} alt="" fill className="object-cover" unoptimized />
                         </div>
                       ) : (
-                        <div className="w-16 h-12 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center justify-center font-bold text-xs shrink-0">
+                        <div className="w-16 h-12 rounded bg-slate-800 text-slate-300 border border-slate-700 flex items-center justify-center font-bold text-xs shrink-0">
                           ARTICLE
                         </div>
                       )}
                       <div>
-                        <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300">
+                        <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.2 rounded bg-slate-800 text-slate-300">
                           {slotAd.badge_label || 'STORY SPONSOR'}
                         </span>
                         <h4 className="font-bold text-white text-xs truncate max-w-xs mt-0.5">
@@ -1263,7 +1337,7 @@ export default function AdsSettingsPage() {
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="text-[10px] text-slate-400 italic">⠿ Drag to move</span>
                       {slotAd.destination_url && slotAd.destination_url.trim() && slotAd.destination_url.trim() !== 'https://' && (
-                        <span className="px-3 py-1 rounded bg-rose-500 text-white font-bold text-xs">
+                        <span className="px-3 py-1 rounded bg-slate-800 border border-slate-700 text-white font-bold text-xs">
                           {slotAd.cta_text || 'View Story'} &rarr;
                         </span>
                       )}
@@ -1282,6 +1356,7 @@ export default function AdsSettingsPage() {
           })()}
         </div>
       </div>
+      )}
 
       {/* ========================================================================= */}
       {/* 5. AD INVENTORY TRAY & QUICK PLACEMENT PILLS                              */}
@@ -1455,357 +1530,6 @@ export default function AdsSettingsPage() {
         )}
       </div>
 
-      {/* ========================================================================= */}
-      {/* 6. ACTIVE AD EDITOR FORM & 1:1 LIVE READER VIEW PREVIEW                   */}
-      {/* ========================================================================= */}
-      {activePlacement && (
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 p-6 shadow-sm space-y-6">
-          {/* Header Bar */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200 dark:border-slate-800">
-            <div className="flex items-center gap-2.5">
-              <span className="text-lg">{activeSlotInfo?.icon}</span>
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                  Edit Ad: {activePlacement.sponsor_name || activePlacement.title || 'Untitled'}
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  ID: <span className="font-mono">{activePlacement.id}</span> &bull; Current Placement: <strong className="text-slate-700 dark:text-slate-200">{activeSlotInfo?.label}</strong>
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <button
-                type="button"
-                onClick={() => setDeleteConfirmId(activePlacement.id)}
-                className="px-3 py-1.5 rounded-xl border border-red-200 dark:border-red-900/60 bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 text-xs font-semibold hover:bg-red-100 transition flex items-center gap-1"
-              >
-                <span>🗑️</span>
-                <span>Delete Ad</span>
-              </button>
-
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={activePlacement.enabled}
-                  onChange={(e) => {
-                    updatePlacement(activeIndex, 'enabled', e.target.checked);
-                    triggerAutoSync(
-                      {
-                        ...form,
-                        placements: form.placements.map((p, idx) =>
-                          idx === activeIndex ? { ...p, enabled: e.target.checked } : p
-                        ),
-                      },
-                      e.target.checked ? 'Ad resumed on live site.' : 'Ad paused from site.'
-                    );
-                  }}
-                  disabled={!canManage}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-5 bg-slate-200 dark:bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
-                <span className="ml-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  {activePlacement.enabled ? 'Active' : 'Paused'}
-                </span>
-              </label>
-            </div>
-          </div>
-
-          {/* Grid: Editor Form (Left 7 cols) + Live Reader Preview (Right 5 cols) */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            <div className="lg:col-span-7 space-y-4">
-              {/* Target Placement Slot Selector */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
-                  Target Placement Slot (Where to Display on Broadsheet)
-                </label>
-                <select
-                  value={activeSlot}
-                  onChange={(e) => handleSlotChange(activeIndex, e.target.value as AdSlotType)}
-                  className="w-full rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3.5 py-2 text-xs text-slate-900 dark:text-white focus:border-cyan-500 focus:outline-none transition font-medium"
-                >
-                  {SLOT_OPTIONS.map((slot) => (
-                    <option key={slot.id} value={slot.id}>
-                      {slot.icon} {slot.label} &mdash; {slot.colSpan}
-                    </option>
-                  ))}
-                </select>
-                <p className="text-[11px] text-slate-500 mt-1">{activeSlotInfo?.locationDesc}</p>
-              </div>
-
-              {/* Sponsor Name & Badge Label */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
-                    Sponsor / Business Name
-                  </label>
-                  <input
-                    type="text"
-                    value={activePlacement.sponsor_name}
-                    onChange={(e) => updatePlacement(activeIndex, 'sponsor_name', e.target.value)}
-                    placeholder="e.g. Valley MedX Diagnostics"
-                    className="w-full rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3.5 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:border-cyan-500 focus:outline-none transition"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
-                    Badge Label
-                  </label>
-                  <input
-                    type="text"
-                    value={activePlacement.badge_label}
-                    onChange={(e) => updatePlacement(activeIndex, 'badge_label', e.target.value)}
-                    placeholder="e.g. Official Partner, Health Sponsor"
-                    className="w-full rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3.5 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:border-cyan-500 focus:outline-none transition"
-                  />
-                </div>
-              </div>
-
-              {/* Headline Title */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
-                  Ad Headline / Title
-                </label>
-                <input
-                  type="text"
-                  value={activePlacement.title}
-                  onChange={(e) => updatePlacement(activeIndex, 'title', e.target.value)}
-                  placeholder="e.g. Direct Cold-Chain Freight & Mandi Transit Corridor"
-                  className="w-full rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3.5 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:border-cyan-500 focus:outline-none transition"
-                />
-              </div>
-
-              {/* Description */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
-                  Ad Body / Description
-                </label>
-                <textarea
-                  rows={3}
-                  value={activePlacement.description}
-                  onChange={(e) => updatePlacement(activeIndex, 'description', e.target.value)}
-                  placeholder="e.g. Zero-delay temperature-controlled freight linking Sopore, Shopian and Narwal directly to national terminal mandis."
-                  className="w-full rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3.5 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:border-cyan-500 focus:outline-none transition"
-                />
-              </div>
-
-              {/* Destination URL & CTA Text */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400">
-                      Destination Link (URL)
-                    </label>
-                    {activePlacement.destination_url && activePlacement.destination_url.trim() && activePlacement.destination_url.trim() !== 'https://' && (
-                      <button
-                        type="button"
-                        onClick={() => updatePlacement(activeIndex, 'destination_url', '')}
-                        className="text-[10px] text-amber-600 dark:text-amber-400 hover:underline font-bold cursor-pointer"
-                        title="Clear link to hide the button"
-                      >
-                        🚫 No Website (Hide Button)
-                      </button>
-                    )}
-                  </div>
-                  <input
-                    type="url"
-                    value={activePlacement.destination_url}
-                    onChange={(e) => updatePlacement(activeIndex, 'destination_url', e.target.value)}
-                    placeholder="https://example.com (leave blank if no website)"
-                    className="w-full rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3.5 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:border-cyan-500 focus:outline-none transition"
-                  />
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                    {activePlacement.destination_url && activePlacement.destination_url.trim() && activePlacement.destination_url.trim() !== 'https://'
-                      ? '✓ Website linked. Call-to-action button will be displayed on the ad.'
-                      : 'ℹ️ No website link provided. Button is hidden (informational display ad mode).'}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
-                    Call-to-Action (CTA Button Text)
-                  </label>
-                  <input
-                    type="text"
-                    value={activePlacement.cta_text}
-                    onChange={(e) => updatePlacement(activeIndex, 'cta_text', e.target.value)}
-                    placeholder="e.g. Learn More / Visit Website"
-                    className="w-full rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3.5 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:border-cyan-500 focus:outline-none transition"
-                  />
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                    Button label text (only rendered when a Destination Link is set above).
-                  </p>
-                </div>
-              </div>
-
-              {/* Theme Accent Picker */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-2">
-                  Theme Color Accent
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                  {ACCENT_OPTIONS.map((accent) => {
-                    const isSelected = activePlacement.theme_accent === accent.id;
-                    return (
-                      <button
-                        key={accent.id}
-                        type="button"
-                        onClick={() => updatePlacement(activeIndex, 'theme_accent', accent.id)}
-                        className={`flex items-center gap-2 p-2 rounded-xl border text-xs font-semibold transition ${
-                          isSelected
-                            ? 'border-cyan-500 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 ring-1 ring-cyan-500'
-                            : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 text-slate-700 dark:text-slate-300 hover:border-slate-300'
-                        }`}
-                      >
-                        <span className={`w-3 h-3 rounded-full ${accent.bgClass} shrink-0`} />
-                        <span className="truncate">{accent.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Banner Image Controls */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
-                  Ad Banner Image
-                </label>
-
-                <div className="space-y-3">
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleUploadImage(activeIndex, file);
-                      }}
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={uploadingIndex === activeIndex}
-                      className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-cyan-600 hover:bg-cyan-500 text-white flex items-center gap-1.5 shadow-sm transition disabled:opacity-50"
-                    >
-                      <span>💻</span>
-                      <span>{uploadingIndex === activeIndex ? 'Uploading File...' : 'Upload from Computer'}</span>
-                    </button>
-
-                    {activePlacement.image_url && (
-                      <button
-                        type="button"
-                        onClick={() => updatePlacement(activeIndex, 'image_url', null)}
-                        className="px-3 py-1.5 rounded-xl text-xs font-semibold border border-rose-300 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400 hover:bg-rose-100 transition flex items-center gap-1"
-                      >
-                        <span>✕</span>
-                        <span>Remove Image (Text-Only Mode)</span>
-                      </button>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-mono text-slate-400">OR URL:</span>
-                    <input
-                      type="url"
-                      value={activePlacement.image_url || ''}
-                      onChange={(e) => updatePlacement(activeIndex, 'image_url', e.target.value || null)}
-                      placeholder="https://images.unsplash.com/... or paste image web link"
-                      className="flex-1 rounded-xl border border-slate-300 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-3 py-1.5 text-xs text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-600 focus:border-cyan-500 focus:outline-none transition"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Live Reader Preview (Right 5 cols) */}
-            <div className="lg:col-span-5 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                  <span>👁️</span>
-                  <span>1:1 Live Reader View Preview</span>
-                </span>
-                <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
-                  Matches Public Website
-                </span>
-              </div>
-
-              {activeStyles && (
-                <div
-                  className={`relative overflow-hidden rounded-2xl border bg-slate-950 ${activeStyles.borderColor} ${activeStyles.cardBg} ${activeStyles.glow} p-5 transition-all duration-300 shadow-xl`}
-                >
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <span
-                      className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${activeStyles.badgeBg}`}
-                    >
-                      {activePlacement.badge_label || 'Sponsored'}
-                    </span>
-                    <span className={`text-[11px] font-semibold truncate ${activeStyles.sponsorText}`}>
-                      {activePlacement.sponsor_name || 'Sponsor Name'}
-                    </span>
-                  </div>
-
-                  {activePlacement.image_url && (
-                    <div className="relative w-full h-36 rounded-xl overflow-hidden mb-3.5 border border-white/10 shadow-inner">
-                      <Image
-                        src={activePlacement.image_url}
-                        alt={activePlacement.title || 'Preview'}
-                        fill
-                        sizes="360px"
-                        className="object-cover"
-                        unoptimized={true}
-                      />
-                    </div>
-                  )}
-
-                  <h4 className={`text-base font-bold text-white leading-tight mb-2 ${activeStyles.titleHover} transition`}>
-                    {activePlacement.title || 'Ad Headline'}
-                  </h4>
-
-                  {activePlacement.description && (
-                    <p className="text-xs text-slate-300 mb-4 line-clamp-3 leading-relaxed">
-                      {activePlacement.description}
-                    </p>
-                  )}
-
-                  {/* Button is ONLY rendered if sponsor has a destination URL */}
-                  {activePlacement.destination_url &&
-                  activePlacement.destination_url.trim() &&
-                  activePlacement.destination_url.trim() !== 'https://' &&
-                  activePlacement.destination_url.trim() !== 'http://' &&
-                  activePlacement.destination_url.trim() !== '#' ? (
-                    <div
-                      className={`block text-center w-full px-4 py-2 rounded-xl text-xs uppercase tracking-wider font-bold ${activeStyles.ctaButton}`}
-                    >
-                      {activePlacement.cta_text || 'Learn More'} &rarr;
-                    </div>
-                  ) : (
-                    <div className="rounded-xl border border-dashed border-white/20 bg-white/5 py-2 px-3 text-center text-[11px] text-slate-300 font-medium">
-                      📢 Informational Display Ad (No website link — button is hidden)
-                    </div>
-                  )}
-
-                  <div className="mt-3 pt-2.5 border-t border-white/10 flex items-center justify-between text-[10px] text-slate-400 font-mono">
-                    <span className="truncate max-w-[200px]">
-                      {activePlacement.destination_url &&
-                      activePlacement.destination_url.trim() &&
-                      activePlacement.destination_url.trim() !== 'https://'
-                        ? `Link: ${activePlacement.destination_url}`
-                        : 'Link: None (No button rendered)'}
-                    </span>
-                    <span className="uppercase">{activePlacement.theme_accent}</span>
-                  </div>
-                </div>
-              )}
-
-              <p className="text-[11px] text-slate-500 leading-relaxed">
-                💡 This card preview renders with the authentic GI seal badge, custom glowing accent gradient, and verified partner link formatting.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
