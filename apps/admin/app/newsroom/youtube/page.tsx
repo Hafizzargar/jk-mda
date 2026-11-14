@@ -354,10 +354,11 @@ export default function YouTubeMonitorPage() {
     }
   }
 
-  async function handleDiscoverNow(silent = false) {
+  async function handleDiscoverNow(silent?: boolean | unknown) {
+    const isSilent = silent === true;
     if (isDiscoveringRef.current || isDiscovering) return;
     isDiscoveringRef.current = true;
-    if (!silent) {
+    if (!isSilent) {
       setIsDiscovering(true);
       setFeedback(null);
     }
@@ -380,7 +381,7 @@ export default function YouTubeMonitorPage() {
           type: 'success',
         });
         await loadData();
-      } else if (!silent) {
+      } else if (!isSilent) {
         if (data.skipped) {
           setFeedback({ text: `ℹ️ ${data.reason}`, type: 'success' });
         } else {
@@ -388,7 +389,7 @@ export default function YouTubeMonitorPage() {
         }
       }
     } catch (err: any) {
-      if (!silent) {
+      if (!isSilent) {
         setFeedback({ text: err.message || 'Discovery network error.', type: 'error' });
       }
     } finally {
