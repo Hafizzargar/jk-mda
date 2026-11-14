@@ -105,3 +105,4 @@ Return strictly a JSON block inside \`\`\`json ... \`\`\` with this format:
     return Response.json({ error: error.message || 'Internal server error' }, { status: 500 });
   }
 }
+
