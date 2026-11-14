@@ -81,6 +81,16 @@ interface YouTubeVideo {
   };
 }
 
+const DEFAULT_BEAT_QUOTAS: Record<string, { min: number; max: number; name: string; subtitle: string; priority?: boolean }> = {
+  chenab_valley: { min: 3, max: 6, name: 'Chenab Valley', subtitle: 'Doda, Kishtwar, Ramban', priority: true },
+  jammu: { min: 2, max: 5, name: 'Jammu Plains', subtitle: 'Jammu, Samba, Kathua' },
+  kashmir: { min: 2, max: 5, name: 'Kashmir Valley', subtitle: 'Srinagar & Valley' },
+  leh_ladakh: { min: 2, max: 3, name: 'Leh & Ladakh', subtitle: 'Leh, Kargil (UT)' },
+  pir_panjal: { min: 2, max: 3, name: 'Pir Panjal', subtitle: 'Poonch, Rajouri' },
+  national: { min: 2, max: 5, name: 'National (India)', subtitle: 'Pan-India Policy' },
+  international: { min: 4, max: 5, name: 'International', subtitle: 'Global Diplomacy' },
+};
+
 export default function YouTubeMonitorPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'drafts' | 'channels'>('drafts');
@@ -172,6 +182,20 @@ export default function YouTubeMonitorPage() {
   const isSyncingRef = useRef(false);
   const isDiscoveringRef = useRef(false);
 
+  // Dynamic Beat Target Quotas State (Min / Max per region)
+  const [beatQuotas, setBeatQuotas] = useState<Record<string, { min: number; max: number }>>({
+    chenab_valley: { min: 3, max: 6 },
+    jammu: { min: 2, max: 5 },
+    kashmir: { min: 2, max: 5 },
+    leh_ladakh: { min: 2, max: 3 },
+    pir_panjal: { min: 2, max: 3 },
+    national: { min: 2, max: 5 },
+    international: { min: 4, max: 5 },
+  });
+  const [isQuotasModalOpen, setIsQuotasModalOpen] = useState(false);
+  const [isSavingQuotas, setIsSavingQuotas] = useState(false);
+  const [editingQuotas, setEditingQuotas] = useState<Record<string, { min: number; max: number }>>({});
+
   useEffect(() => {
     loadData();
     // Immediate background auto-discovery & auto-sync on page mount
@@ -234,6 +258,7 @@ export default function YouTubeMonitorPage() {
         body: JSON.stringify({
           interval_minutes: newInterval,
           auto_pilot_enabled: newEnabled,
+          beat_quotas: beatQuotas,
         }),
       });
       setFeedback({
@@ -246,6 +271,39 @@ export default function YouTubeMonitorPage() {
       }
     } catch (err) {
       console.error('Failed to save auto-pilot settings:', err);
+    }
+  }
+
+  async function handleSaveBeatQuotas(newQuotas: Record<string, { min: number; max: number }>) {
+    setIsSavingQuotas(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) return;
+      const res = await fetch('/api/newsroom/youtube/settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+        body: JSON.stringify({
+          interval_minutes: autoPilotIntervalMinutes,
+          auto_pilot_enabled: autoPilot,
+          beat_quotas: newQuotas,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to save beat quotas.');
+      setBeatQuotas(newQuotas);
+      setIsQuotasModalOpen(false);
+      setFeedback({
+        text: '✅ Editorial Beat Target Quotas updated! Radar will discover news according to your new regional limits.',
+        type: 'success',
+      });
+      await loadData();
+    } catch (err: any) {
+      console.error('Failed to save beat quotas:', err);
+      setFeedback({ text: err.message || 'Failed to save beat quotas.', type: 'error' });
+    } finally {
+      setIsSavingQuotas(false);
     }
   }
 
@@ -294,6 +352,9 @@ export default function YouTubeMonitorPage() {
         setAutoPilotIntervalMinutes(mins);
         setAutoPilot(enabled);
         setCountdown(mins * 60);
+        if (sData.beat_quotas) {
+          setBeatQuotas((prev) => ({ ...prev, ...sData.beat_quotas }));
+        }
       }
 
       if (channelsRes.ok) {
@@ -957,13 +1018,25 @@ export default function YouTubeMonitorPage() {
               <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/50 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-800/40">
                 100% Pending Approval (0 Auto-Publish)
               </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingQuotas({ ...beatQuotas });
+                  setIsQuotasModalOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-xs transition cursor-pointer ml-auto"
+                title="Click to adjust min and max story targets for each region"
+              >
+                <span>🎯</span>
+                <span>Adjust Beat Quotas (Min / Max)</span>
+              </button>
             </div>
             <div className="flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400 pt-1 flex-wrap">
               <span className="inline-flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 px-2.5 py-0.5 rounded-md font-semibold border border-emerald-200 dark:border-emerald-800/40">
                 📰 Today Published News: <strong className="text-emerald-900 dark:text-emerald-200 ml-0.5">{discoveryStats?.publishedToday ?? 0}</strong> stories
               </span>
               <span>•</span>
-              <span>🎯 Discovered / Target: <strong>{discoveryStats?.discoveredToday ?? 0} / {discoveryStats?.dailyTarget ?? 25}</strong> stories (Range: 17–32)</span>
+              <span>🎯 Discovered / Target: <strong>{discoveryStats?.discoveredToday ?? 0} / {discoveryStats?.dailyTarget ?? 25}</strong> stories (Range: {discoveryStats?.minDailyTotal ?? 17}–{discoveryStats?.maxDailyTotal ?? 32})</span>
               <span>•</span>
               <span>⏱️ Cadence: <strong>Every {autoPilotIntervalMinutes >= 60 ? `${autoPilotIntervalMinutes / 60} hr${autoPilotIntervalMinutes > 60 ? 's' : ''}` : `${autoPilotIntervalMinutes} min${autoPilotIntervalMinutes > 1 ? 's' : ''}`}</strong></span>
               <span>•</span>
@@ -974,37 +1047,37 @@ export default function YouTubeMonitorPage() {
 
         {/* 7 Regional Editorial Distribution Indicators */}
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 pt-1 border-t border-purple-100 dark:border-purple-900/30">
-          {[
-            { id: 'chenab_valley', name: 'Chenab Valley', min: 3, max: 6, priority: true, subtitle: 'Doda, Kishtwar, Ramban' },
-            { id: 'jammu', name: 'Jammu Plains', min: 2, max: 5, subtitle: 'Jammu, Samba, Kathua' },
-            { id: 'kashmir', name: 'Kashmir Valley', min: 2, max: 5, subtitle: 'Srinagar & Valley' },
-            { id: 'leh_ladakh', name: 'Leh & Ladakh', min: 2, max: 3, subtitle: 'Leh, Kargil (UT)' },
-            { id: 'pir_panjal', name: 'Pir Panjal', min: 2, max: 3, subtitle: 'Poonch, Rajouri' },
-            { id: 'national', name: 'National (India)', min: 2, max: 5, subtitle: 'Pan-India Policy' },
-            { id: 'international', name: 'International', min: 4, max: 5, subtitle: 'Global Diplomacy' },
-          ].map((target) => {
-            const live = discoveryRegions.find((r) => r.id === target.id);
+          {Object.entries(DEFAULT_BEAT_QUOTAS).map(([beatId, base]) => {
+            const live = discoveryRegions.find((r) => r.id === beatId);
             const current = live?.current ?? 0;
             const published = live?.published ?? 0;
-            const isMet = current >= target.min;
-            const isMax = current >= target.max;
+            const quota = beatQuotas[beatId] || { min: base.min, max: base.max };
+            const minVal = live?.min ?? quota.min;
+            const maxVal = live?.max ?? quota.max;
+            const isMet = current >= minVal;
+            const isMax = current >= maxVal;
 
             return (
               <div
-                key={target.id}
-                className={`p-2 rounded-xl border text-xs transition flex flex-col justify-between ${
-                  target.priority
-                    ? 'border-cyan-300 dark:border-cyan-800 bg-cyan-50/60 dark:bg-cyan-950/20'
+                key={beatId}
+                onClick={() => {
+                  setEditingQuotas({ ...beatQuotas });
+                  setIsQuotasModalOpen(true);
+                }}
+                className={`p-2 rounded-xl border text-xs transition flex flex-col justify-between cursor-pointer hover:shadow-sm ${
+                  base.priority
+                    ? 'border-cyan-300 dark:border-cyan-800 bg-cyan-50/60 dark:bg-cyan-950/20 hover:border-cyan-400'
                     : isMet
-                    ? 'border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/40 dark:bg-emerald-950/10'
-                    : 'border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/60'
+                    ? 'border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/40 dark:bg-emerald-950/10 hover:border-emerald-300'
+                    : 'border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/60 hover:border-slate-300'
                 }`}
+                title={`Click to adjust Min/Max targets for ${base.name} (Current: ${minVal}–${maxVal})`}
               >
                 <div className="flex items-center justify-between gap-1 mb-1">
-                  <span className="font-bold text-[11px] truncate text-slate-800 dark:text-slate-200" title={target.name}>
-                    {target.name}
+                  <span className="font-bold text-[11px] truncate text-slate-800 dark:text-slate-200" title={base.name}>
+                    {base.name}
                   </span>
-                  {target.priority ? (
+                  {base.priority ? (
                     <span className="text-[9px] px-1 py-0.2 rounded bg-cyan-200 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-300 font-extrabold uppercase">
                       Top
                     </span>
@@ -1017,16 +1090,16 @@ export default function YouTubeMonitorPage() {
                 <div className="flex items-baseline justify-between">
                   <span className="text-base font-black text-slate-900 dark:text-white">
                     {current}
-                    <span className="text-[10px] font-normal text-slate-400 ml-0.5">
-                      / {target.min}–{target.max}
+                    <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 ml-0.5 inline-flex items-center gap-0.5">
+                      / {minVal}–{maxVal} <span className="opacity-60 text-[9px]">✏️</span>
                     </span>
                   </span>
                   <span className={`text-[10px] font-bold ${isMet ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                    {published > 0 ? `${published} published` : isMax ? 'Maxed' : isMet ? '✓ Met' : `${target.min - current} needed`}
+                    {published > 0 ? `${published} published` : isMax ? 'Maxed' : isMet ? '✓ Met' : `${minVal - current} needed`}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500 truncate mt-0.5">
-                  <span className="truncate" title={target.subtitle}>{target.subtitle}</span>
+                  <span className="truncate" title={base.subtitle}>{base.subtitle}</span>
                   {published > 0 && <span className="font-semibold text-emerald-600 dark:text-emerald-400 shrink-0">({published} pub)</span>}
                 </div>
               </div>
@@ -2341,6 +2414,135 @@ export default function YouTubeMonitorPage() {
                   onClick={() => handleApproveDraft('review')}
                 >
                   Approve to Editorial Review →
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Editorial Beat Quotas Configuration Modal */}
+      {isQuotasModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="w-full max-w-xl rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl p-6 space-y-5 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <span>🎯</span>
+                  <span>Adjust Editorial Beat Target Quotas</span>
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Control the minimum needed and maximum daily ceiling of news discoveries for each region. Example: increase Chenab Valley max from 6 to 20 to prioritize more stories from Doda, Kishtwar, and Ramban.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsQuotasModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold p-1 text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+              {Object.entries(DEFAULT_BEAT_QUOTAS).map(([beatId, base]) => {
+                const currentMin = editingQuotas[beatId]?.min ?? base.min;
+                const currentMax = editingQuotas[beatId]?.max ?? base.max;
+
+                return (
+                  <div
+                    key={beatId}
+                    className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                  >
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-sm text-slate-900 dark:text-slate-100">{base.name}</span>
+                        {base.priority && (
+                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-cyan-100 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-300 font-bold">
+                            Top Priority
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-xs text-slate-500 dark:text-slate-400">{base.subtitle}</span>
+                    </div>
+
+                    <div className="flex items-center gap-4 shrink-0">
+                      <div className="flex items-center gap-1.5">
+                        <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">Min:</label>
+                        <input
+                          type="number"
+                          min={0}
+                          max={50}
+                          value={currentMin}
+                          onChange={(e) => {
+                            const val = Math.max(0, Number(e.target.value));
+                            setEditingQuotas((prev) => ({
+                              ...prev,
+                              [beatId]: { min: val, max: Math.max(val, prev[beatId]?.max ?? base.max) },
+                            }));
+                          }}
+                          className="w-16 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-xs text-center font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">Max:</label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={100}
+                          value={currentMax}
+                          onChange={(e) => {
+                            const val = Math.max(1, Number(e.target.value));
+                            setEditingQuotas((prev) => ({
+                              ...prev,
+                              [beatId]: { min: Math.min(val, prev[beatId]?.min ?? base.min), max: val },
+                            }));
+                          }}
+                          className="w-16 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-xs text-center font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => {
+                  const defaults: Record<string, { min: number; max: number }> = {};
+                  Object.entries(DEFAULT_BEAT_QUOTAS).forEach(([k, v]) => {
+                    defaults[k] = { min: v.min, max: v.max };
+                  });
+                  setEditingQuotas(defaults);
+                }}
+                className="text-xs font-semibold text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 cursor-pointer"
+              >
+                Reset to Standard Defaults
+              </button>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setIsQuotasModalOpen(false)}
+                  disabled={isSavingQuotas}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  isLoading={isSavingQuotas}
+                  disabled={isSavingQuotas}
+                  onClick={() => handleSaveBeatQuotas(editingQuotas)}
+                  className="bg-purple-600 hover:bg-purple-700 text-white font-bold"
+                >
+                  Save Beat Quotas
                 </Button>
               </div>
             </div>

@@ -287,21 +287,38 @@ export async function getDailyRegionalStats(service: SupabaseClient): Promise<Re
     }
   }
 
+  // Fetch custom dynamic beat quotas from site_settings (if set by editor)
+  let customQuotas: Record<string, { min?: number; max?: number }> = {};
+  try {
+    const { data: settingsRow } = await service
+      .from('site_settings')
+      .select('value')
+      .eq('key', 'newsroom_auto_pilot')
+      .maybeSingle();
+    if (settingsRow?.value?.beat_quotas) {
+      customQuotas = settingsRow.value.beat_quotas;
+    }
+  } catch {
+    // Fall back to default targets
+  }
+
   const regionBreakdown = KJIN_REGIONAL_TARGETS.map((t) => {
     const current = countMap[t.id] || 0;
     const published = publishedCountMap[t.id] || 0;
-    const deficit = Math.max(0, t.min - current);
+    const minTarget = customQuotas[t.id]?.min !== undefined ? Math.max(0, Number(customQuotas[t.id]?.min)) : t.min;
+    const maxTarget = customQuotas[t.id]?.max !== undefined ? Math.max(minTarget, Number(customQuotas[t.id]?.max)) : t.max;
+    const deficit = Math.max(0, minTarget - current);
     return {
       id: t.id,
       name: t.name,
       shortName: t.shortName,
       current,
       published,
-      min: t.min,
-      max: t.max,
+      min: minTarget,
+      max: maxTarget,
       deficit,
-      isMet: current >= t.min,
-      isMaxReached: current >= t.max,
+      isMet: current >= minTarget,
+      isMaxReached: current >= maxTarget,
       isRegional: t.isRegional,
     };
   });
@@ -317,6 +334,10 @@ export async function getDailyRegionalStats(service: SupabaseClient): Promise<Re
   const totalCount = articles.length;
   const regionalSharePercent = totalCount > 0 ? Math.round((regionalTotal / totalCount) * 100) : 65;
 
+  const minDailyTotal = regionBreakdown.reduce((sum, r) => sum + r.min, 0);
+  const maxDailyTotal = regionBreakdown.reduce((sum, r) => sum + r.max, 0);
+  const preferredOperatingTarget = Math.round((minDailyTotal + maxDailyTotal) / 2);
+
   return {
     totalDiscoveredToday: totalCount,
     totalPublishedToday: publishedTodayCount,
@@ -324,9 +345,9 @@ export async function getDailyRegionalStats(service: SupabaseClient): Promise<Re
     nationalInternationalDiscoveredToday: nonRegionalTotal,
     regionalSharePercent,
     targetOverview: {
-      minDailyTotal: 17,
-      maxDailyTotal: 32,
-      preferredOperatingTarget: 25,
+      minDailyTotal,
+      maxDailyTotal,
+      preferredOperatingTarget,
     },
     regions: regionBreakdown,
   };
