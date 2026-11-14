@@ -270,6 +270,15 @@ export function Sidebar({
                 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40 font-bold',
             },
             {
+              name: 'Festive & Celebrations',
+              href: '/settings/celebrations',
+              icon: '🎆',
+              roles: ['owner', 'superadmin', 'admin', 'editor'],
+              badge: 'Festive',
+              badgeColor:
+                'bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/40 font-bold',
+            },
+            {
               name: 'Website Templates',
               href: '/templates',
               icon: '🎨',

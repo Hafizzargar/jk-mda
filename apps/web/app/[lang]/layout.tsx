@@ -12,7 +12,9 @@ export const viewport: Viewport = {
 import { createServerAnonClient } from '@/lib/supabase-server';
 import { getTemplateTheme, type TemplateId } from '@/lib/templates';
 import { ScrollToTop } from '@/components/navigation/ScrollToTop';
+import { FestiveCelebrationOverlay } from '@/components/celebration/FestiveCelebrationOverlay';
 import { getBrandSettings } from '@/lib/brand';
+import { getFestiveSettings, type FestiveCelebrationSettings } from '@/lib/festive';
 import { getCachedSiteSetting } from '@/lib/site-settings-cache';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -77,6 +79,14 @@ export default async function RootLayout({
     console.warn('[RootLayout] Using fallback template:', err);
   }
 
+  let festiveSettings: FestiveCelebrationSettings | null = null;
+  try {
+    const supabase = createServerAnonClient();
+    festiveSettings = await getFestiveSettings(supabase);
+  } catch (err) {
+    console.warn('[RootLayout] Using fallback festive settings:', err);
+  }
+
   const theme = getTemplateTheme(activeTemplateId);
 
   return (
@@ -99,6 +109,7 @@ export default async function RootLayout({
         className={`min-h-screen w-full max-w-full overflow-x-hidden ${theme.pageBgClass} ${theme.textPrimaryClass} ${theme.fontFamilyClass} ${theme.selectionClass} antialiased transition-colors duration-200`}
       >
         <ScrollToTop />
+        <FestiveCelebrationOverlay initialSettings={festiveSettings} />
         {children}
       </body>
     </html>
