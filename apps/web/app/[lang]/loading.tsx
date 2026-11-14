@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import { DEFAULT_NAVBAR_SETTINGS, type NavbarBrandConfig, sanitizeNavbarSettings } from '@/lib/navbar';
-import { FestiveCelebrationOverlay } from '@/components/celebration/FestiveCelebrationOverlay';
 import { isFestiveCelebrationActive, type FestiveCelebrationSettings } from '@/lib/festive';
 
 export default function Loading() {
@@ -81,9 +80,6 @@ export default function Loading() {
 
   return (
     <div className="min-h-[85vh] flex flex-col items-center justify-center bg-white select-none px-4 transition-colors duration-200 relative overflow-hidden">
-      {/* Festive Particles Overlay on Splash Loading Screen */}
-      <FestiveCelebrationOverlay initialSettings={festive} />
-
       {/* Occasion Greeting Pill (Displayed during festive celebrations) */}
       {isFestiveActive && festive && (
         <div

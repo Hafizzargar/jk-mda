@@ -35,8 +35,10 @@ export function FestiveCelebrationOverlay({ initialSettings }: FestiveCelebratio
 
   const isRunningRef = useRef(false);
 
-  // Always fetch freshest settings on mount from API to ensure instant real-time sync with admin changes
+  // Only fetch if initialSettings was not already provided by server layout
   useEffect(() => {
+    if (initialSettings !== undefined) return;
+
     fetch('/api/celebrations')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
@@ -46,7 +48,7 @@ export function FestiveCelebrationOverlay({ initialSettings }: FestiveCelebratio
         }
       })
       .catch(() => {});
-  }, []);
+  }, [initialSettings]);
 
   const triggerBurst = useCallback(() => {
     const canvas = canvasRef.current;
@@ -61,8 +63,10 @@ export function FestiveCelebrationOverlay({ initialSettings }: FestiveCelebratio
       ? settings.colors
       : ['#F59E0B', '#EF4444', '#10B981', '#06B6D4', '#EC4899'];
 
+    const isMobile = width < 768;
     const isFirelight = settings.effect_type === 'firelight_sparkles';
-    const count = isFirelight ? 100 : 130;
+    // Optimized particle count: lightweight on mobile to preserve 60fps & battery
+    const count = isFirelight ? (isMobile ? 35 : 65) : (isMobile ? 40 : 75);
     const newParticles = [];
 
     if (isFirelight) {
@@ -70,39 +74,41 @@ export function FestiveCelebrationOverlay({ initialSettings }: FestiveCelebratio
       for (let i = 0; i < count; i++) {
         newParticles.push({
           x: Math.random() * width,
-          y: height + Math.random() * 50,
-          vx: (Math.random() - 0.5) * 1.6,
-          vy: -(Math.random() * 2.8 + 1.2),
-          size: Math.random() * 4.5 + 2,
+          y: height + Math.random() * 30,
+          vx: (Math.random() - 0.5) * 1.2,
+          vy: -(Math.random() * 2.2 + 0.8),
+          size: Math.random() * 3.5 + 1.5,
           color: colors[Math.floor(Math.random() * colors.length)],
           alpha: 1,
           life: 0,
-          maxLife: Math.random() * 140 + 80,
+          maxLife: Math.random() * 90 + 50,
         });
       }
     } else {
-      // Sky Fireworks & Color Bursts from multiple broadsheet focal points
-      const origins = [
-        { x: width * 0.22, y: height * 0.32 },
-        { x: width * 0.5, y: height * 0.24 },
-        { x: width * 0.78, y: height * 0.32 },
-      ];
+      // Sky Fireworks & Color Bursts adapted to screen size
+      const origins = isMobile
+        ? [{ x: width * 0.5, y: height * 0.28 }]
+        : [
+            { x: width * 0.25, y: height * 0.3 },
+            { x: width * 0.5, y: height * 0.24 },
+            { x: width * 0.75, y: height * 0.3 },
+          ];
 
       origins.forEach((origin) => {
         const burstCount = Math.floor(count / origins.length);
         for (let i = 0; i < burstCount; i++) {
           const angle = Math.random() * Math.PI * 2;
-          const speed = Math.random() * 6.5 + 1.8;
+          const speed = Math.random() * 5 + 1.2;
           newParticles.push({
-            x: origin.x + (Math.random() - 0.5) * 40,
-            y: origin.y + (Math.random() - 0.5) * 40,
+            x: origin.x + (Math.random() - 0.5) * 20,
+            y: origin.y + (Math.random() - 0.5) * 20,
             vx: Math.cos(angle) * speed,
             vy: Math.sin(angle) * speed,
-            size: Math.random() * 3.8 + 2,
+            size: Math.random() * 3 + 1.5,
             color: colors[Math.floor(Math.random() * colors.length)],
             alpha: 1,
             life: 0,
-            maxLife: Math.random() * 80 + 45,
+            maxLife: Math.random() * 65 + 35,
           });
         }
       });
@@ -153,8 +159,6 @@ export function FestiveCelebrationOverlay({ initialSettings }: FestiveCelebratio
       ctx.save();
       ctx.globalAlpha = p.alpha;
       ctx.fillStyle = p.color;
-      ctx.shadowColor = p.color;
-      ctx.shadowBlur = 12;
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
       ctx.fill();

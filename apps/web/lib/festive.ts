@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { getCachedSiteSetting } from './site-settings-cache';
 
 export type FestiveEffectType =
   | 'firelight_sparkles' // Ambient rising golden embers & warm firelight
@@ -334,22 +335,18 @@ export async function getAllCelebrations(
   supabase: SupabaseClient
 ): Promise<{ items: FestiveCelebrationItem[]; active: FestiveCelebrationItem | null }> {
   try {
-    const { data, error } = await supabase
-      .from('site_settings')
-      .select('value')
-      .eq('key', 'festive_celebration')
-      .maybeSingle();
+    const rawValue = await getCachedSiteSetting(supabase, 'festive_celebration');
 
-    if (error || !data || !data.value) {
+    if (!rawValue) {
       const items = DEFAULT_CELEBRATION_ITEMS;
       return { items, active: getActiveCelebration(items) };
     }
 
-    const items = normalizeCelebrationItems(data.value);
+    const items = normalizeCelebrationItems(rawValue);
     const active = getActiveCelebration(items);
     return { items, active };
   } catch (err) {
-    console.error('Failed to get celebrations:', err);
+    console.warn('Failed to get celebrations, using defaults:', err);
     return { items: DEFAULT_CELEBRATION_ITEMS, active: getActiveCelebration(DEFAULT_CELEBRATION_ITEMS) };
   }
 }
