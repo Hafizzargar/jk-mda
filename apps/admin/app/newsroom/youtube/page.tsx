@@ -170,10 +170,12 @@ export default function YouTubeMonitorPage() {
   const [autoPilotIntervalMinutes, setAutoPilotIntervalMinutes] = useState<number>(5);
   const [countdown, setCountdown] = useState<number>(300);
   const isSyncingRef = useRef(false);
+  const isDiscoveringRef = useRef(false);
 
   useEffect(() => {
     loadData();
-    // Immediate background auto-sync on page mount
+    // Immediate background auto-discovery & auto-sync on page mount
+    handleDiscoverNow(true);
     handleSyncNow(true);
   }, []);
 
@@ -183,6 +185,11 @@ export default function YouTubeMonitorPage() {
       timer = setInterval(() => {
         setCountdown((prev) => {
           if (prev <= 1) {
+            // 1. Run autonomous web news discovery (Gemini Grounding across Google News & wires)
+            if (!isDiscoveringRef.current) {
+              handleDiscoverNow(true);
+            }
+            // 2. Run YouTube channel surveillance sync
             if (!isSyncingRef.current) {
               handleSyncNow(true);
             }
@@ -230,9 +237,13 @@ export default function YouTubeMonitorPage() {
         }),
       });
       setFeedback({
-        text: `Auto-Pilot adjusted: Syncing every ${newInterval >= 60 ? `${newInterval / 60} hour(s)` : `${newInterval} minute(s)`} (${newEnabled ? 'Active' : 'Paused'}).`,
+        text: `Autonomous Radar schedule updated: Running discovery & sync every ${newInterval >= 60 ? `${newInterval / 60} hour(s)` : `${newInterval} minute(s)`} (${newEnabled ? 'Active' : 'Paused'}).`,
         type: 'success',
       });
+      // If newly active, trigger immediate discovery run
+      if (newEnabled) {
+        handleDiscoverNow(true);
+      }
     } catch (err) {
       console.error('Failed to save auto-pilot settings:', err);
     }
@@ -343,10 +354,13 @@ export default function YouTubeMonitorPage() {
     }
   }
 
-  async function handleDiscoverNow() {
-    if (isDiscovering) return;
-    setIsDiscovering(true);
-    setFeedback(null);
+  async function handleDiscoverNow(silent = false) {
+    if (isDiscoveringRef.current || isDiscovering) return;
+    isDiscoveringRef.current = true;
+    if (!silent) {
+      setIsDiscovering(true);
+      setFeedback(null);
+    }
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session) return;
@@ -366,15 +380,20 @@ export default function YouTubeMonitorPage() {
           type: 'success',
         });
         await loadData();
-      } else if (data.skipped) {
-        setFeedback({ text: `ℹ️ ${data.reason}`, type: 'success' });
-      } else {
-        setFeedback({ text: data.reason || data.error || 'Discovery cycle finished. No new breaking events detected.', type: 'error' });
+      } else if (!silent) {
+        if (data.skipped) {
+          setFeedback({ text: `ℹ️ ${data.reason}`, type: 'success' });
+        } else {
+          setFeedback({ text: data.reason || data.error || 'Discovery cycle finished. No new breaking events detected.', type: 'error' });
+        }
       }
     } catch (err: any) {
-      setFeedback({ text: err.message || 'Discovery network error.', type: 'error' });
+      if (!silent) {
+        setFeedback({ text: err.message || 'Discovery network error.', type: 'error' });
+      }
     } finally {
       setIsDiscovering(false);
+      isDiscoveringRef.current = false;
     }
   }
 
@@ -859,6 +878,10 @@ export default function YouTubeMonitorPage() {
               className="bg-transparent font-bold text-slate-800 dark:text-slate-100 text-xs outline-none cursor-pointer"
               title="Select how often autonomous discovery runs"
             >
+              <option value={1}>Every 1 Min (Rapid Realtime)</option>
+              <option value={3}>Every 3 Min (Fast Track)</option>
+              <option value={5}>Every 5 Min</option>
+              <option value={10}>Every 10 Min</option>
               <option value={15}>Every 15 Min</option>
               <option value={30}>Every 30 Min</option>
               <option value={60}>Every 1 Hour (Standard)</option>
@@ -874,7 +897,7 @@ export default function YouTubeMonitorPage() {
             icon="🔍"
             disabled={isDiscovering}
             isLoading={isDiscovering}
-            onClick={handleDiscoverNow}
+            onClick={() => handleDiscoverNow(false)}
             className="bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-xs cursor-pointer"
             title="Trigger real-time multi-source news discovery across all beats right now"
           >
@@ -932,7 +955,7 @@ export default function YouTubeMonitorPage() {
               <span>•</span>
               <span>🎯 Discovered / Target: <strong>{discoveryStats?.discoveredToday ?? 0} / {discoveryStats?.dailyTarget ?? 25}</strong> stories (Range: 17–32)</span>
               <span>•</span>
-              <span>⏱️ Cadence: <strong>Every 60 mins</strong></span>
+              <span>⏱️ Cadence: <strong>Every {autoPilotIntervalMinutes >= 60 ? `${autoPilotIntervalMinutes / 60} hr${autoPilotIntervalMinutes > 60 ? 's' : ''}` : `${autoPilotIntervalMinutes} min${autoPilotIntervalMinutes > 1 ? 's' : ''}`}</strong></span>
               <span>•</span>
               <span>⛰️ Regional Coverage: <strong>{discoveryStats?.regionalCount ?? 0} stories ({discoveryStats?.regionalSharePercent ?? 65}% of minimum)</strong></span>
             </div>
