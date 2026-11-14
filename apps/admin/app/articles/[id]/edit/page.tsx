@@ -44,6 +44,14 @@ export default function EditArticlePage({ params }: { params?: Promise<{ id: str
   const [article, setArticle] = useState<Article | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Controlled title, slug, and excerpt state for AI enhancement
+  const [titleValue, setTitleValue] = useState('');
+  const [excerptValue, setExcerptValue] = useState('');
+  const [slugValue, setSlugValue] = useState('');
+  const [isEnhancing, setIsEnhancing] = useState(false);
+  const [enhancedSuggestions, setEnhancedSuggestions] = useState<Array<{ style: string; title: string; excerpt: string }>>([]);
+  const [showEnhanceModal, setShowEnhanceModal] = useState(false);
+
   // Image mode state & live preview
   const [hasFeaturedImage, setHasFeaturedImage] = useState(true);
   const [imageUrl, setImageUrl] = useState('');
@@ -126,6 +134,9 @@ export default function EditArticlePage({ params }: { params?: Promise<{ id: str
       }
 
       setArticle(a);
+      setTitleValue(a.title || '');
+      setExcerptValue(a.excerpt || '');
+      setSlugValue(a.slug || '');
       setHasFeaturedImage(Boolean(a.featured_image_url));
       setImageUrl(a.featured_image_url ?? '');
       setSelectedCategory(a.category || 'General');
@@ -234,6 +245,59 @@ export default function EditArticlePage({ params }: { params?: Promise<{ id: str
       toast.error(errorMsg, { id: toastId });
       setIsSubmitting(false);
     }
+  };
+
+  const handleEnhanceWithAI = async () => {
+    if (!titleValue && !article?.content) {
+      toast.error('Please enter a title or article content first');
+      return;
+    }
+    setIsEnhancing(true);
+    const toastId = toast.loading('Generating attractive headline & description options...');
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      const res = await fetch('/api/newsroom/enhance', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          title: titleValue,
+          excerpt: excerptValue,
+          content: article?.content,
+          category: selectedCategory,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || 'Failed to generate suggestions', { id: toastId });
+        return;
+      }
+      if (Array.isArray(data.suggestions) && data.suggestions.length > 0) {
+        setEnhancedSuggestions(data.suggestions);
+        setShowEnhanceModal(true);
+        toast.success('Generated 3 attractive options!', { id: toastId });
+      } else {
+        toast.error('No suggestions were returned', { id: toastId });
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Error connecting to AI service', { id: toastId });
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
+  const applySuggestion = (s: { title: string; excerpt: string }) => {
+    setTitleValue(s.title);
+    setExcerptValue(s.excerpt);
+    if (article && article.status !== 'published' && article.status !== 'archived') {
+      const newSlug = s.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+      setSlugValue(newSlug);
+    }
+    setShowEnhanceModal(false);
+    toast.success('Applied exciting headline & description!');
   };
 
   useEffect(() => {
@@ -353,12 +417,24 @@ export default function EditArticlePage({ params }: { params?: Promise<{ id: str
 
             <div className="space-y-5">
               <label className="block">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  Title <span className="text-rose-500">*</span>
-                </span>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                    Title <span className="text-rose-500">*</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleEnhanceWithAI}
+                    disabled={isEnhancing}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold rounded-lg bg-gradient-to-r from-purple-600 via-indigo-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white shadow-xs transition cursor-pointer disabled:opacity-50"
+                    title="Generate exciting, high-engagement headlines and descriptions with AI"
+                  >
+                    <span>{isEnhancing ? '⏳ Analyzing...' : '✨ Make Title & Description Attractive'}</span>
+                  </button>
+                </div>
                 <input
                   name="title"
-                  defaultValue={article.title}
+                  value={titleValue}
+                  onChange={(e) => setTitleValue(e.target.value)}
                   required
                   maxLength={255}
                   className="mt-1.5 w-full rounded-[8px] border border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-950/70 px-3.5 py-2.5 text-base font-medium text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-cyan-500 focus:bg-white dark:focus:bg-slate-950 focus:ring-2 focus:ring-cyan-500/20 focus:outline-none transition shadow-2xs"
@@ -383,7 +459,8 @@ export default function EditArticlePage({ params }: { params?: Promise<{ id: str
                   </span>
                   <input
                     name="slug"
-                    defaultValue={article.slug}
+                    value={slugValue}
+                    onChange={(e) => setSlugValue(e.target.value)}
                     maxLength={255}
                     pattern="^[a-z0-9-]+$"
                     title="Only lowercase letters, numbers, and hyphens are allowed"
@@ -394,14 +471,25 @@ export default function EditArticlePage({ params }: { params?: Promise<{ id: str
               </label>
 
               <label className="block">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
-                  Lead Summary / Excerpt
-                </span>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                    Lead Summary / Excerpt
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleEnhanceWithAI}
+                    disabled={isEnhancing}
+                    className="text-xs font-semibold text-purple-600 dark:text-purple-400 hover:underline cursor-pointer flex items-center gap-1"
+                  >
+                    <span>✨ AI Polish Excerpt</span>
+                  </button>
+                </div>
                 <textarea
                   name="excerpt"
-                  defaultValue={article.excerpt ?? ''}
+                  value={excerptValue}
+                  onChange={(e) => setExcerptValue(e.target.value)}
                   maxLength={1000}
-                  rows={2}
+                  rows={3}
                   className="mt-1.5 w-full rounded-[8px] border border-slate-300 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-950/70 px-3.5 py-2.5 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-cyan-500 focus:bg-white dark:focus:bg-slate-950 focus:ring-2 focus:ring-cyan-500/20 focus:outline-none transition shadow-2xs"
                   placeholder="Key highlight or teaser summary..."
                 />
@@ -630,6 +718,70 @@ export default function EditArticlePage({ params }: { params?: Promise<{ id: str
 
         </form>
       </div>
+
+      {/* AI Attractive Title & Description Modal */}
+      {showEnhanceModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="relative w-full max-w-2xl rounded-2xl border border-purple-500/30 bg-slate-900 p-6 shadow-2xl text-white space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500/20 text-purple-400 font-bold text-lg border border-purple-500/30">
+                  ✨
+                </span>
+                <div>
+                  <h3 className="text-base font-bold text-white">AI Headline & Description Polish</h3>
+                  <p className="text-xs text-slate-400">Choose an exciting, high-engagement headline and description for your readers</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowEnhanceModal(false)}
+                className="text-slate-400 hover:text-white text-lg font-bold p-1 rounded-md hover:bg-slate-800"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3.5 max-h-[60vh] overflow-y-auto pr-1">
+              {enhancedSuggestions.map((s, idx) => (
+                <div
+                  key={idx}
+                  className="rounded-xl border border-slate-700/80 bg-slate-800/60 p-4 hover:border-purple-500/60 transition group space-y-2.5"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                      {s.style}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => applySuggestion(s)}
+                      className="px-3 py-1 rounded-lg text-xs font-bold bg-purple-600 hover:bg-purple-500 text-white shadow-xs transition cursor-pointer"
+                    >
+                      Apply This Option ✨
+                    </button>
+                  </div>
+                  <h4 className="text-sm font-bold text-slate-100 group-hover:text-purple-200 transition">
+                    {s.title}
+                  </h4>
+                  <p className="text-xs text-slate-300 leading-relaxed bg-slate-900/60 p-2.5 rounded-lg border border-slate-800">
+                    {s.excerpt}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setShowEnhanceModal(false)}
+                className="px-4 py-2 rounded-lg text-xs font-semibold text-slate-300 hover:bg-slate-800"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

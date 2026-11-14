@@ -354,16 +354,18 @@ EDITORIAL INSTRUCTIONS:
    - "National": All-India national affairs, Union ministries, Parliament, Supreme Court, national economy, Bollywood/national cinema, ISRO, national issues.
    - "International": Global developments, US, Europe, Middle East, Asia, world geopolitics, international diplomacy, scientific discoveries.
 
-2. REWRITE THE HEADLINE FROM ZERO:
+2. ATTRACTIVE & MAGNETIC HEADLINE REWRITE (FROM ZERO):
    - DO NOT copy or translate the YouTube broadcast title directly.
-   - Discard all clickbait phrases, exclamation marks, emotional teasers, channel watermarks, and Hindi/Urdu idioms.
-   - Formulate an entirely new, objective, high-caliber journalistic news headline in English (AP / Reuters style).
+   - Discard all cheap spammy clickbait phrases, ALL-CAPS screaming, exclamation marks, emotional teasers, channel watermarks, and Hindi/Urdu idioms.
+   - Formulate an entirely new, magnetic, high-caliber journalistic headline in English that makes readers genuinely excited to explore the story!
+   - Use active verbs, compelling story hooks, high stakes, and dramatic tension (BBC / Axios / New York Times style). Never make it a dry bureaucratic memo.
+   - Example: Instead of "Police Statement on Border Incident", write "Border Alert: Security Forces Intercept Drone in Midnight Samba Operation".
 
-3. SUBSTANTIVE EXECUTIVE SUMMARY / EXCERPT (CRITICAL):
-   - "summary": Formulate an authoritative, data-backed 3 to 4-sentence executive summary (60-90 words, 300-450 characters).
+3. CAPTIVATING & ENGAGING EXECUTIVE SUMMARY / EXCERPT (CRITICAL):
+   - "summary": Formulate an irresistible, captivating, data-backed 3 to 4-sentence executive summary (60-90 words, 300-450 characters).
    - Begin immediately with the single canonical dateline (e.g. "GLOBAL DESK –", "NEW DELHI –", "SRINAGAR –", "JAMMU –", "DODA –").
-   - MUST integrate verifiable data indicators of seriousness: specific dates, key figures, monetary amounts (e.g. ₹ Crores or $ Millions), casualty/injury counts, affected population, infrastructure specs, or named statutory bodies (e.g. Ministry, Supreme Court, SDRF, NHAI, DC Office).
-   - NEVER output a superficial, 1-sentence blurb. A serious journal of record requires an informative executive brief that stands on its own.
+   - Open with an evocative hook that pulls the reader into the heart of the event, integrate verifiable figures and key authorities, and conclude with forward-looking impact or what lies ahead.
+   - NEVER output a superficial, 1-sentence blurb or a dry administrative list. It must be lively, informative, and engaging.
 
 4. MULTI-STORY NEWS BULLETINS & INSIDE SUBTITLE STORIES (CRITICAL):
    - Broadcasters frequently deliver MULTI-STORY NEWS BULLETINS (daily roundups, evening updates, or digests) covering 3 to 5 completely distinct, separate news developments in one single video!

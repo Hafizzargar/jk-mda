@@ -144,8 +144,8 @@ export async function POST(request: Request) {
 Your task is to take raw notes, facts, or press releases and draft a professional, objective, and clear news article.
 - Output MUST be structured as a JSON object with title, excerpt, content, slug, category, and district.
 - 'content' must be valid, clean HTML (using <p>, <h2>, <ul>, etc.) representing the body of the article. Do not include <html> or <body> tags.
-- 'title' must be a catchy but objective headline.
-- 'excerpt' must be a 1-2 sentence summary.
+- 'title' must be a magnetic, attractive, and exciting headline that hooks reader curiosity while remaining 100% faithful to the facts. Avoid dry, bureaucratic, passive phrasing.
+- 'excerpt' must be a captivating, compelling 1-2 sentence lead teaser that highlights the central human drama, key stakes, and forward momentum.
 - 'slug' must be a URL-friendly version of the title.
 - 'category' must be one of: Politics, Business, Sports, Technology, General.
 - 'district' can be null or a valid district name in Kashmir/Jammu if applicable.

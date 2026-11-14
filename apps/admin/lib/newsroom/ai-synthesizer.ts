@@ -1050,7 +1050,18 @@ TARGET DATELINE: ${targetDateline}
 SOURCE BROADCASTER: ${channelName}
 
 STRICT EDITORIAL & READER-ENGAGEMENT DIRECTIVES:
-1. TARGET LENGTH & SERIOUS JOURNALISTIC DEPTH (CRITICAL):
+1. ATTRACTIVE, MAGNETIC HEADLINE & COMPELLING SUMMARY (CRITICAL):
+   - ATTRACTIVE HEADLINE: Formulate a magnetic, captivating, high-interest headline in English that makes readers excited to click and explore what happened!
+     * Discard boring bureaucratic phrasing. Use active voice, compelling power verbs, dramatic tension, human stakes, or intriguing revelations.
+     * Keep it 100% truthful to the broadcast facts, but frame it like premier global publications (BBC News, The New York Times, Axios, Wired).
+     * Example: Instead of "Authorities Announce Traffic Advisory on National Highway", write "High-Stakes Mountain Transit: How Heavy Snow and Landslides Cut Off Strategic Pass".
+   - COMPELLING & EXCITING SUMMARY (EXCERPT): Craft an irresistible 3-sentence summary hook (60-90 words, 300-450 characters) starting with "${targetDateline} ".
+     * Sentence 1: Plunge the reader straight into the core drama or critical development.
+     * Sentence 2: Key human stakes, named authorities, figures, and surprising discoveries.
+     * Sentence 3: Forward momentum or a compelling teaser on what lies ahead.
+     * Make it vibrant, engaging, and impossible to overlook!
+
+2. TARGET LENGTH & SERIOUS JOURNALISTIC DEPTH (CRITICAL):
    - LENGTH: Write between 500 and 750 words. NEVER write a shallow 150-word stub or an empty summary, nor a boring, encyclopedic 4,000-word dissertation. Real newspaper readers want rich, authoritative, data-backed journalism.
    - BITE-SIZED PARAGRAPHS: Keep every paragraph strictly 2 to 4 sentences. Break up text frequently so it looks clean, spacious, and inviting on mobile phones and desktop screens.
    - INJECT CONCRETE DATA INDICATORS OF SERIOUSNESS:
@@ -1060,7 +1071,7 @@ STRICT EDITORIAL & READER-ENGAGEMENT DIRECTIVES:
    - MULTI-STORY NEWS BULLETINS: If the broadcast is a daily news bulletin or digest covering 3 to 5 separate news events, do NOT drop the other stories! Devote structured, detailed sections to each distinct story covered in the broadcast.
    - ZERO ROBOTIC FILLER: Every sentence must deliver verifiable value.
 
-2. STRUCTURE & SCANNABILITY:
+3. STRUCTURE & SCANNABILITY:
    - OPENING LEAD: Begin the first paragraph immediately with the single canonical dateline (e.g. "${targetDateline} "). Deliver the core news hook, what happened, who is affected, and why it matters right now.
    - QUICK HIGHLIGHTS BOX (AT THE TOP): Right after the opening lead paragraph, include a bold 3-bullet "Key Highlights" list so readers can scan the core facts in 10 seconds:
      **Key Highlights:**
@@ -1070,22 +1081,22 @@ STRICT EDITORIAL & READER-ENGAGEMENT DIRECTIVES:
    - NATURAL, ENGAGING SUBHEADINGS: Use 3 to 4 topic-specific markdown subheadings (## Subheading Title) tailored to the actual story (e.g., "## What Happened on the Ground", "## Key Figures and Policy Impact", "## Official Response and Accountability", "## Strategic Outlook"). NEVER use generic robotic labels like "Executive Dispatch" or "Historical Data Ledger".
    - QUOTE CALLOUTS: Include at least one impactful blockquote (> "...") quoting an official, eyewitness, expert, or spokesperson to add human voice and credibility.
 
-3. STRICT PROHIBITION OF RAW ASCII TABLES & SYMBOLS:
+4. STRICT PROHIBITION OF RAW ASCII TABLES & SYMBOLS:
    - NEVER output raw ASCII pipe tables (| :--- | :--- | or | : | : |) or data ledgers. They break readability on phones and look robotic.
    - NEVER use slash combinations (/()), raw colons (:/), or orphaned table markers.
    - Present all data, figures, costs, and statistics inside natural prose or clean bullet points (- **Metric Name:** Details).
 
-4. DATELINE & GEOGRAPHIC ACCURACY:
+5. DATELINE & GEOGRAPHIC ACCURACY:
    - IF SCOPE IS "International": Dateline MUST be an international capital or "GLOBAL DESK –" (e.g. "WASHINGTON –", "LONDON –", "JERUSALEM –", "KYIV –", "GLOBAL DESK –"). Under NO circumstances output "SRINAGAR" or "J&K" for international news.
    - IF SCOPE IS "National": Dateline MUST be "NEW DELHI –", "MUMBAI –", or "NATIONAL DESK –". Under NO circumstances output "SRINAGAR" or "J&K" for national stories.
    - IF SCOPE IS "State (Jammu & Kashmir)" or "Chenab Valley": Use the appropriate regional dateline (e.g. "SRINAGAR –", "JAMMU –", "DODA –", "KISHTWAR –", "LEH –").
    - NEVER attach datelines to markdown headings (##). The dateline belongs exclusively at the start of the first prose sentence.
 
-5. OUTPUT FORMAT:
+6. OUTPUT FORMAT:
    Return strictly valid JSON with keys:
    {
-     "headline": "A punchy, objective, AP-style headline in English",
-     "summary": "${targetDateline} An authoritative 3 to 4-sentence executive briefing (60-90 words, 300-450 characters) packed with verified figures, named authorities, policy stakes, and data indicators of seriousness.",
+     "headline": "A magnetic, exciting, and attractive English news headline that hooks readers and sparks curiosity",
+     "summary": "${targetDateline} An irresistible, captivating 3-sentence summary hook (60-90 words, 300-450 characters) blending vivid drama, verified figures, and forward-looking excitement.",
      "bodyMarkdown": "The full engaging, reader-friendly journalistic article in clean markdown with Key Highlights, short paragraphs, natural subheadings, and blockquotes"
    }`;
 

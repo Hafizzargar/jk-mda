@@ -119,7 +119,7 @@ export async function POST(request: Request) {
       const result = await generateObject({
         model: google('gemini-2.5-flash'),
         system:
-          'You are an expert news editor for KJIN. Summarize the article into a clear, accurate 1–2 sentence excerpt.',
+          'You are an expert news editor for KJIN. Summarize the article into an attractive, compelling, and accurate 1–2 sentence excerpt that hooks reader excitement and clearly conveys the central stakes.',
         prompt: `Summarize this article:\n\n${parsed.data.content}`,
         schema: SummarizeOutputSchema,
       });

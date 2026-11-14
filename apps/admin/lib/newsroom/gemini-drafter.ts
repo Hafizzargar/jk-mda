@@ -87,8 +87,8 @@ OFFICIAL GOVERNMENT STATUS:
 ${officialResponseContext}
 
 STRICT EDITORIAL RULES:
-1. 'title': Factual headline without sensationalism. Do NOT append '— Jammu and Kashmir' unless the story specifically pertains to Jammu and Kashmir.
-2. 'excerpt': Substantive 3-4 sentence executive briefing (60-90 words, 300-450 characters) incorporating key data indicators, figures, affected parties, and policy context.
+1. 'title': Magnetic, attractive, high-appeal news headline that excites readers and sparks their curiosity while remaining 100% faithful to the facts. Avoid dry bureaucratic memos or passive wording. Do NOT append '— Jammu and Kashmir' unless the story specifically pertains to Jammu and Kashmir.
+2. 'excerpt': Captivating, compelling 2 to 3-sentence lead teaser (60-90 words, 300-450 characters) that sets up the core drama or critical stakes, incorporates concrete data/figures, and makes readers excited to explore the full story.
 3. 'content': Engaging, reader-friendly HTML body paragraphs (<p>, <h2>, <ul>, <li>, <blockquote>).
    - TARGET LENGTH: 500 to 750 words. Never write a shallow stub or an unformatted 4,000-word wall of text.
    - BITE-SIZED PARAGRAPHS: Keep paragraphs strictly 2 to 4 sentences so it is pleasant and readable on phones and desktops.

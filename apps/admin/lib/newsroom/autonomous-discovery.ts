@@ -561,7 +561,28 @@ DISCOVERY DIRECTIVES (MULTI-SOURCE WEB INTELLIGENCE):
      * For Jammu: Dateline MUST be "JAMMU –", "KATHUA –", or "UDHAMPUR –".
      * For Kashmir: Dateline MUST be "SRINAGAR –", "ANANTNAG –", or "BARAMULLA –".
 
-6. ENGAGING, READER-FRIENDLY ARTICLE STRUCTURE (CRITICAL):
+6. ATTRACTIVE, MAGNETIC HEADLINES & COMPELLING DESCRIPTIONS (HIGH READER EXCITEMENT):
+   - ATTRACTIVE & EXCITING HEADLINE (CRITICAL):
+     * The headline MUST be magnetic, captivating, and exciting — formulated to immediately grab the reader's attention and make them eager to read what happened!
+     * Use active voice, strong power verbs, dramatic tension, key revelations, human stakes, or fascinating contrasts (inspired by high-engagement broadsheets like BBC News, The New York Times, The Economist, and Axios).
+     * NEVER write dry, bureaucratic, passive announcements (e.g. AVOID: "Department Issues Order Regarding Scheme Implementation" or "University Signs MOU With Agency").
+     * INSTEAD write captivating headlines that reveal the core drama, human significance, or breaking excitement:
+       - Weather/Highways: "Winter Unleashed: Heavy Snow Shuts Key Mountain Passes as Sub-Zero Chill Sweeps Kashmir"
+       - Tech/Science: "Melting Frontiers: Jammu University Launches Landmark Satellite Tech Mission to Track Shifting Himalayan Glaciers"
+       - Security/Defense: "Border Alert: Security Forces Intercept Suspected Drone in Midnight Samba Operation"
+       - Civic/Lifelines: "Lifeline Restored: Emergency Crews Reopen Snowbound Sinthan Top After Intense Night Rescue"
+       - International/Diplomacy: "Diplomatic Showdown: High-Stakes UN Leadership Race Strained by Brewing Middle East Controversy"
+     * 100% FACTUAL INTEGRITY: Keep it magnetic, engaging, and exciting while strictly adhering to genuine verified facts. Never use cheap false clickbait.
+
+   - ATTRACTIVE & ENGAGING DESCRIPTION / SUMMARY (CRITICAL):
+     * The summary/description is the primary hook when readers browse article cards or share stories. It MUST be exciting, engaging, and impossible to ignore.
+     * Use the "Hook & Stakes" narrative formula:
+       1. Sentence 1: A vivid, evocative opening hook starting with "${beat.defaultDateline} " that plunges the reader straight into the core drama, high-stakes dilemma, or surprising development.
+       2. Sentence 2: Concrete human or civic impact — who is affected, what key revelation emerged, and what is on the line.
+       3. Sentence 3: Forward momentum or a compelling teaser on what authorities, residents, or global observers are bracing for next.
+     * Keep it vibrant, fluid, and exciting to read (60-90 words, 300-450 characters), steering clear of dry, monotonous memo-speak.
+
+7. ENGAGING, READER-FRIENDLY ARTICLE STRUCTURE (CRITICAL):
    - TARGET LENGTH: Write between 450 and 700 words. NEVER write a boring, encyclopedic 4,000-word text dump. Modern readers want crisp, punchy, engaging journalism they can read in 2 to 3 minutes.
    - BITE-SIZED PARAGRAPHS: Keep every paragraph strictly 2 to 4 sentences. Break up text frequently so it looks clean, spacious, and inviting on mobile phones and desktop screens.
    - ZERO ASCII TABLES OR WEIRD SYMBOLS: NEVER output raw ASCII pipe tables (| :--- | :--- | or | : | : |), slash combinations (/()), or orphaned table markers. Present all facts and metrics inside natural prose or clean bullet points (- **Metric:** Details).
@@ -575,14 +596,14 @@ DISCOVERY DIRECTIVES (MULTI-SOURCE WEB INTELLIGENCE):
      * Natural, story-specific markdown subheadings (## Subheading Title) tailored to the actual event (e.g. "## What Happened on the Ground", "## Public Impact and Local Reality", "## Official Response and What Lies Ahead"). NEVER use generic robotic labels like "Executive Overview" or "Verified Developments & Ground Ledger".
      * Include at least one impactful blockquote (> "...") quoting an official, eyewitness, or agency spokesperson to add human voice.
 
-7. ORIGINAL REPORTING SAFEGUARD:
+8. ORIGINAL REPORTING SAFEGUARD:
    - Do NOT copy complete articles verbatim from other publishers. Synthesize a professional, 100% original, engaging investigative news report using verified facts.
 
 Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with keys:
 {
   "hasCredibleNews": true,
-  "headline": "A punchy, objective, AP-style headline in English",
-  "summary": "${beat.defaultDateline} A substantive 3 to 4-sentence executive briefing (60-90 words, 300-450 characters) packed with verified figures, named authorities, policy stakes, and concrete data indicators of seriousness",
+  "headline": "A magnetic, exciting, and attractive English news headline that hooks readers and sparks curiosity",
+  "summary": "${beat.defaultDateline} An irresistible, captivating 3-sentence summary hook (60-90 words, 300-450 characters) blending vivid drama, verified facts, and forward-looking excitement",
   "bodyMarkdown": "The full engaging, reader-friendly journalistic article in clean markdown with Key Highlights, short paragraphs, natural subheadings, and blockquotes",
   "category": "Politics" | "National" | "International" | "Local News" | "Economy" | "Investigation" | "Problems" | "Culture" | "Sports" | "Education" | "Opinion" | "General",
   "scope": "${beat.scope}",
