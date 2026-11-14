@@ -884,11 +884,16 @@ export default function YouTubeMonitorPage() {
               title="Select how often autonomous discovery runs"
             >
               <option value={1} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 1 Min (Rapid Realtime)</option>
+              <option value={2} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 2 Min (Ultra Fast)</option>
               <option value={3} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 3 Min (Fast Track)</option>
-              <option value={5} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 5 Min</option>
+              <option value={4} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 4 Min</option>
+              <option value={5} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 5 Min (Quick)</option>
+              <option value={7} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 7 Min</option>
               <option value={10} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 10 Min</option>
               <option value={15} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 15 Min</option>
+              <option value={20} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 20 Min</option>
               <option value={30} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 30 Min</option>
+              <option value={45} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 45 Min</option>
               <option value={60} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 1 Hour (Standard)</option>
               <option value={120} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 2 Hours</option>
               <option value={360} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 6 Hours</option>
