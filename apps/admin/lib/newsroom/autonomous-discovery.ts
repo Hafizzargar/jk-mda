@@ -54,6 +54,292 @@ export interface RegionalTarget {
   weight: number; // Priority multiplier for tie-breaking
 }
 
+export interface DistrictMetadata {
+  id: string;
+  name: string;
+  beatId: string;
+  keywords: string[];
+  searchQuery: string;
+  defaultDateline: string;
+  defaultMin: number;
+  defaultMax: number;
+  defaultPriority: 'high' | 'normal' | 'low';
+}
+
+export interface DistrictQuotaConfig {
+  min: number;
+  max: number;
+  priority?: 'high' | 'normal' | 'low';
+}
+
+export interface DistrictDailyStat {
+  id: string;
+  name: string;
+  beatId: string;
+  current: number;
+  published: number;
+  min: number;
+  max: number;
+  priority: 'high' | 'normal' | 'low';
+  deficit: number;
+  isMet: boolean;
+  isMaxReached: boolean;
+}
+
+export const DISTRICT_METADATA: Record<string, DistrictMetadata> = {
+  // Chenab Valley Districts
+  doda: {
+    id: 'doda',
+    name: 'Doda',
+    beatId: 'chenab_valley',
+    keywords: ['doda', 'bhaderwah', 'assar', 'thathri', 'gundoh', 'bhalessa', 'khellani', 'marmat', 'chiralla'],
+    searchQuery: '("Doda" OR "Bhaderwah" OR "Assar" OR "Thathri" OR "Gundoh" OR "Bhalessa") latest news',
+    defaultDateline: 'DODA –',
+    defaultMin: 1,
+    defaultMax: 2,
+    defaultPriority: 'high',
+  },
+  kishtwar: {
+    id: 'kishtwar',
+    name: 'Kishtwar',
+    beatId: 'chenab_valley',
+    keywords: ['kishtwar', 'marwah', 'warwan', 'paddar', 'chhatroo', 'ratle', 'pakal dul', 'dul hasti', 'sinthan'],
+    searchQuery: '("Kishtwar" OR "Marwah" OR "Warwan" OR "Paddar" OR "Chhatroo" OR "Ratle Hydro" OR "Pakal Dul") latest news',
+    defaultDateline: 'KISHTWAR –',
+    defaultMin: 1,
+    defaultMax: 2,
+    defaultPriority: 'high',
+  },
+  ramban: {
+    id: 'ramban',
+    name: 'Ramban',
+    beatId: 'chenab_valley',
+    keywords: ['ramban', 'banihal', 'batote', 'gool', 'maitra', 'chenani-nashri', 'sangaldan', 'nh-44'],
+    searchQuery: '("Ramban" OR "Banihal" OR "Batote" OR "Gool" OR "Sangaldan" OR "NH-44 Ramban") latest news',
+    defaultDateline: 'RAMBAN –',
+    defaultMin: 1,
+    defaultMax: 2,
+    defaultPriority: 'normal',
+  },
+
+  // Jammu Plains Districts
+  jammu: {
+    id: 'jammu',
+    name: 'Jammu',
+    beatId: 'jammu',
+    keywords: ['jammu', 'tawi', 'bahu fort', 'rs pura', 'akhnoor', 'nagrota', 'satwari'],
+    searchQuery: '("Jammu city" OR "Tawi river" OR "Akhnoor" OR "RS Pura") latest news',
+    defaultDateline: 'JAMMU –',
+    defaultMin: 1,
+    defaultMax: 2,
+    defaultPriority: 'high',
+  },
+  samba: {
+    id: 'samba',
+    name: 'Samba',
+    beatId: 'jammu',
+    keywords: ['samba', 'vijaypur', 'ghagwal', 'bari brahmana'],
+    searchQuery: '("Samba district" OR "Vijaypur Samba" OR "Ghagwal" OR "Bari Brahmana") latest news',
+    defaultDateline: 'SAMBA –',
+    defaultMin: 0,
+    defaultMax: 1,
+    defaultPriority: 'normal',
+  },
+  kathua: {
+    id: 'kathua',
+    name: 'Kathua',
+    beatId: 'jammu',
+    keywords: ['kathua', 'hiranagar', 'billawar', 'basohli', 'bani'],
+    searchQuery: '("Kathua" OR "Hiranagar" OR "Billawar" OR "Basohli") latest news',
+    defaultDateline: 'KATHUA –',
+    defaultMin: 0,
+    defaultMax: 1,
+    defaultPriority: 'normal',
+  },
+  udhampur: {
+    id: 'udhampur',
+    name: 'Udhampur',
+    beatId: 'jammu',
+    keywords: ['udhampur', 'chenani', 'ramnagar udhampur', 'majalta'],
+    searchQuery: '("Udhampur" OR "Chenani" OR "Ramnagar Udhampur") latest news',
+    defaultDateline: 'UDHAMPUR –',
+    defaultMin: 0,
+    defaultMax: 1,
+    defaultPriority: 'normal',
+  },
+  reasi: {
+    id: 'reasi',
+    name: 'Reasi',
+    beatId: 'jammu',
+    keywords: ['reasi', 'katra', 'vaishno devi', 'chenab bridge', 'mahore', 'pouni'],
+    searchQuery: '("Reasi" OR "Katra" OR "Vaishno Devi" OR "Chenab Rail Bridge" OR "Mahore") latest news',
+    defaultDateline: 'REASI –',
+    defaultMin: 0,
+    defaultMax: 1,
+    defaultPriority: 'normal',
+  },
+
+  // Kashmir Valley Districts
+  srinagar: {
+    id: 'srinagar',
+    name: 'Srinagar',
+    beatId: 'kashmir',
+    keywords: ['srinagar', 'dal lake', 'lal chowk', 'downtown srinagar', 'batamaloo', 'soura', 'pantha chowk'],
+    searchQuery: '("Srinagar" OR "Dal Lake" OR "Lal Chowk" OR "Downtown Srinagar") latest news',
+    defaultDateline: 'SRINAGAR –',
+    defaultMin: 1,
+    defaultMax: 2,
+    defaultPriority: 'high',
+  },
+  anantnag: {
+    id: 'anantnag',
+    name: 'Anantnag',
+    beatId: 'kashmir',
+    keywords: ['anantnag', 'islamabad kashmir', 'pahalgam', 'achabal', 'kokernag', 'dooru'],
+    searchQuery: '("Anantnag" OR "Pahalgam" OR "Achabal" OR "Kokernag") latest news',
+    defaultDateline: 'ANANTNAG –',
+    defaultMin: 0,
+    defaultMax: 1,
+    defaultPriority: 'normal',
+  },
+  baramulla: {
+    id: 'baramulla',
+    name: 'Baramulla',
+    beatId: 'kashmir',
+    keywords: ['baramulla', 'sopore', 'gulmarg', 'pattan', 'uri', 'tangmarg'],
+    searchQuery: '("Baramulla" OR "Sopore" OR "Gulmarg" OR "Uri") latest news',
+    defaultDateline: 'BARAMULLA –',
+    defaultMin: 0,
+    defaultMax: 1,
+    defaultPriority: 'normal',
+  },
+  pulwama: {
+    id: 'pulwama',
+    name: 'Pulwama',
+    beatId: 'kashmir',
+    keywords: ['pulwama', 'pampore', 'awantipora', 'tral', 'rajpora'],
+    searchQuery: '("Pulwama" OR "Pampore saffron" OR "Awantipora" OR "Tral") latest news',
+    defaultDateline: 'PULWAMA –',
+    defaultMin: 0,
+    defaultMax: 1,
+    defaultPriority: 'normal',
+  },
+  shopian: {
+    id: 'shopian',
+    name: 'Shopian',
+    beatId: 'kashmir',
+    keywords: ['shopian', 'hirpora', 'zainapora', 'sedow'],
+    searchQuery: '("Shopian" OR "Hirpora" OR "Zainapora") latest news',
+    defaultDateline: 'SHOPIAN –',
+    defaultMin: 0,
+    defaultMax: 1,
+    defaultPriority: 'normal',
+  },
+  kulgam: {
+    id: 'kulgam',
+    name: 'Kulgam',
+    beatId: 'kashmir',
+    keywords: ['kulgam', 'devsar', 'aharbal', 'damhal hanjipora'],
+    searchQuery: '("Kulgam" OR "Aharbal" OR "Devsar Kulgam") latest news',
+    defaultDateline: 'KULGAM –',
+    defaultMin: 0,
+    defaultMax: 1,
+    defaultPriority: 'normal',
+  },
+  kupwara: {
+    id: 'kupwara',
+    name: 'Kupwara',
+    beatId: 'kashmir',
+    keywords: ['kupwara', 'handwara', 'karnah', 'lolab', 'tangdar'],
+    searchQuery: '("Kupwara" OR "Handwara" OR "Karnah" OR "Lolab") latest news',
+    defaultDateline: 'KUPWARA –',
+    defaultMin: 0,
+    defaultMax: 1,
+    defaultPriority: 'normal',
+  },
+  ganderbal: {
+    id: 'ganderbal',
+    name: 'Ganderbal',
+    beatId: 'kashmir',
+    keywords: ['ganderbal', 'sonamarg', 'kangan', 'manasbal'],
+    searchQuery: '("Ganderbal" OR "Sonamarg" OR "Kangan") latest news',
+    defaultDateline: 'GANDERBAL –',
+    defaultMin: 0,
+    defaultMax: 1,
+    defaultPriority: 'normal',
+  },
+  budgam: {
+    id: 'budgam',
+    name: 'Budgam',
+    beatId: 'kashmir',
+    keywords: ['budgam', 'beerwah', 'chadoora', 'doodhpathri', 'magam', 'charar-i-sharief'],
+    searchQuery: '("Budgam" OR "Beerwah" OR "Chadoora" OR "Doodhpathri") latest news',
+    defaultDateline: 'BUDGAM –',
+    defaultMin: 0,
+    defaultMax: 1,
+    defaultPriority: 'normal',
+  },
+  bandipora: {
+    id: 'bandipora',
+    name: 'Bandipora',
+    beatId: 'kashmir',
+    keywords: ['bandipora', 'wular', 'gurez', 'hajin', 'sumbal'],
+    searchQuery: '("Bandipora" OR "Wular Lake" OR "Gurez Valley") latest news',
+    defaultDateline: 'BANDIPORA –',
+    defaultMin: 0,
+    defaultMax: 1,
+    defaultPriority: 'normal',
+  },
+
+  // Leh & Ladakh (UT) Districts
+  leh: {
+    id: 'leh',
+    name: 'Leh',
+    beatId: 'leh_ladakh',
+    keywords: ['leh', 'ladakh', 'nubra', 'khardung la', 'pangong', 'shey', 'hemis'],
+    searchQuery: '("Leh Ladakh" OR "Nubra Valley" OR "Khardung La" OR "Pangong Lake") latest news',
+    defaultDateline: 'LEH –',
+    defaultMin: 1,
+    defaultMax: 2,
+    defaultPriority: 'normal',
+  },
+  kargil: {
+    id: 'kargil',
+    name: 'Kargil',
+    beatId: 'leh_ladakh',
+    keywords: ['kargil', 'drass', 'zanskar', 'sanku', 'shakar chiktan'],
+    searchQuery: '("Kargil" OR "Drass" OR "Zanskar" OR "Zojila") latest news',
+    defaultDateline: 'KARGIL –',
+    defaultMin: 1,
+    defaultMax: 2,
+    defaultPriority: 'normal',
+  },
+
+  // Pir Panjal Districts
+  poonch: {
+    id: 'poonch',
+    name: 'Poonch',
+    beatId: 'pir_panjal',
+    keywords: ['poonch', 'surankote', 'mendhar', 'mandi poonch', 'chakan da bagh', 'haveli'],
+    searchQuery: '("Poonch" OR "Surankote" OR "Mendhar" OR "Mandi Poonch") latest news',
+    defaultDateline: 'POONCH –',
+    defaultMin: 1,
+    defaultMax: 2,
+    defaultPriority: 'normal',
+  },
+  rajouri: {
+    id: 'rajouri',
+    name: 'Rajouri',
+    beatId: 'pir_panjal',
+    keywords: ['rajouri', 'nowshera', 'sunderbani', 'thanamandi', 'kotranka', 'kalakote'],
+    searchQuery: '("Rajouri" OR "Nowshera" OR "Sunderbani" OR "Thanamandi") latest news',
+    defaultDateline: 'RAJOURI –',
+    defaultMin: 1,
+    defaultMax: 2,
+    defaultPriority: 'normal',
+  },
+};
+
 export const KJIN_REGIONAL_TARGETS: RegionalTarget[] = [
   {
     id: 'chenab_valley',
@@ -214,6 +500,53 @@ export function classifyArticleRegion(article: {
   return 'national';
 }
 
+/**
+ * Detects the specific district for an article from its district field or content keywords.
+ */
+export function detectArticleDistrict(article: {
+  district?: string | null;
+  title?: string | null;
+  excerpt?: string | null;
+  content?: string | null;
+}): string | null {
+  if (article.district) {
+    const raw = article.district.toLowerCase().trim();
+    if (DISTRICT_METADATA[raw]) return raw;
+    // Map known variations/aliases
+    if (raw.includes('doda')) return 'doda';
+    if (raw.includes('kishtwar')) return 'kishtwar';
+    if (raw.includes('ramban')) return 'ramban';
+    if (raw.includes('jammu')) return 'jammu';
+    if (raw.includes('samba')) return 'samba';
+    if (raw.includes('kathua')) return 'kathua';
+    if (raw.includes('udhampur')) return 'udhampur';
+    if (raw.includes('reasi')) return 'reasi';
+    if (raw.includes('srinagar')) return 'srinagar';
+    if (raw.includes('anantnag')) return 'anantnag';
+    if (raw.includes('baramulla')) return 'baramulla';
+    if (raw.includes('pulwama')) return 'pulwama';
+    if (raw.includes('shopian')) return 'shopian';
+    if (raw.includes('kulgam')) return 'kulgam';
+    if (raw.includes('kupwara')) return 'kupwara';
+    if (raw.includes('ganderbal')) return 'ganderbal';
+    if (raw.includes('budgam')) return 'budgam';
+    if (raw.includes('bandipora')) return 'bandipora';
+    if (raw.includes('leh')) return 'leh';
+    if (raw.includes('kargil')) return 'kargil';
+    if (raw.includes('poonch')) return 'poonch';
+    if (raw.includes('rajouri')) return 'rajouri';
+    return raw;
+  }
+
+  const text = `${article.title || ''} ${article.excerpt || ''} ${article.content || ''}`.toLowerCase();
+  for (const [distId, meta] of Object.entries(DISTRICT_METADATA)) {
+    if (text.includes(distId) || meta.keywords.some((kw) => text.includes(kw.toLowerCase()))) {
+      return distId;
+    }
+  }
+  return null;
+}
+
 export interface RegionalDailyStats {
   totalDiscoveredToday: number;
   totalPublishedToday?: number;
@@ -238,6 +571,7 @@ export interface RegionalDailyStats {
     isMet: boolean;
     isMaxReached: boolean;
     isRegional: boolean;
+    districts?: DistrictDailyStat[];
   }>;
 }
 
@@ -291,6 +625,9 @@ export async function getDailyRegionalStats(service: SupabaseClient, referenceDa
     international: 0,
   };
 
+  const districtCountMap: Record<string, number> = {};
+  const districtPublishedCountMap: Record<string, number> = {};
+
   let publishedTodayCount = 0;
 
   for (const art of articles) {
@@ -302,16 +639,23 @@ export async function getDailyRegionalStats(service: SupabaseClient, referenceDa
     if (countMap[regionKey] !== undefined) {
       countMap[regionKey]++;
     }
+    const districtKey = detectArticleDistrict(art);
+    if (districtKey) {
+      districtCountMap[districtKey] = (districtCountMap[districtKey] || 0) + 1;
+    }
     if (art.status === 'published') {
       publishedTodayCount++;
       if (publishedCountMap[regionKey] !== undefined) {
         publishedCountMap[regionKey]++;
       }
+      if (districtKey) {
+        districtPublishedCountMap[districtKey] = (districtPublishedCountMap[districtKey] || 0) + 1;
+      }
     }
   }
 
-  // Fetch custom dynamic beat quotas from site_settings (if set by editor)
-  let customQuotas: Record<string, { min?: number; max?: number }> = {};
+  // Fetch custom dynamic beat quotas and district quotas from site_settings (if set by editor)
+  let customQuotas: Record<string, any> = {};
   try {
     const { data: settingsRow } = await service
       .from('site_settings')
@@ -331,6 +675,44 @@ export async function getDailyRegionalStats(service: SupabaseClient, referenceDa
     const minTarget = customQuotas[t.id]?.min !== undefined ? Math.max(0, Number(customQuotas[t.id]?.min)) : t.min;
     const maxTarget = customQuotas[t.id]?.max !== undefined ? Math.max(minTarget, Number(customQuotas[t.id]?.max)) : t.max;
     const deficit = Math.max(0, minTarget - current);
+
+    const customDistricts = (customQuotas[t.id]?.districts || {}) as Record<string, DistrictQuotaConfig>;
+
+    const districtStats: DistrictDailyStat[] = (t.districts || []).map((distId) => {
+      const meta = DISTRICT_METADATA[distId] || {
+        id: distId,
+        name: distId.charAt(0).toUpperCase() + distId.slice(1),
+        beatId: t.id,
+        keywords: [distId],
+        searchQuery: `"${distId}" latest news`,
+        defaultDateline: `${distId.toUpperCase()} –`,
+        defaultMin: 1,
+        defaultMax: 2,
+        defaultPriority: 'normal' as const,
+      };
+      const customDist = customDistricts[distId];
+      const distCurrent = districtCountMap[distId] || 0;
+      const distPublished = districtPublishedCountMap[distId] || 0;
+      const distMin = customDist?.min !== undefined ? Math.max(0, Number(customDist.min)) : meta.defaultMin;
+      const distMax = customDist?.max !== undefined ? Math.max(distMin, Number(customDist.max)) : meta.defaultMax;
+      const distPriority = (customDist?.priority || meta.defaultPriority || 'normal') as 'high' | 'normal' | 'low';
+      const distDeficit = Math.max(0, distMin - distCurrent);
+
+      return {
+        id: distId,
+        name: meta.name,
+        beatId: t.id,
+        current: distCurrent,
+        published: distPublished,
+        min: distMin,
+        max: distMax,
+        priority: distPriority,
+        deficit: distDeficit,
+        isMet: distCurrent >= distMin,
+        isMaxReached: distCurrent >= distMax,
+      };
+    });
+
     return {
       id: t.id,
       name: t.name,
@@ -343,6 +725,7 @@ export async function getDailyRegionalStats(service: SupabaseClient, referenceDa
       isMet: current >= minTarget,
       isMaxReached: current >= maxTarget,
       isRegional: t.isRegional,
+      districts: districtStats,
     };
   });
 
@@ -433,6 +816,53 @@ export function selectNextPrioritizedBeat(stats: RegionalDailyStats): RegionalTa
 }
 
 /**
+ * Prioritizes which district within a regional beat to discover next,
+ * giving first priority to districts with unfulfilled minimum quotas and higher priority ratings.
+ */
+export function selectTargetDistrictForBeat(
+  beat: RegionalTarget,
+  districts?: DistrictDailyStat[],
+  explicitDistrictId?: string
+): DistrictDailyStat | null {
+  if (!districts || districts.length === 0) return null;
+
+  // 1. Explicit district requested by user / options
+  if (explicitDistrictId) {
+    const norm = explicitDistrictId.toLowerCase().trim();
+    const match = districts.find((d) => d.id === norm || d.name.toLowerCase() === norm);
+    if (match) return match;
+  }
+
+  const priorityWeight = (p: 'high' | 'normal' | 'low') => (p === 'high' ? 3 : p === 'low' ? 1 : 2);
+
+  // 2. Prioritize districts that have NOT met their minimum target yet (deficit > 0)
+  const unmet = districts.filter((d) => d.deficit > 0);
+  if (unmet.length > 0) {
+    unmet.sort((a, b) => {
+      // First sort by priority descending (High > Normal > Low)
+      const pwDiff = priorityWeight(b.priority) - priorityWeight(a.priority);
+      if (pwDiff !== 0) return pwDiff;
+      // Second sort by largest deficit descending
+      return b.deficit - a.deficit;
+    });
+    return unmet[0];
+  }
+
+  // 3. All districts met their minimum: check headroom below maximum
+  const eligibleBelowMax = districts.filter((d) => !d.isMaxReached);
+  if (eligibleBelowMax.length > 0) {
+    eligibleBelowMax.sort((a, b) => {
+      const pwDiff = priorityWeight(b.priority) - priorityWeight(a.priority);
+      if (pwDiff !== 0) return pwDiff;
+      return (b.max - b.current) - (a.max - a.current);
+    });
+    return eligibleBelowMax[0];
+  }
+
+  return districts[0] || null;
+}
+
+/**
  * Checks if a candidate headline substantially duplicates an existing recent story.
  */
 export function calculateHeadlineSimilarity(headlineA: string, headlineB: string): { similarity: number; matchCount: number; isDuplicate: boolean } {
@@ -511,7 +941,7 @@ export function isBreakingNewsEvent(headline: string, summary: string, explicitF
  */
 export async function runAutonomousNewsDiscovery(
   service: SupabaseClient,
-  options?: { beatId?: string; force?: boolean }
+  options?: { beatId?: string; districtId?: string; force?: boolean }
 ): Promise<{
   success: boolean;
   discovered?: boolean;
@@ -521,6 +951,7 @@ export async function runAutonomousNewsDiscovery(
   headline?: string;
   scope?: string;
   beat?: string;
+  district?: string;
   sourceUrl?: string;
   reason?: string;
   dailyStats?: RegionalDailyStats;
@@ -582,16 +1013,32 @@ export async function runAutonomousNewsDiscovery(
   }
 
   const beat = targetBeat || KJIN_REGIONAL_TARGETS[0];
-  console.log(`[AutonomousDiscovery] Prioritizing beat "${beat.name}" (Scope: ${beat.scope}, Today: ${stats.regions.find(r => r.id === beat.id)?.current ?? 0}/${beat.min} min)...`);
+  const regionStat = stats.regions.find((r) => r.id === beat.id);
+
+  // 2b. Select target district within this beat based on editor quotas & priority
+  const targetDistrictStat = selectTargetDistrictForBeat(beat, regionStat?.districts, options?.districtId);
+  const targetDistrictId = targetDistrictStat?.id || options?.districtId || null;
+  const targetDistrictMeta = targetDistrictId ? DISTRICT_METADATA[targetDistrictId] : null;
+
+  const effectiveSearchQuery = targetDistrictMeta ? targetDistrictMeta.searchQuery : beat.searchQuery;
+  const effectiveDateline = targetDistrictMeta ? targetDistrictMeta.defaultDateline : beat.defaultDateline;
+
+  console.log(
+    `[AutonomousDiscovery] Prioritizing beat "${beat.name}" (Scope: ${beat.scope}, Today: ${regionStat?.current ?? 0}/${beat.min} min)${
+      targetDistrictMeta ? `, Target District: "${targetDistrictMeta.name}" (Today: ${targetDistrictStat?.current ?? 0}/${targetDistrictStat?.min ?? 1}, Priority: ${targetDistrictStat?.priority ?? 'normal'})` : ''
+    }...`
+  );
 
   // 3. Compose grounded research prompt with strict credibility, multi-source discovery, & 6-factor scoring
   const prompt = `You are a Senior Investigative Correspondent and Field Bureau Chief for KJIN (Kashmir Jammu Independent News Network).
 Your mission is to autonomously search the web and discover the latest, verified, high-impact news published within the last 24 to 48 hours for this regional beat:
 
 BEAT: ${beat.name}
-SEARCH QUERY: ${beat.searchQuery}
+${targetDistrictMeta ? `PRIORITIZED TARGET DISTRICT: ${targetDistrictMeta.name} (Newsroom Priority: ${targetDistrictStat?.priority || 'high'})
+TARGET DISTRICT SEARCH QUERY: ${targetDistrictMeta.searchQuery}
+MANDATORY DISTRICT ASSIGNMENT: The newsroom editor has specifically prioritized coverage for **${targetDistrictMeta.name}** district. Search for and report verified events, infrastructure projects, road/weather conditions, civic issues, or administrative actions originating in or directly concerning **${targetDistrictMeta.name}**. In your JSON output, set "district": "${targetDistrictMeta.name}".` : `SEARCH QUERY: ${beat.searchQuery}`}
 MANDATORY SCOPE: ${beat.scope}
-TARGET DATELINE: ${beat.defaultDateline}
+TARGET DATELINE: ${effectiveDateline}
 
 DISCOVERY DIRECTIVES (MULTI-SOURCE WEB INTELLIGENCE):
 1. INDEPENDENT DISCOVERY SOURCES:
@@ -859,7 +1306,14 @@ Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with k
     const authorId = authors?.[0]?.id || null;
 
     const finalSlug = `${generateSlug(cleanHeadline)}-${Date.now().toString(36).slice(-4)}`;
-    const finalDistrict = effectiveScope === 'National' || effectiveScope === 'International' ? null : (parsed.district || beat.districts[0] || null);
+    const rawParsedDistrict = (parsed.district || '').toLowerCase().trim();
+    const finalDistrict =
+      effectiveScope === 'National' || effectiveScope === 'International'
+        ? null
+        : (DISTRICT_METADATA[rawParsedDistrict]?.name ||
+           targetDistrictMeta?.name ||
+           parsed.district ||
+           (beat.districts[0] ? DISTRICT_METADATA[beat.districts[0]]?.name || beat.districts[0] : null));
 
     // 10. Deposit story into Pending Approval queue (`status: 'review'`) — STRICT ZERO AUTO-PUBLISH
     // Note: Database trigger enforces that new articles must initially be created as 'draft'
@@ -941,6 +1395,7 @@ Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with k
       headline: cleanHeadline,
       scope: effectiveScope,
       beat: beat.name,
+      district: finalDistrict || undefined,
       sourceUrl,
       dailyStats: updatedStats,
     };

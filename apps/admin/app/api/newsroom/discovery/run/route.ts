@@ -13,17 +13,19 @@ export async function POST(request: Request) {
     }
 
     let beatId: string | undefined;
+    let districtId: string | undefined;
     let force = false;
 
     try {
       const body = await request.json();
       if (body?.beat_id) beatId = body.beat_id;
+      if (body?.district_id) districtId = body.district_id;
       if (body?.force) force = Boolean(body.force);
     } catch {
       // Empty or non-JSON body is allowed
     }
 
-    const result = await runAutonomousNewsDiscovery(auth.service, { beatId, force });
+    const result = await runAutonomousNewsDiscovery(auth.service, { beatId, districtId, force });
 
     return Response.json(result);
   } catch (error: any) {

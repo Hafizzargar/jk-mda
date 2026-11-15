@@ -81,12 +81,91 @@ interface YouTubeVideo {
   };
 }
 
-const DEFAULT_BEAT_QUOTAS: Record<string, { min: number; max: number; name: string; subtitle: string; priority?: boolean }> = {
-  chenab_valley: { min: 3, max: 6, name: 'Chenab Valley', subtitle: 'Doda, Kishtwar, Ramban', priority: true },
-  jammu: { min: 2, max: 5, name: 'Jammu Plains', subtitle: 'Jammu, Samba, Kathua' },
-  kashmir: { min: 2, max: 5, name: 'Kashmir Valley', subtitle: 'Srinagar & Valley' },
-  leh_ladakh: { min: 2, max: 3, name: 'Leh & Ladakh', subtitle: 'Leh, Kargil (UT)' },
-  pir_panjal: { min: 2, max: 3, name: 'Pir Panjal', subtitle: 'Poonch, Rajouri' },
+export interface DistrictQuotaConfig {
+  min: number;
+  max: number;
+  priority?: 'high' | 'normal' | 'low';
+}
+
+export interface BeatQuotaConfig {
+  min: number;
+  max: number;
+  districts?: Record<string, DistrictQuotaConfig>;
+}
+
+export interface BeatDefinition {
+  min: number;
+  max: number;
+  name: string;
+  subtitle: string;
+  priority?: boolean;
+  districts?: Record<string, { min: number; max: number; name: string; priority: 'high' | 'normal' | 'low' }>;
+}
+
+const DEFAULT_BEAT_QUOTAS: Record<string, BeatDefinition> = {
+  chenab_valley: {
+    min: 3,
+    max: 6,
+    name: 'Chenab Valley',
+    subtitle: 'Doda, Kishtwar, Ramban',
+    priority: true,
+    districts: {
+      doda: { min: 1, max: 2, name: 'Doda', priority: 'high' },
+      kishtwar: { min: 1, max: 2, name: 'Kishtwar', priority: 'high' },
+      ramban: { min: 1, max: 2, name: 'Ramban', priority: 'normal' },
+    },
+  },
+  jammu: {
+    min: 2,
+    max: 5,
+    name: 'Jammu Plains',
+    subtitle: 'Jammu, Samba, Kathua',
+    districts: {
+      jammu: { min: 1, max: 2, name: 'Jammu', priority: 'high' },
+      samba: { min: 0, max: 1, name: 'Samba', priority: 'normal' },
+      kathua: { min: 0, max: 1, name: 'Kathua', priority: 'normal' },
+      udhampur: { min: 0, max: 1, name: 'Udhampur', priority: 'normal' },
+      reasi: { min: 0, max: 1, name: 'Reasi', priority: 'normal' },
+    },
+  },
+  kashmir: {
+    min: 2,
+    max: 5,
+    name: 'Kashmir Valley',
+    subtitle: 'Srinagar & Valley',
+    districts: {
+      srinagar: { min: 1, max: 2, name: 'Srinagar', priority: 'high' },
+      anantnag: { min: 0, max: 1, name: 'Anantnag', priority: 'normal' },
+      baramulla: { min: 0, max: 1, name: 'Baramulla', priority: 'normal' },
+      pulwama: { min: 0, max: 1, name: 'Pulwama', priority: 'normal' },
+      kupwara: { min: 0, max: 1, name: 'Kupwara', priority: 'normal' },
+      budgam: { min: 0, max: 1, name: 'Budgam', priority: 'normal' },
+      ganderbal: { min: 0, max: 1, name: 'Ganderbal', priority: 'normal' },
+      kulgam: { min: 0, max: 1, name: 'Kulgam', priority: 'normal' },
+      bandipora: { min: 0, max: 1, name: 'Bandipora', priority: 'normal' },
+      shopian: { min: 0, max: 1, name: 'Shopian', priority: 'normal' },
+    },
+  },
+  leh_ladakh: {
+    min: 2,
+    max: 3,
+    name: 'Leh & Ladakh',
+    subtitle: 'Leh, Kargil (UT)',
+    districts: {
+      leh: { min: 1, max: 2, name: 'Leh', priority: 'normal' },
+      kargil: { min: 1, max: 2, name: 'Kargil', priority: 'normal' },
+    },
+  },
+  pir_panjal: {
+    min: 2,
+    max: 3,
+    name: 'Pir Panjal',
+    subtitle: 'Poonch, Rajouri',
+    districts: {
+      poonch: { min: 1, max: 2, name: 'Poonch', priority: 'normal' },
+      rajouri: { min: 1, max: 2, name: 'Rajouri', priority: 'normal' },
+    },
+  },
   national: { min: 2, max: 5, name: 'National (India)', subtitle: 'Pan-India Policy' },
   international: { min: 4, max: 5, name: 'International', subtitle: 'Global Diplomacy' },
 };
@@ -121,6 +200,18 @@ export default function YouTubeMonitorPage() {
     isMet: boolean;
     isMaxReached: boolean;
     isRegional: boolean;
+    districts?: Array<{
+      id: string;
+      name: string;
+      current: number;
+      published?: number;
+      min: number;
+      max: number;
+      priority: 'high' | 'normal' | 'low';
+      deficit: number;
+      isMet: boolean;
+      isMaxReached: boolean;
+    }>;
   }>>([]);
   const [discoveredArticles, setDiscoveredArticles] = useState<Array<{
     id: string;
@@ -200,19 +291,69 @@ export default function YouTubeMonitorPage() {
   const isSyncingRef = useRef(false);
   const isDiscoveringRef = useRef(false);
 
-  // Dynamic Beat Target Quotas State (Min / Max per region)
-  const [beatQuotas, setBeatQuotas] = useState<Record<string, { min: number; max: number }>>({
-    chenab_valley: { min: 3, max: 6 },
-    jammu: { min: 2, max: 5 },
-    kashmir: { min: 2, max: 5 },
-    leh_ladakh: { min: 2, max: 3 },
-    pir_panjal: { min: 2, max: 3 },
+  // Dynamic Beat & District Target Quotas State (Min / Max per region and per district)
+  const [beatQuotas, setBeatQuotas] = useState<Record<string, BeatQuotaConfig>>({
+    chenab_valley: {
+      min: 3,
+      max: 6,
+      districts: {
+        doda: { min: 1, max: 2, priority: 'high' },
+        kishtwar: { min: 1, max: 2, priority: 'high' },
+        ramban: { min: 1, max: 2, priority: 'normal' },
+      },
+    },
+    jammu: {
+      min: 2,
+      max: 5,
+      districts: {
+        jammu: { min: 1, max: 2, priority: 'high' },
+        samba: { min: 0, max: 1, priority: 'normal' },
+        kathua: { min: 0, max: 1, priority: 'normal' },
+        udhampur: { min: 0, max: 1, priority: 'normal' },
+        reasi: { min: 0, max: 1, priority: 'normal' },
+      },
+    },
+    kashmir: {
+      min: 2,
+      max: 5,
+      districts: {
+        srinagar: { min: 1, max: 2, priority: 'high' },
+        anantnag: { min: 0, max: 1, priority: 'normal' },
+        baramulla: { min: 0, max: 1, priority: 'normal' },
+        pulwama: { min: 0, max: 1, priority: 'normal' },
+        kupwara: { min: 0, max: 1, priority: 'normal' },
+        budgam: { min: 0, max: 1, priority: 'normal' },
+        ganderbal: { min: 0, max: 1, priority: 'normal' },
+        kulgam: { min: 0, max: 1, priority: 'normal' },
+        bandipora: { min: 0, max: 1, priority: 'normal' },
+        shopian: { min: 0, max: 1, priority: 'normal' },
+      },
+    },
+    leh_ladakh: {
+      min: 2,
+      max: 3,
+      districts: {
+        leh: { min: 1, max: 2, priority: 'normal' },
+        kargil: { min: 1, max: 2, priority: 'normal' },
+      },
+    },
+    pir_panjal: {
+      min: 2,
+      max: 3,
+      districts: {
+        poonch: { min: 1, max: 2, priority: 'normal' },
+        rajouri: { min: 1, max: 2, priority: 'normal' },
+      },
+    },
     national: { min: 2, max: 5 },
     international: { min: 4, max: 5 },
   });
   const [isQuotasModalOpen, setIsQuotasModalOpen] = useState(false);
   const [isSavingQuotas, setIsSavingQuotas] = useState(false);
-  const [editingQuotas, setEditingQuotas] = useState<Record<string, { min: number; max: number }>>({});
+  const [editingQuotas, setEditingQuotas] = useState<Record<string, BeatQuotaConfig>>({});
+  const [expandedBeatDistricts, setExpandedBeatDistricts] = useState<Record<string, boolean>>({
+    chenab_valley: true,
+  });
   const [isTestingEmail, setIsTestingEmail] = useState(false);
 
   useEffect(() => {
@@ -297,7 +438,7 @@ export default function YouTubeMonitorPage() {
     }
   }
 
-  async function handleSaveBeatQuotas(newQuotas: Record<string, { min: number; max: number }>) {
+  async function handleSaveBeatQuotas(newQuotas: Record<string, BeatQuotaConfig>) {
     setIsSavingQuotas(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -318,7 +459,7 @@ export default function YouTubeMonitorPage() {
       setBeatQuotas(newQuotas);
       setIsQuotasModalOpen(false);
       setFeedback({
-        text: '✅ Editorial Beat Target Quotas updated! Radar will discover news according to your new regional limits.',
+        text: '✅ Editorial Beat and District Target Quotas updated! Radar will discover news according to your exact regional & district limits.',
         type: 'success',
       });
       await loadData();
@@ -327,6 +468,47 @@ export default function YouTubeMonitorPage() {
       setFeedback({ text: err.message || 'Failed to save beat quotas.', type: 'error' });
     } finally {
       setIsSavingQuotas(false);
+    }
+  }
+
+  async function handleDiscoverDistrict(beatId: string, districtId: string) {
+    if (isDiscoveringRef.current || isDiscovering) return;
+    isDiscoveringRef.current = true;
+    setIsDiscovering(true);
+    setFeedback({
+      text: `🛰️ Radar searching web for verified news specifically in ${districtId.toUpperCase()} (${beatId})...`,
+      type: 'success',
+    });
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) return;
+      const res = await fetch('/api/newsroom/discovery/run', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+        body: JSON.stringify({ beat_id: beatId, district_id: districtId, force: true }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success && data.discovered) {
+        setFeedback({
+          text: `✨ Discovered breaking story for ${districtId.toUpperCase()}: "${data.headline}"! Sent to Pending Approval queue.`,
+          type: 'success',
+        });
+        await loadData();
+      } else {
+        if (data.skipped) {
+          setFeedback({ text: `ℹ️ ${data.reason}`, type: 'success' });
+        } else {
+          setFeedback({ text: data.reason || data.error || `Discovery complete for ${districtId}. No new breaking events found.`, type: 'error' });
+        }
+      }
+    } catch (err: any) {
+      setFeedback({ text: err.message || 'Discovery network error.', type: 'error' });
+    } finally {
+      setIsDiscovering(false);
+      isDiscoveringRef.current = false;
     }
   }
 
@@ -1106,7 +1288,7 @@ export default function YouTubeMonitorPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setEditingQuotas({ ...beatQuotas });
+                  setEditingQuotas(JSON.parse(JSON.stringify(beatQuotas)));
                   setIsQuotasModalOpen(true);
                 }}
                 className="w-full sm:w-auto justify-center inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-xs transition cursor-pointer mt-1 sm:mt-0 sm:ml-auto"
@@ -1146,7 +1328,7 @@ export default function YouTubeMonitorPage() {
               <div
                 key={beatId}
                 onClick={() => {
-                  setEditingQuotas({ ...beatQuotas });
+                  setEditingQuotas(JSON.parse(JSON.stringify(beatQuotas)));
                   setIsQuotasModalOpen(true);
                 }}
                 className={`p-2 rounded-xl border text-xs transition flex flex-col justify-between cursor-pointer hover:shadow-sm last:col-span-2 sm:last:col-span-1 ${
@@ -1187,6 +1369,30 @@ export default function YouTubeMonitorPage() {
                   <span className="truncate" title={base.subtitle}>{base.subtitle}</span>
                   {published > 0 && <span className="font-semibold text-emerald-600 dark:text-emerald-400 shrink-0">({published} pub)</span>}
                 </div>
+
+                {/* District Priority & Live Status Badges */}
+                {live?.districts && live.districts.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1.5 pt-1.5 border-t border-slate-100 dark:border-slate-800">
+                    {live.districts.map((dist) => (
+                      <span
+                        key={dist.id}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDiscoverDistrict(beatId, dist.id);
+                        }}
+                        className={`px-1.5 py-0.5 rounded text-[9px] font-bold flex items-center gap-1 transition ${
+                          dist.isMet
+                            ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
+                            : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 hover:bg-purple-100 dark:hover:bg-purple-900/60'
+                        }`}
+                        title={`${dist.name}: ${dist.current}/${dist.min} stories today (${dist.priority} priority). Click to trigger instant discovery for ${dist.name}!`}
+                      >
+                        <span className={`w-1 h-1 rounded-full ${dist.isMet ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                        <span>{dist.name}: {dist.current}/{dist.min}</span>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             );
           })}
@@ -2540,57 +2746,219 @@ export default function YouTubeMonitorPage() {
                 return (
                   <div
                     key={beatId}
-                    className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 flex flex-col gap-2.5"
                   >
-                    <div>
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-sm text-slate-900 dark:text-slate-100">{base.name}</span>
-                        {base.priority && (
-                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-cyan-100 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-300 font-bold">
-                            Top Priority
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-sm text-slate-900 dark:text-slate-100">{base.name}</span>
+                          {base.priority && (
+                            <span className="text-[10px] px-1.5 py-0.2 rounded bg-cyan-100 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-300 font-bold">
+                              Top Priority
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">{base.subtitle}</span>
+                      </div>
+
+                      <div className="flex items-center gap-4 shrink-0">
+                        <div className="flex items-center gap-1.5">
+                          <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">Min:</label>
+                          <input
+                            type="number"
+                            min={0}
+                            max={50}
+                            value={currentMin}
+                            onChange={(e) => {
+                              const val = Math.max(0, Number(e.target.value));
+                              setEditingQuotas((prev) => {
+                                const pBeat = prev[beatId] || { min: base.min, max: base.max };
+                                return {
+                                  ...prev,
+                                  [beatId]: { ...pBeat, min: val, max: Math.max(val, pBeat.max ?? base.max) },
+                                };
+                              });
+                            }}
+                            className="w-16 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-xs text-center font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500"
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">Max:</label>
+                          <input
+                            type="number"
+                            min={1}
+                            max={100}
+                            value={currentMax}
+                            onChange={(e) => {
+                              const val = Math.max(1, Number(e.target.value));
+                              setEditingQuotas((prev) => {
+                                const pBeat = prev[beatId] || { min: base.min, max: base.max };
+                                return {
+                                  ...prev,
+                                  [beatId]: { ...pBeat, min: Math.min(val, pBeat.min ?? base.min), max: val },
+                                };
+                              });
+                            }}
+                            className="w-16 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-xs text-center font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Sub-District Level Priority & Quotas (e.g. Chenab Valley -> Doda, Kishtwar, Ramban) */}
+                    {base.districts && Object.keys(base.districts).length > 0 && (
+                      <div className="pt-2 border-t border-slate-200/80 dark:border-slate-700/60">
+                        <div className="flex items-center justify-between mb-2">
+                          <button
+                            type="button"
+                            onClick={() => setExpandedBeatDistricts((prev) => ({ ...prev, [beatId]: !prev[beatId] }))}
+                            className="inline-flex items-center gap-1.5 text-xs font-bold text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 cursor-pointer"
+                          >
+                            <span>{expandedBeatDistricts[beatId] ? '▼' : '▶'}</span>
+                            <span>District Priority &amp; Quotas ({Object.keys(base.districts).length} Districts)</span>
+                          </button>
+                          <span className="text-[11px] text-slate-500 dark:text-slate-400 font-mono">
+                            Set story targets &amp; priorities per district
                           </span>
+                        </div>
+
+                        {expandedBeatDistricts[beatId] && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 bg-white/70 dark:bg-slate-900/50 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800">
+                            {Object.entries(base.districts).map(([distId, distBase]) => {
+                              const beatObj = editingQuotas[beatId];
+                              const currentDistQuota = beatObj?.districts?.[distId] || {
+                                min: distBase.min,
+                                max: distBase.max,
+                                priority: distBase.priority,
+                              };
+                              const liveDist = discoveryRegions.find((r) => r.id === beatId)?.districts?.find((d) => d.id === distId);
+
+                              return (
+                                <div
+                                  key={distId}
+                                  className="p-2.5 rounded-lg border border-slate-200 dark:border-slate-700/70 bg-white dark:bg-slate-800/80 text-xs space-y-2 shadow-2xs"
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-bold text-slate-900 dark:text-slate-100 flex items-center gap-1">
+                                      <span>📍</span>
+                                      <span>{distBase.name}</span>
+                                    </span>
+                                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">
+                                      Today: {liveDist?.current ?? 0} stories
+                                    </span>
+                                  </div>
+
+                                  <div className="flex items-center gap-2">
+                                    <div className="flex items-center gap-1 flex-1">
+                                      <label className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">Min:</label>
+                                      <input
+                                        type="number"
+                                        min={0}
+                                        max={20}
+                                        value={currentDistQuota.min}
+                                        onChange={(e) => {
+                                          const val = Math.max(0, Number(e.target.value));
+                                          setEditingQuotas((prev) => {
+                                            const pBeat = prev[beatId] || { min: base.min, max: base.max };
+                                            const pDistObj = pBeat.districts?.[distId] || { min: distBase.min, max: distBase.max, priority: distBase.priority };
+                                            return {
+                                              ...prev,
+                                              [beatId]: {
+                                                ...pBeat,
+                                                districts: {
+                                                  ...(pBeat.districts || {}),
+                                                  [distId]: {
+                                                    ...pDistObj,
+                                                    min: val,
+                                                    max: Math.max(val, pDistObj.max),
+                                                  },
+                                                },
+                                              },
+                                            };
+                                          });
+                                        }}
+                                        className="w-12 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-1 py-0.5 text-center text-xs font-bold text-slate-900 dark:text-white"
+                                      />
+                                    </div>
+
+                                    <div className="flex items-center gap-1 flex-1">
+                                      <label className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">Max:</label>
+                                      <input
+                                        type="number"
+                                        min={1}
+                                        max={30}
+                                        value={currentDistQuota.max}
+                                        onChange={(e) => {
+                                          const val = Math.max(1, Number(e.target.value));
+                                          setEditingQuotas((prev) => {
+                                            const pBeat = prev[beatId] || { min: base.min, max: base.max };
+                                            const pDistObj = pBeat.districts?.[distId] || { min: distBase.min, max: distBase.max, priority: distBase.priority };
+                                            return {
+                                              ...prev,
+                                              [beatId]: {
+                                                ...pBeat,
+                                                districts: {
+                                                  ...(pBeat.districts || {}),
+                                                  [distId]: {
+                                                    ...pDistObj,
+                                                    min: Math.min(val, pDistObj.min),
+                                                    max: val,
+                                                  },
+                                                },
+                                              },
+                                            };
+                                          });
+                                        }}
+                                        className="w-12 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-1 py-0.5 text-center text-xs font-bold text-slate-900 dark:text-white"
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div className="flex items-center justify-between gap-1 pt-1 border-t border-slate-100 dark:border-slate-700">
+                                    <span className="text-[10px] text-slate-500 dark:text-slate-400 font-semibold">Priority:</span>
+                                    <select
+                                      value={currentDistQuota.priority || 'normal'}
+                                      onChange={(e) => {
+                                        const prio = e.target.value as 'high' | 'normal' | 'low';
+                                        setEditingQuotas((prev) => {
+                                          const pBeat = prev[beatId] || { min: base.min, max: base.max };
+                                          const pDistObj = pBeat.districts?.[distId] || { min: distBase.min, max: distBase.max, priority: distBase.priority };
+                                          return {
+                                            ...prev,
+                                            [beatId]: {
+                                              ...pBeat,
+                                              districts: {
+                                                ...(pBeat.districts || {}),
+                                                [distId]: {
+                                                  ...pDistObj,
+                                                  priority: prio,
+                                                },
+                                              },
+                                            },
+                                          };
+                                        });
+                                      }}
+                                      className={`rounded px-1.5 py-0.5 text-[10px] font-bold border outline-none ${
+                                        currentDistQuota.priority === 'high'
+                                          ? 'border-red-300 bg-red-50 text-red-700 dark:bg-red-950/70 dark:text-red-300 dark:border-red-800'
+                                          : currentDistQuota.priority === 'low'
+                                          ? 'border-slate-300 bg-slate-50 text-slate-600 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-700'
+                                          : 'border-blue-300 bg-blue-50 text-blue-700 dark:bg-blue-950/70 dark:text-blue-300 dark:border-blue-800'
+                                      }`}
+                                    >
+                                      <option value="high">🔥 High</option>
+                                      <option value="normal">⚖️ Normal</option>
+                                      <option value="low">💤 Low</option>
+                                    </select>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
                         )}
                       </div>
-                      <span className="text-xs text-slate-500 dark:text-slate-400">{base.subtitle}</span>
-                    </div>
-
-                    <div className="flex items-center gap-4 shrink-0">
-                      <div className="flex items-center gap-1.5">
-                        <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">Min:</label>
-                        <input
-                          type="number"
-                          min={0}
-                          max={50}
-                          value={currentMin}
-                          onChange={(e) => {
-                            const val = Math.max(0, Number(e.target.value));
-                            setEditingQuotas((prev) => ({
-                              ...prev,
-                              [beatId]: { min: val, max: Math.max(val, prev[beatId]?.max ?? base.max) },
-                            }));
-                          }}
-                          className="w-16 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-xs text-center font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500"
-                        />
-                      </div>
-
-                      <div className="flex items-center gap-1.5">
-                        <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">Max:</label>
-                        <input
-                          type="number"
-                          min={1}
-                          max={100}
-                          value={currentMax}
-                          onChange={(e) => {
-                            const val = Math.max(1, Number(e.target.value));
-                            setEditingQuotas((prev) => ({
-                              ...prev,
-                              [beatId]: { min: Math.min(val, prev[beatId]?.min ?? base.min), max: val },
-                            }));
-                          }}
-                          className="w-16 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1 text-xs text-center font-bold text-slate-900 dark:text-white outline-none focus:ring-2 focus:ring-purple-500"
-                        />
-                      </div>
-                    </div>
+                    )}
                   </div>
                 );
               })}
@@ -2600,9 +2968,15 @@ export default function YouTubeMonitorPage() {
               <button
                 type="button"
                 onClick={() => {
-                  const defaults: Record<string, { min: number; max: number }> = {};
+                  const defaults: Record<string, BeatQuotaConfig> = {};
                   Object.entries(DEFAULT_BEAT_QUOTAS).forEach(([k, v]) => {
-                    defaults[k] = { min: v.min, max: v.max };
+                    const defaultDistricts: Record<string, DistrictQuotaConfig> = {};
+                    if (v.districts) {
+                      Object.entries(v.districts).forEach(([dId, dVal]) => {
+                        defaultDistricts[dId] = { min: dVal.min, max: dVal.max, priority: dVal.priority };
+                      });
+                    }
+                    defaults[k] = { min: v.min, max: v.max, districts: defaultDistricts };
                   });
                   setEditingQuotas(defaults);
                 }}

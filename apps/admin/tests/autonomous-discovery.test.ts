@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import {
   KJIN_REGIONAL_TARGETS,
   DISCOVERY_BEATS,
+  DISTRICT_METADATA,
+  detectArticleDistrict,
+  selectTargetDistrictForBeat,
   calculateHeadlineSimilarity,
   classifyArticleRegion,
   selectNextPrioritizedBeat,
@@ -10,6 +13,7 @@ import {
   getNewsroomStartOfDay,
   getDailyRegionalStats,
   type RegionalDailyStats,
+  type DistrictDailyStat,
 } from '../lib/newsroom/autonomous-discovery.ts';
 
 describe('P0: KJIN Autonomous News Discovery & Regional Quotas', () => {
@@ -244,5 +248,71 @@ describe('P0: KJIN Autonomous News Discovery & Regional Quotas', () => {
     const chenabRegion = updatedStats.regions.find((r) => r.id === 'chenab_valley');
     assert.strictEqual(chenabRegion?.current, 1, 'Chenab Valley count must increment to 1');
     assert.strictEqual(chenabRegion?.deficit, 2, 'Chenab Valley deficit must drop from 3 to 2');
+  });
+
+  it('enforces district-level metadata, search queries, and default quotas for Chenab Valley', () => {
+    assert.ok(DISTRICT_METADATA.doda, 'Doda must be in DISTRICT_METADATA');
+    assert.strictEqual(DISTRICT_METADATA.doda.beatId, 'chenab_valley');
+    assert.strictEqual(DISTRICT_METADATA.doda.name, 'Doda');
+    assert.strictEqual(DISTRICT_METADATA.doda.defaultPriority, 'high');
+    assert.ok(DISTRICT_METADATA.doda.searchQuery.includes('Doda'));
+
+    assert.ok(DISTRICT_METADATA.kishtwar, 'Kishtwar must be in DISTRICT_METADATA');
+    assert.strictEqual(DISTRICT_METADATA.kishtwar.beatId, 'chenab_valley');
+    assert.strictEqual(DISTRICT_METADATA.kishtwar.name, 'Kishtwar');
+    assert.strictEqual(DISTRICT_METADATA.kishtwar.defaultPriority, 'high');
+    assert.ok(DISTRICT_METADATA.kishtwar.searchQuery.includes('Kishtwar'));
+
+    assert.ok(DISTRICT_METADATA.ramban, 'Ramban must be in DISTRICT_METADATA');
+    assert.strictEqual(DISTRICT_METADATA.ramban.beatId, 'chenab_valley');
+    assert.strictEqual(DISTRICT_METADATA.ramban.name, 'Ramban');
+    assert.ok(DISTRICT_METADATA.ramban.searchQuery.includes('Ramban'));
+  });
+
+  it('detectArticleDistrict accurately identifies district from explicit tags or text keywords', () => {
+    assert.strictEqual(
+      detectArticleDistrict({ district: 'doda', title: 'Road restoration update' }),
+      'doda'
+    );
+    assert.strictEqual(
+      detectArticleDistrict({ district: null, title: 'Fresh Snowfall Shuts Sinthan Top Pass in Kishtwar' }),
+      'kishtwar'
+    );
+    assert.strictEqual(
+      detectArticleDistrict({ district: null, excerpt: 'Landslide on Jammu-Srinagar Highway at Panthyal in Ramban cleared' }),
+      'ramban'
+    );
+    assert.strictEqual(
+      detectArticleDistrict({ district: null, content: 'Bhaderwah festival draws thousands of tourists' }),
+      'doda'
+    );
+  });
+
+  it('selectTargetDistrictForBeat prioritizes underrepresented districts and honors priorities', () => {
+    const chenabBeat = KJIN_REGIONAL_TARGETS.find((t) => t.id === 'chenab_valley')!;
+    assert.ok(chenabBeat);
+
+    // Scenario A: Doda and Kishtwar both have deficit 1, but Doda is High priority, Ramban is Normal
+    const districtStatsA: DistrictDailyStat[] = [
+      { id: 'doda', name: 'Doda', beatId: 'chenab_valley', current: 0, published: 0, min: 1, max: 2, priority: 'high', deficit: 1, isMet: false, isMaxReached: false },
+      { id: 'kishtwar', name: 'Kishtwar', beatId: 'chenab_valley', current: 0, published: 0, min: 1, max: 2, priority: 'normal', deficit: 1, isMet: false, isMaxReached: false },
+      { id: 'ramban', name: 'Ramban', beatId: 'chenab_valley', current: 1, published: 1, min: 1, max: 2, priority: 'normal', deficit: 0, isMet: true, isMaxReached: false },
+    ];
+
+    const targetA = selectTargetDistrictForBeat(chenabBeat, districtStatsA);
+    assert.strictEqual(targetA?.id, 'doda', 'High-priority district with deficit (Doda) must be chosen first');
+
+    // Scenario B: Explicit district override requested (e.g. user specifically clicked Kishtwar)
+    const targetB = selectTargetDistrictForBeat(chenabBeat, districtStatsA, 'kishtwar');
+    assert.strictEqual(targetB?.id, 'kishtwar', 'Explicit district override must select Kishtwar');
+
+    // Scenario C: All minimums met, pick district with headroom and highest priority
+    const districtStatsC: DistrictDailyStat[] = [
+      { id: 'doda', name: 'Doda', beatId: 'chenab_valley', current: 2, published: 2, min: 1, max: 2, priority: 'high', deficit: 0, isMet: true, isMaxReached: true },
+      { id: 'kishtwar', name: 'Kishtwar', beatId: 'chenab_valley', current: 1, published: 1, min: 1, max: 3, priority: 'high', deficit: 0, isMet: true, isMaxReached: false },
+      { id: 'ramban', name: 'Ramban', beatId: 'chenab_valley', current: 1, published: 1, min: 1, max: 2, priority: 'normal', deficit: 0, isMet: true, isMaxReached: false },
+    ];
+    const targetC = selectTargetDistrictForBeat(chenabBeat, districtStatsC);
+    assert.strictEqual(targetC?.id, 'kishtwar', 'Kishtwar must be selected as it has headroom below max cap');
   });
 });
