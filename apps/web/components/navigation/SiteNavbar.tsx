@@ -223,19 +223,12 @@ export function SiteNavbar({
               <span className="text-stone-500 font-serif lowercase italic text-[9px] sm:text-[10.5px] truncate hidden xs:inline">16 Jumada al-awwal 1448</span>
             </div>
 
-            {/* Right: Verified Wire Badge & Languages */}
+            {/* Right: Verified Wire Badge */}
             <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
               <div className="flex items-center space-x-1 bg-emerald-50 text-emerald-800 px-1.5 sm:px-2 py-0.5 rounded-full border border-emerald-200 text-[8px] sm:text-[9.5px] font-semibold whitespace-nowrap">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
                 <span>VERIFIED WIRE</span>
               </div>
-              {navSettings.languages.enabled && (
-                <div className="hidden sm:flex items-center gap-1 font-mono text-[10px] ml-1">
-                  <Link href={pathname.replace(/^\/(ur|ks|hi)/, '') || '/'} className={`px-1 py-0.5 rounded ${lang === 'en' ? 'font-bold bg-stone-200/80 text-stone-900' : 'text-stone-500'}`}>EN</Link>
-                  <span className="text-stone-300">/</span>
-                  <Link href={`/ur${pathname.replace(/^\/(ur|ks|hi)/, '')}`} className={`px-1 py-0.5 rounded ${lang === 'ur' ? 'font-bold bg-stone-200/80 text-stone-900' : 'text-stone-500'}`}>اردو</Link>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -662,52 +655,6 @@ export function SiteNavbar({
               </div>
             </div>
 
-            {/* 6. Edition Switcher (Languages) */}
-            {navSettings.languages.enabled && (
-              <div className="pt-2 border-t border-stone-300">
-                <span className="text-[10px] font-mono uppercase tracking-widest font-bold text-stone-600 block mb-2">
-                  Language Edition / زبان ایڈیشن
-                </span>
-                <div className="grid grid-cols-4 gap-1.5 font-sans">
-                  {navSettings.languages.en && (
-                    <Link
-                      href="/"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="py-2 px-1 text-center rounded-lg border border-stone-300 bg-white font-bold text-xs text-stone-900 hover:bg-stone-100"
-                    >
-                      English
-                    </Link>
-                  )}
-                  {navSettings.languages.ur && (
-                    <Link
-                      href="/ur"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="py-2 px-1 text-center rounded-lg border border-stone-300 bg-white font-bold text-xs text-cyan-700 hover:bg-stone-100"
-                    >
-                      اردو
-                    </Link>
-                  )}
-                  {navSettings.languages.ks && (
-                    <Link
-                      href="/ks"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="py-2 px-1 text-center rounded-lg border border-stone-300 bg-white font-bold text-xs text-emerald-700 hover:bg-stone-100"
-                    >
-                      कॉशुर
-                    </Link>
-                  )}
-                  {navSettings.languages.hi && (
-                    <Link
-                      href="/hi"
-                      onClick={() => setMobileMenuOpen(false)}
-                      className="py-2 px-1 text-center rounded-lg border border-stone-300 bg-white font-bold text-xs text-amber-700 hover:bg-stone-100"
-                    >
-                      हिन्दी
-                    </Link>
-                  )}
-                </div>
-              </div>
-            )}
 
             {/* 7. Institutional Footer Seal */}
             <div className="pt-2 pb-6 border-t border-stone-200 text-center font-serif text-[10px] text-stone-600 space-y-1">

@@ -323,14 +323,9 @@ export default function NavbarSettingsPage() {
                 )}
 
                 <div className="flex items-center gap-2">
-                  {form.languages.enabled && (
-                    <div className="flex items-center gap-1 font-mono text-[9px]">
-                      {form.languages.en && <span className="font-bold bg-slate-200 px-1 rounded">EN</span>}
-                      {form.languages.ur && <span>اردو</span>}
-                      {form.languages.ks && <span>कॉशور</span>}
-                      {form.languages.hi && <span>हिन्दी</span>}
-                    </div>
-                  )}
+                  <span className="font-mono text-[9px] font-bold bg-slate-200 text-slate-800 px-1.5 py-0.5 rounded">
+                    EN (Exclusive)
+                  </span>
                   {form.actions.show_submit_tip && (
                     <span className="px-1.5 py-0.5 rounded text-[9px] font-semibold border border-slate-300 text-slate-700">
                       {form.actions.submit_tip_label}
@@ -449,7 +444,7 @@ export default function NavbarSettingsPage() {
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
             }`}
           >
-            🌐 Languages ({form.languages.enabled ? 'Active' : 'Hidden'})
+            🌐 Language Policy (English Exclusive)
           </button>
           <button
             type="button"
@@ -1030,120 +1025,82 @@ export default function NavbarSettingsPage() {
           </div>
         )}
 
-        {/* Tab 3: Language Switcher Controls */}
+        {/* Tab 3: Language Policy (English Exclusive) */}
         {activeTab === 'languages' && (
           <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-6 space-y-6">
             <div>
               <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                <span>🌐</span> Multilingual Switcher Controls
+                <span>🌐</span> Publication Language Policy
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                Control the multilingual language options (EN / اردو / कॉशुर / हिन्दी) displayed in the top header strip.
+                KJIN operates strictly and exclusively as an English-language publication network.
               </p>
             </div>
 
-            {/* Master Language Switcher Toggle */}
-            <div className="p-4 rounded-xl border border-slate-700 bg-slate-950 flex items-center justify-between">
+            {/* Exclusive English Policy Banner */}
+            <div className="p-5 rounded-xl border border-emerald-500/30 bg-emerald-950/20 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div>
-                <div className="font-bold text-base text-white">Enable Language Switcher in Header</div>
-                <div className="text-xs text-slate-400">Turn multilingual switching on or off across the whole website</div>
+                <div className="font-bold text-base text-emerald-400 flex items-center gap-2">
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  English Edition Active (Sole Publication Standard)
+                </div>
+                <div className="text-xs text-slate-300 mt-1 max-w-xl">
+                  Hindi, Urdu, and Kashmiri language editions have been decommissioned. All inbound traffic to legacy locale paths (<code className="text-emerald-300">/ur</code>, <code className="text-emerald-300">/hi</code>, <code className="text-emerald-300">/ks</code>) is automatically and permanently redirected to <code className="text-emerald-300">/en</code>.
+                </div>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.languages.enabled}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      languages: { ...form.languages, enabled: e.target.checked },
-                    })
-                  }
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-500"></div>
-              </label>
+              <div className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/40 text-emerald-300 text-xs font-mono font-bold whitespace-nowrap">
+                Strict: English Only
+              </div>
             </div>
 
-            {/* Individual Language Checkboxes */}
+            {/* Language Registry Status */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
               {/* English */}
-              <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/60 flex items-center justify-between">
+              <div className="p-4 rounded-xl border border-emerald-500/40 bg-slate-950 flex items-center justify-between">
                 <div>
-                  <div className="font-bold text-sm text-white">English</div>
-                  <div className="text-[11px] font-mono text-slate-500">Code: en (EN)</div>
+                  <div className="font-bold text-sm text-white flex items-center gap-1.5">
+                    English
+                    <span className="text-[10px] bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded font-mono font-semibold">ACTIVE</span>
+                  </div>
+                  <div className="text-[11px] font-mono text-slate-500 mt-0.5">Code: en (Default & Exclusive)</div>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={form.languages.en}
-                  disabled={!form.languages.enabled}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      languages: { ...form.languages, en: e.target.checked },
-                    })
-                  }
-                  className="w-5 h-5 rounded border-slate-700 bg-slate-800 text-cyan-500 focus:ring-cyan-500 cursor-pointer"
-                />
+                <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50"></div>
               </div>
 
               {/* Urdu */}
-              <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/60 flex items-center justify-between">
+              <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/40 flex items-center justify-between opacity-60">
                 <div>
-                  <div className="font-bold text-sm text-white">Urdu (اردو)</div>
-                  <div className="text-[11px] font-mono text-slate-500">Code: ur (RTL)</div>
+                  <div className="font-bold text-sm text-slate-400 flex items-center gap-1.5">
+                    Urdu (اردو)
+                    <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded font-mono">REMOVED</span>
+                  </div>
+                  <div className="text-[11px] font-mono text-slate-600 mt-0.5">Redirected to /en</div>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={form.languages.ur}
-                  disabled={!form.languages.enabled}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      languages: { ...form.languages, ur: e.target.checked },
-                    })
-                  }
-                  className="w-5 h-5 rounded border-slate-700 bg-slate-800 text-cyan-500 focus:ring-cyan-500 cursor-pointer"
-                />
+                <div className="w-2.5 h-2.5 rounded-full bg-slate-600"></div>
               </div>
 
               {/* Kashmiri */}
-              <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/60 flex items-center justify-between">
+              <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/40 flex items-center justify-between opacity-60">
                 <div>
-                  <div className="font-bold text-sm text-white">Kashmiri (कॉशुर)</div>
-                  <div className="text-[11px] font-mono text-slate-500">Code: ks (Devanagari)</div>
+                  <div className="font-bold text-sm text-slate-400 flex items-center gap-1.5">
+                    Kashmiri (कॉशुर)
+                    <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded font-mono">REMOVED</span>
+                  </div>
+                  <div className="text-[11px] font-mono text-slate-600 mt-0.5">Redirected to /en</div>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={form.languages.ks}
-                  disabled={!form.languages.enabled}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      languages: { ...form.languages, ks: e.target.checked },
-                    })
-                  }
-                  className="w-5 h-5 rounded border-slate-700 bg-slate-800 text-cyan-500 focus:ring-cyan-500 cursor-pointer"
-                />
+                <div className="w-2.5 h-2.5 rounded-full bg-slate-600"></div>
               </div>
 
               {/* Hindi */}
-              <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/60 flex items-center justify-between">
+              <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/40 flex items-center justify-between opacity-60">
                 <div>
-                  <div className="font-bold text-sm text-white">Hindi (हिन्दी)</div>
-                  <div className="text-[11px] font-mono text-slate-500">Code: hi (Devanagari)</div>
+                  <div className="font-bold text-sm text-slate-400 flex items-center gap-1.5">
+                    Hindi (हिन्दी)
+                    <span className="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded font-mono">REMOVED</span>
+                  </div>
+                  <div className="text-[11px] font-mono text-slate-600 mt-0.5">Redirected to /en</div>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={form.languages.hi}
-                  disabled={!form.languages.enabled}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      languages: { ...form.languages, hi: e.target.checked },
-                    })
-                  }
-                  className="w-5 h-5 rounded border-slate-700 bg-slate-800 text-cyan-500 focus:ring-cyan-500 cursor-pointer"
-                />
+                <div className="w-2.5 h-2.5 rounded-full bg-slate-600"></div>
               </div>
             </div>
           </div>

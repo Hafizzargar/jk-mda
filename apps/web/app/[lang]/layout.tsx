@@ -21,7 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
   let brandName = SITE_SHORT_NAME;
   let brandFullName = SITE_NAME;
   let logo = '/kjin-emblem.png';
-  let tagline = 'Independent, verified, multilingual news and information for Jammu and Kashmir.';
+  let tagline = 'Independent, verified news and information for Jammu and Kashmir.';
 
   try {
     const supabase = createServerAnonClient();
@@ -65,9 +65,8 @@ export default async function RootLayout({
   children: React.ReactNode;
   params: Promise<{ lang: string }>;
 }) {
-  const resolvedParams = (await params) || {};
-  const lang = resolvedParams.lang || 'en';
-  const dir = lang === 'ur' ? 'rtl' : 'ltr';
+  const lang = 'en';
+  const dir = 'ltr';
 
   let activeTemplateId: TemplateId = 'classic-editorial';
   try {

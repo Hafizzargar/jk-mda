@@ -163,11 +163,11 @@ export const DEFAULT_NAVBAR_SETTINGS: NavbarSettings = {
     { id: 'sports', label: 'Sports', slug: 'sports', enabled: false },
   ],
   languages: {
-    enabled: true,
+    enabled: false,
     en: true,
-    ur: true,
-    ks: true,
-    hi: true,
+    ur: false,
+    ks: false,
+    hi: false,
   },
   top_strip: {
     enabled: true,
@@ -248,11 +248,11 @@ export function sanitizeNavbarSettings(raw: unknown): NavbarSettings {
   }
 
   const languages: NavbarLanguagesConfig = {
-    enabled: typeof rawLanguages.enabled === 'boolean' ? rawLanguages.enabled : true,
-    en: typeof rawLanguages.en === 'boolean' ? rawLanguages.en : true,
-    ur: typeof rawLanguages.ur === 'boolean' ? rawLanguages.ur : true,
-    ks: typeof rawLanguages.ks === 'boolean' ? rawLanguages.ks : true,
-    hi: typeof rawLanguages.hi === 'boolean' ? rawLanguages.hi : true,
+    enabled: false,
+    en: true,
+    ur: false,
+    ks: false,
+    hi: false,
   };
 
   const top_strip: NavbarTopStripConfig = {

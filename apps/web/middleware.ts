@@ -7,7 +7,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { buildCspHeader } from './lib/csp';
 
-const LOCALES = ['en', 'ur', 'ks', 'hi'];
+const LOCALES = ['en'];
 const DEFAULT_LOCALE = 'en';
 
 export function middleware(request: NextRequest) {
@@ -23,6 +23,15 @@ export function middleware(request: NextRequest) {
     pathname.includes('.')
   ) {
     return NextResponse.next();
+  }
+
+  // Gracefully redirect legacy non-English locales (/ur, /ks, /hi) directly to English (/en)
+  const legacyMatch = pathname.match(/^\/(?:ur|ks|hi)(?:\/|$)(.*)/);
+  if (legacyMatch) {
+    const remaining = legacyMatch[1] ? `/${legacyMatch[1]}` : '';
+    const redirectUrl = new URL(`/en${remaining}`, request.url);
+    redirectUrl.search = request.nextUrl.search;
+    return NextResponse.redirect(redirectUrl);
   }
 
   // Generate a nonce for the Strict CSP

@@ -16,7 +16,7 @@ import { SITE_URL, SITE_NAME, SITE_SHORT_NAME } from '../lib/config';
 import { getNavItemHref, DEFAULT_NAVBAR_SETTINGS } from '../lib/navbar';
 
 test('P0: Newspaper Full URL Structure & Routing Integrity', async (t) => {
-  const LOCALES = ['en', 'ur', 'ks', 'hi'];
+  const LOCALES = ['en'];
 
   await t.test('1. Core Newspaper Top-Level Routes', () => {
     const coreRoutes = [
@@ -37,13 +37,13 @@ test('P0: Newspaper Full URL Structure & Routing Integrity', async (t) => {
     }
   });
 
-  await t.test('2. Multi-Language Locale Prefixes (/en, /ur, /ks, /hi)', () => {
+  await t.test('2. Sole Publication Locale Prefix (/en)', () => {
     for (const lang of LOCALES) {
       assert.ok(lang.length >= 2, `Locale ${lang} must be valid ISO code`);
       const langHome = `/${lang}`;
       assert.ok(langHome.startsWith('/'), `Locale path ${langHome} is valid`);
 
-      // Test core routes under each locale
+      // Test core routes under English locale
       const localeIndia = `/${lang}/india`;
       const localeInternational = `/${lang}/international`;
       const localeLatest = `/${lang}/latest`;
@@ -143,14 +143,10 @@ test('P0: Newspaper Full URL Structure & Routing Integrity', async (t) => {
 
     for (const art of sampleArticles) {
       const canonicalEn = `${SITE_URL}/${art.category}/${art.slug}`;
-      const canonicalUr = `${SITE_URL}/ur/${art.category}/${art.slug}`;
-      const canonicalKs = `${SITE_URL}/ks/${art.category}/${art.slug}`;
-      const canonicalHi = `${SITE_URL}/hi/${art.category}/${art.slug}`;
+      const canonicalWithLocale = `${SITE_URL}/en/${art.category}/${art.slug}`;
 
       assert.equal(canonicalEn, `${SITE_URL}/${art.category}/${art.slug}`);
-      assert.equal(canonicalUr, `${SITE_URL}/ur/${art.category}/${art.slug}`);
-      assert.equal(canonicalKs, `${SITE_URL}/ks/${art.category}/${art.slug}`);
-      assert.equal(canonicalHi, `${SITE_URL}/hi/${art.category}/${art.slug}`);
+      assert.equal(canonicalWithLocale, `${SITE_URL}/en/${art.category}/${art.slug}`);
     }
   });
 
