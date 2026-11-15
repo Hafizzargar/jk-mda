@@ -25,6 +25,7 @@ export function FestiveCelebrationOverlay({ initialSettings }: FestiveCelebratio
   // Auto-hide timer tracking for celebration banner
   const bannerTimerRef = useRef<NodeJS.Timeout | null>(null);
   const exitTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const resumeSafetyTimerRef = useRef<NodeJS.Timeout | null>(null);
   const bannerStartTimeRef = useRef<number>(0);
   const remainingTimeRef = useRef<number>(0);
 
@@ -51,6 +52,10 @@ export function FestiveCelebrationOverlay({ initialSettings }: FestiveCelebratio
     if (exitTimerRef.current) {
       clearTimeout(exitTimerRef.current);
     }
+    if (resumeSafetyTimerRef.current) {
+      clearTimeout(resumeSafetyTimerRef.current);
+      resumeSafetyTimerRef.current = null;
+    }
     setBannerState('exiting');
     exitTimerRef.current = setTimeout(() => {
       setBannerState('hidden');
@@ -75,9 +80,19 @@ export function FestiveCelebrationOverlay({ initialSettings }: FestiveCelebratio
     }
     const elapsed = Date.now() - bannerStartTimeRef.current;
     remainingTimeRef.current = Math.max(1500, remainingTimeRef.current - elapsed);
+
+    // Auto-resume after 3.5s so mobile taps or scrolls never freeze the banner permanently
+    if (resumeSafetyTimerRef.current) clearTimeout(resumeSafetyTimerRef.current);
+    resumeSafetyTimerRef.current = setTimeout(() => {
+      handleResume();
+    }, 3500);
   };
 
   const handleResume = () => {
+    if (resumeSafetyTimerRef.current) {
+      clearTimeout(resumeSafetyTimerRef.current);
+      resumeSafetyTimerRef.current = null;
+    }
     setIsHovered(false);
     if (bannerState === 'visible' && remainingTimeRef.current > 0) {
       bannerStartTimeRef.current = Date.now();
@@ -184,7 +199,7 @@ export function FestiveCelebrationOverlay({ initialSettings }: FestiveCelebratio
       requestAnimationFrame(() => {
         setTimeout(() => {
           setBannerState('visible');
-          const autoDismissMs = Math.max(6, settings.duration_seconds || 8) * 1000;
+          const autoDismissMs = Math.max(5, settings.duration_seconds || 6) * 1000;
           startBannerCountdown(autoDismissMs);
         }, 30);
       });
@@ -414,7 +429,7 @@ export function FestiveCelebrationOverlay({ initialSettings }: FestiveCelebratio
                   backgroundColor: primaryColor,
                   transformOrigin: 'left',
                   animationName: bannerState === 'visible' ? 'festive-progress' : 'none',
-                  animationDuration: `${Math.max(6, settings.duration_seconds || 8)}s`,
+                  animationDuration: `${Math.max(5, settings.duration_seconds || 6)}s`,
                   animationTimingFunction: 'linear',
                   animationFillMode: 'forwards',
                   animationPlayState: isHovered ? 'paused' : 'running',

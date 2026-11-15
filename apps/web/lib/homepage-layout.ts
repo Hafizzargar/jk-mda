@@ -173,8 +173,8 @@ export const DEFAULT_HOMEPAGE_LAYOUT: HomepageLayoutConfig = {
     left: ['bureau_wire', 'territorial_map', 'conflict_radar'],
     center: ['lead_hero_group'],
     right: [
-      'civic_problems',
       'international_wire',
+      'civic_problems',
       'editorial_record',
       'corridor_voices',
       'mountain_transit',

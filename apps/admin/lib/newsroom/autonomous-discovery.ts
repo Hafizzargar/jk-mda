@@ -149,8 +149,8 @@ export const DISTRICT_METADATA: Record<string, DistrictMetadata> = {
     id: 'kathua',
     name: 'Kathua',
     beatId: 'jammu',
-    keywords: ['kathua', 'hiranagar', 'billawar', 'basohli', 'bani'],
-    searchQuery: '("Kathua" OR "Hiranagar" OR "Billawar" OR "Basohli") latest news',
+    keywords: ['kathua', 'hiranagar', 'billawar', 'basohli', 'bani', 'sarthal', 'bani-sarthal', 'mahanpur'],
+    searchQuery: '("Kathua" OR "Bani" OR "Sarthal" OR "Billawar" OR "Basohli" OR "Hiranagar") latest news',
     defaultDateline: 'KATHUA –',
     defaultMin: 0,
     defaultMax: 1,
@@ -452,6 +452,113 @@ export const DISCOVERY_BEATS: DiscoveryBeat[] = KJIN_REGIONAL_TARGETS.map((t) =>
   targetDistricts: t.districts,
   weight: t.weight,
 }));
+
+/**
+ * High-impact civic problems & public grievances search queries across J&K and Ladakh.
+ * Focuses on internet/mobile blackouts, drinking water crises, power cuts, damaged transformers, and road cutoffs.
+ */
+export const CIVIC_PROBLEM_SEARCH_QUERIES = [
+  '("no internet" OR "water scarcity" OR "drinking water problem" OR "power cut" OR "damaged transformer" OR "electricity issue") ("Jammu" OR "Kashmir" OR "Sarthal" OR "Kathua" OR "Doda" OR "Kishtwar" OR "Ramban" OR "Leh" OR "Kargil" OR "Poonch" OR "Rajouri")',
+  '("water crisis" OR "PHE" OR "Jal Shakti" OR "tap water" OR "tanker") ("Kathua" OR "Sarthal" OR "Doda" OR "Kishtwar" OR "Kashmir" OR "Jammu" OR "Ladakh") latest news protest grievance',
+  '("power crisis" OR "unscheduled power cuts" OR "burnt transformer" OR "PDD" OR "blackout") ("Doda" OR "Kishtwar" OR "Ramban" OR "Kathua" OR "Kupwara" OR "Poonch" OR "Jammu Kashmir")',
+  '("no mobile connectivity" OR "call drop" OR "no network" OR "broadband down" OR "internet snapped") ("Sarthal" OR "Marwah" OR "Warwan" OR "Padder" OR "Gurez" OR "Zanskar" OR "Kathua" OR "Jammu Kashmir")',
+  '("road in dilapidated condition" OR "potholes" OR "damaged bridge" OR "road blockade" OR "landslide") ("Chenab Valley" OR "Kathua" OR "Mughal Road" OR "Jammu Srinagar Highway" OR "Kargil" OR "Leh")',
+];
+
+export interface CivicProblemsDailyStatus {
+  currentToday: number;
+  maxDaily: number;
+  lastProblemAt: string | null;
+  canDiscoverNow: boolean;
+  hoursSinceLastProblem: number | null;
+  hoursUntilNextAllowed: number;
+  intervalHours: number;
+  todayProblems: Array<{
+    id: string;
+    title: string;
+    slug: string;
+    district?: string | null;
+    published_at: string | null;
+    created_at: string;
+  }>;
+}
+
+/**
+ * Calculates today's civic problems count and 6-hour interval pacing.
+ * Enforces maximum 2 problem dispatches per day, separated by at least 6 hours.
+ */
+export async function getCivicProblemsDailyStatus(
+  service: any,
+  now = new Date()
+): Promise<CivicProblemsDailyStatus> {
+  const startOfDay = getNewsroomStartOfDay(now);
+  const startOfDayIso = startOfDay.toISOString();
+  const maxDaily = 2;
+  const intervalHours = 6;
+
+  try {
+    const { data: rows } = await service
+      .from('articles')
+      .select('id, title, slug, district, published_at, created_at, status')
+      .ilike('category', 'problems')
+      .gte('created_at', startOfDayIso)
+      .order('created_at', { ascending: false });
+
+    const todayProblems = rows || [];
+    const currentToday = todayProblems.length;
+
+    let lastProblemAt: string | null = null;
+    let hoursSinceLastProblem: number | null = null;
+    let canDiscoverNow = false;
+    let hoursUntilNextAllowed = 0;
+
+    if (currentToday === 0) {
+      canDiscoverNow = true;
+      hoursUntilNextAllowed = 0;
+    } else if (currentToday === 1) {
+      lastProblemAt = todayProblems[0]?.published_at || todayProblems[0]?.created_at || null;
+      const lastTime = lastProblemAt ? new Date(lastProblemAt).getTime() : now.getTime();
+      const diffHours = (now.getTime() - lastTime) / (1000 * 60 * 60);
+      hoursSinceLastProblem = Math.max(0, Number(diffHours.toFixed(1)));
+
+      if (diffHours >= intervalHours) {
+        canDiscoverNow = true;
+        hoursUntilNextAllowed = 0;
+      } else {
+        canDiscoverNow = false;
+        hoursUntilNextAllowed = Math.max(0, Number((intervalHours - diffHours).toFixed(1)));
+      }
+    } else {
+      canDiscoverNow = false;
+      lastProblemAt = todayProblems[0]?.published_at || todayProblems[0]?.created_at || null;
+      const lastTime = lastProblemAt ? new Date(lastProblemAt).getTime() : now.getTime();
+      hoursSinceLastProblem = Math.max(0, Number(((now.getTime() - lastTime) / (1000 * 60 * 60)).toFixed(1)));
+      hoursUntilNextAllowed = 24;
+    }
+
+    return {
+      currentToday,
+      maxDaily,
+      lastProblemAt,
+      canDiscoverNow,
+      hoursSinceLastProblem,
+      hoursUntilNextAllowed,
+      intervalHours,
+      todayProblems,
+    };
+  } catch (err) {
+    return {
+      currentToday: 0,
+      maxDaily: 2,
+      lastProblemAt: null,
+      canDiscoverNow: true,
+      hoursSinceLastProblem: null,
+      hoursUntilNextAllowed: 0,
+      intervalHours: 6,
+      todayProblems: [],
+    };
+  }
+}
 
 /**
  * Classifies an article into one of KJIN's 7 editorial regions.
@@ -1258,7 +1365,7 @@ export async function scheduleArticleAutoPublish(
  */
 export async function runAutonomousNewsDiscovery(
   service: SupabaseClient,
-  options?: { beatId?: string; districtId?: string; force?: boolean }
+  options?: { beatId?: string; districtId?: string; force?: boolean; topic?: 'general' | 'civic_problems' }
 ): Promise<{
   success: boolean;
   discovered?: boolean;
@@ -1274,7 +1381,28 @@ export async function runAutonomousNewsDiscovery(
   autoPublishDelayMinutes?: number;
   reason?: string;
   dailyStats?: RegionalDailyStats;
+  civicProblemsStatus?: CivicProblemsDailyStatus;
 }> {
+  const isCivicTopic = options?.topic === 'civic_problems' || options?.beatId === 'civic_problems';
+  let civicStatus: CivicProblemsDailyStatus | null = null;
+
+  // Enforce 2 problems per day and 6-hour interval rule
+  if (isCivicTopic) {
+    civicStatus = await getCivicProblemsDailyStatus(service);
+    if (!civicStatus.canDiscoverNow && !options?.force) {
+      console.log(
+        `[AutonomousDiscovery] ⏸️ Civic problems desk pace limit reached (${civicStatus.currentToday}/${civicStatus.maxDaily} today, 6h interval: ${civicStatus.hoursUntilNextAllowed}h remaining). Skipping.`
+      );
+      return {
+        success: true,
+        skipped: true,
+        discovered: false,
+        reason: `Civic problems daily target met (${civicStatus.currentToday}/${civicStatus.maxDaily} today, 6-hour interval: ${civicStatus.hoursUntilNextAllowed}h remaining).`,
+        civicProblemsStatus: civicStatus,
+      };
+    }
+  }
+
   // 0. Circuit Breaker Check: if Gemini quota was exhausted, enforce 1-hour backoff
   const breaker = await isGeminiInCooldown(service);
   if (breaker.inCooldown && !options?.force) {
@@ -1303,7 +1431,16 @@ export async function runAutonomousNewsDiscovery(
   // Priority 2: Explicit beatId from options
   // Priority 3: Dynamic deficit-weighted regional selection
   let targetBeat: RegionalTarget | null = null;
-  if (breaker.pendingBeatId && !options?.beatId) {
+  if (isCivicTopic) {
+    // If a specific district is requested (e.g. kathua for Sarthal/Bani), map to its parent region
+    const reqDist = options?.districtId?.toLowerCase().trim();
+    if (reqDist && DISTRICT_METADATA[reqDist]) {
+      const parentBeatId = DISTRICT_METADATA[reqDist].beatId;
+      targetBeat = KJIN_REGIONAL_TARGETS.find((b) => b.id === parentBeatId) || KJIN_REGIONAL_TARGETS[0];
+    } else {
+      targetBeat = KJIN_REGIONAL_TARGETS.find((b) => b.id === 'jammu_plains') || KJIN_REGIONAL_TARGETS[0];
+    }
+  } else if (breaker.pendingBeatId && !options?.beatId) {
     const resumeBeat = KJIN_REGIONAL_TARGETS.find((t) => t.id === breaker.pendingBeatId);
     if (resumeBeat) {
       targetBeat = resumeBeat;
@@ -1311,16 +1448,16 @@ export async function runAutonomousNewsDiscovery(
     }
   }
 
-  if (!targetBeat && options?.beatId) {
+  if (!targetBeat && options?.beatId && options.beatId !== 'civic_problems') {
     targetBeat = KJIN_REGIONAL_TARGETS.find((t) => t.id === options.beatId) || null;
   }
 
-  if (!targetBeat) {
+  if (!targetBeat && !isCivicTopic) {
     targetBeat = selectNextPrioritizedBeat(stats);
   }
 
   // If daily ceiling reached (32 stories) and no underrepresented beat remains, skip unless forced
-  if (!targetBeat && !options?.force) {
+  if (!targetBeat && !options?.force && !isCivicTopic) {
     console.log(`[AutonomousDiscovery] All regional daily targets fulfilled (${stats.totalDiscoveredToday}/32). Desk at full daily capacity.`);
     return {
       success: true,
@@ -1335,22 +1472,57 @@ export async function runAutonomousNewsDiscovery(
   const regionStat = stats.regions.find((r) => r.id === beat.id);
 
   // 2b. Select target district within this beat based on editor quotas & priority
-  const targetDistrictStat = selectTargetDistrictForBeat(beat, regionStat?.districts, options?.districtId);
-  const targetDistrictId = targetDistrictStat?.id || options?.districtId || null;
-  const targetDistrictMeta = targetDistrictId ? DISTRICT_METADATA[targetDistrictId] : null;
+  let targetDistrictStat = selectTargetDistrictForBeat(beat, regionStat?.districts, options?.districtId);
+  let targetDistrictId = targetDistrictStat?.id || options?.districtId || null;
+  
+  if (isCivicTopic && !targetDistrictId) {
+    const civicDistKeys = ['kathua', 'kishtwar', 'doda', 'ramban', 'poonch', 'rajouri', 'kupwara', 'kargil', 'leh'];
+    targetDistrictId = civicDistKeys[(civicStatus?.currentToday ?? 0) % civicDistKeys.length];
+  }
+  
+  let targetDistrictMeta = targetDistrictId ? DISTRICT_METADATA[targetDistrictId] : null;
 
-  const effectiveSearchQuery = targetDistrictMeta ? targetDistrictMeta.searchQuery : beat.searchQuery;
-  const effectiveDateline = targetDistrictMeta ? targetDistrictMeta.defaultDateline : beat.defaultDateline;
+  let effectiveSearchQuery = targetDistrictMeta ? targetDistrictMeta.searchQuery : beat.searchQuery;
+  let effectiveDateline = targetDistrictMeta ? targetDistrictMeta.defaultDateline : beat.defaultDateline;
+
+  if (isCivicTopic) {
+    if (targetDistrictId === 'kathua') {
+      effectiveSearchQuery = 'sarthal bani kathua internet water electricity road problem OR crisis';
+      effectiveDateline = 'SARTHAL –';
+    } else {
+      effectiveSearchQuery = CIVIC_PROBLEM_SEARCH_QUERIES[(civicStatus?.currentToday ?? 0) % CIVIC_PROBLEM_SEARCH_QUERIES.length];
+      if (targetDistrictMeta) {
+        effectiveDateline = targetDistrictMeta.defaultDateline;
+      }
+    }
+  }
 
   console.log(
     `[AutonomousDiscovery] Prioritizing beat "${beat.name}" (Scope: ${beat.scope}, Today: ${regionStat?.current ?? 0}/${beat.min} min)${
       targetDistrictMeta ? `, Target District: "${targetDistrictMeta.name}" (Today: ${targetDistrictStat?.current ?? 0}/${targetDistrictStat?.min ?? 1}, Priority: ${targetDistrictStat?.priority ?? 'normal'})` : ''
-    }...`
+    }${isCivicTopic ? ' [CIVIC PROBLEMS SPECIAL REPORT]' : ''}...`
   );
 
   // 3. Compose grounded research prompt with strict credibility, multi-source discovery, & 6-factor scoring
   const prompt = `You are a Senior Investigative Correspondent and Field Bureau Chief for KJIN (Kashmir Jammu Independent News Network).
 Your mission is to autonomously search the web and discover the latest, verified, high-impact news published within the last 24 to 48 hours for this regional beat:
+
+BEAT: ${beat.name}
+${targetDistrictMeta ? `PRIORITIZED TARGET DISTRICT: ${targetDistrictMeta.name} (Newsroom Priority: ${targetDistrictStat?.priority || 'high'})
+TARGET DISTRICT SEARCH QUERY: ${effectiveSearchQuery}
+MANDATORY DISTRICT ASSIGNMENT: The newsroom editor has specifically prioritized coverage for **${targetDistrictMeta.name}** district. Search for and report verified events, infrastructure projects, road/weather conditions, civic issues, or administrative actions originating in or directly concerning **${targetDistrictMeta.name}**. In your JSON output, set "district": "${targetDistrictMeta.name}".` : `SEARCH QUERY: ${effectiveSearchQuery}`}
+MANDATORY SCOPE: ${beat.scope}
+TARGET DATELINE: ${effectiveDateline}
+
+${isCivicTopic ? `🚨 CRITICAL MANDATE — GROUND GRIEVANCES & CIVIC PROBLEMS DESK:
+- You are investigating and reporting on real grassroots public problems, suffering, and administrative neglect affecting citizens in Jammu & Kashmir and Ladakh (e.g. Sarthal/Kathua, Chenab Valley, Pir Panjal, Kashmir Valley, or Ladakh).
+- PRIORITY ISSUES TO HIGHLIGHT:
+  1. Water Shortage / Jal Shakti PHE pipeline breakdowns or tanker crises.
+  2. Electricity / PDD burnt transformers, prolonged load shedding, or dark villages.
+  3. Mobile Connectivity / BSNL/Jio cellular blackouts or complete internet loss in remote areas (such as Sarthal, Bani, Padder, Marwah, Gurez, Zanskar).
+  4. Road Cutoffs / Landslides, dilapidated bridges, or cut-off mountain habitations.
+  5. Healthcare Grievances / Doctor shortages or non-functional PHC/SDH health centres.
+- In your JSON output, set "category": "Problems", set "editorialScore": 95, and detail the genuine hardships faced by local residents and demands made to the Deputy Commissioner or administration.` : ''}
 
 BEAT: ${beat.name}
 ${targetDistrictMeta ? `PRIORITIZED TARGET DISTRICT: ${targetDistrictMeta.name} (Newsroom Priority: ${targetDistrictStat?.priority || 'high'})
@@ -1604,7 +1776,9 @@ Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with k
     }
 
     // 8. Controlled Regional Taxonomy & Image Matching
-    const canonicalCat = getCanonicalCategory(parsed.category || 'General', effectiveScope);
+    const canonicalCat = isCivicTopic || parsed.category?.toLowerCase() === 'problems'
+      ? { name: 'Problems', slug: 'problems' }
+      : getCanonicalCategory(parsed.category || 'General', effectiveScope);
     const imageContext = `${cleanHeadline} ${cleanSummary} ${canonicalCat.name}`;
     const { featuredImage, hasConfidentMatch } = getRecommendedEditorialImage(
       effectiveScope,
@@ -1731,6 +1905,7 @@ Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with k
     }
 
     const updatedStats = await getDailyRegionalStats(service);
+    const finalCivicStatus = isCivicTopic ? await getCivicProblemsDailyStatus(service) : undefined;
 
     return {
       success: true,
@@ -1744,6 +1919,7 @@ Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with k
       autoApproved: autoPublishConfig.enabled,
       autoPublishDelayMinutes: autoPublishConfig.delayMinutes,
       dailyStats: updatedStats,
+      civicProblemsStatus: finalCivicStatus,
     };
   } catch (err: any) {
     console.error('[AutonomousDiscovery] Unexpected error during news discovery:', err);

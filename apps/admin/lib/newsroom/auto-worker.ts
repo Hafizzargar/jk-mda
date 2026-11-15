@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { runYouTubeHourlySync } from './youtube-monitor';
-import { runAutonomousNewsDiscovery, processPendingAutoPublishes } from './autonomous-discovery';
+import { runAutonomousNewsDiscovery, processPendingAutoPublishes, getCivicProblemsDailyStatus } from './autonomous-discovery';
 
 let hasStarted = false;
 let timerId: NodeJS.Timeout | null = null;
@@ -38,11 +38,19 @@ function scheduleNextRun(service: any, delayMs: number) {
         await runAutonomousNewsDiscovery(service).catch((err) =>
           console.error('[AutoNewsWorker] Autonomous news discovery error:', err)
         );
-        // 2. Run Broadcast Surveillance (deposits into Pending Review)
+        // 2. Check if today's civic grievances slot is ready (max 2/day, 6h interval)
+        const civicStatus = await getCivicProblemsDailyStatus(service).catch(() => null);
+        if (civicStatus?.canDiscoverNow) {
+          console.log(`[AutoNewsWorker] 🚨 Civic problem window open (today: ${civicStatus.currentToday}/2). Triggering ground report discovery...`);
+          await runAutonomousNewsDiscovery(service, { topic: 'civic_problems' }).catch((err) =>
+            console.error('[AutoNewsWorker] Civic problem discovery error:', err)
+          );
+        }
+        // 3. Run Broadcast Surveillance (deposits into Pending Review)
         await runYouTubeHourlySync(service, { autoPublish: false }).catch((err) =>
           console.error('[AutoNewsWorker] Broadcast surveillance sync error:', err)
         );
-        // 3. Process any pending auto-publishes whose 5-min grace window has completed
+        // 4. Process any pending auto-publishes whose 5-min grace window has completed
         await processPendingAutoPublishes(service).catch((err) =>
           console.error('[AutoNewsWorker] Auto-publish processor error:', err)
         );
@@ -81,6 +89,13 @@ export function initBackgroundNewsWorker() {
         await runAutonomousNewsDiscovery(service).catch((err) =>
           console.error('[AutoNewsWorker] Initial news discovery error:', err)
         );
+        const initCivic = await getCivicProblemsDailyStatus(service).catch(() => null);
+        if (initCivic?.canDiscoverNow) {
+          console.log(`[AutoNewsWorker] 🚨 Initial civic problem window open. Triggering ground report discovery...`);
+          await runAutonomousNewsDiscovery(service, { topic: 'civic_problems' }).catch((err) =>
+            console.error('[AutoNewsWorker] Initial civic discovery error:', err)
+          );
+        }
         await runYouTubeHourlySync(service, { autoPublish: false }).catch((err) =>
           console.error('[AutoNewsWorker] Initial broadcast sync error:', err)
         );

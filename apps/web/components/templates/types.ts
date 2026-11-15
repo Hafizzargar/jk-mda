@@ -60,6 +60,7 @@ export interface TemplateProps {
   conflictNews?: ExternalNewsItem[];
   discoverNews?: ExternalNewsItem[];
   problemArticle?: ArticleItem | null;
+  problemArticles?: ArticleItem[];
   internationalArticle?: ArticleItem | null;
   internationalArticles?: ArticleItem[];
   editorialDeskSettings?: EditorialDeskSettings;

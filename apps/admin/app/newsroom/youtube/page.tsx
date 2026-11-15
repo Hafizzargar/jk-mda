@@ -238,6 +238,15 @@ export default function YouTubeMonitorPage() {
     publishedAt?: string;
   }>>([]);
   const [isTogglingAutoPublish, setIsTogglingAutoPublish] = useState(false);
+  const [civicProblems, setCivicProblems] = useState<{
+    currentToday: number;
+    maxDaily: number;
+    lastProblemAt: string | null;
+    canDiscoverNow: boolean;
+    hoursSinceLastProblem: number | null;
+    hoursUntilNextAllowed: number;
+  } | null>(null);
+  const [isDiscoveringCivic, setIsDiscoveringCivic] = useState(false);
   const [nowTimestamp, setNowTimestamp] = useState(Date.now());
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterScope, setFilterScope] = useState<string>('all');
@@ -527,6 +536,48 @@ export default function YouTubeMonitorPage() {
     }
   }
 
+  async function handleDiscoverCivicProblem(districtId?: string) {
+    if (isDiscoveringRef.current || isDiscovering || isDiscoveringCivic) return;
+    setIsDiscoveringCivic(true);
+    setFeedback({
+      text: `🚨 Investigating grassroots civic issues & public grievances${districtId ? ` in ${districtId.toUpperCase()}` : ' across J&K / Ladakh'} (water, electricity, internet blackouts in remote pockets like Sarthal/Bani)...`,
+      type: 'success',
+    });
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) return;
+      const res = await fetch('/api/newsroom/discovery/run', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+        body: JSON.stringify({ topic: 'civic_problems', district_id: districtId, force: true }),
+      });
+      const data = await res.json();
+      if (data?.civicProblemsStatus) {
+        setCivicProblems(data.civicProblemsStatus);
+      }
+      if (res.ok && data.success && data.discovered) {
+        setFeedback({
+          text: `🚨 Discovered ground grievance report: "${data.headline}" (${data.district || 'J&K'})! Deposited into editorial desk.`,
+          type: 'success',
+        });
+        await loadData();
+      } else {
+        if (data.skipped) {
+          setFeedback({ text: `ℹ️ ${data.reason}`, type: 'success' });
+        } else {
+          setFeedback({ text: data.reason || data.error || 'Civic issue surveillance complete. No new unaddressed breakdowns reported.', type: 'error' });
+        }
+      }
+    } catch (err: any) {
+      setFeedback({ text: err.message || 'Civic discovery network error.', type: 'error' });
+    } finally {
+      setIsDiscoveringCivic(false);
+    }
+  }
+
   async function handleTestEmail() {
     setIsTestingEmail(true);
     try {
@@ -748,6 +799,9 @@ export default function YouTubeMonitorPage() {
           if (Array.isArray(dData.autoPublish.scheduledQueue)) {
             setScheduledQueue(dData.autoPublish.scheduledQueue);
           }
+        }
+        if (dData.civicProblems) {
+          setCivicProblems(dData.civicProblems);
         }
       }
 
@@ -1396,6 +1450,21 @@ export default function YouTubeMonitorPage() {
             {isDiscovering ? 'Discovering News...' : 'Discover News Now'}
           </Button>
 
+          {/* Quick Ground Grievances & Civic Problems Discovery Button */}
+          <button
+            type="button"
+            disabled={isDiscoveringCivic}
+            onClick={() => handleDiscoverCivicProblem()}
+            className="w-full sm:w-auto justify-center inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg border border-amber-500/60 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 transition shadow-2xs cursor-pointer disabled:opacity-50"
+            title="Discover grassroots public problems (water, electricity, internet blackout in Sarthal/Kathua/Chenab/Ladakh - target 2/day with 6-hour interval)"
+          >
+            <span>🚨</span>
+            <span>{isDiscoveringCivic ? 'Searching Grievance...' : 'Discover Civic Problem'}</span>
+            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-500/20 border border-amber-500/30 font-bold">
+              {civicProblems ? `${civicProblems.currentToday}/${civicProblems.maxDaily}` : '2/day'}
+            </span>
+          </button>
+
           {/* Automatic Approval & Publishing Mode Toggle Button */}
           <button
             type="button"
@@ -1500,6 +1569,10 @@ export default function YouTubeMonitorPage() {
               <span>⏱️ Cadence: <strong>Every {autoPilotIntervalMinutes >= 60 ? `${autoPilotIntervalMinutes / 60} hr${autoPilotIntervalMinutes > 60 ? 's' : ''}` : `${autoPilotIntervalMinutes} min${autoPilotIntervalMinutes > 1 ? 's' : ''}`}</strong></span>
               <span>•</span>
               <span>⛰️ Regional Coverage: <strong>{discoveryStats?.regionalCount ?? 0} stories ({discoveryStats?.regionalSharePercent ?? 65}% of minimum)</strong></span>
+              <span>•</span>
+              <span className="inline-flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-md font-semibold border border-amber-200 dark:border-amber-800/40">
+                🚨 Ground Grievances: <strong>{civicProblems?.currentToday ?? 0}/2 today</strong> {civicProblems ? (civicProblems.canDiscoverNow ? '(Ready)' : `(Next in ${civicProblems.hoursUntilNextAllowed}h)`) : '(6h interval)'}
+              </span>
             </div>
           </div>
         </div>

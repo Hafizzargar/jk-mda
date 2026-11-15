@@ -19,6 +19,7 @@ import {
   executeAutoPublishArticle,
   cancelArticleAutoPublish,
   processPendingAutoPublishes,
+  getCivicProblemsDailyStatus,
   type ScheduledAutoPublishItem,
 } from '../lib/newsroom/autonomous-discovery.ts';
 
@@ -501,5 +502,104 @@ describe('P0: KJIN Autonomous News Discovery & Regional Quotas', () => {
     assert.strictEqual(result.processed, 1, 'Must process 1 mature item');
     assert.strictEqual(result.publishedIds[0], 'art-002', 'Must have published art-002');
     assert.strictEqual(mockArticle.status, 'published', 'Article status must be updated to published');
+  });
+
+  it('accurately resolves Sarthal and Bani keywords to Kathua district', () => {
+    const sarthalResult = detectArticleDistrict({
+      title: 'Sarthal Road Cutoff Following Heavy Snowfall in Kathua Highlands',
+      excerpt: 'Residents of Sarthal and Bani report complete mobile tower outage and water crisis.',
+    });
+    assert.strictEqual(sarthalResult, 'kathua', 'Sarthal headline must detect as kathua');
+
+    const baniResult = detectArticleDistrict({
+      title: 'Power Transformer Damaged in Bani Sub-Division',
+      excerpt: 'Villagers demand immediate PDD replacement.',
+    });
+    assert.strictEqual(baniResult, 'kathua', 'Bani must detect as kathua');
+  });
+
+  it('enforces 2 civic problems per day with strict 6-hour interval pacing', async () => {
+    const now = new Date('2026-11-15T16:00:00+05:30');
+
+    // Case 1: 0 problems today -> Can discover immediately
+    const mockService0 = {
+      from: () => ({
+        select: () => ({
+          ilike: () => ({
+            gte: () => ({
+              order: () => Promise.resolve({ data: [], error: null }),
+            }),
+          }),
+        }),
+      }),
+    };
+    const status0 = await getCivicProblemsDailyStatus(mockService0 as any, now);
+    assert.strictEqual(status0.currentToday, 0);
+    assert.strictEqual(status0.canDiscoverNow, true, '0 problems today must allow immediate discovery');
+    assert.strictEqual(status0.hoursUntilNextAllowed, 0);
+
+    // Case 2: 1 problem today published 2 hours ago (<6h) -> Blocked with remaining hours
+    const published2hAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000).toISOString();
+    const mockService1Recent = {
+      from: () => ({
+        select: () => ({
+          ilike: () => ({
+            gte: () => ({
+              order: () => Promise.resolve({
+                data: [{ id: 'prob-1', published_at: published2hAgo, created_at: published2hAgo }],
+                error: null,
+              }),
+            }),
+          }),
+        }),
+      }),
+    };
+    const status1Recent = await getCivicProblemsDailyStatus(mockService1Recent as any, now);
+    assert.strictEqual(status1Recent.currentToday, 1);
+    assert.strictEqual(status1Recent.canDiscoverNow, false, '1 problem <6h ago must be blocked');
+    assert.strictEqual(status1Recent.hoursUntilNextAllowed, 4);
+
+    // Case 3: 1 problem today published 7 hours ago (>=6h) -> Allowed for Shift 2
+    const published7hAgo = new Date(now.getTime() - 7 * 60 * 60 * 1000).toISOString();
+    const mockService1Old = {
+      from: () => ({
+        select: () => ({
+          ilike: () => ({
+            gte: () => ({
+              order: () => Promise.resolve({
+                data: [{ id: 'prob-1', published_at: published7hAgo, created_at: published7hAgo }],
+                error: null,
+              }),
+            }),
+          }),
+        }),
+      }),
+    };
+    const status1Old = await getCivicProblemsDailyStatus(mockService1Old as any, now);
+    assert.strictEqual(status1Old.currentToday, 1);
+    assert.strictEqual(status1Old.canDiscoverNow, true, '1 problem >=6h ago must allow Shift 2 discovery');
+    assert.strictEqual(status1Old.hoursUntilNextAllowed, 0);
+
+    // Case 4: 2 problems today (daily ceiling met) -> Blocked
+    const mockService2 = {
+      from: () => ({
+        select: () => ({
+          ilike: () => ({
+            gte: () => ({
+              order: () => Promise.resolve({
+                data: [
+                  { id: 'prob-2', published_at: published2hAgo, created_at: published2hAgo },
+                  { id: 'prob-1', published_at: published7hAgo, created_at: published7hAgo },
+                ],
+                error: null,
+              }),
+            }),
+          }),
+        }),
+      }),
+    };
+    const status2 = await getCivicProblemsDailyStatus(mockService2 as any, now);
+    assert.strictEqual(status2.currentToday, 2);
+    assert.strictEqual(status2.canDiscoverNow, false, '2 problems today must hit daily ceiling');
   });
 });

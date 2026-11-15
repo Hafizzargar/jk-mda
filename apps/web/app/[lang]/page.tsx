@@ -153,9 +153,8 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
         .eq('status', 'published')
         .ilike('category', 'problems')
         .order('published_at', { ascending: false, nullsFirst: false })
-        .limit(1)
-        .maybeSingle()
-    ).catch(() => ({ data: null, error: null })),
+        .limit(2)
+    ).catch(() => ({ data: [], error: null })),
     Promise.resolve(
       supabase
         .from('articles')
@@ -231,10 +230,14 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
   const latestArticles = dbLatestArticles.length > 0 ? dbLatestArticles : FALLBACK_BROADSHEET_ARTICLES;
   const trendingArticles = dbTrendingArticles.length > 0 ? dbTrendingArticles : FALLBACK_BROADSHEET_ARTICLES.slice(0, 5);
 
-  const rawProblemArticle = problemResult?.data || null;
-  const problemArticle = rawProblemArticle
-    ? (((applyTranslations([rawProblemArticle], lang) as unknown) as ArticleItem[])[0] || null)
-    : FALLBACK_BROADSHEET_ARTICLES.find((a) => a.category.toLowerCase() === 'investigation') || null;
+  const rawProblemArticles = (problemResult?.data && Array.isArray(problemResult.data))
+    ? problemResult.data
+    : [];
+  const dbProblemArticles = ((applyTranslations(rawProblemArticles, lang) as unknown) as ArticleItem[]) || [];
+  const problemArticles = dbProblemArticles.length > 0
+    ? dbProblemArticles.slice(0, 2)
+    : FALLBACK_BROADSHEET_ARTICLES.filter((a) => a.category.toLowerCase() === 'investigation').slice(0, 2);
+  const problemArticle = problemArticles[0] || null;
 
   const rawInternationalArticles = internationalResult?.data || [];
   const dbInternationalArticles = ((applyTranslations(rawInternationalArticles, lang) as unknown) as ArticleItem[]) || [];
@@ -445,6 +448,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     conflictNews,
     discoverNews,
     problemArticle,
+    problemArticles,
     internationalArticle,
     internationalArticles,
     editorialDeskSettings: editorialDeskSettings ?? undefined,
