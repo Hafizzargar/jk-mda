@@ -13,13 +13,20 @@ interface FestiveCelebrationOverlayProps {
 export function FestiveCelebrationOverlay({ initialSettings }: FestiveCelebrationOverlayProps) {
   const [settings, setSettings] = useState<FestiveCelebrationSettings | null>(initialSettings || null);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [showBanner, setShowBanner] = useState(false);
+  const [bannerState, setBannerState] = useState<'hidden' | 'entering' | 'visible' | 'exiting'>('hidden');
   const [dismissed, setDismissed] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationFrameRef = useRef<number | null>(null);
   const burstTimerRef = useRef<NodeJS.Timeout | null>(null);
   const fadeTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Auto-hide timer tracking for celebration banner
+  const bannerTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const exitTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const bannerStartTimeRef = useRef<number>(0);
+  const remainingTimeRef = useRef<number>(0);
 
   const particlesRef = useRef<Array<{
     x: number;
@@ -34,6 +41,56 @@ export function FestiveCelebrationOverlay({ initialSettings }: FestiveCelebratio
   }>>([]);
 
   const isRunningRef = useRef(false);
+
+  // Smooth dismiss: triggers graceful slide-up & fade-out before unmounting
+  const dismissBanner = useCallback(() => {
+    if (bannerTimerRef.current) {
+      clearTimeout(bannerTimerRef.current);
+      bannerTimerRef.current = null;
+    }
+    if (exitTimerRef.current) {
+      clearTimeout(exitTimerRef.current);
+    }
+    setBannerState('exiting');
+    exitTimerRef.current = setTimeout(() => {
+      setBannerState('hidden');
+    }, 450);
+  }, []);
+
+  const startBannerCountdown = useCallback((durationMs: number) => {
+    if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
+    remainingTimeRef.current = durationMs;
+    bannerStartTimeRef.current = Date.now();
+
+    bannerTimerRef.current = setTimeout(() => {
+      dismissBanner();
+    }, durationMs);
+  }, [dismissBanner]);
+
+  const handlePause = () => {
+    setIsHovered(true);
+    if (bannerTimerRef.current) {
+      clearTimeout(bannerTimerRef.current);
+      bannerTimerRef.current = null;
+    }
+    const elapsed = Date.now() - bannerStartTimeRef.current;
+    remainingTimeRef.current = Math.max(1500, remainingTimeRef.current - elapsed);
+  };
+
+  const handleResume = () => {
+    setIsHovered(false);
+    if (bannerState === 'visible' && remainingTimeRef.current > 0) {
+      bannerStartTimeRef.current = Date.now();
+      bannerTimerRef.current = setTimeout(() => {
+        dismissBanner();
+      }, remainingTimeRef.current);
+    }
+  };
+
+  const handleManualDismiss = () => {
+    setDismissed(true);
+    dismissBanner();
+  };
 
   // Only fetch if initialSettings was not already provided by server layout
   useEffect(() => {
@@ -117,7 +174,21 @@ export function FestiveCelebrationOverlay({ initialSettings }: FestiveCelebratio
     particlesRef.current = newParticles;
     isRunningRef.current = true;
     setIsAnimating(true);
-    setShowBanner(true);
+
+    if (settings.show_greeting_banner) {
+      if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
+      setDismissed(false);
+      setBannerState('entering');
+
+      // Trigger smooth spring entrance into 'visible'
+      requestAnimationFrame(() => {
+        setTimeout(() => {
+          setBannerState('visible');
+          const autoDismissMs = Math.max(6, settings.duration_seconds || 8) * 1000;
+          startBannerCountdown(autoDismissMs);
+        }, 30);
+      });
+    }
 
     if (!animationFrameRef.current) {
       animate();
@@ -128,7 +199,7 @@ export function FestiveCelebrationOverlay({ initialSettings }: FestiveCelebratio
     fadeTimerRef.current = setTimeout(() => {
       setIsAnimating(false);
     }, (settings.duration_seconds || 7) * 1000);
-  }, [settings]);
+  }, [settings, startBannerCountdown]);
 
   const animate = useCallback(() => {
     const canvas = canvasRef.current;
@@ -184,7 +255,7 @@ export function FestiveCelebrationOverlay({ initialSettings }: FestiveCelebratio
 
     const active = isFestiveCelebrationActive(settings);
     if (!active) {
-      setShowBanner(false);
+      setBannerState('hidden');
       setIsAnimating(false);
       return;
     }
@@ -213,6 +284,8 @@ export function FestiveCelebrationOverlay({ initialSettings }: FestiveCelebratio
     return () => {
       if (burstTimerRef.current) clearTimeout(burstTimerRef.current);
       if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current);
+      if (bannerTimerRef.current) clearTimeout(bannerTimerRef.current);
+      if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     };
   }, [settings, triggerBurst]);
@@ -242,18 +315,40 @@ export function FestiveCelebrationOverlay({ initialSettings }: FestiveCelebratio
         style={{ pointerEvents: 'none' }}
       />
 
-      {/* 2. Sleek Broadsheet Celebration Notification Banner */}
-      {showBanner && !dismissed && settings && settings.show_greeting_banner && (
-        <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[101] w-full max-w-lg px-4 transition-all duration-500 animate-in fade-in slide-in-from-top-4">
+      {/* 2. Sleek Broadsheet Celebration Notification Banner with Auto-Hide & Spring Animation */}
+      {bannerState !== 'hidden' && !dismissed && settings && settings.show_greeting_banner && (
+        <div
+          role="status"
+          aria-live="polite"
+          className={`fixed top-2.5 sm:top-4 left-1/2 -translate-x-1/2 z-[101] w-[calc(100%-1.25rem)] max-w-lg pointer-events-auto transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+            bannerState === 'visible'
+              ? 'opacity-100 translate-y-0 scale-100 filter-none'
+              : bannerState === 'exiting'
+              ? 'opacity-0 -translate-y-6 scale-95 blur-[2px] pointer-events-none'
+              : 'opacity-0 -translate-y-7 scale-95 blur-[1px]'
+          }`}
+          onMouseEnter={handlePause}
+          onMouseLeave={handleResume}
+          onTouchStart={handlePause}
+          onTouchEnd={handleResume}
+        >
           <div
-            className="rounded-2xl bg-slate-950/95 text-white p-3.5 sm:p-4 shadow-2xl border backdrop-blur-md flex items-start justify-between gap-3"
+            className="relative overflow-hidden rounded-2xl bg-[#070d18]/94 text-white p-3.5 sm:p-4 shadow-2xl border backdrop-blur-xl flex items-start justify-between gap-3 transition-all duration-500"
             style={{
               borderColor: `${primaryColor}60`,
-              boxShadow: `0 10px 40px -10px ${primaryColor}40`,
+              boxShadow:
+                bannerState === 'visible'
+                  ? `0 20px 50px -12px ${primaryColor}40, 0 0 25px -4px ${primaryColor}25, inset 0 1px 1px 0 rgba(255, 255, 255, 0.15)`
+                  : 'none',
             }}
           >
             <div className="flex items-start gap-3">
-              <span className="text-2xl mt-0.5 shrink-0">
+              <span
+                className="text-2xl mt-0.5 shrink-0 select-none inline-block"
+                style={{
+                  animation: 'festive-sparkle 3.5s ease-in-out infinite',
+                }}
+              >
                 {settings.effect_type === 'crescent_stars'
                   ? '🌙'
                   : settings.effect_type === 'firelight_sparkles'
@@ -267,11 +362,12 @@ export function FestiveCelebrationOverlay({ initialSettings }: FestiveCelebratio
               <div>
                 <div className="flex items-center gap-2">
                   <span
-                    className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border"
+                    className="text-[9.5px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border shadow-sm transition-all"
                     style={{
                       backgroundColor: `${primaryColor}20`,
                       color: primaryColor,
                       borderColor: `${primaryColor}40`,
+                      boxShadow: `0 0 10px ${primaryColor}20`,
                     }}
                   >
                     {settings.occasion_name}
@@ -290,26 +386,71 @@ export function FestiveCelebrationOverlay({ initialSettings }: FestiveCelebratio
               <button
                 type="button"
                 onClick={() => triggerBurst()}
-                className="px-2 py-1 rounded-lg text-[10px] font-bold text-slate-300 hover:text-white bg-white/10 hover:bg-white/20 transition cursor-pointer"
+                className="px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-200 hover:text-white bg-white/10 hover:bg-white/20 active:scale-95 transition-all cursor-pointer flex items-center gap-1 border border-white/10 shadow-sm"
                 title="Replay celebration"
               >
-                ✨ Replay
+                <span>✨</span>
+                <span>Replay</span>
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setDismissed(true);
-                  setShowBanner(false);
-                }}
-                className="w-6 h-6 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 flex items-center justify-center text-xs transition cursor-pointer"
+                onClick={handleManualDismiss}
+                className="w-6 h-6 rounded-lg text-slate-400 hover:text-white hover:bg-white/15 active:scale-90 flex items-center justify-center text-xs transition-all cursor-pointer border border-transparent hover:border-white/10"
                 title="Dismiss"
+                aria-label="Close notification"
               >
                 ✕
               </button>
             </div>
+
+            {/* Auto-Hide Smooth Timer Progress Line */}
+            <div className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-white/10 overflow-hidden">
+              <div
+                className="h-full w-full"
+                style={{
+                  backgroundColor: primaryColor,
+                  transformOrigin: 'left',
+                  animation:
+                    bannerState === 'visible'
+                      ? `festive-progress ${Math.max(6, settings.duration_seconds || 8)}s linear forwards`
+                      : 'none',
+                  animationPlayState: isHovered ? 'paused' : 'running',
+                  boxShadow: `0 0 10px ${primaryColor}`,
+                }}
+              />
+            </div>
           </div>
         </div>
       )}
+
+      {/* Global CSS for progress animation and ambient festive sparkle */}
+      <style>{`
+        @keyframes festive-progress {
+          from {
+            transform: scaleX(1);
+          }
+          to {
+            transform: scaleX(0);
+          }
+        }
+        @keyframes festive-sparkle {
+          0%, 100% {
+            transform: scale(1) rotate(0deg);
+          }
+          20% {
+            transform: scale(1.14) rotate(4deg);
+          }
+          40% {
+            transform: scale(1.05) rotate(-3deg);
+          }
+          60% {
+            transform: scale(1.18) rotate(3deg);
+          }
+          80% {
+            transform: scale(1.02) rotate(-1deg);
+          }
+        }
+      `}</style>
     </>
   );
 }
