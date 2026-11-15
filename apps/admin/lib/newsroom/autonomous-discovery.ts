@@ -40,6 +40,73 @@ import {
   sanitizeDatelineForScope,
 } from './ai-synthesizer.ts';
 
+export const MAX_NEWS_AGE_HOURS = 6;
+export const MAX_NEWS_AGE_MS = MAX_NEWS_AGE_HOURS * 60 * 60 * 1000;
+
+/**
+ * Evaluates whether a discovered news story or broadcast satisfies the 6-hour freshness rule.
+ * Logically rejects stories older than 6 hours to guarantee breaking news immediacy.
+ */
+export function evaluateNewsFreshness(
+  input: {
+    hoursAgo?: number | null;
+    reportedTime?: string | null;
+    publishedAt?: string | null;
+  },
+  referenceTime = new Date()
+): { isFresh: boolean; ageHours: number | null; reason?: string } {
+  const refMs = referenceTime.getTime();
+
+  // 1. Check numeric hoursAgo estimate from Gemini if provided
+  if (typeof input.hoursAgo === 'number' && !isNaN(input.hoursAgo)) {
+    // 30-minute grace period for reporting estimation latency (6.5h)
+    if (input.hoursAgo > MAX_NEWS_AGE_HOURS + 0.5) {
+      return {
+        isFresh: false,
+        ageHours: input.hoursAgo,
+        reason: `News reported as ${input.hoursAgo.toFixed(1)} hours ago, which exceeds the strict ${MAX_NEWS_AGE_HOURS}-hour freshness limit.`,
+      };
+    }
+  }
+
+  // 2. Check explicit reportedTime or publishedAt timestamp if provided
+  const timeStr = input.reportedTime || input.publishedAt;
+  if (timeStr) {
+    const timeMs = new Date(timeStr).getTime();
+    if (!isNaN(timeMs)) {
+      const diffMs = refMs - timeMs;
+      const diffHours = diffMs / (1000 * 60 * 60);
+
+      // If timestamp is in the future by more than 10 mins, clamp to 0
+      if (diffHours < -0.16) {
+        return { isFresh: true, ageHours: 0 };
+      }
+
+      // 30-minute tolerance for publisher server clock skew
+      if (diffMs > MAX_NEWS_AGE_MS + (30 * 60 * 1000)) {
+        return {
+          isFresh: false,
+          ageHours: Number(diffHours.toFixed(1)),
+          reason: `Publication timestamp (${timeStr}) is ${diffHours.toFixed(1)} hours old (exceeds the ${MAX_NEWS_AGE_HOURS}-hour limit).`,
+        };
+      }
+
+      return {
+        isFresh: true,
+        ageHours: Math.max(0, Number(diffHours.toFixed(1))),
+      };
+    }
+  }
+
+  // If no date was parsed but hoursAgo is within limit, consider fresh
+  if (typeof input.hoursAgo === 'number') {
+    return { isFresh: true, ageHours: input.hoursAgo };
+  }
+
+  // Default fresh for newly grounded items without explicit older timestamps
+  return { isFresh: true, ageHours: 0 };
+}
+
 export interface RegionalTarget {
   id: string;
   name: string;
@@ -1503,9 +1570,16 @@ export async function runAutonomousNewsDiscovery(
     }${isCivicTopic ? ' [CIVIC PROBLEMS SPECIAL REPORT]' : ''}...`
   );
 
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const nowIstString = now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'full', timeStyle: 'medium' });
+  const sixHoursAgoMs = now.getTime() - MAX_NEWS_AGE_MS;
+  const cutoffTime = new Date(sixHoursAgoMs);
+  const cutoffIstString = cutoffTime.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'full', timeStyle: 'medium' });
+
   // 3. Compose grounded research prompt with strict credibility, multi-source discovery, & 6-factor scoring
   const prompt = `You are a Senior Investigative Correspondent and Field Bureau Chief for KJIN (Kashmir Jammu Independent News Network).
-Your mission is to autonomously search the web and discover the latest, verified, high-impact news published within the last 24 to 48 hours for this regional beat:
+Your mission is to autonomously search the web and discover the latest, verified, high-impact news published strictly within the last 6 HOURS for this regional beat:
 
 BEAT: ${beat.name}
 ${targetDistrictMeta ? `PRIORITIZED TARGET DISTRICT: ${targetDistrictMeta.name} (Newsroom Priority: ${targetDistrictStat?.priority || 'high'})
@@ -1513,6 +1587,19 @@ TARGET DISTRICT SEARCH QUERY: ${effectiveSearchQuery}
 MANDATORY DISTRICT ASSIGNMENT: The newsroom editor has specifically prioritized coverage for **${targetDistrictMeta.name}** district. Search for and report verified events, infrastructure projects, road/weather conditions, civic issues, or administrative actions originating in or directly concerning **${targetDistrictMeta.name}**. In your JSON output, set "district": "${targetDistrictMeta.name}".` : `SEARCH QUERY: ${effectiveSearchQuery}`}
 MANDATORY SCOPE: ${beat.scope}
 TARGET DATELINE: ${effectiveDateline}
+
+⏰ CRITICAL TIME CONSTRAINT — MAXIMUM 6 HOURS FRESHNESS (LOGICAL NEWSROOM MANDATE):
+- Current Real-World Reference Time: ${nowIstString} IST (${nowIso})
+- Earliest Permitted Publishing Cutoff: ${cutoffIstString} IST (${cutoffTime.toISOString()}) — EXACTLY 6 HOURS AGO.
+- MANDATORY LOGIC:
+  1. KJIN readers demand hyper-fresh breaking intelligence. The news development, incident, official order, or public reporting MUST have occurred or been published WITHIN THE LAST 6 HOURS from ${nowIstString}.
+  2. STRICTLY REJECT and DO NOT RETURN old news from yesterday, 8, 12, 24, or 48 hours ago.
+  3. If your search results only contain news older than 6 hours (e.g. from yesterday or days ago), you MUST return:
+     { "hasCredibleNews": false, "reason": "No breaking or developing news found within the strict 6-hour freshness window." }
+     NEVER force or fabricate news that is older than 6 hours!
+  4. In your JSON output, include:
+     - "hoursAgo": <number between 0 and 6 representing estimated hours elapsed since publication/event>
+     - "reportedTime": "<ISO timestamp or readable IST time of the reporting within the last 6 hours>"
 
 ${isCivicTopic ? `🚨 CRITICAL MANDATE — GROUND GRIEVANCES & CIVIC PROBLEMS DESK:
 - You are investigating and reporting on real grassroots public problems, suffering, and administrative neglect affecting citizens in Jammu & Kashmir and Ladakh (e.g. Sarthal/Kathua, Chenab Valley, Pir Panjal, Kashmir Valley, or Ladakh).
@@ -1524,13 +1611,6 @@ ${isCivicTopic ? `🚨 CRITICAL MANDATE — GROUND GRIEVANCES & CIVIC PROBLEMS D
   5. Healthcare Grievances / Doctor shortages or non-functional PHC/SDH health centres.
 - In your JSON output, set "category": "Problems", set "editorialScore": 95, and detail the genuine hardships faced by local residents and demands made to the Deputy Commissioner or administration.` : ''}
 
-BEAT: ${beat.name}
-${targetDistrictMeta ? `PRIORITIZED TARGET DISTRICT: ${targetDistrictMeta.name} (Newsroom Priority: ${targetDistrictStat?.priority || 'high'})
-TARGET DISTRICT SEARCH QUERY: ${targetDistrictMeta.searchQuery}
-MANDATORY DISTRICT ASSIGNMENT: The newsroom editor has specifically prioritized coverage for **${targetDistrictMeta.name}** district. Search for and report verified events, infrastructure projects, road/weather conditions, civic issues, or administrative actions originating in or directly concerning **${targetDistrictMeta.name}**. In your JSON output, set "district": "${targetDistrictMeta.name}".` : `SEARCH QUERY: ${beat.searchQuery}`}
-MANDATORY SCOPE: ${beat.scope}
-TARGET DATELINE: ${effectiveDateline}
-
 DISCOVERY DIRECTIVES (MULTI-SOURCE WEB INTELLIGENCE):
 1. INDEPENDENT DISCOVERY SOURCES:
    - Search across Google News, local newspapers (Daily Excelsior, Greater Kashmir, Rising Kashmir, Chenab Times, Early Times, State Times, Tribune), government portals (Press Information Bureau - PIB), police advisories, weather & disaster authorities (IMD, SDMA), and major national/international wires (The Hindu, Indian Express, PTI, Reuters).
@@ -1540,7 +1620,7 @@ DISCOVERY DIRECTIVES (MULTI-SOURCE WEB INTELLIGENCE):
    Score the discovered story objectively (1 to 100):
    - Local Public Importance (1-100): Direct relevance to people in Jammu, Kashmir, Chenab Valley, Pir Panjal, or Ladakh.
    - Impact on People's Lives (1-100): High score for real civic issues (e.g. electricity shortages, road cutoffs/NH-244 blackspots, water breakdowns, hospital shortages, apple horticulture crisis > ordinary political party statements).
-   - Urgency & Freshness (1-100): Breaking developing events in the last 24-48 hours.
+   - Urgency & Freshness (1-100): Breaking developing events strictly in the last 6 hours. News older than 6 hours receives a freshness score of 0 and MUST be rejected.
    - Credibility of Evidence (1-100): Verified facts, named officials, official orders, or corroborating reports.
    - Uniqueness & Ground Ledger (1-100): Non-duplicate, fresh ground reporting.
    - Calculate an overall "editorialScore" (1 to 100). Stories with high civic impact on citizens' lives score 85+.
@@ -1604,6 +1684,8 @@ DISCOVERY DIRECTIVES (MULTI-SOURCE WEB INTELLIGENCE):
 Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with keys:
 {
   "hasCredibleNews": true,
+  "hoursAgo": 1.5,
+  "reportedTime": "${cutoffTime.toISOString()}",
   "headline": "A magnetic, exciting, and attractive English news headline that hooks readers and sparks curiosity",
   "summary": "${beat.defaultDateline} An irresistible, captivating 3-sentence summary hook (60-90 words, 300-450 characters) blending vivid drama, verified facts, and forward-looking excitement",
   "bodyMarkdown": "The full engaging, reader-friendly journalistic article in clean markdown with Key Highlights, short paragraphs, natural subheadings, and blockquotes",
@@ -1740,6 +1822,27 @@ Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with k
 
     if (!parsed || !parsed.headline) {
       return { success: false, reason: 'Could not extract structured news report from Gemini output.' };
+    }
+
+    // 4b. Strict 6-Hour Freshness Gate (Newsroom Logical Mandate)
+    const freshness = evaluateNewsFreshness(
+      {
+        hoursAgo: typeof parsed.hoursAgo === 'number' ? parsed.hoursAgo : null,
+        reportedTime: parsed.reportedTime || null,
+        publishedAt: parsed.publishedAt || null,
+      },
+      now
+    );
+
+    if (!freshness.isFresh) {
+      console.log(`[AutonomousDiscovery] ⏩ Discarding stale news "${parsed.headline}": ${freshness.reason}`);
+      return {
+        success: true,
+        skipped: true,
+        discovered: false,
+        reason: freshness.reason || 'Discovered news exceeds the 6-hour freshness limit.',
+        dailyStats: stats,
+      };
     }
 
     // 5. Clean & Sanitize Discovered Content

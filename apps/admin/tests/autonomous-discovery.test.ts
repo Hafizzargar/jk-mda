@@ -20,6 +20,8 @@ import {
   cancelArticleAutoPublish,
   processPendingAutoPublishes,
   getCivicProblemsDailyStatus,
+  evaluateNewsFreshness,
+  MAX_NEWS_AGE_HOURS,
   type ScheduledAutoPublishItem,
 } from '../lib/newsroom/autonomous-discovery.ts';
 
@@ -601,5 +603,41 @@ describe('P0: KJIN Autonomous News Discovery & Regional Quotas', () => {
     const status2 = await getCivicProblemsDailyStatus(mockService2 as any, now);
     assert.strictEqual(status2.currentToday, 2);
     assert.strictEqual(status2.canDiscoverNow, false, '2 problems today must hit daily ceiling');
+  });
+
+  it('enforces strict logical 6-hour freshness rule on discovered news and broadcasts', () => {
+    const reference = new Date('2026-11-15T15:00:00.000Z');
+
+    // Case 1: Fresh story reported 2 hours ago
+    const freshNumeric = evaluateNewsFreshness({ hoursAgo: 2 }, reference);
+    assert.strictEqual(freshNumeric.isFresh, true);
+    assert.strictEqual(freshNumeric.ageHours, 2);
+
+    // Case 2: Stale story reported 8 hours ago -> strictly rejected
+    const staleNumeric = evaluateNewsFreshness({ hoursAgo: 8 }, reference);
+    assert.strictEqual(staleNumeric.isFresh, false);
+    assert.ok(staleNumeric.reason?.includes('exceeds the strict 6-hour freshness limit'));
+
+    // Case 3: Fresh explicit publication timestamp (3 hours ago)
+    const freshIso = new Date(reference.getTime() - 3 * 60 * 60 * 1000).toISOString();
+    const freshTime = evaluateNewsFreshness({ reportedTime: freshIso }, reference);
+    assert.strictEqual(freshTime.isFresh, true);
+    assert.strictEqual(freshTime.ageHours, 3);
+
+    // Case 4: Stale timestamp from yesterday (24 hours ago) -> strictly rejected
+    const yesterdayIso = new Date(reference.getTime() - 24 * 60 * 60 * 1000).toISOString();
+    const staleTime = evaluateNewsFreshness({ publishedAt: yesterdayIso }, reference);
+    assert.strictEqual(staleTime.isFresh, false);
+    assert.ok(staleTime.reason?.includes('exceeds the 6-hour limit'));
+
+    // Case 5: 30-minute grace window for clock skew (6.3 hours old is within tolerance)
+    const withinTolerance = new Date(reference.getTime() - 6.3 * 60 * 60 * 1000).toISOString();
+    const graceCheck = evaluateNewsFreshness({ publishedAt: withinTolerance }, reference);
+    assert.strictEqual(graceCheck.isFresh, true);
+
+    // Case 6: Beyond grace window (6.8 hours old) -> rejected
+    const beyondGrace = new Date(reference.getTime() - 6.8 * 60 * 60 * 1000).toISOString();
+    const beyondCheck = evaluateNewsFreshness({ publishedAt: beyondGrace }, reference);
+    assert.strictEqual(beyondCheck.isFresh, false);
   });
 });

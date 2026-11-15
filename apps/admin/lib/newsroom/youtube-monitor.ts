@@ -346,6 +346,10 @@ ${cleanDescription ? cleanDescription.slice(0, 2500) : 'No description provided.
 ${cleanTranscript ? `ACCESSIBLE TRANSCRIPT (FULL SUBTITLES / TRANSCRIPT EXCERPT):\n${cleanTranscript.slice(0, 20000)}` : 'TRANSCRIPT: Not available. Strictly use verified facts extracted from title/description.'}
 
 EDITORIAL INSTRUCTIONS:
+⏰ CRITICAL FRESHNESS REQUIREMENT:
+- All generated reports MUST focus strictly on recent breaking events occurring or reported within the last 6 HOURS.
+- If the broadcast content or event discussed is stale or occurred several days ago, set "is_priority_eligible": false with "rejection_reason": "Event older than 6 hours".
+
 1. DETERMINE NEWS SCOPE & REGIONAL CATEGORIZATION:
    - "Chenab Valley": Doda, Kishtwar, Ramban, Bhadarwah, Banihal, Sinthan, Padder, Thathri, NH-244.
    - "Srinagar": Srinagar & Kashmir Valley (Dal Lake, Budgam, Ganderbal, Anantnag, Pulwama, Shopian, Kulgam, Baramulla, Kupwara, Bandipora).
@@ -784,6 +788,15 @@ export async function runYouTubeHourlySync(
         for (const video of videos) {
           if (!channelLatestPublished || new Date(video.publishedAt) > new Date(channelLatestPublished)) {
             channelLatestPublished = video.publishedAt;
+          }
+
+          // Strict 6-Hour Freshness Window: Discard broadcasts older than 6 hours
+          const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
+          const cutoffTimeMs = Date.now() - SIX_HOURS_MS;
+          const videoPubMs = new Date(video.publishedAt).getTime();
+          if (!isNaN(videoPubMs) && videoPubMs < cutoffTimeMs) {
+            console.log(`[YouTubeMonitor] ⏩ Skipping video "${video.title}": Published at ${video.publishedAt}, exceeds strict 6-hour freshness limit.`);
+            continue;
           }
 
           // Check if video already exists in database

@@ -173,7 +173,7 @@ const DEFAULT_BEAT_QUOTAS: Record<string, BeatDefinition> = {
 export default function YouTubeMonitorPage() {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<'radar' | 'drafts' | 'channels' | 'approved'>('radar');
-  const [draftSubFilter, setDraftSubFilter] = useState<'pending' | 'approved' | 'all'>('pending');
+  const [draftSubFilter, setDraftSubFilter] = useState<'pending' | 'fresh' | 'approved' | 'all'>('pending');
   const [channels, setChannels] = useState<YouTubeSource[]>([]);
   const [videos, setVideos] = useState<YouTubeVideo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1376,12 +1376,18 @@ export default function YouTubeMonitorPage() {
 
   const approvedVideos = videos.filter((v) => v.processing_status === 'approved');
   const pendingVideos = videos.filter((v) => v.processing_status === 'draft_proposed');
+  const freshVideos = videos.filter((v) => (Date.now() - new Date(v.published_at).getTime()) <= 6 * 60 * 60 * 1000);
   const approvedVideosCount = approvedVideos.length;
   const pendingDraftsCount = pendingVideos.length;
+  const freshVideosCount = freshVideos.length;
 
   const filteredVideos = videos.filter((v) => {
     if (draftSubFilter === 'pending' && v.processing_status !== 'draft_proposed') return false;
     if (draftSubFilter === 'approved' && v.processing_status !== 'approved') return false;
+    if (draftSubFilter === 'fresh') {
+      const ageMs = Date.now() - new Date(v.published_at).getTime();
+      if (ageMs > 6 * 60 * 60 * 1000) return false;
+    }
     if (filterStatus !== 'all' && v.processing_status !== filterStatus) return false;
     if (filterScope !== 'all') {
       const scope = v.ai_analysis?.scope || (
@@ -1575,6 +1581,11 @@ export default function YouTubeMonitorPage() {
                 <option value={120}>Every 2 Hours</option>
                 <option value={360}>Every 6 Hours</option>
               </select>
+            </div>
+
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-2.5 py-1.5 rounded-lg border border-purple-200/80 dark:border-purple-900/50">
+              <span>⏰</span>
+              <span>Freshness Window: Strict &lt; 6h (Stale News Blocked)</span>
             </div>
           </div>
 
@@ -1920,6 +1931,9 @@ export default function YouTubeMonitorPage() {
                             📍 {art.district}
                           </span>
                         )}
+                        <span className="font-bold text-[9.5px] px-1.5 py-0.5 rounded bg-cyan-100 text-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800">
+                          ⚡ &lt; 6h Fresh
+                        </span>
                       </div>
                       {art.status === 'published' ? (
                         <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
@@ -2219,6 +2233,24 @@ export default function YouTubeMonitorPage() {
         <button
           type="button"
           onClick={() => {
+            setDraftSubFilter('fresh');
+            setCurrentPage(1);
+          }}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+            draftSubFilter === 'fresh'
+              ? 'bg-purple-600 text-white shadow-xs'
+              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <span>⚡ Fresh (&lt; 6 Hours)</span>
+          <span className="rounded-full bg-black/20 dark:bg-white/20 px-1.5 py-0.2 text-[10px] font-mono font-bold">
+            {freshVideosCount}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
             setDraftSubFilter('approved');
             setCurrentPage(1);
           }}
@@ -2358,6 +2390,17 @@ export default function YouTubeMonitorPage() {
                           <span className="text-xs text-slate-400">
                             {new Date(video.published_at).toLocaleDateString()}
                           </span>
+                          {(Date.now() - new Date(video.published_at).getTime()) <= 6 * 60 * 60 * 1000 ? (
+                            <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 flex items-center gap-0.5">
+                              <span>⚡</span>
+                              <span>&lt; 6h</span>
+                            </span>
+                          ) : (
+                            <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-rose-100 text-rose-800 border border-rose-300 dark:bg-rose-950/60 dark:text-rose-300 flex items-center gap-0.5" title="Published more than 6 hours ago">
+                              <span>⚠️</span>
+                              <span>&gt; 6h Stale</span>
+                            </span>
+                          )}
                         </div>
 
                         <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold border capitalize ${statusBadge}`}>

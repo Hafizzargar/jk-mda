@@ -85,6 +85,9 @@ Content Information:
 """${finalInputText.slice(0, 3500)}"""
 
 EDITORIAL INSTRUCTIONS:
+⏰ STRICT 6-HOUR FRESHNESS MANDATE:
+- All synthesized news must strictly reflect breaking events occurring or reported within the last 6 HOURS. Older stale events must be marked with is_priority_eligible: false and rejection_reason: "Event older than 6 hours".
+
 1. STRICT 80% J&K / 10% NATIONAL / 10% INTERNATIONAL GATEKEEPER:
    - J&K Core (80% target quota):
      * "Chenab Valley" (30% Target Weightage): Doda, Kishtwar, Ramban, Bhadarwah, Banihal, Sinthan, Padder, Thathri, NH-244.
