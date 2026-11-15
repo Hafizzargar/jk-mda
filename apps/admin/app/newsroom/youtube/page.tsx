@@ -1407,135 +1407,39 @@ export default function YouTubeMonitorPage() {
   const activeChannelsCount = channels.filter((c) => c.is_active).length;
 
   return (
-    <div className="space-y-3.5 sm:space-y-4">
-      {/* Top Banner - Compact sm layout */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
-        <div>
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xl">🌐</span>
-            <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight">
-              Autonomous News Intelligence Radar
+    <div className="space-y-4">
+      {/* Top Banner - Clean, Wide & Professional */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-cyan-500 flex items-center justify-center text-xl shadow-md text-white font-bold shrink-0">
+            🛰️
+          </div>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+              Newsroom Command Center
             </h1>
-            <span className="rounded-full bg-purple-100 text-purple-800 dark:bg-purple-500/20 dark:text-purple-300 text-[10px] sm:text-xs font-bold px-2 py-0.5 border border-purple-200 dark:border-purple-500/30">
-              Multi-Source Intelligence
-            </span>
-            <span className="rounded-full bg-cyan-100 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-300 text-[10px] sm:text-xs font-bold px-2 py-0.5 border border-cyan-200 dark:border-cyan-800">
-              Zero Channels Needed
-            </span>
-            <button
-              type="button"
-              onClick={() => handleUpdateAutoPilotSettings(autoPilotIntervalMinutes, !autoPilot)}
-              className={`rounded-full text-[10px] sm:text-xs font-bold px-2.5 py-0.5 border flex items-center gap-1.5 transition ${
-                autoPilot
-                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300 border-emerald-300 dark:border-emerald-500/40 hover:bg-emerald-200'
-                  : 'bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 border-amber-300 dark:border-amber-500/40 hover:bg-amber-200'
-              }`}
-              title="Click to toggle automatic background news discovery"
-            >
-              <span className={`h-1.5 w-1.5 rounded-full ${autoPilot ? 'bg-emerald-500 animate-ping' : 'bg-amber-500'}`} />
-              {autoPilot ? `Autonomous Radar: Active (${formatCountdownTime(countdown)})` : 'Autonomous Radar: Paused'}
-            </button>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Autonomous regional intelligence, grassroots civic alerts, and multi-source broadcast surveillance.
+            </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0 flex-wrap w-full sm:w-auto">
-          {/* Frequency Control Selector */}
-          <div className="flex items-center justify-between sm:justify-start w-full sm:w-auto gap-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900/90 px-3 py-1.5 text-xs shadow-xs">
-            <label htmlFor="radar-schedule-select" className="text-slate-700 dark:text-slate-200 font-bold text-xs whitespace-nowrap flex items-center gap-1 cursor-pointer">
-              <span>⏱️</span>
-              <span>Schedule:</span>
-            </label>
-            <select
-              id="radar-schedule-select"
-              value={autoPilotIntervalMinutes}
-              onChange={(e) => handleUpdateAutoPilotSettings(Number(e.target.value), autoPilot)}
-              className="flex-1 sm:flex-initial rounded-md border border-slate-300 dark:border-slate-600 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-bold text-xs px-2.5 py-1 outline-none cursor-pointer focus:ring-2 focus:ring-purple-500 [color-scheme:light] dark:[color-scheme:dark]"
-              title="Select how often autonomous discovery runs"
-            >
-              <option value={1} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 1 Min (Rapid Realtime)</option>
-              <option value={2} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 2 Min (Ultra Fast)</option>
-              <option value={3} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 3 Min (Fast Track)</option>
-              <option value={4} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 4 Min</option>
-              <option value={5} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 5 Min (Quick)</option>
-              <option value={7} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 7 Min</option>
-              <option value={10} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 10 Min</option>
-              <option value={15} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 15 Min</option>
-              <option value={20} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 20 Min</option>
-              <option value={30} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 30 Min</option>
-              <option value={45} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 45 Min</option>
-              <option value={60} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 1 Hour (Standard)</option>
-              <option value={120} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 2 Hours</option>
-              <option value={360} className="bg-white text-slate-900 dark:bg-slate-800 dark:text-white font-semibold">Every 6 Hours</option>
-            </select>
-          </div>
-
-          <Button
-            type="button"
-            variant="primary"
-            size="sm"
-            icon="🔍"
-            disabled={isDiscovering}
-            isLoading={isDiscovering}
-            onClick={() => handleDiscoverNow(false)}
-            className="w-full sm:w-auto justify-center bg-purple-600 hover:bg-purple-700 text-white font-bold shadow-xs cursor-pointer"
-            title="Trigger real-time multi-source news discovery across all beats right now"
-          >
-            {isDiscovering ? 'Discovering News...' : 'Discover News Now'}
-          </Button>
-
-          {/* Quick Ground Grievances & Civic Problems Discovery Button */}
-          <button
-            type="button"
-            disabled={isDiscoveringCivic}
-            onClick={() => handleDiscoverCivicProblem()}
-            className="w-full sm:w-auto justify-center inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg border border-amber-500/60 bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 dark:text-amber-400 transition shadow-2xs cursor-pointer disabled:opacity-50"
-            title="Discover grassroots public problems (water, electricity, internet blackout in Sarthal/Kathua/Chenab/Ladakh - target 2/day with 6-hour interval)"
-          >
-            <span>🚨</span>
-            <span>{isDiscoveringCivic ? 'Searching Grievance...' : 'Discover Civic Problem'}</span>
-            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-amber-500/20 border border-amber-500/30 font-bold">
-              {civicProblems ? `${civicProblems.currentToday}/${civicProblems.maxDaily}` : '2/day'}
-            </span>
-          </button>
-
-          {/* Automatic Approval & Publishing Mode Toggle Button */}
-          <button
-            type="button"
-            onClick={() => handleToggleAutoPublish()}
-            disabled={isTogglingAutoPublish}
-            className={`flex-1 sm:flex-initial justify-center inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg border transition shadow-2xs cursor-pointer disabled:opacity-50 ${
-              autoPublishEnabled
-                ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500 shadow-emerald-900/30'
-                : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
+        {/* Global Live Status Badge */}
+        <div className="flex items-center gap-2 self-start md:self-auto">
+          <div
+            className={`px-3 py-1.5 rounded-full text-xs font-bold border flex items-center gap-2 shadow-2xs ${
+              autoPilot
+                ? 'bg-emerald-50 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800'
+                : 'bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border-amber-300 dark:border-amber-800'
             }`}
-            title={
-              autoPublishEnabled
-                ? 'Autonomous Auto-Approval is ACTIVE: Stories auto-publish after 5 minutes with advance email alert. Click to switch to manual approval.'
-                : 'Autonomous Auto-Approval is OFF: Click to enable automatic approval with 5-minute advance email alert buffer.'
-            }
           >
-            <span className={`w-2 h-2 rounded-full ${autoPublishEnabled ? 'bg-emerald-200 animate-ping' : 'bg-slate-400'}`} />
-            <span>{autoPublishEnabled ? '⚡ Auto-Approval: ON (5m Delay)' : '⚪ Auto-Approval: OFF (Manual)'}</span>
-          </button>
-
-          <Link
-            href="/articles?status=review"
-            className="flex-1 sm:flex-initial justify-center inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition shadow-2xs"
-          >
-            <span>⏳</span>
-            <span>Pending Approval</span>
-          </Link>
-
-          <button
-            type="button"
-            onClick={handleTestEmail}
-            disabled={isTestingEmail}
-            className="flex-1 sm:flex-initial justify-center inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition shadow-2xs cursor-pointer disabled:opacity-50"
-            title="Send a test editorial verification alert to your email"
-          >
-            <span>{isTestingEmail ? '⏳' : '📧'}</span>
-            <span>{isTestingEmail ? 'Sending...' : 'Test Email Alert'}</span>
-          </button>
+            <span className={`h-2 w-2 rounded-full ${autoPilot ? 'bg-emerald-500 animate-ping' : 'bg-amber-500'}`} />
+            <span>
+              {autoPilot
+                ? `Autonomous Radar Active (Next scan: ${formatCountdownTime(countdown)})`
+                : 'Autonomous Radar Paused'}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -1565,7 +1469,7 @@ export default function YouTubeMonitorPage() {
               : 'border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
-          <span>🛰️ Autonomous Ground Radar &amp; Queue</span>
+          <span>🛰️ Autonomous Ground Radar</span>
           <span className="rounded-full bg-purple-100 dark:bg-purple-900/50 px-2 py-0.5 text-xs text-purple-700 dark:text-purple-300 font-bold">
             {discoveredArticles.length}
           </span>
@@ -1620,148 +1524,341 @@ export default function YouTubeMonitorPage() {
       {/* Tab 1: Autonomous News Discovery Radar & Queue */}
       {activeTab === 'radar' && (
       <>
-      {/* KJIN Autonomous News Discovery Radar */}
-      <div className="rounded-2xl border border-purple-200 dark:border-purple-900/50 bg-gradient-to-r from-purple-50/70 via-indigo-50/40 to-white dark:from-purple-950/20 dark:via-slate-900 dark:to-slate-900 p-4 shadow-xs space-y-3">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-300 text-[11px] font-bold border border-purple-200 dark:border-purple-800">
-                <span className="h-1.5 w-1.5 rounded-full bg-purple-600 animate-pulse" />
-                Autonomous News Intelligence Engine
-              </span>
-              <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
-                Gemini 2.5 + Google Search Grounding
-              </span>
-              <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/50 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800/40">
-                ~65% Regional Ground Priority
-              </span>
-              {autoPublishEnabled ? (
-                <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60 px-2.5 py-0.5 rounded-md border border-emerald-300 dark:border-emerald-700 flex items-center gap-1.5 shadow-2xs">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  Auto-Publish Active ({autoPublishDelayMinutes}m Advance Mail • 0 Manual Approval)
+        {/* 1. Radar Control Deck: 3 Clear Strategy Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Card 1: Radar Automation & Schedule */}
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 p-4 shadow-2xs flex flex-col justify-between space-y-3">
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <span>⏱️</span>
+                  <span>Autonomous Scan</span>
                 </span>
-              ) : (
-                <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/50 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-800/40">
-                  100% Pending Approval (Manual Review Required)
+                <button
+                  type="button"
+                  onClick={() => handleUpdateAutoPilotSettings(autoPilotIntervalMinutes, !autoPilot)}
+                  className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border transition cursor-pointer ${
+                    autoPilot
+                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-700'
+                      : 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700'
+                  }`}
+                  title="Click to toggle automatic background discovery"
+                >
+                  {autoPilot ? '● Auto-Pilot Active' : '○ Paused'}
+                </button>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {autoPilot
+                  ? `Scanning online news sources every ${autoPilotIntervalMinutes >= 60 ? `${autoPilotIntervalMinutes / 60} hour(s)` : `${autoPilotIntervalMinutes} min(s)`}. Next run in ${formatCountdownTime(countdown)}.`
+                  : 'Automatic background scanning is paused. Click Resume to activate automatic news hunting.'}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+              <label htmlFor="radar-schedule-select" className="text-xs font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                Cadence:
+              </label>
+              <select
+                id="radar-schedule-select"
+                value={autoPilotIntervalMinutes}
+                onChange={(e) => handleUpdateAutoPilotSettings(Number(e.target.value), autoPilot)}
+                className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-semibold text-xs px-2.5 py-1.5 outline-none cursor-pointer focus:ring-2 focus:ring-purple-500"
+              >
+                <option value={1}>Every 1 Min (Rapid Realtime)</option>
+                <option value={2}>Every 2 Min (Ultra Fast)</option>
+                <option value={3}>Every 3 Min (Fast Track)</option>
+                <option value={5}>Every 5 Min (Recommended)</option>
+                <option value={10}>Every 10 Min</option>
+                <option value={15}>Every 15 Min</option>
+                <option value={30}>Every 30 Min</option>
+                <option value={60}>Every 1 Hour (Standard)</option>
+                <option value={120}>Every 2 Hours</option>
+                <option value={360}>Every 6 Hours</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Card 2: Publishing & Approval Strategy */}
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 p-4 shadow-2xs flex flex-col justify-between space-y-3">
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <span>⚡</span>
+                  <span>Publishing Mode</span>
                 </span>
-              )}
+                <span
+                  className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${
+                    autoPublishEnabled
+                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-700'
+                      : 'bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+                  }`}
+                >
+                  {autoPublishEnabled ? '⚡ Auto-Publish (5m Delay)' : '✋ Manual Review'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                {autoPublishEnabled
+                  ? `Stories auto-publish after a ${autoPublishDelayMinutes}-minute email alert buffer. Zero approval clicks needed.`
+                  : 'Stories wait in the pending queue for your manual review and approval before going live.'}
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
               <button
                 type="button"
-                onClick={() => {
-                  setEditingQuotas(JSON.parse(JSON.stringify(beatQuotas)));
-                  setIsQuotasModalOpen(true);
-                }}
-                className="w-full sm:w-auto justify-center inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-xs transition cursor-pointer mt-1 sm:mt-0 sm:ml-auto"
-                title="Click to adjust min and max story targets for each region"
+                onClick={() => handleToggleAutoPublish()}
+                disabled={isTogglingAutoPublish}
+                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 ${
+                  autoPublishEnabled
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
+                    : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700'
+                }`}
               >
-                <span>🎯</span>
-                <span>Adjust Beat Quotas (Min / Max)</span>
+                <span>{autoPublishEnabled ? '✓ Auto-Publish Active' : 'Switch to Auto-Publish'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleTestEmail}
+                disabled={isTestingEmail}
+                className="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
+                title="Send a sample email alert"
+              >
+                {isTestingEmail ? '...' : '📧 Test Alert'}
               </button>
             </div>
-            <div className="flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400 pt-1 flex-wrap">
-              <span className="inline-flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 px-2.5 py-0.5 rounded-md font-semibold border border-emerald-200 dark:border-emerald-800/40">
-                📰 Today Published News: <strong className="text-emerald-900 dark:text-emerald-200 ml-0.5">{discoveryStats?.publishedToday ?? 0}</strong> stories
-              </span>
-              <span>•</span>
-              <span>🎯 Discovered / Target: <strong>{discoveryStats?.discoveredToday ?? 0} / {discoveryStats?.dailyTarget ?? 25}</strong> stories (Range: {discoveryStats?.minDailyTotal ?? 17}–{discoveryStats?.maxDailyTotal ?? 32})</span>
-              <span>•</span>
-              <span>⏱️ Cadence: <strong>Every {autoPilotIntervalMinutes >= 60 ? `${autoPilotIntervalMinutes / 60} hr${autoPilotIntervalMinutes > 60 ? 's' : ''}` : `${autoPilotIntervalMinutes} min${autoPilotIntervalMinutes > 1 ? 's' : ''}`}</strong></span>
-              <span>•</span>
-              <span>⛰️ Regional Coverage: <strong>{discoveryStats?.regionalCount ?? 0} stories ({discoveryStats?.regionalSharePercent ?? 65}% of minimum)</strong></span>
-              <span>•</span>
-              <span className="inline-flex items-center gap-1.5 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-md font-semibold border border-amber-200 dark:border-amber-800/40">
-                🚨 Ground Grievances: <strong>{civicProblems?.currentToday ?? 0}/2 today</strong> {civicProblems ? (civicProblems.canDiscoverNow ? '(Ready)' : `(Next in ${civicProblems.hoursUntilNextAllowed}h)`) : '(6h interval)'}
-              </span>
+          </div>
+
+          {/* Card 3: Instant On-Demand Triggers */}
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 p-4 shadow-2xs flex flex-col justify-between space-y-3">
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <span>🚀</span>
+                  <span>Instant Discovery</span>
+                </span>
+                <Link
+                  href="/articles?status=review"
+                  className="text-[11px] font-bold text-purple-600 dark:text-purple-400 hover:underline"
+                >
+                  Review Pending ({discoveredArticles.length}) →
+                </Link>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Trigger an immediate multi-source search across Google News, local J&K publications, and official portals right now.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                icon="🔍"
+                disabled={isDiscovering}
+                isLoading={isDiscovering}
+                onClick={() => handleDiscoverNow(false)}
+                className="w-full justify-center bg-purple-600 hover:bg-purple-700 text-white font-bold cursor-pointer"
+              >
+                {isDiscovering ? 'Searching...' : 'Discover Now'}
+              </Button>
+
+              <button
+                type="button"
+                disabled={isDiscoveringCivic}
+                onClick={() => handleDiscoverCivicProblem()}
+                className="w-full justify-center inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold rounded-lg border border-amber-500/60 bg-amber-500/10 hover:bg-amber-500/20 text-amber-800 dark:text-amber-400 transition cursor-pointer disabled:opacity-50"
+                title="Search grassroots water, power, and road problems across districts"
+              >
+                <span>🚨</span>
+                <span>Civic Issue</span>
+                <span className="text-[10px] font-mono px-1 rounded bg-amber-500/20 font-bold">
+                  {civicProblems ? `${civicProblems.currentToday}/${civicProblems.maxDaily}` : '2/d'}
+                </span>
+              </button>
             </div>
           </div>
         </div>
 
-        {/* 7 Regional Editorial Distribution Indicators */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2 pt-1 border-t border-purple-100 dark:border-purple-900/30">
-          {Object.entries(DEFAULT_BEAT_QUOTAS).map(([beatId, base]) => {
-            const live = discoveryRegions.find((r) => r.id === beatId);
-            const current = live?.current ?? 0;
-            const published = live?.published ?? 0;
-            const quota = beatQuotas[beatId] || { min: base.min, max: base.max };
-            const minVal = quota?.min ?? live?.min ?? base.min;
-            const maxVal = quota?.max ?? live?.max ?? base.max;
-            const isMet = current >= minVal;
-            const isMax = current >= maxVal;
+        {/* 2. Today's Editorial Pulse: 4 Clear KPI Metric Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+          <div className="rounded-2xl border border-emerald-200 dark:border-emerald-900/50 bg-gradient-to-br from-emerald-50/60 to-white dark:from-emerald-950/20 dark:to-slate-900 p-4 shadow-2xs">
+            <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 block mb-1">
+              📰 Published Today
+            </span>
+            <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
+              {discoveryStats?.publishedToday ?? 0}
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+              Live on broadsheet website
+            </p>
+          </div>
 
-            return (
-              <div
-                key={beatId}
-                onClick={() => {
-                  setEditingQuotas(JSON.parse(JSON.stringify(beatQuotas)));
-                  setIsQuotasModalOpen(true);
-                }}
-                className={`p-2 rounded-xl border text-xs transition flex flex-col justify-between cursor-pointer hover:shadow-sm last:col-span-2 sm:last:col-span-1 ${
-                  base.priority
-                    ? 'border-cyan-300 dark:border-cyan-800 bg-cyan-50/60 dark:bg-cyan-950/20 hover:border-cyan-400'
-                    : isMet
-                    ? 'border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/40 dark:bg-emerald-950/10 hover:border-emerald-300'
-                    : 'border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/60 hover:border-slate-300'
-                }`}
-                title={`Click to adjust Min/Max targets for ${base.name} (Current: ${minVal}–${maxVal})`}
-              >
-                <div className="flex items-center justify-between gap-1 mb-1">
-                  <span className="font-bold text-[11px] truncate text-slate-800 dark:text-slate-200" title={base.name}>
-                    {base.name}
-                  </span>
-                  {base.priority ? (
-                    <span className="text-[9px] px-1 py-0.2 rounded bg-cyan-200 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-300 font-extrabold uppercase">
-                      Top
-                    </span>
-                  ) : published > 0 ? (
-                    <span className="text-[9px] px-1 py-0.2 rounded bg-emerald-100 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 font-extrabold">
-                      {published} Live
-                    </span>
-                  ) : null}
-                </div>
-                <div className="flex items-baseline justify-between">
-                  <span className="text-base font-black text-slate-900 dark:text-white">
-                    {current}
-                    <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 ml-0.5 inline-flex items-center gap-0.5">
-                      / {minVal}–{maxVal} <span className="opacity-60 text-[9px]">✏️</span>
-                    </span>
-                  </span>
-                  <span className={`text-[10px] font-bold ${isMet ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                    {published > 0 ? `${published} published` : isMax ? 'Maxed' : isMet ? '✓ Met' : `${minVal - current} needed`}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-[10px] text-slate-400 dark:text-slate-500 truncate mt-0.5">
-                  <span className="truncate" title={base.subtitle}>{base.subtitle}</span>
-                  {published > 0 && <span className="font-semibold text-emerald-600 dark:text-emerald-400 shrink-0">({published} pub)</span>}
-                </div>
+          <div className="rounded-2xl border border-purple-200 dark:border-purple-900/50 bg-gradient-to-br from-purple-50/60 to-white dark:from-purple-950/20 dark:to-slate-900 p-4 shadow-2xs">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-purple-800 dark:text-purple-300">
+                🎯 Discovered Today
+              </span>
+              <span className="text-[10px] font-mono font-bold text-purple-700 dark:text-purple-300">
+                Goal: {discoveryStats?.dailyTarget ?? 25}
+              </span>
+            </div>
+            <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
+              {discoveryStats?.discoveredToday ?? 0} <span className="text-sm font-semibold text-slate-400">/ {discoveryStats?.dailyTarget ?? 25}</span>
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+              Daily Target Range: {discoveryStats?.minDailyTotal ?? 17}–{discoveryStats?.maxDailyTotal ?? 32}
+            </p>
+          </div>
 
-                {/* District Priority & Live Status Badges */}
-                {live?.districts && live.districts.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-1.5 pt-1.5 border-t border-slate-100 dark:border-slate-800">
-                    {live.districts.map((dist) => (
-                      <span
-                        key={dist.id}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDiscoverDistrict(beatId, dist.id);
-                        }}
-                        className={`px-1.5 py-0.5 rounded text-[9px] font-bold flex items-center gap-1 transition ${
-                          dist.isMet
-                            ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300'
-                            : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 hover:bg-purple-100 dark:hover:bg-purple-900/60'
-                        }`}
-                        title={`${dist.name}: ${dist.current}/${dist.min} stories today (${dist.priority} priority). Click to trigger instant discovery for ${dist.name}!`}
-                      >
-                        <span className={`w-1 h-1 rounded-full ${dist.isMet ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                        <span>{dist.name}: {dist.current}/{dist.min}</span>
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
+          <div className="rounded-2xl border border-cyan-200 dark:border-cyan-900/50 bg-gradient-to-br from-cyan-50/60 to-white dark:from-cyan-950/20 dark:to-slate-900 p-4 shadow-2xs">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-cyan-800 dark:text-cyan-300">
+                ⛰️ Regional J&amp;K Share
+              </span>
+              <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                ✓ Priority Met
+              </span>
+            </div>
+            <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
+              {discoveryStats?.regionalSharePercent ?? 65}%
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+              {discoveryStats?.regionalCount ?? 0} stories from J&amp;K &amp; Ladakh beats (65% min)
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-gradient-to-br from-amber-50/60 to-white dark:from-amber-950/20 dark:to-slate-900 p-4 shadow-2xs">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">
+                🚨 Ground Grievances
+              </span>
+              <span className="text-[10px] font-mono font-bold text-amber-700 dark:text-amber-400">
+                {civicProblems ? (civicProblems.canDiscoverNow ? 'Ready' : `Next in ${civicProblems.hoursUntilNextAllowed}h`) : '6h Shift'}
+              </span>
+            </div>
+            <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
+              {civicProblems?.currentToday ?? 0} <span className="text-sm font-semibold text-slate-400">/ {civicProblems?.maxDaily ?? 2}</span>
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+              Grassroots water, power &amp; road issues
+            </p>
+          </div>
         </div>
-      </div>
+
+        {/* 3. Regional Coverage & Story Quotas */}
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-2xs space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-100 dark:border-slate-800">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <span>🎯 Regional Coverage &amp; Story Quotas</span>
+                <span className="text-[11px] font-normal text-slate-500">
+                  Target distribution to prevent news desert in remote districts
+                </span>
+              </h3>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setEditingQuotas(JSON.parse(JSON.stringify(beatQuotas)));
+                setIsQuotasModalOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-xs transition cursor-pointer self-start sm:self-auto"
+            >
+              <span>⚙️ Adjust Quotas (Min / Max)</span>
+            </button>
+          </div>
+
+          {/* 7 Regional Beat Cards with Progress Indicators */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
+            {Object.entries(DEFAULT_BEAT_QUOTAS).map(([beatId, base]) => {
+              const live = discoveryRegions.find((r) => r.id === beatId);
+              const current = live?.current ?? 0;
+              const published = live?.published ?? 0;
+              const quota = beatQuotas[beatId] || { min: base.min, max: base.max };
+              const minVal = quota?.min ?? live?.min ?? base.min;
+              const maxVal = quota?.max ?? live?.max ?? base.max;
+              const isMet = current >= minVal;
+              const isMax = current >= maxVal;
+              const percent = Math.min(100, Math.round((current / (maxVal || 1)) * 100));
+
+              return (
+                <div
+                  key={beatId}
+                  className={`p-3 rounded-xl border text-xs transition flex flex-col justify-between hover:shadow-sm ${
+                    base.priority
+                      ? 'border-cyan-300 dark:border-cyan-800/80 bg-cyan-50/50 dark:bg-cyan-950/20'
+                      : isMet
+                      ? 'border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/30 dark:bg-emerald-950/10'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60'
+                  }`}
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-1 mb-1">
+                      <span className="font-bold text-xs text-slate-900 dark:text-white truncate" title={base.name}>
+                        {base.name}
+                      </span>
+                      {base.priority ? (
+                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-200 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-300 font-extrabold uppercase">
+                          Top
+                        </span>
+                      ) : published > 0 ? (
+                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-extrabold">
+                          {published} Live
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate mb-2" title={base.subtitle}>
+                      {base.subtitle}
+                    </div>
+
+                    <div className="flex items-baseline justify-between mb-1.5">
+                      <div className="text-lg font-black text-slate-900 dark:text-white">
+                        {current} <span className="text-[10px] font-normal text-slate-400">/ {minVal}–{maxVal}</span>
+                      </div>
+                      <span className={`text-[10px] font-bold ${isMet ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                        {published > 0 ? `${published} live` : isMax ? 'Maxed' : isMet ? '✓ Met' : `${minVal - current} needed`}
+                      </span>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden mb-2.5">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          base.priority ? 'bg-cyan-500' : isMet ? 'bg-emerald-500' : 'bg-amber-500'
+                        }`}
+                        style={{ width: `${percent}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* District Quick Search Chips */}
+                  {live?.districts && live.districts.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
+                      {live.districts.map((dist) => (
+                        <button
+                          key={dist.id}
+                          type="button"
+                          onClick={() => handleDiscoverDistrict(beatId, dist.id)}
+                          className={`px-1.5 py-0.5 rounded text-[9.5px] font-bold flex items-center gap-1 transition cursor-pointer ${
+                            dist.isMet
+                              ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-200'
+                              : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 hover:bg-purple-100 dark:hover:bg-purple-900/60'
+                          }`}
+                          title={`Click to search news specifically for ${dist.name}`}
+                        >
+                          <span className={`w-1 h-1 rounded-full ${dist.isMet ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                          <span>{dist.name}</span>
+                          <span className="opacity-70 font-mono">({dist.current})</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
 
       {/* Live Discovered Stories Queue from Autonomous Intelligence */}
       <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs">
