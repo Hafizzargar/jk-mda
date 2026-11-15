@@ -15,6 +15,7 @@ import { getOptimizedMediaUrl } from '@/lib/media';
 import { FALLBACK_BROADSHEET_ARTICLES } from '@/lib/seed-articles';
 import { TerritorialBureauTelemetrySlider } from '@/components/telemetry/TerritorialBureauTelemetrySlider';
 import { SafeEditorialImage } from '@/components/common/SafeEditorialImage';
+import { TodayCenterDispatches } from './TodayCenterDispatches';
 
 export function ClassicEditorialTemplate({
   langPrefix,
@@ -115,6 +116,32 @@ export function ClassicEditorialTemplate({
 
   const candidateDossier = propDossierArticles && propDossierArticles.length > 0 ? propDossierArticles : recentArticles.slice(7, 13);
   const dossierArticles = candidateDossier.filter((art) => art.id !== leadId);
+
+  // Deduplicated pool of current stories for center column with Show More support
+  const centerArticlesPool = (() => {
+    const seenIds = new Set<string>();
+    if (leadId) seenIds.add(leadId);
+    subIds.forEach((id) => seenIds.add(id));
+
+    const list: typeof recentArticles = [];
+
+    for (const art of [...streamArticles, ...recentArticles, ...allArticles]) {
+      if (art && art.id && !seenIds.has(art.id)) {
+        seenIds.add(art.id);
+        list.push(art);
+      }
+    }
+
+    // Guarantee minimum 6-8 articles for rich display by backfilling from FALLBACK_BROADSHEET_ARTICLES
+    for (const art of FALLBACK_BROADSHEET_ARTICLES) {
+      if (art && art.id && !seenIds.has(art.id)) {
+        seenIds.add(art.id);
+        list.push(art);
+      }
+    }
+
+    return list;
+  })();
 
   const conflictNews = propConflictNews || [];
   const discoverNews = propDiscoverNews || [];
@@ -1457,6 +1484,16 @@ export function ClassicEditorialTemplate({
                     </article>
                   ))}
                 </div>
+
+                {/* Today's Dispatches & Continuous News Desk (Fills center whitespace with Show More control) */}
+                {centerArticlesPool.length > 0 && (
+                  <TodayCenterDispatches
+                    articles={centerArticlesPool}
+                    langPrefix={langPrefix}
+                    brandName={brandName}
+                    initialCount={4}
+                  />
+                )}
               </div>
             );
           };
