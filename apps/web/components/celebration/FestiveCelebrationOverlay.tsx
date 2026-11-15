@@ -346,7 +346,10 @@ export function FestiveCelebrationOverlay({ initialSettings }: FestiveCelebratio
               <span
                 className="text-2xl mt-0.5 shrink-0 select-none inline-block"
                 style={{
-                  animation: 'festive-sparkle 3.5s ease-in-out infinite',
+                  animationName: 'festive-sparkle',
+                  animationDuration: '3.5s',
+                  animationTimingFunction: 'ease-in-out',
+                  animationIterationCount: 'infinite',
                 }}
               >
                 {settings.effect_type === 'crescent_stars'
@@ -410,10 +413,10 @@ export function FestiveCelebrationOverlay({ initialSettings }: FestiveCelebratio
                 style={{
                   backgroundColor: primaryColor,
                   transformOrigin: 'left',
-                  animation:
-                    bannerState === 'visible'
-                      ? `festive-progress ${Math.max(6, settings.duration_seconds || 8)}s linear forwards`
-                      : 'none',
+                  animationName: bannerState === 'visible' ? 'festive-progress' : 'none',
+                  animationDuration: `${Math.max(6, settings.duration_seconds || 8)}s`,
+                  animationTimingFunction: 'linear',
+                  animationFillMode: 'forwards',
                   animationPlayState: isHovered ? 'paused' : 'running',
                   boxShadow: `0 0 10px ${primaryColor}`,
                 }}
