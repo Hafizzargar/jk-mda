@@ -78,6 +78,33 @@ a {
   }
 }
 
+@keyframes festive-progress {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes festive-sparkle {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+  }
+  20% {
+    transform: scale(1.14) rotate(4deg);
+  }
+  40% {
+    transform: scale(1.05) rotate(-3deg);
+  }
+  60% {
+    transform: scale(1.18) rotate(3deg);
+  }
+  80% {
+    transform: scale(1.02) rotate(-1deg);
+  }
+}
+
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
