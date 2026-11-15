@@ -44,6 +44,17 @@ export default function DraftsFactCheckPage() {
         return;
       }
 
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role_key')
+        .eq('id', sessionData.session.user.id)
+        .single();
+
+      if (!profile || ['editor', 'author'].includes(profile.role_key)) {
+        router.push('/');
+        return;
+      }
+
       // Fetch fact-check claims
       const { data, error } = await supabase
         .from('newsroom_fact_checks')

@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 import {
   DEFAULT_EDITORIAL_DESK_SETTINGS,
   DEFAULT_EDITORIAL_OF_RECORD,
@@ -20,6 +22,7 @@ interface ArticleOption {
 }
 
 export default function EditorialRecordsPage() {
+  const router = useRouter();
   const [settings, setSettings] = useState<EditorialDeskSettings>(DEFAULT_EDITORIAL_DESK_SETTINGS);
   const [candidateArticles, setCandidateArticles] = useState<ArticleOption[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +43,29 @@ export default function EditorialRecordsPage() {
     async function loadData() {
       try {
         setLoading(true);
-        const res = await fetch('/api/settings/editorial-records');
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (!sessionData.session) {
+          router.push('/login');
+          return;
+        }
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role_key')
+          .eq('id', sessionData.session.user.id)
+          .single();
+
+        if (!profile || ['editor', 'author'].includes(profile.role_key)) {
+          router.push('/');
+          return;
+        }
+
+        const token = sessionData.session.access_token;
+        const res = await fetch('/api/settings/editorial-records', {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
         if (!res.ok) throw new Error('Failed to load settings');
         const data = await res.json();
         if (isMounted) {

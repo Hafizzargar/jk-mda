@@ -2,6 +2,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { NewsletterForm } from '@/components/NewsletterForm';
 import { SITE_SHORT_NAME } from '@/lib/config';
+import { getCategorySlug } from '@/lib/taxonomy';
 import { TemplateProps } from './types';
 
 export function BreakingWireTemplate({
@@ -24,7 +25,7 @@ export function BreakingWireTemplate({
           </span>
           {latestStory && (
             <Link
-              href={`${langPrefix}/${latestStory.category.toLowerCase()}/${latestStory.slug}`}
+              href={`${langPrefix}/${getCategorySlug(latestStory.category)}/${latestStory.slug}`}
               className="truncate hover:underline text-white font-medium"
             >
               {latestStory.title}
@@ -91,7 +92,7 @@ export function BreakingWireTemplate({
                     <span>&bull;</span>
                     <span>{heroArticle.district || 'J&K Desk'}</span>
                   </div>
-                  <Link href={`${langPrefix}/${heroArticle.category.toLowerCase()}/${heroArticle.slug}`}>
+                  <Link href={`${langPrefix}/${getCategorySlug(heroArticle.category)}/${heroArticle.slug}`}>
                     <h1 className="text-2xl md:text-3xl font-black text-white hover:text-red-400 transition leading-tight mb-3">
                       {heroArticle.title}
                     </h1>
@@ -124,7 +125,7 @@ export function BreakingWireTemplate({
                       <span>{article.district || 'Statewide'}</span>
                     </div>
                     <Link
-                      href={`${langPrefix}/${article.category.toLowerCase()}/${article.slug}`}
+                      href={`${langPrefix}/${getCategorySlug(article.category)}/${article.slug}`}
                       className="text-base font-bold text-neutral-100 hover:text-red-400 transition block"
                     >
                       {article.title}
@@ -152,7 +153,7 @@ export function BreakingWireTemplate({
                 <div key={article.id} className="border-b border-neutral-800/80 pb-3 last:border-0 last:pb-0">
                   <span className="text-[10px] font-mono text-neutral-500 uppercase">#WIRE_RANK_{i + 1}</span>
                   <Link
-                    href={`${langPrefix}/${article.category.toLowerCase()}/${article.slug}`}
+                    href={`${langPrefix}/${getCategorySlug(article.category)}/${article.slug}`}
                     className="text-sm font-bold text-neutral-200 hover:text-red-400 transition block leading-snug mt-1"
                   >
                     {article.title}

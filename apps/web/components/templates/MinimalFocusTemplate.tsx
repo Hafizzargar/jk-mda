@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { NewsletterForm } from '@/components/NewsletterForm';
 import { SITE_SHORT_NAME } from '@/lib/config';
 import { formatArticleDate } from '@/lib/date';
+import { getCategorySlug } from '@/lib/taxonomy';
 import { TemplateProps } from './types';
 
 export function MinimalFocusTemplate({
@@ -40,7 +41,7 @@ export function MinimalFocusTemplate({
         {/* Featured Long-Form Essay */}
         {heroArticle && (
           <article className="border-b border-stone-200 pb-16">
-            <Link href={`${langPrefix}/${heroArticle.category.toLowerCase()}/${heroArticle.slug}`} className="group block space-y-4">
+            <Link href={`${langPrefix}/${getCategorySlug(heroArticle.category)}/${heroArticle.slug}`} className="group block space-y-4">
               <div className="flex items-center gap-2 text-xs font-medium text-stone-500 uppercase tracking-widest">
                 <span className="font-semibold text-stone-800">{heroArticle.category}</span>
                 <span>/</span>
@@ -89,7 +90,7 @@ export function MinimalFocusTemplate({
           <div className="space-y-10">
             {recentArticles.map((article) => (
               <article key={article.id} className="group border-b border-stone-100 pb-10">
-                <Link href={`${langPrefix}/${article.category.toLowerCase()}/${article.slug}`} className="block space-y-3">
+                <Link href={`${langPrefix}/${getCategorySlug(article.category)}/${article.slug}`} className="block space-y-3">
                   <div className="flex items-center gap-2 text-xs text-stone-400">
                     <span className="font-semibold text-stone-700 uppercase tracking-wider">{article.category}</span>
                     <span>&bull;</span>

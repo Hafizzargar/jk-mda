@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/Button';
 import {
@@ -14,6 +15,7 @@ import {
 } from '@/lib/homepage-layout';
 
 export default function HomepageLayoutBuilderPage() {
+  const router = useRouter();
   const [layout, setLayout] = useState<HomepageLayoutConfig>(DEFAULT_HOMEPAGE_LAYOUT);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -101,6 +103,21 @@ export default function HomepageLayoutBuilderPage() {
     try {
       setLoading(true);
       const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        router.push('/login');
+        return;
+      }
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role_key')
+        .eq('id', sessionData.session.user.id)
+        .single();
+
+      if (!profile || ['editor', 'author'].includes(profile.role_key)) {
+        router.push('/');
+        return;
+      }
+
       const token = sessionData.session?.access_token;
 
       const res = await fetch('/api/settings/layout', {

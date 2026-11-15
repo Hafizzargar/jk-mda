@@ -12,26 +12,32 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Missing required fields.' }, { status: 400 });
   }
 
-  // Rate Limiting: Atomic DB claim (inserts employee.mfa_challenge_attempt)
-  const { error: claimError } = await auth.userClient.rpc('claim_mfa_challenge_attempt');
-  if (claimError) {
-    if (claimError.message.includes('Too many failed verification attempts')) {
-      return Response.json({ error: claimError.message }, { status: 429 });
-    }
-    return Response.json({ error: 'Internal server error during rate limit check.' }, { status: 500 });
-  }
-
   // Determine if this is a new enrollment by checking the current factor status
   const { data: factors, error: factorsError } = await auth.userClient.auth.mfa.listFactors();
   if (factorsError) {
     return Response.json({ error: 'Unable to verify MFA factor status.' }, { status: 500 });
   }
   const allFactors = [...(factors?.all ?? []), ...(factors?.totp ?? [])];
-  const targetFactor = allFactors.find(f => f.id === body.factorId);
+  const targetFactor = allFactors.find((f) => f.id === body.factorId);
   if (!targetFactor) {
     return Response.json({ error: 'Invalid MFA factor.' }, { status: 400 });
   }
   const isEnrollment = (targetFactor.status as string) === 'unverified';
+
+  // Rate Limiting: For challenge verifications on existing active factors, enforce atomic DB claim.
+  // Initial enrollment setup is exempted so users are not locked out while configuring their authenticator.
+  if (!isEnrollment) {
+    const { error: claimError } = await auth.userClient.rpc('claim_mfa_challenge_attempt');
+    if (claimError) {
+      if (claimError.message.includes('Too many failed verification attempts')) {
+        return Response.json({ error: claimError.message }, { status: 429 });
+      }
+      return Response.json(
+        { error: 'Internal server error during rate limit check.' },
+        { status: 500 }
+      );
+    }
+  }
 
   // Use the user's client (which has their current token) to call verify
   const { data: verifyData, error: verifyError } = await auth.userClient.auth.mfa.verify({
@@ -42,9 +48,10 @@ export async function POST(request: Request) {
 
   if (verifyError) {
     // Log failure securely server-side
+    const failAction = isEnrollment ? 'employee.mfa_enroll_failed' : 'employee.mfa_challenge_failed';
     await auth.service.from('audit_logs').insert({
       actor_profile_id: auth.user.id,
-      action: 'employee.mfa_challenge_failed',
+      action: failAction,
       target_type: 'profile',
       target_id: auth.user.id,
       result: 'denied',
@@ -52,7 +59,10 @@ export async function POST(request: Request) {
       details: { method: request.method, path: new URL(request.url).pathname },
       ...auth.auditContext,
     });
-    return Response.json({ error: 'Invalid code. Please check your authenticator app and try again.' }, { status: 400 });
+    return Response.json(
+      { error: 'Invalid code. Please check your authenticator app and try again.' },
+      { status: 400 }
+    );
   }
 
   // Log success securely server-side
@@ -67,6 +77,15 @@ export async function POST(request: Request) {
     details: { method: request.method, path: new URL(request.url).pathname },
     ...auth.auditContext,
   });
+
+  // If this was an enrollment, clean up any previous failed challenge audit attempts for this profile
+  if (isEnrollment) {
+    await auth.service
+      .from('audit_logs')
+      .delete()
+      .eq('actor_profile_id', auth.user.id)
+      .in('action', ['employee.mfa_challenge_failed', 'employee.mfa_challenge_attempt']);
+  }
 
   // Return the upgraded session to the client
   return Response.json({

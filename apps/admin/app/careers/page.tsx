@@ -72,7 +72,7 @@ export default function CareersAdminPage() {
         }
 
         const role = profile.role_key;
-        if (!['owner', 'superadmin', 'admin', 'editor'].includes(role)) {
+        if (!['owner', 'superadmin', 'admin'].includes(role)) {
           router.push('/');
           return;
         }
@@ -101,7 +101,7 @@ export default function CareersAdminPage() {
           }
           setCanManage(Boolean(json.can_manage));
         } else {
-          setCanManage(['owner', 'superadmin', 'admin', 'editor'].includes(role));
+          setCanManage(['owner', 'superadmin', 'admin'].includes(role));
         }
       } catch (err) {
         console.error('Failed to load careers configuration:', err);

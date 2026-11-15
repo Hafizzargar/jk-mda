@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { getCategorySlug } from '@/lib/taxonomy';
 import { TemplateProps } from './types';
 
 export function TechTerminalTemplate({
@@ -87,7 +88,7 @@ export function TechTerminalTemplate({
                   TAG: <span className="text-[#22c55e] font-bold">{heroArticle.category}</span> &bull; LOC: <span className="text-white">{heroArticle.district || 'ALL_DISTRICTS'}</span>
                 </div>
 
-                <Link href={`${langPrefix}/${heroArticle.category.toLowerCase()}/${heroArticle.slug}`}>
+                <Link href={`${langPrefix}/${getCategorySlug(heroArticle.category)}/${heroArticle.slug}`}>
                   <h1 className="text-2xl md:text-3xl font-bold text-white hover:text-[#4ade80] transition leading-tight mb-4">
                     {heroArticle.title}
                   </h1>
@@ -104,7 +105,7 @@ export function TechTerminalTemplate({
                     BYLINE: {heroArticle.author_display_name || 'SYSTEM_OPERATOR'}
                   </span>
                   <Link
-                    href={`${langPrefix}/${heroArticle.category.toLowerCase()}/${heroArticle.slug}`}
+                    href={`${langPrefix}/${getCategorySlug(heroArticle.category)}/${heroArticle.slug}`}
                     className="px-4 py-2 border border-[#22c55e] text-[#22c55e] hover:bg-[#22c55e] hover:text-black transition uppercase font-bold"
                   >
                     ACCESS_FULL_LOG &rarr;
@@ -134,7 +135,7 @@ export function TechTerminalTemplate({
                       <span>{new Date(article.published_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
 
-                    <Link href={`${langPrefix}/${article.category.toLowerCase()}/${article.slug}`}>
+                    <Link href={`${langPrefix}/${getCategorySlug(article.category)}/${article.slug}`}>
                       <h3 className="text-base font-bold text-white hover:text-[#4ade80] transition mb-1 leading-snug">
                         {article.title}
                       </h3>
@@ -161,7 +162,7 @@ export function TechTerminalTemplate({
                 {trendingArticles.slice(0, 5).map((article, idx) => (
                   <Link
                     key={article.id}
-                    href={`${langPrefix}/${article.category.toLowerCase()}/${article.slug}`}
+                    href={`${langPrefix}/${getCategorySlug(article.category)}/${article.slug}`}
                     className="block group"
                   >
                     <div className="flex items-start gap-2.5 text-xs">

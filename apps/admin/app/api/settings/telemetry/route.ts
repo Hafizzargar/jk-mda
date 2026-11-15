@@ -1,7 +1,7 @@
 import { authenticateEmployeeRequest, isEmployeeAuthorization, requireRecentAuthentication } from '@/lib/employee-server';
 import { DEFAULT_TELEMETRY_SETTINGS, getTelemetrySettings, type TelemetrySettings } from '@/lib/telemetry';
 
-const EDIT_ROLES = ['owner', 'superadmin', 'admin', 'editor'];
+const EDIT_ROLES = ['owner', 'superadmin', 'admin'];
 
 export async function GET(request: Request) {
   const authorization = await authenticateEmployeeRequest(request);

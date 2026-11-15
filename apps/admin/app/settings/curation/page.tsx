@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { DEFAULT_CURATION_SETTINGS, type HomepageCurationSettings } from '@/lib/curation';
 import { getDailyRotatedCorridors } from '@/lib/navbar';
@@ -41,6 +42,7 @@ type SlotTarget =
   | 'corridor_ladakh';
 
 export default function HomepageCuratorPage() {
+  const router = useRouter();
   const [curation, setCuration] = useState<HomepageCurationSettings>(DEFAULT_CURATION_SETTINGS);
   const [articles, setArticles] = useState<PublishedArticle[]>([]);
   const [loading, setLoading] = useState(true);
@@ -69,6 +71,21 @@ export default function HomepageCuratorPage() {
     try {
       setLoading(true);
       const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        router.push('/login');
+        return;
+      }
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role_key')
+        .eq('id', sessionData.session.user.id)
+        .single();
+
+      if (!profile || ['editor', 'author'].includes(profile.role_key)) {
+        router.push('/');
+        return;
+      }
+
       const token = sessionData.session?.access_token;
 
       const res = await fetch('/api/settings/curation', {

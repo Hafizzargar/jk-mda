@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { formatArticleDate } from '@/lib/date';
+import { getCategorySlug } from '@/lib/taxonomy';
 import { TemplateProps } from './types';
 
 export function VisualStoriesTemplate({
@@ -93,7 +94,7 @@ export function VisualStoriesTemplate({
               <div className="text-xs font-bold uppercase tracking-widest text-rose-400 mb-2" suppressHydrationWarning>
                 {heroArticle.category} &bull; {formatArticleDate(heroArticle.published_at)}
               </div>
-              <Link href={`${langPrefix}/${heroArticle.category.toLowerCase()}/${heroArticle.slug}`}>
+              <Link href={`${langPrefix}/${getCategorySlug(heroArticle.category)}/${heroArticle.slug}`}>
                 <h1 className="text-2xl md:text-4xl font-extrabold text-white leading-tight mb-4 hover:text-rose-300 transition">
                   {heroArticle.title}
                 </h1>
@@ -105,7 +106,7 @@ export function VisualStoriesTemplate({
               )}
               <div className="flex items-center gap-4">
                 <Link
-                  href={`${langPrefix}/${heroArticle.category.toLowerCase()}/${heroArticle.slug}`}
+                  href={`${langPrefix}/${getCategorySlug(heroArticle.category)}/${heroArticle.slug}`}
                   className="px-6 py-2.5 bg-white text-black font-bold text-xs uppercase tracking-wider rounded-full hover:bg-rose-500 hover:text-white transition shadow-lg"
                 >
                   View Story &rarr;
@@ -134,7 +135,7 @@ export function VisualStoriesTemplate({
             {recentArticles.slice(0, 8).map((article) => (
               <Link
                 key={article.id}
-                href={`${langPrefix}/${article.category.toLowerCase()}/${article.slug}`}
+                href={`${langPrefix}/${getCategorySlug(article.category)}/${article.slug}`}
                 className="group relative h-[380px] rounded-2xl overflow-hidden border border-stone-800/80 bg-stone-900 shadow-lg block hover:border-rose-500/50 hover:shadow-rose-500/10 transition duration-300"
               >
                 {article.featured_image_url ? (

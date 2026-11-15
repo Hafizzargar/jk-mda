@@ -202,6 +202,9 @@ export default function EmployeesPage() {
       window.location.href = '/mfa/challenge?reauth=true&next=/employees';
       return { error: 'Recent authentication required. Redirecting to MFA verification...' };
     }
+    if (result.error?.includes('Active employee access is required')) {
+      return { error: 'Two-Factor Authentication (2FA) verification is required for Owner/Superadmin accounts to perform employee operations. Please verify your 2FA code above.' };
+    }
     return response.ok ? { data: result.data } : { error: result.error ?? 'Employee operation failed.' };
   };
 
@@ -310,6 +313,13 @@ export default function EmployeesPage() {
 
   const submitInviteRequest = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (status.includes('Two-Factor Authentication') || status.includes('Employee directory access is required')) {
+      setFeedback({
+        type: 'error',
+        message: 'Please complete Two-Factor Authentication (2FA) verification above before submitting employee invitations.',
+      });
+      return;
+    }
     const formElement = event.currentTarget;
     setIsSubmitting(true);
     const form = new FormData(formElement);
@@ -331,6 +341,13 @@ export default function EmployeesPage() {
 
   const sendInvite = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (status.includes('Two-Factor Authentication') || status.includes('Employee directory access is required')) {
+      setFeedback({
+        type: 'error',
+        message: 'Please complete Two-Factor Authentication (2FA) verification above before sending employee invitations.',
+      });
+      return;
+    }
     const formElement = event.currentTarget;
     setIsSubmitting(true);
     const form = new FormData(formElement);

@@ -79,6 +79,17 @@ export default function EventGovernmentResponseMonitorPage() {
         return;
       }
 
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role_key')
+        .eq('id', sessionData.session.user.id)
+        .single();
+
+      if (!profile || ['editor', 'author'].includes(profile.role_key)) {
+        router.push('/');
+        return;
+      }
+
       const params = new URLSearchParams();
       if (filterDistrict !== 'all') params.set('district', filterDistrict);
       if (filterCategory !== 'all') params.set('category', filterCategory);

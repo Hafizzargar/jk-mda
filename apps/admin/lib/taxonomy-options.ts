@@ -57,6 +57,17 @@ export interface DynamicCategoryItem {
   is_active: boolean;
 }
 
+export function getCategorySlug(category?: string | null): string {
+  if (!category) return 'news';
+  const clean = category
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return clean || 'news';
+}
+
 export function formatCategoryOptions(
   dbCategories: Array<{ id?: string; name_en?: string; slug?: string; description?: string; is_active?: boolean }>
 ): DynamicCategoryItem[] {

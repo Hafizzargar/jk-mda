@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { NewsletterForm } from '@/components/NewsletterForm';
 import { SITE_SHORT_NAME } from '@/lib/config';
 import { formatArticleDate } from '@/lib/date';
+import { getCategorySlug } from '@/lib/taxonomy';
 import { TemplateProps } from './types';
 import { RegionalCoverageWidget } from './RegionalCoverageWidget';
 
@@ -51,7 +52,7 @@ export function ModernMagazineTemplate({
         {/* Full-Bleed Modern Magazine Hero */}
         {heroArticle && (
           <section className="relative overflow-hidden rounded-3xl border border-slate-800 bg-slate-900 group">
-            <Link href={`${langPrefix}/${heroArticle.category.toLowerCase()}/${heroArticle.slug}`} className="block">
+            <Link href={`${langPrefix}/${getCategorySlug(heroArticle.category)}/${heroArticle.slug}`} className="block">
               <div className="relative h-[420px] md:h-[540px] w-full">
                 {heroArticle.featured_image_url ? (
                   <Image
@@ -124,7 +125,7 @@ export function ModernMagazineTemplate({
                     key={article.id}
                     className="group rounded-2xl border border-slate-800/80 bg-slate-900/60 backdrop-blur-sm p-4 transition-all duration-300 hover:border-slate-700 hover:shadow-xl hover:shadow-blue-500/5 hover:-translate-y-1 flex flex-col justify-between"
                   >
-                    <Link href={`${langPrefix}/${article.category.toLowerCase()}/${article.slug}`} className="block">
+                    <Link href={`${langPrefix}/${getCategorySlug(article.category)}/${article.slug}`} className="block">
                       {article.featured_image_url && (
                         <div className="relative h-48 w-full overflow-hidden rounded-xl mb-4 bg-slate-800">
                           <Image
@@ -181,7 +182,7 @@ export function ModernMagazineTemplate({
                 {trendingArticles.map((article, idx) => (
                   <Link
                     key={article.id}
-                    href={`${langPrefix}/${article.category.toLowerCase()}/${article.slug}`}
+                    href={`${langPrefix}/${getCategorySlug(article.category)}/${article.slug}`}
                     className="group flex items-start gap-3 p-2.5 rounded-xl hover:bg-slate-800/50 transition border border-transparent hover:border-slate-800"
                   >
                     <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-400 font-mono font-bold text-xs group-hover:bg-blue-500 group-hover:text-white transition">
@@ -239,7 +240,7 @@ export function ModernMagazineTemplate({
                   key={article.id}
                   className="group rounded-2xl border border-slate-800/80 bg-slate-900/60 backdrop-blur-sm p-4 transition-all duration-300 hover:border-slate-700 hover:shadow-xl hover:shadow-blue-500/5 hover:-translate-y-1 flex flex-col justify-between"
                 >
-                  <Link href={`${langPrefix}/${article.category.toLowerCase()}/${article.slug}`} className="block">
+                  <Link href={`${langPrefix}/${getCategorySlug(article.category)}/${article.slug}`} className="block">
                     {article.featured_image_url && (
                       <div className="relative h-44 w-full overflow-hidden rounded-xl mb-4 bg-slate-800">
                         <Image

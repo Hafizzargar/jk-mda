@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { type TelemetrySettings, DEFAULT_TELEMETRY_SETTINGS } from '@/lib/telemetry';
 import { formatArticleDate } from '@/lib/date';
 import { getOptimizedMediaUrl } from '@/lib/media';
+import { getCategorySlug } from '@/lib/taxonomy';
 
 interface ArticleReadingDeskProps {
   article: {
@@ -116,7 +117,7 @@ export function ArticleReadingDesk({
             </Link>
             <span>›</span>
             <Link
-              href={`${langPrefix}/category/${article.category.toLowerCase()}`}
+              href={`${langPrefix}/category/${getCategorySlug(article.category)}`}
               className="text-[#0891B2] font-semibold hover:underline capitalize"
             >
               {article.category}
@@ -447,7 +448,7 @@ export function ArticleReadingDesk({
                   trendingArticles.slice(0, 5).map((item, idx) => (
                     <Link
                       key={item.id}
-                      href={`${langPrefix}/${item.category.toLowerCase()}/${item.slug}`}
+                      href={`${langPrefix}/${getCategorySlug(item.category)}/${item.slug}`}
                       className="flex items-start space-x-3 group block"
                     >
                       <span className="font-serif text-2xl font-bold text-slate-300 group-hover:text-amber-600 transition leading-none w-5 shrink-0">
@@ -685,7 +686,7 @@ export function ArticleReadingDesk({
                     </div>
 
                     <h3 className="font-serif text-lg font-bold text-[#0F172A] group-hover:text-[#0891B2] transition leading-snug">
-                      <Link href={`${langPrefix}/${item.category.toLowerCase()}/${item.slug}`}>
+                      <Link href={`${langPrefix}/${getCategorySlug(item.category)}/${item.slug}`}>
                         {item.title}
                       </Link>
                     </h3>

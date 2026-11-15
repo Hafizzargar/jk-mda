@@ -49,7 +49,7 @@ export function NotificationBell({ userRole }: NotificationBellProps) {
   const [isLoading, setIsLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const isPrivileged = userRole === 'owner' || userRole === 'superadmin' || userRole === 'admin' || userRole === 'editor';
+  const isPrivileged = userRole === 'owner' || userRole === 'superadmin';
 
   // Fetch recent notifications
   const loadNotifications = useCallback(async () => {

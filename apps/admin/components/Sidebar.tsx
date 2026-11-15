@@ -87,10 +87,11 @@ export function Sidebar({
           description: 'Real-time reader view counts & regional analytics',
           href: '/analytics',
           icon: '📈',
+          roles: ['owner', 'superadmin', 'admin'],
         },
         {
           name: 'Articles & Stories',
-          description: 'Live news publications & pending approvals queue',
+          description: 'Live news publications & story management',
           href: '/articles',
           icon: '📰',
           exact: false,
@@ -102,6 +103,7 @@ export function Sidebar({
               badge: 'Live',
               badgeColor:
                 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40 font-bold',
+              roles: ['owner', 'superadmin', 'admin', 'editor', 'author'],
             },
             {
               name: 'Pending Approval',
@@ -110,6 +112,7 @@ export function Sidebar({
               badge: 'Need Approval',
               badgeColor:
                 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40 font-bold',
+              roles: ['owner', 'superadmin', 'admin'],
             },
           ],
         },
@@ -121,7 +124,7 @@ export function Sidebar({
           badge: 'Autonomous',
           badgeColor:
             'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-500/20 dark:text-purple-300 font-bold',
-          roles: ['owner', 'superadmin', 'admin', 'editor'],
+          roles: ['owner', 'superadmin', 'admin'],
           children: [
             {
               name: 'Discovery Radar & Queue',
@@ -174,7 +177,7 @@ export function Sidebar({
               name: 'Careers & Hiring',
               href: '/careers',
               icon: '💼',
-              roles: ['owner', 'superadmin', 'admin', 'editor'],
+              roles: ['owner', 'superadmin', 'admin'],
               badge: 'Jobs',
               badgeColor:
                 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40 font-bold',
@@ -204,13 +207,13 @@ export function Sidebar({
           badge: 'Design',
           badgeColor:
             'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/40 font-bold',
-          roles: ['owner', 'superadmin', 'admin', 'editor'],
+          roles: ['owner', 'superadmin', 'admin'],
           children: [
             {
               name: 'Section Drag & Drop Builder',
               href: '/settings/layout',
               icon: '🔀',
-              roles: ['owner', 'superadmin', 'admin', 'editor'],
+              roles: ['owner', 'superadmin', 'admin'],
               badge: 'Drag & Drop',
               badgeColor:
                 'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/40 font-bold',
@@ -219,7 +222,7 @@ export function Sidebar({
               name: 'Homepage Curator',
               href: '/settings/curation',
               icon: '📰',
-              roles: ['owner', 'superadmin', 'admin', 'editor'],
+              roles: ['owner', 'superadmin', 'admin'],
               badge: 'Curator',
               badgeColor:
                 'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/40 font-bold',
@@ -228,7 +231,7 @@ export function Sidebar({
               name: 'Voices & Editorial Desk',
               href: '/settings/editorial-records',
               icon: '🗣️',
-              roles: ['owner', 'superadmin', 'admin', 'editor'],
+              roles: ['owner', 'superadmin', 'admin'],
               badge: 'Live',
               badgeColor:
                 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40 font-bold',
@@ -264,7 +267,7 @@ export function Sidebar({
               name: 'Regional Telemetry & Passes',
               href: '/settings/telemetry',
               icon: '🏔️',
-              roles: ['owner', 'superadmin', 'admin', 'editor'],
+              roles: ['owner', 'superadmin', 'admin'],
               badge: 'Live',
               badgeColor:
                 'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40 font-bold',
@@ -273,7 +276,7 @@ export function Sidebar({
               name: 'Festive & Celebrations',
               href: '/settings/celebrations',
               icon: '🎆',
-              roles: ['owner', 'superadmin', 'admin', 'editor'],
+              roles: ['owner', 'superadmin', 'admin'],
               badge: 'Festive',
               badgeColor:
                 'bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/40 font-bold',

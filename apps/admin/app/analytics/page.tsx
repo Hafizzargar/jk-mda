@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/Button';
+import { useAdmin } from '@/components/AdminShell';
+import { getCategorySlug } from '@/lib/taxonomy-options';
 
 interface ViewAnalytics {
   overview: {
@@ -33,17 +37,30 @@ interface ViewAnalytics {
 }
 
 export default function AnalyticsPage() {
+  const router = useRouter();
+  const { userRole } = useAdmin();
   const [data, setData] = useState<ViewAnalytics | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastRefreshed, setLastRefreshed] = useState<Date>(new Date());
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'kashmir' | 'jammu' | 'chenab' | 'pir_panjal' | 'ladakh'>('all');
 
+  useEffect(() => {
+    if (userRole && ['editor', 'author'].includes(userRole)) {
+      router.push('/');
+    }
+  }, [userRole, router]);
+
   async function fetchAnalytics() {
+    if (userRole && ['editor', 'author'].includes(userRole)) return;
     try {
       setIsLoading(true);
       setError(null);
-      const res = await fetch('/api/analytics/views');
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData.session?.access_token;
+      const res = await fetch('/api/analytics/views', {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       if (!res.ok) {
         throw new Error(`Failed to load view analytics (HTTP ${res.status})`);
       }
@@ -58,11 +75,12 @@ export default function AnalyticsPage() {
   }
 
   useEffect(() => {
+    if (userRole && ['editor', 'author'].includes(userRole)) return;
     fetchAnalytics();
     // Auto-refresh every 30 seconds
     const interval = setInterval(fetchAnalytics, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [userRole]);
 
   const totalViews = data?.overview?.totalViews || 0;
   const byRegion = data?.byRegion || {};
@@ -312,7 +330,7 @@ export default function AnalyticsPage() {
                   <td className="py-3 px-3 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <a
-                        href={`http://localhost:3000/en/${(article.category || 'general').toLowerCase()}/${article.slug}`}
+                        href={`http://localhost:3000/en/${getCategorySlug(article.category)}/${article.slug}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         title="View story on reader site"

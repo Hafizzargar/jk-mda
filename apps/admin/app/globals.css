@@ -84,8 +84,67 @@ nextjs-portal,
   display: none !important;
 }
 
-/* Light Theme Core Enhancements for Admin Portal and all Subpages */
-html:not([data-theme='dark']) {
+/* Zero-scroll enforcement for auth/login routes across all screens */
+html:has(#login-page-root),
+body:has(#login-page-root) {
+  overflow: hidden !important;
+  height: 100% !important;
+  max-height: 100vh !important;
+  max-height: 100dvh !important;
+}
+
+/* Auth & Login Route Theme Isolation: Strictly Dark across all themes, states, and browsers */
+#login-page-root,
+#login-page-root * {
+  color-scheme: dark !important;
+}
+
+#login-page-root {
+  background-color: #060a12 !important;
+  color: #ffffff !important;
+}
+
+#login-page-root .text-white {
+  color: #ffffff !important;
+}
+
+#login-page-root .text-slate-100 {
+  color: #f1f5f9 !important;
+}
+
+#login-page-root .text-slate-200 {
+  color: #e2e8f0 !important;
+}
+
+#login-page-root .text-slate-300 {
+  color: #cbd5e1 !important;
+}
+
+#login-page-root .text-slate-400 {
+  color: #94a3b8 !important;
+}
+
+#login-page-root .text-slate-500 {
+  color: #64748b !important;
+}
+
+#login-page-root .text-cyan-300,
+#login-page-root .text-cyan-400 {
+  color: #22d3ee !important;
+}
+
+#login-page-root input:not([type='checkbox']):not([type='radio']) {
+  background-color: #0d1524 !important;
+  color: #ffffff !important;
+  border-color: #1e293b !important;
+}
+
+#login-page-root input::placeholder {
+  color: #64748b !important;
+}
+
+/* Light Theme Core Enhancements for Admin Portal and all Subpages (EXCEPT Auth & Login screens) */
+html:not([data-theme='dark']):not(:has(#login-page-root)) {
   /* Slate 950 backgrounds -> Pure White Cards & Panels */
   .bg-slate-950,
   .bg-slate-950\/95,

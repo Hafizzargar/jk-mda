@@ -1,12 +1,11 @@
+/**
+ * Universal Zero-Trust MFA Policy:
+ * Enforced unconditionally across ALL environments (local development, test, staging, and production).
+ * Every authenticated staff role (owner, superadmin, admin, editor, author) strictly requires
+ * TOTP Two-Factor Authentication (AAL2). No bypasses or security downgrades are permitted.
+ */
 export function requiresMfa(role?: string | null): boolean {
-  if (
-    process.env.NODE_ENV !== 'production' &&
-    (process.env.NEXT_PUBLIC_DEV_BYPASS_MFA === 'true' || process.env.DEV_BYPASS_MFA === 'true')
-  ) {
-    return false;
-  }
   if (!role) return true;
-  // All newsroom staff and employees (owner, superadmin, admin, editor, author) require MFA
+  // All newsroom staff and employees (owner, superadmin, admin, editor, author) strictly require MFA
   return ['owner', 'superadmin', 'admin', 'editor', 'author'].includes(role.toLowerCase());
 }
-

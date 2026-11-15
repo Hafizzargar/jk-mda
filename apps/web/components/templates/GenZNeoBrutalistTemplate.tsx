@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { formatArticleDate } from '@/lib/date';
+import { getCategorySlug } from '@/lib/taxonomy';
 import { TemplateProps } from './types';
 
 export function GenZNeoBrutalistTemplate({
@@ -56,7 +57,7 @@ export function GenZNeoBrutalistTemplate({
             {categories.map((c) => (
               <Link
                 key={c.name}
-                href={`${langPrefix}/category/${c.name.toLowerCase()}`}
+                href={`${langPrefix}/category/${getCategorySlug(c.name)}`}
                 className={`text-xs font-black uppercase px-3 py-1.5 border-2 border-black ${c.color} shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-none transition flex items-center gap-1`}
               >
                 <span>{c.emoji}</span>
@@ -105,7 +106,7 @@ export function GenZNeoBrutalistTemplate({
                     </span>
                   </div>
 
-                  <Link href={`${langPrefix}/${heroArticle.category.toLowerCase()}/${heroArticle.slug}`}>
+                  <Link href={`${langPrefix}/${getCategorySlug(heroArticle.category)}/${heroArticle.slug}`}>
                     <h1 className="text-2xl md:text-4xl font-black leading-tight mb-4 hover:text-blue-600 transition">
                       {heroArticle.title}
                     </h1>
@@ -125,7 +126,7 @@ export function GenZNeoBrutalistTemplate({
                       By {heroArticle.author_display_name || `${brandName} Desk`}
                     </div>
                     <Link
-                      href={`${langPrefix}/${heroArticle.category.toLowerCase()}/${heroArticle.slug}`}
+                      href={`${langPrefix}/${getCategorySlug(heroArticle.category)}/${heroArticle.slug}`}
                       className="bg-black text-white font-black text-xs uppercase px-5 py-2.5 border-2 border-black shadow-[3px_3px_0px_0px_rgba(250,204,21,1)] hover:bg-yellow-300 hover:text-black transition"
                     >
                       READ THE FULL TEA &rarr;
@@ -153,7 +154,7 @@ export function GenZNeoBrutalistTemplate({
                 {trendingArticles.slice(0, 5).map((article, idx) => (
                   <Link
                     key={article.id}
-                    href={`${langPrefix}/${article.category.toLowerCase()}/${article.slug}`}
+                    href={`${langPrefix}/${getCategorySlug(article.category)}/${article.slug}`}
                     className="block bg-white p-3.5 border-2 border-black rounded-xl shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] transition"
                   >
                     <div className="flex items-start gap-3">
@@ -252,7 +253,7 @@ export function GenZNeoBrutalistTemplate({
                     </span>
                   </div>
 
-                  <Link href={`${langPrefix}/${article.category.toLowerCase()}/${article.slug}`}>
+                  <Link href={`${langPrefix}/${getCategorySlug(article.category)}/${article.slug}`}>
                     <h3 className="text-base font-black leading-snug hover:text-blue-600 transition mb-2">
                       {article.title}
                     </h3>
@@ -269,7 +270,7 @@ export function GenZNeoBrutalistTemplate({
                       BY {article.author_display_name ? article.author_display_name.split(' ')[0] : 'DESK'}
                     </span>
                     <Link
-                      href={`${langPrefix}/${article.category.toLowerCase()}/${article.slug}`}
+                      href={`${langPrefix}/${getCategorySlug(article.category)}/${article.slug}`}
                       className="font-black text-black hover:underline"
                     >
                       READ MORE &rarr;

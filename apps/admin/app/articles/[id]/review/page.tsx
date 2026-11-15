@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { sanitizeArticleHtml, markdownToHtml } from '@/lib/sanitize';
 import { Button } from '@/components/Button';
+import { getCategorySlug } from '@/lib/taxonomy-options';
 
 type ReviewArticle = {
   id: string;
@@ -55,6 +56,7 @@ const FALLBACK_ARTICLES: Record<string, ReviewArticle> = {
 };
 
 export default function ArticleReviewPage() {
+  const router = useRouter();
   const params = useParams<{ id: string }>();
   const [article, setArticle] = useState<ReviewArticle | null>(null);
   const [permissions, setPermissions] = useState<string[]>([]);
@@ -64,6 +66,23 @@ export default function ArticleReviewPage() {
   useEffect(() => {
     async function loadArticle() {
       if (!params.id) {
+        return;
+      }
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) {
+        router.push('/login');
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role_key')
+        .eq('id', sessionData.session.user.id)
+        .single();
+
+      if (!profile || ['editor', 'author'].includes(profile.role_key)) {
+        router.push('/');
         return;
       }
 
@@ -202,7 +221,7 @@ export default function ArticleReviewPage() {
           <div className="flex items-center gap-2.5">
             {article.status === 'published' && article.slug && (
               <Button
-                href={`http://localhost:3000/${article.category.toLowerCase()}/${article.slug}`}
+                href={`http://localhost:3000/en/${getCategorySlug(article.category)}/${article.slug}`}
                 external
                 variant="emerald"
                 size="md"

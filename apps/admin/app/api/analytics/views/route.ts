@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { authenticateEmployeeRequest, isEmployeeAuthorization } from '@/lib/employee-server';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321';
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
@@ -12,8 +13,19 @@ const REGION_DISTRICT_MAP: Record<string, string[]> = {
   ladakh: ['leh', 'kargil'],
 };
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const auth = await authenticateEmployeeRequest(request);
+    if (!isEmployeeAuthorization(auth)) {
+      return auth;
+    }
+
+    if (['editor', 'author'].includes(auth.profile.role_key)) {
+      return Response.json(
+        { error: 'You do not have permission to view audience telemetry.' },
+        { status: 403 }
+      );
+    }
     const client = createClient(supabaseUrl, serviceRoleKey, {
       auth: { persistSession: false },
     });

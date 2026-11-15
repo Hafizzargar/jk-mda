@@ -136,6 +136,17 @@ export function isValidCategory(slug: string): boolean {
   return Object.prototype.hasOwnProperty.call(NEWS_CATEGORIES, slug.toLowerCase().trim());
 }
 
+export function getCategorySlug(category?: string | null): string {
+  if (!category) return 'news';
+  const clean = category
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, '')
+    .replace(/[\s_-]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return clean || 'news';
+}
+
 export function isValidDistrict(slug: string): boolean {
   if (!slug) return false;
   return Object.prototype.hasOwnProperty.call(JK_DISTRICTS, slug.toLowerCase().trim());

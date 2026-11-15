@@ -104,7 +104,7 @@ export default function FooterSettingsPage() {
           setCanManage(Boolean(json.can_manage));
         } else {
           // If role allows, enable canManage based on profile
-          setCanManage(['owner', 'superadmin', 'admin', 'editor'].includes(role));
+          setCanManage(['owner', 'superadmin', 'admin'].includes(role));
         }
       } catch (err) {
         setErrorMsg(err instanceof Error ? err.message : 'Error loading settings');

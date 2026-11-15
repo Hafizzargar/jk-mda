@@ -153,24 +153,40 @@ function weatherCodeToDesc(code: number): string {
   return 'Stable';
 }
 
+function getFallbackWeatherList(): RegionalStationWeather[] {
+  return REGIONAL_STATIONS.map((st) => ({
+    station_id: st.id,
+    name: st.name,
+    district: st.district,
+    districtSlug: st.districtSlug,
+    region: st.region,
+    elevation: st.elevation,
+    coordinates: st.coordinates,
+    temp_c: st.fallbackTemp,
+    wind_kph: 5.0,
+    weather_desc: 'Station Active',
+    is_day: true,
+    status: 'optimal' as const,
+  }));
+}
+
 let cachedWeather: RegionalStationWeather[] | null = null;
 let lastWeatherFetchTime = 0;
-const WEATHER_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes in-memory cache
+let isFetchingWeather = false;
+const WEATHER_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes in-memory cache
 
-export async function getRegionalWeather(): Promise<RegionalStationWeather[]> {
-  const now = Date.now();
-  if (cachedWeather && now - lastWeatherFetchTime < WEATHER_CACHE_TTL_MS) {
-    return cachedWeather;
-  }
+async function refreshWeatherInBackground(): Promise<void> {
+  if (isFetchingWeather) return;
+  isFetchingWeather = true;
 
   try {
     const weatherPromises = REGIONAL_STATIONS.map(async (st) => {
       try {
         const url = `https://api.open-meteo.com/v1/forecast?latitude=${st.lat}&longitude=${st.lon}&current_weather=true`;
         const res = await fetch(url, {
-          next: { revalidate: 300 }, // Cache for 5 minutes
+          next: { revalidate: 600 },
           headers: { 'User-Agent': 'KJIN-Regional-Telemetry/1.0' },
-          signal: AbortSignal.timeout(350), // Ultra-fast 350ms timeout to ensure zero delay to page TTFB
+          signal: AbortSignal.timeout(600),
         });
 
         if (!res.ok) {
@@ -202,7 +218,6 @@ export async function getRegionalWeather(): Promise<RegionalStationWeather[]> {
           status,
         };
       } catch {
-        // Safe fallback if network is offline
         return {
           station_id: st.id,
           name: st.name,
@@ -223,23 +238,25 @@ export async function getRegionalWeather(): Promise<RegionalStationWeather[]> {
     const results = await Promise.all(weatherPromises);
     cachedWeather = results;
     lastWeatherFetchTime = Date.now();
-    return results;
-  } catch (err) {
-    console.warn('[Weather] Regional telemetry fallback triggered:', err);
-    if (cachedWeather) return cachedWeather;
-    return REGIONAL_STATIONS.map((st) => ({
-      station_id: st.id,
-      name: st.name,
-      district: st.district,
-      districtSlug: st.districtSlug,
-      region: st.region,
-      elevation: st.elevation,
-      coordinates: st.coordinates,
-      temp_c: st.fallbackTemp,
-      wind_kph: 5.0,
-      weather_desc: 'Operational',
-      is_day: true,
-      status: 'optimal' as const,
-    }));
+  } catch {
+    // Keep existing
+  } finally {
+    isFetchingWeather = false;
   }
+}
+
+export async function getRegionalWeather(): Promise<RegionalStationWeather[]> {
+  const now = Date.now();
+  if (cachedWeather && now - lastWeatherFetchTime < WEATHER_CACHE_TTL_MS) {
+    return cachedWeather;
+  }
+
+  // Trigger non-blocking background refresh
+  refreshWeatherInBackground().catch(() => {});
+
+  if (cachedWeather && cachedWeather.length > 0) {
+    return cachedWeather;
+  }
+
+  return getFallbackWeatherList();
 }

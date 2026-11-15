@@ -38,6 +38,17 @@ export default function AiUsagePage() {
         return;
       }
 
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role_key')
+        .eq('id', sessionData.session.user.id)
+        .single();
+
+      if (!profile || ['editor', 'author'].includes(profile.role_key)) {
+        router.push('/');
+        return;
+      }
+
       // Count usage in the last 24 hours
       const fifteenMinAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString();
       const { count } = await supabase

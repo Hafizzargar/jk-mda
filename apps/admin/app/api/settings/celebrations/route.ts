@@ -5,7 +5,7 @@ import {
   type FestiveCelebrationItem,
 } from '@/lib/festive';
 
-const ALLOWED_ROLES = ['owner', 'superadmin', 'admin', 'editor'];
+const ALLOWED_ROLES = ['owner', 'superadmin', 'admin'];
 
 export async function GET(request: Request) {
   const authorization = await authenticateEmployeeRequest(request);

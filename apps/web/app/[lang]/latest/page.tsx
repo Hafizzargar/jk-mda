@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { Metadata } from 'next';
 import { createServerAnonClient } from '@/lib/supabase-server';
 import { parsePageParam, parseLimitParam, getPaginationRange, calculatePaginationMeta } from '@/lib/pagination';
+import { getCategorySlug } from '@/lib/taxonomy';
 import { SITE_URL, SITE_SHORT_NAME } from '@/lib/config';
 import { applyTranslations } from '@/lib/i18n';
 import { getTemplateTheme, type TemplateId } from '@/lib/templates';
@@ -113,7 +114,7 @@ export default async function LatestPage({ params, searchParams }: LatestPagePro
               {articles.map((article) => (
                 <Link
                   key={article.id}
-                  href={`${langPrefix}/${article.category.toLowerCase()}/${article.slug}`}
+                  href={`${langPrefix}/${getCategorySlug(article.category)}/${article.slug}`}
                   className={`group flex flex-col h-full ${theme.cardBgClass} rounded-xl ${theme.cardBorderClass} ${theme.cardHoverClass} p-5 transition`}
                 >
                   {article.featured_image_url ? (

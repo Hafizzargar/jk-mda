@@ -90,7 +90,7 @@ test('middleware: missing profile -> fail closed (/login)', async () => {
   const req = new NextRequest('http://localhost/dashboard');
   const res = await middleware(req);
   assert.equal(res.status, 302);
-  assert.ok(res.headers.get('Location')?.endsWith('/login'));
+  assert.ok(res.headers.get('Location')?.includes('/login'));
 });
 
 
@@ -109,7 +109,8 @@ test('middleware: disabled admin + AAL2 -> fail closed (/login)', async () => {
   const req = new NextRequest('http://localhost/dashboard');
   const res = await middleware(req);
   assert.equal(res.status, 302);
-  assert.ok(res.headers.get('Location')?.endsWith('/login'));
+  assert.ok(res.headers.get('Location')?.includes('/login'));
+  assert.ok(res.headers.get('Location')?.includes('alert=account_disabled'));
 });
 
 test('middleware: disabled admin -> /mfa/enroll fails closed (/login)', async () => {
@@ -119,7 +120,8 @@ test('middleware: disabled admin -> /mfa/enroll fails closed (/login)', async ()
   const req = new NextRequest('http://localhost/mfa/enroll');
   const res = await middleware(req);
   assert.equal(res.status, 302);
-  assert.ok(res.headers.get('Location')?.endsWith('/login'));
+  assert.ok(res.headers.get('Location')?.includes('/login'));
+  assert.ok(res.headers.get('Location')?.includes('alert=account_disabled'));
 });
 
 test('middleware: disabled admin -> /mfa/challenge fails closed (/login)', async () => {
@@ -129,7 +131,8 @@ test('middleware: disabled admin -> /mfa/challenge fails closed (/login)', async
   const req = new NextRequest('http://localhost/mfa/challenge');
   const res = await middleware(req);
   assert.equal(res.status, 302);
-  assert.ok(res.headers.get('Location')?.endsWith('/login'));
+  assert.ok(res.headers.get('Location')?.includes('/login'));
+  assert.ok(res.headers.get('Location')?.includes('alert=account_disabled'));
 });
 
 test('middleware: disabled editor -> fail closed (/login)', async () => {
@@ -139,7 +142,17 @@ test('middleware: disabled editor -> fail closed (/login)', async () => {
   const req = new NextRequest('http://localhost/dashboard');
   const res = await middleware(req);
   assert.equal(res.status, 302);
-  assert.ok(res.headers.get('Location')?.endsWith('/login'));
+  assert.ok(res.headers.get('Location')?.includes('/login'));
+  assert.ok(res.headers.get('Location')?.includes('alert=account_disabled'));
+});
+
+test('middleware: disabled user visiting /login does not redirect (terminates loop)', async () => {
+  configure({ role: 'admin', aal: 'aal2' });
+  harness.actor.status = 'disabled';
+  harness.syncActor();
+  const req = new NextRequest('http://localhost/login');
+  const res = await middleware(req);
+  assert.equal(res.status, 200);
 });
 
 test('middleware: malformed session / getUser error -> fail closed (/login)', async () => {

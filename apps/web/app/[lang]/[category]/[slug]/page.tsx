@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { Metadata } from 'next';
 import { createServerAnonClient } from '@/lib/supabase-server';
 import { ViewTracker } from '@/components/ViewTracker';
@@ -8,7 +8,7 @@ import { getTemplateTheme, type TemplateId } from '@/lib/templates';
 import { SiteNavbar } from '@/components/navigation/SiteNavbar';
 import { SiteFooter } from '@/components/navigation/SiteFooter';
 import { getFooterContactSettings } from '@/lib/contact';
-import { getDistrictDisplayName } from '@/lib/taxonomy';
+import { getDistrictDisplayName, getCategorySlug } from '@/lib/taxonomy';
 import { getBrandSettings } from '@/lib/brand';
 import { getNavbarSettings } from '@/lib/navbar';
 import { getTelemetrySettings } from '@/lib/telemetry';
@@ -31,11 +31,13 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
     .from('articles')
     .select('title, excerpt, featured_image_url, category, published_at, updated_at, author_display_name, article_translations(title, excerpt, language_code)')
     .eq('slug', resolvedParams.slug)
-    .single();
+    .maybeSingle();
 
   if (!article) {
-    const langPrefix = resolvedParams.lang && resolvedParams.lang !== 'en' ? `/${resolvedParams.lang}` : '';
-    redirect(langPrefix || '/');
+    return {
+      title: `Article Not Found | ${brandSettings.name || 'KJIN'}`,
+      description: 'The requested article could not be found or has not been published yet.',
+    };
   }
 
   let title = article.title;
@@ -49,7 +51,9 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
     }
   }
 
-  const canonicalUrl = `${SITE_URL}/${resolvedParams.lang === 'en' ? '' : `${resolvedParams.lang}/`}${article.category.toLowerCase()}/${resolvedParams.slug}`;
+  const categorySlug = getCategorySlug(article.category);
+  const canonicalRoutePrefix = resolvedParams.lang ? `/${resolvedParams.lang}` : '/en';
+  const canonicalUrl = `${SITE_URL}${canonicalRoutePrefix}/${categorySlug}/${resolvedParams.slug}`;
 
   return {
     metadataBase: new URL(SITE_URL),
@@ -99,6 +103,27 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
 export default async function ArticlePage({ params }: ArticlePageProps) {
   const resolvedParams = await params;
   const supabase = createServerAnonClient();
+
+  // Note: RLS ensures we only get rows where status = 'published'
+  const { data: article, error } = await supabase
+    .from('articles')
+    .select('*, article_translations(title, excerpt, content, language_code)')
+    .eq('slug', resolvedParams.slug)
+    .maybeSingle();
+
+  if (error || !article) {
+    notFound();
+  }
+
+  // Canonical URL redirect if category in path does not match database canonical slug
+  const articleCategorySlug = getCategorySlug(article.category);
+  const rawParamCategory = decodeURIComponent(resolvedParams.category || '').trim();
+  const canonicalRoutePrefix = resolvedParams.lang ? `/${resolvedParams.lang}` : '/en';
+
+  if (rawParamCategory !== articleCategorySlug) {
+    redirect(`${canonicalRoutePrefix}/${articleCategorySlug}/${article.slug}`);
+  }
+
   const [brandSettings, navbarSettings, contactSettings, telemetry] = await Promise.all([
     getBrandSettings(supabase),
     getNavbarSettings(supabase),
@@ -106,24 +131,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     getTelemetrySettings(supabase),
   ]);
 
-  // Note: RLS ensures we only get rows where status = 'published'
-  const { data: article, error } = await supabase
-    .from('articles')
-    .select('*, article_translations(title, excerpt, content, language_code)')
-    .eq('slug', resolvedParams.slug)
-    .single();
-
-  if (error || !article) {
-    const langPrefix = resolvedParams.lang && resolvedParams.lang !== 'en' ? `/${resolvedParams.lang}` : '';
-    redirect(langPrefix || '/');
-  }
-
-  // Canonical URL redirect if category in path does not match database
-  const decodedParamCategory = decodeURIComponent(resolvedParams.category).toLowerCase();
-  if (article.category.toLowerCase() !== decodedParamCategory) {
-    const langPrefix = resolvedParams.lang && resolvedParams.lang !== 'en' ? `/${resolvedParams.lang}` : '';
-    redirect(`${langPrefix}/${encodeURIComponent(article.category.toLowerCase())}/${article.slug}`);
-  }
+  const langPrefix = resolvedParams.lang && resolvedParams.lang !== 'en' ? `/${resolvedParams.lang}` : '';
 
   const displayArticle = { ...article };
   if (resolvedParams.lang && resolvedParams.lang !== 'en') {
@@ -137,27 +145,40 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
   // Fetch Related Stories (same category) and Trending Stories (across corridors)
   const [relatedResult, trendingResult] = await Promise.all([
-    supabase
-      .from('articles')
-      .select('id, slug, title, category, published_at, featured_image_url')
-      .eq('status', 'published')
-      .eq('category', article.category)
-      .neq('id', article.id)
-      .order('published_at', { ascending: false, nullsFirst: false })
-      .limit(3),
-    supabase
-      .from('articles')
-      .select('id, slug, title, category, district, published_at, read_time_minutes')
-      .eq('status', 'published')
-      .neq('id', article.id)
-      .order('published_at', { ascending: false, nullsFirst: false })
-      .limit(5),
+    Promise.resolve(
+      supabase
+        .from('articles')
+        .select('id, slug, title, category, published_at, featured_image_url')
+        .eq('status', 'published')
+        .eq('category', article.category)
+        .neq('id', article.id)
+        .order('published_at', { ascending: false, nullsFirst: false })
+        .limit(3)
+    ).catch(() => ({ data: [] })),
+    Promise.resolve(
+      supabase
+        .from('articles')
+        .select('id, slug, title, category, district, published_at')
+        .eq('status', 'published')
+        .neq('id', article.id)
+        .order('published_at', { ascending: false, nullsFirst: false })
+        .limit(5)
+    ).catch(() => ({ data: [] })),
   ]);
   const relatedArticles = relatedResult.data || [];
   const trendingArticles = trendingResult.data || [];
 
   // Generate robust, structured JSON-LD for news article schema
-  const articleCanonicalUrl = `${SITE_URL}/${resolvedParams.lang === 'en' ? '' : `${resolvedParams.lang}/`}${displayArticle.category.toLowerCase()}/${displayArticle.slug}`;
+  const articleCanonicalUrl = `${SITE_URL}${canonicalRoutePrefix}/${articleCategorySlug}/${displayArticle.slug}`;
+
+  const rawPublished = displayArticle.published_at || displayArticle.updated_at;
+  const parsedPublished = rawPublished ? new Date(rawPublished) : new Date();
+  const datePublished = !isNaN(parsedPublished.getTime()) ? parsedPublished.toISOString() : new Date().toISOString();
+
+  const rawModified = displayArticle.updated_at || displayArticle.published_at;
+  const parsedModified = rawModified ? new Date(rawModified) : parsedPublished;
+  const dateModified = !isNaN(parsedModified.getTime()) ? parsedModified.toISOString() : datePublished;
+
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'NewsArticle',
@@ -168,8 +189,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     headline: displayArticle.title,
     description: displayArticle.excerpt || undefined,
     image: displayArticle.featured_image_url ? [displayArticle.featured_image_url] : [],
-    datePublished: new Date(displayArticle.published_at || displayArticle.updated_at).toISOString(),
-    dateModified: new Date(displayArticle.updated_at).toISOString(),
+    datePublished,
+    dateModified,
     articleSection: displayArticle.category,
     inLanguage: resolvedParams.lang,
     author: [
@@ -205,8 +226,6 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   const rawHtml = markdownToHtml(datelineCorrectedContent);
   const sanitizedContent = sanitizeArticleHtml(rawHtml);
   const sanitizedExcerpt = sanitizeDatelineByScope(extractCleanArticleText(displayArticle.excerpt || ''), displayArticle.category);
-
-  const langPrefix = resolvedParams.lang === 'en' ? '' : `/${resolvedParams.lang}`;
 
   return (
     <>

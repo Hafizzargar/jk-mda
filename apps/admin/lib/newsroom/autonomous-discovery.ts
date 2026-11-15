@@ -30,6 +30,11 @@ import { generateSlug } from './gemini-drafter.ts';
 import { getCanonicalCategory } from '../taxonomy-options.ts';
 import { sendNewsApprovalAlert } from './email-notifier.ts';
 import {
+  isGeminiInCooldown,
+  tripCircuitBreaker,
+  resetCircuitBreaker,
+} from './gemini-circuit-breaker.ts';
+import {
   getRecommendedEditorialImage,
   determineDatelineForScope,
   sanitizeDatelineForScope,
@@ -237,21 +242,34 @@ export interface RegionalDailyStats {
 }
 
 /**
- * Computes live daily statistics for today's published & discovered articles against regional targets.
+ * Returns the exact start of today (00:00:00.000) in the newsroom's canonical timezone (Asia/Kolkata / IST).
+ * When a new calendar day arrives at 00:00:00 IST, this shifts to the new day's midnight,
+ * ensuring all daily counts and beat targets reset to 0 for the fresh editorial cycle.
  */
-export async function getDailyRegionalStats(service: SupabaseClient): Promise<RegionalDailyStats> {
-  const now = new Date();
-  // Start of day in local time
-  const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-  // Also check 24h rolling window to ensure timezone boundary safety
-  const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-  const cutoffTime = startOfDay.getTime() < twentyFourHoursAgo.getTime() ? startOfDay : twentyFourHoursAgo;
+export function getNewsroomStartOfDay(referenceDate: Date = new Date()): Date {
+  const formatter = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+  const parts = formatter.format(referenceDate); // "YYYY-MM-DD"
+  return new Date(`${parts}T00:00:00+05:30`);
+}
+
+/**
+ * Computes live daily statistics for today's published & discovered articles against regional targets.
+ * On each new calendar day (00:00:00 IST), all beat progress counters strictly reset to 0,
+ * allowing the newsroom to fulfill the day's targets afresh.
+ */
+export async function getDailyRegionalStats(service: SupabaseClient, referenceDate?: Date): Promise<RegionalDailyStats> {
+  const startOfDay = getNewsroomStartOfDay(referenceDate);
 
   // Query all articles published today OR created/active today across all author roles (staff, editor, AI discovery)
   const { data: todayArticles } = await service
     .from('articles')
     .select('id, category, district, title, excerpt, author_display_name, status, published_at, created_at')
-    .or(`published_at.gte.${cutoffTime.toISOString()},created_at.gte.${cutoffTime.toISOString()}`);
+    .or(`published_at.gte.${startOfDay.toISOString()},created_at.gte.${startOfDay.toISOString()}`);
 
   const articles = todayArticles || [];
   const countMap: Record<string, number> = {
@@ -276,6 +294,10 @@ export async function getDailyRegionalStats(service: SupabaseClient): Promise<Re
   let publishedTodayCount = 0;
 
   for (const art of articles) {
+    // Only count active articles (drafts, pending review, published) towards today's beat targets
+    if (art.status === 'archived' || art.status === 'rejected') {
+      continue;
+    }
     const regionKey = classifyArticleRegion(art);
     if (countMap[regionKey] !== undefined) {
       countMap[regionKey]++;
@@ -494,6 +516,7 @@ export async function runAutonomousNewsDiscovery(
   success: boolean;
   discovered?: boolean;
   skipped?: boolean;
+  inCooldown?: boolean;
   articleId?: string;
   headline?: string;
   scope?: string;
@@ -502,6 +525,21 @@ export async function runAutonomousNewsDiscovery(
   reason?: string;
   dailyStats?: RegionalDailyStats;
 }> {
+  // 0. Circuit Breaker Check: if Gemini quota was exhausted, enforce 1-hour backoff
+  const breaker = await isGeminiInCooldown(service);
+  if (breaker.inCooldown && !options?.force) {
+    console.warn(
+      `[AutonomousDiscovery] ⏸️ Gemini circuit breaker ACTIVE. In cooldown until ${breaker.cooldownUntil} (${breaker.remainingMinutes}m remaining). Preserving pending beat "${breaker.pendingBeatId}". Skipping call to protect quota.`
+    );
+    return {
+      success: false,
+      skipped: true,
+      inCooldown: true,
+      reason: `Gemini quota cooldown active (${breaker.remainingMinutes}m remaining). Will resume beat "${breaker.pendingBeatId}" once quota recovers.`,
+      beat: breaker.pendingBeatId || undefined,
+    };
+  }
+
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
   if (!apiKey) {
     return { success: false, reason: 'Gemini API key is not configured.' };
@@ -510,9 +548,20 @@ export async function runAutonomousNewsDiscovery(
   // 1. Fetch live daily regional coverage statistics
   const stats = await getDailyRegionalStats(service);
 
-  // 2. Select beat (Explicit beatId OR Prioritize Underrepresented Region)
+  // 2. Select beat:
+  // Priority 1: If recovering from a tripped circuit breaker, seamlessly resume from the EXACT checkpoint beat!
+  // Priority 2: Explicit beatId from options
+  // Priority 3: Dynamic deficit-weighted regional selection
   let targetBeat: RegionalTarget | null = null;
-  if (options?.beatId) {
+  if (breaker.pendingBeatId && !options?.beatId) {
+    const resumeBeat = KJIN_REGIONAL_TARGETS.find((t) => t.id === breaker.pendingBeatId);
+    if (resumeBeat) {
+      targetBeat = resumeBeat;
+      console.log(`[AutonomousDiscovery] 🔄 Quota recovery: Seamlessly resuming from checkpoint beat "${targetBeat.name}" (${targetBeat.id}).`);
+    }
+  }
+
+  if (!targetBeat && options?.beatId) {
     targetBeat = KJIN_REGIONAL_TARGETS.find((t) => t.id === options.beatId) || null;
   }
 
@@ -655,18 +704,27 @@ Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with k
           json = await res.json();
           candidate = json.candidates?.[0];
           rawText = candidate?.content?.parts?.[0]?.text;
-          if (rawText) break; // Successful response received
-        } else if (res.status === 503 || res.status === 429) {
-          console.warn(`[AutonomousDiscovery] Gemini API high demand spike (${res.status}) on attempt ${attempt}/${maxRetries}. Retrying in ${attempt * 2}s...`);
-          if (attempt < maxRetries) {
-            await new Promise((resolve) => setTimeout(resolve, attempt * 2000));
-            continue;
+          if (rawText) {
+            // Success! Reset circuit breaker to healthy state
+            await resetCircuitBreaker(service);
+            break;
           }
+        } else if (res.status === 429 || res.status === 503) {
           const errText = await res.text();
-          console.error(`[AutonomousDiscovery] Gemini API unavailable after ${maxRetries} attempts:`, errText);
+          console.warn(`[AutonomousDiscovery] Gemini API quota limit/spike (${res.status}): ${errText}`);
+
+          // Trip 1-hour circuit breaker and checkpoint the exact current beat so we resume seamlessly!
+          await tripCircuitBreaker(service, {
+            beatId: beat.id,
+            reason: `HTTP ${res.status}: Quota limit reached on beat "${beat.name}"`,
+            cooldownHours: 1,
+          });
+
           return {
             success: false,
-            reason: 'Google Gemini servers are currently experiencing a brief global demand surge (HTTP 503). Retrying in the next cycle, or click Discover again in a few moments.',
+            inCooldown: true,
+            reason: `Gemini quota limit reached (HTTP ${res.status}). Entered 1-hour cooldown. Will resume beat "${beat.name}" automatically once quota recovers.`,
+            beat: beat.id,
           };
         } else {
           const errText = await res.text();

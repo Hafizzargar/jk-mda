@@ -108,9 +108,28 @@ export async function middleware(request: NextRequest) {
       
       if (profileError || !profile || profile.status !== 'active') {
         // Fail closed if we cannot determine the user's role or they are disabled
+        // If already on an auth route (e.g. /login), do NOT redirect to avoid infinite redirect ping-pong loops
+        if (isAuthRoute) {
+          request.cookies.getAll().forEach((c) => {
+            if (c.name.startsWith('sb-') || c.name.includes('supabase') || c.name.includes('auth-token')) {
+              supabaseResponse.cookies.set(c.name, '', { maxAge: 0, path: '/' });
+            }
+          });
+          return supabaseResponse;
+        }
+
         const url = request.nextUrl.clone();
         url.pathname = '/login';
-        return NextResponse.redirect(url);
+        url.search = '';
+        url.searchParams.set('alert', 'account_disabled');
+        const redirectRes = NextResponse.redirect(url);
+        applySecurityHeaders(redirectRes);
+        request.cookies.getAll().forEach((c) => {
+          if (c.name.startsWith('sb-') || c.name.includes('supabase') || c.name.includes('auth-token')) {
+            redirectRes.cookies.set(c.name, '', { maxAge: 0, path: '/' });
+          }
+        });
+        return redirectRes;
       }
 
       const isMfaRoute = pathname.startsWith('/mfa/');

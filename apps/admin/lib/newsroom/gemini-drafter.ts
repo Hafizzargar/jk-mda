@@ -8,6 +8,7 @@ import { generateObject } from 'ai';
 import { google } from '@ai-sdk/google';
 import { z } from 'zod';
 import type { MatchedResponseResult } from './response-matcher.ts';
+import { isGeminiInCooldown } from './gemini-circuit-breaker.ts';
 
 export interface DraftEventInput {
   headline: string;
@@ -104,6 +105,13 @@ STRICT EDITORIAL RULES:
 
   // If running in development without an active Gemini API key, provide an intelligent deterministic fallback
   if (!apiKey) {
+    return generateFallbackDraft(input);
+  }
+
+  // Check circuit breaker before attempting API call
+  const breaker = await isGeminiInCooldown();
+  if (breaker.inCooldown) {
+    console.warn(`[GeminiDrafter] Gemini circuit breaker is active (${breaker.remainingMinutes}m remaining). Using high-integrity deterministic draft generator.`);
     return generateFallbackDraft(input);
   }
 

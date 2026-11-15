@@ -79,7 +79,10 @@ function ArticlesPageContent() {
 
   // Sync state if URL query params change (e.g. clicking sidebar links)
   useEffect(() => {
-    const s = searchParams?.get('status') || 'all';
+    let s = searchParams?.get('status') || 'all';
+    if (['editor', 'author'].includes(userRole || '') && s === 'review') {
+      s = 'published';
+    }
     setStatusFilter(s);
     const cat = searchParams?.get('category') || 'all';
     setCategoryFilter(cat);
@@ -87,7 +90,7 @@ function ArticlesPageContent() {
       setTopicFilter('civic');
     }
     setPage(1);
-  }, [searchParams]);
+  }, [searchParams, userRole]);
 
   // Modal States
   const [retractArticle, setRetractArticle] = useState<Article | null>(null);
@@ -166,7 +169,11 @@ function ArticlesPageContent() {
       query = query.or(`title.ilike.%${search}%,slug.ilike.%${search}%`);
     }
     if (statusFilter !== 'all') {
-      query = query.eq('status', statusFilter);
+      if (['editor', 'author'].includes(userRole || '') && statusFilter === 'review') {
+        query = query.eq('status', 'published');
+      } else {
+        query = query.eq('status', statusFilter);
+      }
     }
 
     // Apply Topic segregation
@@ -434,11 +441,13 @@ function ArticlesPageContent() {
       header: 'Actions',
       width: '260px',
       render: (article) => {
+        const isRestrictedStaff = !!userRole && ['editor', 'author'].includes(userRole);
         const isOwnDraft =
           article.author_id === userId && ['draft', 'review'].includes(article.status);
         const canEdit =
           can('article.review') ||
           isOwnDraft ||
+          isRestrictedStaff ||
           (article.status === 'draft' && can('article.create'));
         const isDeletePrivileged = !!userRole && ['owner', 'superadmin', 'admin'].includes(userRole);
         const canDelete = isDeletePrivileged && can('article.delete');
@@ -455,7 +464,7 @@ function ArticlesPageContent() {
               </Button>
             ) : null}
 
-            {article.status === 'published' && can('article.archive') ? (
+            {article.status === 'published' && can('article.archive') && !isRestrictedStaff ? (
               <Button
                 type="button"
                 variant="amber"
@@ -472,7 +481,7 @@ function ArticlesPageContent() {
               </Button>
             ) : null}
 
-            {article.status === 'archived' &&
+            {article.status === 'archived' && !isRestrictedStaff &&
             (can('article.publish') || can('article.review')) ? (
               <Button
                 type="button"
@@ -487,7 +496,7 @@ function ArticlesPageContent() {
               </Button>
             ) : null}
 
-            {article.status === 'review' && can('article.review') ? (
+            {article.status === 'review' && can('article.review') && !isRestrictedStaff ? (
               <Button href={`/articles/${article.id}/review`} variant="amber" size="sm">
                 Review
               </Button>
@@ -515,11 +524,13 @@ function ArticlesPageContent() {
   ];
 
   const renderMobileArticleCard = (article: Article) => {
+    const isRestrictedStaff = !!userRole && ['editor', 'author'].includes(userRole);
     const isOwnDraft =
       article.author_id === userId && ['draft', 'review'].includes(article.status);
     const canEdit =
       can('article.review') ||
       isOwnDraft ||
+      isRestrictedStaff ||
       (article.status === 'draft' && can('article.create'));
     const isDeletePrivileged = !!userRole && ['owner', 'superadmin', 'admin'].includes(userRole);
     const canDelete = isDeletePrivileged && can('article.delete');
@@ -604,13 +615,13 @@ function ArticlesPageContent() {
             </Button>
           ) : null}
 
-          {article.status === 'review' && can('article.review') ? (
+          {article.status === 'review' && can('article.review') && !isRestrictedStaff ? (
             <Button href={`/articles/${article.id}/review`} variant="amber" size="sm" className="flex-1 justify-center py-1 text-xs font-bold">
               Review
             </Button>
           ) : null}
 
-          {article.status === 'published' && can('article.archive') ? (
+          {article.status === 'published' && can('article.archive') && !isRestrictedStaff ? (
             <Button
               type="button"
               variant="amber"
@@ -626,7 +637,7 @@ function ArticlesPageContent() {
             </Button>
           ) : null}
 
-          {article.status === 'archived' && (can('article.publish') || can('article.review')) ? (
+          {article.status === 'archived' && !isRestrictedStaff && (can('article.publish') || can('article.review')) ? (
             <Button
               type="button"
               variant="emerald"
@@ -793,36 +804,40 @@ function ArticlesPageContent() {
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
             Live Published
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              setStatusFilter('review');
-              setPage(1);
-            }}
-            className={`shrink-0 whitespace-nowrap flex items-center gap-1 rounded-[8px] px-2.5 py-1 text-xs font-bold transition ${
-              statusFilter === 'review'
-                ? 'bg-amber-600 text-white'
-                : 'bg-amber-50 text-amber-950 border border-amber-300 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800 dark:hover:bg-amber-900/50'
-            }`}
-          >
-            <span>⏳</span>
-            In Review
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setStatusFilter('archived');
-              setPage(1);
-            }}
-            className={`shrink-0 whitespace-nowrap flex items-center gap-1 rounded-[8px] px-2.5 py-1 text-xs font-bold transition ${
-              statusFilter === 'archived'
-                ? 'bg-red-700 text-white'
-                : 'bg-red-50 text-red-950 border border-red-300 hover:bg-red-100 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800 dark:hover:bg-red-900/50'
-            }`}
-          >
-            <span>🚫</span>
-            Inactive
-          </button>
+          {!['editor', 'author'].includes(userRole || '') && (
+            <button
+              type="button"
+              onClick={() => {
+                setStatusFilter('review');
+                setPage(1);
+              }}
+              className={`shrink-0 whitespace-nowrap flex items-center gap-1 rounded-[8px] px-2.5 py-1 text-xs font-bold transition ${
+                statusFilter === 'review'
+                  ? 'bg-amber-600 text-white'
+                  : 'bg-amber-50 text-amber-950 border border-amber-300 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800 dark:hover:bg-amber-900/50'
+              }`}
+            >
+              <span>⏳</span>
+              In Review
+            </button>
+          )}
+          {!['editor', 'author'].includes(userRole || '') && (
+            <button
+              type="button"
+              onClick={() => {
+                setStatusFilter('archived');
+                setPage(1);
+              }}
+              className={`shrink-0 whitespace-nowrap flex items-center gap-1 rounded-[8px] px-2.5 py-1 text-xs font-bold transition ${
+                statusFilter === 'archived'
+                  ? 'bg-red-700 text-white'
+                  : 'bg-red-50 text-red-950 border border-red-300 hover:bg-red-100 dark:bg-red-950/40 dark:text-red-200 dark:border-red-800 dark:hover:bg-red-900/50'
+              }`}
+            >
+              <span>🚫</span>
+              Inactive
+            </button>
+          )}
         </div>
 
         {/* Feedback Message */}
@@ -875,9 +890,9 @@ function ArticlesPageContent() {
               >
                 <option value="all">All Statuses</option>
                 <option value="draft">Draft</option>
-                <option value="review">Review</option>
+                {!['editor', 'author'].includes(userRole || '') && <option value="review">Review</option>}
                 <option value="published">Published</option>
-                <option value="archived">Inactive / Retracted</option>
+                {!['editor', 'author'].includes(userRole || '') && <option value="archived">Inactive / Retracted</option>}
               </select>
             </div>
             <div>

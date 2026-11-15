@@ -198,19 +198,29 @@ function parseRssToItems(
 }
 
 /**
- * Fetch real-time War, Defense, and Conflict Radar News
+ * In-memory persistent cache for zero-latency SSR (0ms TTFB impact)
  */
-export async function getWarAndConflictNews(limit = 6): Promise<ExternalNewsItem[]> {
+let cachedWarNews: ExternalNewsItem[] | null = null;
+let lastWarFetchTime = 0;
+let isFetchingWar = false;
+
+let cachedDiscoverNews: ExternalNewsItem[] | null = null;
+let lastDiscoverFetchTime = 0;
+let isFetchingDiscover = false;
+
+const EXTERNAL_NEWS_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes in-memory cache
+
+async function refreshWarNewsInBackground(limit: number): Promise<void> {
+  if (isFetchingWar) return;
+  isFetchingWar = true;
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
-    // Primary: UN Peace & Security RSS
     const response = await fetch(
       'https://news.un.org/feed/subscribe/en/news/topic/peace-and-security/feed/rss.xml',
       {
         signal: controller.signal,
-        next: { revalidate: 300 }, // 5-minute cache
         headers: {
           'User-Agent': 'KJIN-Editorial-Radar/1.0 (+https://kjin.in)',
           Accept: 'application/rss+xml, application/xml, text/xml',
@@ -223,27 +233,26 @@ export async function getWarAndConflictNews(limit = 6): Promise<ExternalNewsItem
       const xml = await response.text();
       const parsed = parseRssToItems(xml, 'UN Peace & Security', 'war', limit);
       if (parsed.length > 0) {
-        return parsed;
+        cachedWarNews = parsed;
+        lastWarFetchTime = Date.now();
       }
     }
   } catch {
-    // Graceful fallback to verified war & conflict seed items
+    // Keep fallback or existing cache
+  } finally {
+    isFetchingWar = false;
   }
-
-  return FALLBACK_WAR_NEWS.slice(0, limit);
 }
 
-/**
- * Fetch real-time Discover, Frontier Science, and Climate Innovation News
- */
-export async function getDiscoverNews(limit = 4): Promise<ExternalNewsItem[]> {
+async function refreshDiscoverNewsInBackground(limit: number): Promise<void> {
+  if (isFetchingDiscover) return;
+  isFetchingDiscover = true;
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
     const response = await fetch('https://phys.org/rss-feed/', {
       signal: controller.signal,
-      next: { revalidate: 300 }, // 5-minute cache
       headers: {
         'User-Agent': 'KJIN-Editorial-Radar/1.0 (+https://kjin.in)',
         Accept: 'application/rss+xml, application/xml, text/xml',
@@ -255,13 +264,58 @@ export async function getDiscoverNews(limit = 4): Promise<ExternalNewsItem[]> {
       const xml = await response.text();
       const parsed = parseRssToItems(xml, 'Phys.org Frontiers', 'discover', limit);
       if (parsed.length > 0) {
-        return parsed;
+        cachedDiscoverNews = parsed;
+        lastDiscoverFetchTime = Date.now();
       }
     }
   } catch {
-    // Graceful fallback to verified discover seed items
+    // Keep fallback or existing cache
+  } finally {
+    isFetchingDiscover = false;
+  }
+}
+
+/**
+ * Fetch real-time War, Defense, and Conflict Radar News (Non-blocking Stale-While-Revalidate)
+ */
+export async function getWarAndConflictNews(limit = 6): Promise<ExternalNewsItem[]> {
+  const now = Date.now();
+
+  // 1. Fresh cache hit: 0ms return
+  if (cachedWarNews && now - lastWarFetchTime < EXTERNAL_NEWS_CACHE_TTL_MS) {
+    return cachedWarNews.slice(0, limit);
   }
 
+  // 2. Stale cache: trigger background refresh, return stale immediately (SWR: 0ms)
+  if (cachedWarNews && cachedWarNews.length > 0) {
+    refreshWarNewsInBackground(limit).catch(() => {});
+    return cachedWarNews.slice(0, limit);
+  }
+
+  // 3. Cold start: trigger background refresh, return verified curated seed immediately (0ms)
+  refreshWarNewsInBackground(limit).catch(() => {});
+  return FALLBACK_WAR_NEWS.slice(0, limit);
+}
+
+/**
+ * Fetch real-time Discover, Frontier Science, and Climate Innovation News (Non-blocking Stale-While-Revalidate)
+ */
+export async function getDiscoverNews(limit = 4): Promise<ExternalNewsItem[]> {
+  const now = Date.now();
+
+  // 1. Fresh cache hit: 0ms return
+  if (cachedDiscoverNews && now - lastDiscoverFetchTime < EXTERNAL_NEWS_CACHE_TTL_MS) {
+    return cachedDiscoverNews.slice(0, limit);
+  }
+
+  // 2. Stale cache: trigger background refresh, return stale immediately (SWR: 0ms)
+  if (cachedDiscoverNews && cachedDiscoverNews.length > 0) {
+    refreshDiscoverNewsInBackground(limit).catch(() => {});
+    return cachedDiscoverNews.slice(0, limit);
+  }
+
+  // 3. Cold start: trigger background refresh, return verified curated seed immediately (0ms)
+  refreshDiscoverNewsInBackground(limit).catch(() => {});
   return FALLBACK_DISCOVER_NEWS.slice(0, limit);
 }
 

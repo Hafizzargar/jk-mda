@@ -124,7 +124,7 @@ export default function AdsSettingsPage() {
         const role = (profile as { role_key?: string }).role_key || 'staff';
         setUserRole(role);
 
-        const allowedRoles = ['owner', 'superadmin', 'admin', 'editor'];
+        const allowedRoles = ['owner', 'superadmin'];
         if (!allowedRoles.includes(role)) {
           router.push('/');
           return;

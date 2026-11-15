@@ -65,6 +65,14 @@ export async function POST(request: Request) {
       return auth;
     }
 
+    const userRole = auth.profile.role_key;
+    if (!['owner', 'superadmin', 'admin'].includes(userRole)) {
+      return Response.json(
+        { error: 'Only owners, superadmins, and admins can approve autonomous news stories.' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const {
       video_id,

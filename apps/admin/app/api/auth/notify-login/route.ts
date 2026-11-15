@@ -7,6 +7,18 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://127.0.0.1:54321';
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
+// Deduplication cache: prevent duplicate security emails sent to the same recipient within 60 seconds
+const recentNotifications = new Map<string, number>();
+
+function pruneRecentNotifications() {
+  const cutoff = Date.now() - 300_000; // 5 minutes
+  for (const [key, timestamp] of recentNotifications.entries()) {
+    if (timestamp < cutoff) {
+      recentNotifications.delete(key);
+    }
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const authHeader = request.headers.get('Authorization');
@@ -75,6 +87,20 @@ export async function POST(request: NextRequest) {
     const userAgent = request.headers.get('user-agent') || 'Web Browser';
 
     const recipientEmail = email;
+
+    // Deduplication check: only send at most one alert email per recipient every 60 seconds
+    const recipientKey = recipientEmail.toLowerCase().trim();
+    const lastSent = recentNotifications.get(recipientKey);
+    const now = Date.now();
+    if (lastSent && now - lastSent < 60_000) {
+      return NextResponse.json({
+        success: true,
+        deduplicated: true,
+        message: 'Security login notification already sent within last 60 seconds',
+      });
+    }
+    recentNotifications.set(recipientKey, now);
+    pruneRecentNotifications();
 
     // Generate cryptographically signed one-click logout link for all devices
     const defaultAdminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001';

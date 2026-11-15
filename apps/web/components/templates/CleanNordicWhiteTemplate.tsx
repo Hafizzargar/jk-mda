@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { formatArticleDate } from '@/lib/date';
+import { getCategorySlug } from '@/lib/taxonomy';
 import { TemplateProps } from './types';
 
 export function CleanNordicWhiteTemplate({
@@ -59,7 +60,7 @@ export function CleanNordicWhiteTemplate({
                 <time suppressHydrationWarning>{formatArticleDate(heroArticle.published_at)}</time>
               </div>
 
-              <Link href={`${langPrefix}/${heroArticle.category.toLowerCase()}/${heroArticle.slug}`}>
+              <Link href={`${langPrefix}/${getCategorySlug(heroArticle.category)}/${heroArticle.slug}`}>
                 <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-[2.65rem] font-normal tracking-tight text-neutral-950 leading-[1.15] mb-6 hover:text-neutral-600 transition text-balance">
                   {heroArticle.title}
                 </h1>
@@ -74,7 +75,7 @@ export function CleanNordicWhiteTemplate({
               <div className="flex items-center justify-between text-xs tracking-wider uppercase text-neutral-500 pt-4 border-t border-neutral-100">
                 <span>Reporting: {heroArticle.author_display_name || `${brandName} Staff`}</span>
                 <Link
-                  href={`${langPrefix}/${heroArticle.category.toLowerCase()}/${heroArticle.slug}`}
+                  href={`${langPrefix}/${getCategorySlug(heroArticle.category)}/${heroArticle.slug}`}
                   className="font-semibold text-neutral-950 hover:underline"
                 >
                   Read Dispatch &rarr;
@@ -121,7 +122,7 @@ export function CleanNordicWhiteTemplate({
                     <span suppressHydrationWarning>{formatArticleDate(article.published_at)}</span>
                   </div>
 
-                  <Link href={`${langPrefix}/${article.category.toLowerCase()}/${article.slug}`}>
+                  <Link href={`${langPrefix}/${getCategorySlug(article.category)}/${article.slug}`}>
                     <h3 className="text-xl md:text-2xl font-normal leading-snug text-neutral-950 group-hover:text-neutral-600 transition mb-3">
                       {article.title}
                     </h3>
@@ -154,7 +155,7 @@ export function CleanNordicWhiteTemplate({
                 {trendingArticles.slice(0, 5).map((article, idx) => (
                   <Link
                     key={article.id}
-                    href={`${langPrefix}/${article.category.toLowerCase()}/${article.slug}`}
+                    href={`${langPrefix}/${getCategorySlug(article.category)}/${article.slug}`}
                     className="block group"
                   >
                     <div className="flex items-start gap-4">

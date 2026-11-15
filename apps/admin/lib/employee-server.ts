@@ -201,14 +201,6 @@ export async function requireRecentAuthentication(
     return null;
   }
 
-  // 2. In development or when explicitly bypassed, do not block authenticated employees
-  if (
-    process.env.NEXT_PUBLIC_DEV_BYPASS_MFA === 'true' ||
-    process.env.DEV_BYPASS_MFA === 'true'
-  ) {
-    return null;
-  }
-
   const allowedWindow = windowSeconds ?? (
     process.env.NODE_ENV === 'production'
       ? 900 // 15 minutes in production

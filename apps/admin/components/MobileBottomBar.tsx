@@ -8,13 +8,14 @@ interface MobileBottomBarProps {
   userRole?: string | null;
 }
 
-export function MobileBottomBar({ onOpenMenu }: MobileBottomBarProps) {
+export function MobileBottomBar({ onOpenMenu, userRole }: MobileBottomBarProps) {
   const pathname = usePathname();
 
   const isDashboard = pathname === '/';
   const isStories = pathname.startsWith('/articles') && pathname !== '/articles/new';
   const isNew = pathname === '/articles/new';
   const isRadar = pathname.startsWith('/newsroom');
+  const canSeeRadar = !userRole || ['owner', 'superadmin', 'admin'].includes(userRole);
 
   return (
     <nav
@@ -61,18 +62,20 @@ export function MobileBottomBar({ onOpenMenu }: MobileBottomBarProps) {
           <span className="text-2xl font-bold leading-none">+</span>
         </Link>
 
-        {/* Autonomous AI Radar */}
-        <Link
-          href="/newsroom/youtube"
-          className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all ${
-            isRadar
-              ? 'text-purple-600 dark:text-purple-400 font-bold scale-105'
-              : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-          }`}
-        >
-          <span className="text-lg leading-none mb-0.5">🛰️</span>
-          <span className="text-[10px] tracking-tight">Radar</span>
-        </Link>
+        {/* Autonomous AI Radar (Restricted to Admins & Owners) */}
+        {canSeeRadar && (
+          <Link
+            href="/newsroom/youtube"
+            className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all ${
+              isRadar
+                ? 'text-purple-600 dark:text-purple-400 font-bold scale-105'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+            }`}
+          >
+            <span className="text-lg leading-none mb-0.5">🛰️</span>
+            <span className="text-[10px] tracking-tight">Radar</span>
+          </Link>
+        )}
 
         {/* Menu / Drawer Trigger */}
         <button

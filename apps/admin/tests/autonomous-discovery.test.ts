@@ -7,6 +7,8 @@ import {
   classifyArticleRegion,
   selectNextPrioritizedBeat,
   isBreakingNewsEvent,
+  getNewsroomStartOfDay,
+  getDailyRegionalStats,
   type RegionalDailyStats,
 } from '../lib/newsroom/autonomous-discovery.ts';
 
@@ -140,5 +142,107 @@ describe('P0: KJIN Autonomous News Discovery & Regional Quotas', () => {
 
     const internationalBeat = DISCOVERY_BEATS.find((b) => b.scope === 'International');
     assert.strictEqual(internationalBeat?.targetDistricts?.length, 0, 'International beat must not be tied to local districts');
+  });
+
+  it('correctly calculates newsroom start of day in canonical Asia/Kolkata (IST) timezone', () => {
+    // 9:38 AM on 15-Nov-2026 IST
+    const morningDate = new Date('2026-11-15T09:38:00+05:30');
+    const startOfNov15 = getNewsroomStartOfDay(morningDate);
+
+    // Midnight IST on 15-Nov-2026 is 18:30:00 UTC on 14-Nov-2026
+    assert.strictEqual(startOfNov15.toISOString(), '2026-11-14T18:30:00.000Z');
+
+    // 11:59 PM on 15-Nov-2026 IST
+    const lateNightDate = new Date('2026-11-15T23:59:00+05:30');
+    const startLateNight = getNewsroomStartOfDay(lateNightDate);
+    assert.strictEqual(startLateNight.toISOString(), '2026-11-14T18:30:00.000Z');
+
+    // Next day: 00:01 AM on 16-Nov-2026 IST -> Shifts to 16-Nov midnight IST (15-Nov 18:30:00 UTC)
+    const nextDayDate = new Date('2026-11-16T00:01:00+05:30');
+    const startOfNov16 = getNewsroomStartOfDay(nextDayDate);
+    assert.strictEqual(startOfNov16.toISOString(), '2026-11-15T18:30:00.000Z');
+  });
+
+  it('resets all beat counts to 0 and re-engages full deficits on a new calendar day', async () => {
+    // Simulated database articles from yesterday (14-Nov-2026)
+    const yesterdayArticles = [
+      { id: '1', title: 'Assar Bridge Repairs in Doda', district: 'doda', status: 'published', published_at: '2026-11-14T14:00:00+05:30', created_at: '2026-11-14T12:00:00+05:30' },
+      { id: '2', title: 'Kisthwar Hydropower Expansion', district: 'kishtwar', status: 'published', published_at: '2026-11-14T15:00:00+05:30', created_at: '2026-11-14T12:00:00+05:30' },
+      { id: '3', title: 'Bhadarwah Tourism Conclave', district: 'doda', status: 'published', published_at: '2026-11-14T16:00:00+05:30', created_at: '2026-11-14T12:00:00+05:30' },
+      { id: '4', title: 'Jammu Smart City Mobility', district: 'jammu', status: 'published', published_at: '2026-11-14T17:00:00+05:30', created_at: '2026-11-14T12:00:00+05:30' },
+      { id: '5', title: 'Kathua Industrial Corridor', district: 'kathua', status: 'published', published_at: '2026-11-14T18:00:00+05:30', created_at: '2026-11-14T12:00:00+05:30' },
+      { id: '6', title: 'Poonch Border Road Review', district: 'poonch', status: 'published', published_at: '2026-11-14T19:00:00+05:30', created_at: '2026-11-14T12:00:00+05:30' },
+      { id: '7', title: 'Rajouri Higher Education Drive', district: 'rajouri', status: 'published', published_at: '2026-11-14T20:00:00+05:30', created_at: '2026-11-14T12:00:00+05:30' },
+      { id: '8', title: 'Dal Lake De-weeding in Srinagar', district: 'srinagar', status: 'published', published_at: '2026-11-14T21:00:00+05:30', created_at: '2026-11-14T12:00:00+05:30' },
+      { id: '9', title: 'Leh Solar Power Grid', district: 'leh', status: 'published', published_at: '2026-11-14T22:00:00+05:30', created_at: '2026-11-14T12:00:00+05:30' },
+      { id: '10', title: 'Union Cabinet Approves Semiconductor Policy', category: 'National', status: 'published', published_at: '2026-11-14T22:30:00+05:30', created_at: '2026-11-14T12:00:00+05:30' },
+      { id: '11', title: 'UN Climate Summit in Baku', category: 'International', status: 'published', published_at: '2026-11-14T23:00:00+05:30', created_at: '2026-11-14T12:00:00+05:30' },
+      { id: '12', title: 'Global Trade Bilateral Talks', category: 'International', status: 'published', published_at: '2026-11-14T23:30:00+05:30', created_at: '2026-11-14T12:00:00+05:30' },
+    ];
+
+    // Mock Supabase service
+    const createMockSupabase = (rows: any[]) => ({
+      from: () => ({
+        select: () => ({
+          or: (filterStr: string) => {
+            // Extract the timestamp threshold from the .or() filter string
+            // filter format: published_at.gte.2026-11-14T18:30:00.000Z,created_at.gte.2026-11-14T18:30:00.000Z
+            const match = filterStr.match(/published_at\.gte\.([^,]+)/);
+            const cutoffIso = match ? match[1] : '';
+            const cutoff = new Date(cutoffIso).getTime();
+
+            const filtered = rows.filter((r) => {
+              const pubTime = r.published_at ? new Date(r.published_at).getTime() : 0;
+              const createTime = r.created_at ? new Date(r.created_at).getTime() : 0;
+              return pubTime >= cutoff || createTime >= cutoff;
+            });
+            return Promise.resolve({ data: filtered, error: null });
+          },
+        }),
+      }),
+    });
+
+    // 1. Evaluate on Day 2 (15-Nov-2026 at 09:38 AM IST)
+    const day2Date = new Date('2026-11-15T09:38:00+05:30');
+    const mockService = createMockSupabase(yesterdayArticles);
+
+    const day2Stats = await getDailyRegionalStats(mockService as any, day2Date);
+
+    // On the new day, every count must be reset to 0!
+    assert.strictEqual(day2Stats.totalDiscoveredToday, 0, 'Total discovered must be reset to 0 on new day');
+    assert.strictEqual(day2Stats.totalPublishedToday, 0, 'Total published must be reset to 0 on new day');
+    assert.strictEqual(day2Stats.regionalDiscoveredToday, 0, 'Regional count must be 0 on new day');
+    assert.strictEqual(day2Stats.nationalInternationalDiscoveredToday, 0, 'National/International count must be 0 on new day');
+
+    // Every regional beat must have current: 0 and full deficit to fulfill today's target
+    for (const region of day2Stats.regions) {
+      assert.strictEqual(region.current, 0, `${region.name} current count must be 0 on new day`);
+      assert.strictEqual(region.published, 0, `${region.name} published count must be 0 on new day`);
+      assert.strictEqual(region.deficit, region.min, `${region.name} deficit must equal its full min target`);
+      assert.strictEqual(region.isMet, false, `${region.name} isMet must be false on new day`);
+      assert.strictEqual(region.isMaxReached, false, `${region.name} isMaxReached must be false on new day`);
+    }
+
+    // Next beat selection: International has the largest deficit (4), so it is selected first
+    const nextBeat = selectNextPrioritizedBeat(day2Stats);
+    assert.ok(nextBeat);
+    assert.strictEqual(nextBeat.id, 'international', 'International must be selected first due to highest initial deficit (4)');
+
+    // 2. Now simulate discovering 1 article on Day 2 in Chenab Valley
+    const todayArticle = {
+      id: '13',
+      title: 'New Health Center Commissioned in Gandoh Doda',
+      district: 'doda',
+      status: 'review',
+      published_at: null,
+      created_at: '2026-11-15T09:40:00+05:30',
+    };
+    const updatedService = createMockSupabase([...yesterdayArticles, todayArticle]);
+    const updatedStats = await getDailyRegionalStats(updatedService as any, day2Date);
+
+    assert.strictEqual(updatedStats.totalDiscoveredToday, 1, 'Today discovered count must now be 1');
+    const chenabRegion = updatedStats.regions.find((r) => r.id === 'chenab_valley');
+    assert.strictEqual(chenabRegion?.current, 1, 'Chenab Valley count must increment to 1');
+    assert.strictEqual(chenabRegion?.deficit, 2, 'Chenab Valley deficit must drop from 3 to 2');
   });
 });

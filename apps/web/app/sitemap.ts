@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next';
 import { createServerAnonClient } from '@/lib/supabase-server';
 import { SITE_URL } from '@/lib/config';
-import { NEWS_CATEGORIES, JK_DISTRICTS, REGIONAL_DIVISIONS } from '@/lib/taxonomy';
+import { NEWS_CATEGORIES, JK_DISTRICTS, REGIONAL_DIVISIONS, getCategorySlug } from '@/lib/taxonomy';
 
 // Limit per sitemap file to comply with search engine standards and memory bounds
 const SITEMAP_MAX_ARTICLES = 10000;
@@ -18,7 +18,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .limit(SITEMAP_MAX_ARTICLES);
 
   const articleUrls: MetadataRoute.Sitemap = (articles || []).map((article) => ({
-    url: `${SITE_URL}/${article.category.toLowerCase()}/${article.slug}`,
+    url: `${SITE_URL}/${getCategorySlug(article.category)}/${article.slug}`,
     lastModified: new Date(article.updated_at || article.published_at || Date.now()),
     changeFrequency: 'daily',
     priority: 0.8,

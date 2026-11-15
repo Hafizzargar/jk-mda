@@ -98,9 +98,15 @@ export function AdminShell({ children }: AdminShellProps) {
           setUserEmail(data.session.user.email ?? null);
           const { data: profile } = await supabase
             .from('profiles')
-            .select('role_key')
+            .select('role_key, status')
             .eq('id', data.session.user.id)
             .maybeSingle();
+
+          if (profile && profile.status !== 'active') {
+            await supabase.auth.signOut();
+            router.push('/login?alert=account_disabled');
+            return;
+          }
 
           if (profile?.role_key) {
             setUserRole(profile.role_key);

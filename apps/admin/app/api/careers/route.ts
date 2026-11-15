@@ -1,7 +1,7 @@
 import { authenticateEmployeeRequest, isEmployeeAuthorization, requireRecentAuthentication } from '@/lib/employee-server';
 import { DEFAULT_CAREERS_SETTINGS, sanitizeCareersSettings, type CareersSettings } from '@/lib/careers';
 
-const ALLOWED_ROLES = ['owner', 'superadmin', 'admin', 'editor'];
+const ALLOWED_ROLES = ['owner', 'superadmin', 'admin'];
 
 export async function GET(request: Request) {
   const authorization = await authenticateEmployeeRequest(request);

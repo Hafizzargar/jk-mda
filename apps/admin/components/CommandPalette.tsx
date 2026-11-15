@@ -26,6 +26,15 @@ const COMMANDS: CommandItem[] = [
     icon: '📊',
   },
   {
+    id: 'new-story',
+    title: 'Create New Story',
+    category: 'Editorial',
+    description: 'Draft and write a new article or regional dispatch',
+    href: '/articles/new',
+    icon: '✍️',
+    badge: 'Draft',
+  },
+  {
     id: 'live-news',
     title: 'Live News',
     category: 'Editorial',
@@ -42,6 +51,7 @@ const COMMANDS: CommandItem[] = [
     href: '/articles?status=review',
     icon: '⏳',
     badge: 'Need Approval',
+    roles: ['owner', 'superadmin', 'admin'],
   },
   {
     id: 'inactive-articles',
@@ -51,6 +61,7 @@ const COMMANDS: CommandItem[] = [
     href: '/articles?status=archived',
     icon: '🚫',
     badge: 'Retracted',
+    roles: ['owner', 'superadmin', 'admin'],
   },
   {
     id: 'employees',
@@ -68,7 +79,7 @@ const COMMANDS: CommandItem[] = [
     description: 'Post job openings, hire reporters/editors, and review candidate portfolios',
     href: '/careers',
     icon: '💼',
-    roles: ['owner', 'superadmin', 'admin', 'editor'],
+    roles: ['owner', 'superadmin', 'admin'],
   },
   {
     id: 'my-profile',

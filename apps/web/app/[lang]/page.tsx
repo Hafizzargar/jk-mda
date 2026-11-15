@@ -337,7 +337,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
   const { data: corridorArticlesRaw } = await Promise.resolve(
     supabase
       .from('articles')
-      .select('id, slug, title, category, district, published_at, view_count, reading_time_minutes, article_translations(title, language_code)')
+      .select('id, slug, title, category, district, published_at, view_count, article_translations(title, language_code)')
       .eq('status', 'published')
       .not('district', 'is', null)
       .order('view_count', { ascending: false, nullsFirst: false })

@@ -1,7 +1,7 @@
 import { authenticateEmployeeRequest, isEmployeeAuthorization, requireRecentAuthentication } from '@/lib/employee-server';
 import { DEFAULT_EDITORIAL_DESK_SETTINGS, sanitizeEditorialDeskSettings, type EditorialDeskSettings } from '@/lib/editorial-desk';
 
-const ALLOWED_ROLES = ['owner', 'superadmin', 'admin', 'editor'];
+const ALLOWED_ROLES = ['owner', 'superadmin', 'admin'];
 
 export async function GET(request: Request) {
   const authorization = await authenticateEmployeeRequest(request);

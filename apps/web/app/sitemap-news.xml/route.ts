@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerAnonClient } from '@/lib/supabase-server';
 import { SITE_URL, SITE_NAME } from '@/lib/config';
+import { getCategorySlug } from '@/lib/taxonomy';
 
 export const revalidate = 600; // 10 minutes cache
 
@@ -32,7 +33,7 @@ export async function GET() {
     const cleanTitle = (article.title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     return `
   <url>
-    <loc>${SITE_URL}/${article.category.toLowerCase()}/${article.slug}</loc>
+    <loc>${SITE_URL}/${getCategorySlug(article.category)}/${article.slug}</loc>
     <news:news>
       <news:publication>
         <news:name>${SITE_NAME.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</news:name>

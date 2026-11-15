@@ -54,8 +54,11 @@ export default function TelemetrySettingsPage() {
           .single();
 
         const role = profile?.role_key || '';
-        const allowed = ['owner', 'superadmin', 'admin', 'editor'].includes(role);
-        setCanManage(allowed);
+        if (!['owner', 'superadmin', 'admin'].includes(role)) {
+          router.push('/');
+          return;
+        }
+        setCanManage(true);
 
         const res = await fetch('/api/settings/telemetry');
         if (res.ok) {

@@ -1,7 +1,7 @@
 import { authenticateEmployeeRequest, isEmployeeAuthorization, requireRecentAuthentication } from '@/lib/employee-server';
 import { getCurationSettings, DEFAULT_CURATION_SETTINGS, type HomepageCurationSettings } from '@/lib/curation';
 
-const EDIT_ROLES = ['owner', 'superadmin', 'admin', 'editor'];
+const EDIT_ROLES = ['owner', 'superadmin', 'admin'];
 
 export async function GET(request: Request) {
   const authorization = await authenticateEmployeeRequest(request);

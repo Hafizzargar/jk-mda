@@ -372,6 +372,17 @@ export default function YouTubeMonitorPage() {
         router.push('/login');
         return;
       }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role_key')
+        .eq('id', sessionData.session.user.id)
+        .single();
+
+      if (!profile || ['editor', 'author'].includes(profile.role_key)) {
+        router.push('/');
+        return;
+      }
       const token = sessionData.session.access_token;
 
       const [channelsRes, videosRes, settingsRes, discoveryRes] = await Promise.all([

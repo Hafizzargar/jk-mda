@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { NewsletterForm } from '@/components/NewsletterForm';
 import { SITE_SHORT_NAME } from '@/lib/config';
 import { formatArticleDate } from '@/lib/date';
+import { getCategorySlug } from '@/lib/taxonomy';
 import { TemplateProps } from './types';
 
 export function BentoGridTemplate({
@@ -54,7 +55,7 @@ export function BentoGridTemplate({
           {/* Main Hero Bento Card (Span 8) */}
           {heroArticle && (
             <div className="md:col-span-8 rounded-3xl border border-slate-800 bg-slate-950/90 overflow-hidden group hover:border-slate-700 transition flex flex-col justify-between">
-              <Link href={`${langPrefix}/${heroArticle.category.toLowerCase()}/${heroArticle.slug}`} className="block p-6 md:p-8">
+              <Link href={`${langPrefix}/${getCategorySlug(heroArticle.category)}/${heroArticle.slug}`} className="block p-6 md:p-8">
                 <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-cyan-400 mb-3">
                   <span className="rounded-md bg-cyan-400/10 border border-cyan-400/20 px-2 py-0.5">
                     Featured Bento
@@ -98,7 +99,7 @@ export function BentoGridTemplate({
           <div className="md:col-span-4 flex flex-col gap-6">
             {secondary1 && (
               <div className="rounded-3xl border border-slate-800 bg-slate-950/90 p-6 flex flex-col justify-between flex-1 group hover:border-slate-700 transition">
-                <Link href={`${langPrefix}/${secondary1.category.toLowerCase()}/${secondary1.slug}`}>
+                <Link href={`${langPrefix}/${getCategorySlug(secondary1.category)}/${secondary1.slug}`}>
                   <span className="text-xs font-mono font-bold text-emerald-400 uppercase tracking-widest">
                     {secondary1.category} / {secondary1.district || 'Regional'}
                   </span>
@@ -117,7 +118,7 @@ export function BentoGridTemplate({
 
             {secondary2 && (
               <div className="rounded-3xl border border-slate-800 bg-slate-950/90 p-6 flex flex-col justify-between flex-1 group hover:border-slate-700 transition">
-                <Link href={`${langPrefix}/${secondary2.category.toLowerCase()}/${secondary2.slug}`}>
+                <Link href={`${langPrefix}/${getCategorySlug(secondary2.category)}/${secondary2.slug}`}>
                   <span className="text-xs font-mono font-bold text-amber-400 uppercase tracking-widest">
                     {secondary2.category} / {secondary2.district || 'Regional'}
                   </span>
@@ -155,7 +156,7 @@ export function BentoGridTemplate({
                 </div>
               )}
               <div className="p-6 flex flex-col justify-between flex-1">
-                <Link href={`${langPrefix}/${secondary3.category.toLowerCase()}/${secondary3.slug}`}>
+                <Link href={`${langPrefix}/${getCategorySlug(secondary3.category)}/${secondary3.slug}`}>
                   <div className="text-xs font-bold text-cyan-400 uppercase mb-1">
                     {secondary3.category}
                   </div>
@@ -184,7 +185,7 @@ export function BentoGridTemplate({
                 {trendingArticles.slice(0, 4).map((item, idx) => (
                   <Link
                     key={item.id}
-                    href={`${langPrefix}/${item.category.toLowerCase()}/${item.slug}`}
+                    href={`${langPrefix}/${getCategorySlug(item.category)}/${item.slug}`}
                     className="flex items-center justify-between gap-3 text-xs p-2 rounded-xl hover:bg-slate-900 transition group"
                   >
                     <span className="font-mono text-slate-500 group-hover:text-cyan-300 font-bold">#{idx + 1}</span>

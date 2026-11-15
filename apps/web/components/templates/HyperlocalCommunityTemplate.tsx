@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { formatArticleDate } from '@/lib/date';
+import { getCategorySlug } from '@/lib/taxonomy';
 import { TemplateProps } from './types';
 
 export function HyperlocalCommunityTemplate({
@@ -105,7 +106,7 @@ export function HyperlocalCommunityTemplate({
                 <span className="text-slate-400" suppressHydrationWarning>{formatArticleDate(heroArticle.published_at)}</span>
               </div>
 
-              <Link href={`${langPrefix}/${heroArticle.category.toLowerCase()}/${heroArticle.slug}`}>
+              <Link href={`${langPrefix}/${getCategorySlug(heroArticle.category)}/${heroArticle.slug}`}>
                 <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 hover:text-emerald-700 transition leading-tight mb-4">
                   {heroArticle.title}
                 </h1>
@@ -120,7 +121,7 @@ export function HyperlocalCommunityTemplate({
               <div className="flex items-center justify-between text-xs text-slate-500 pt-4 border-t border-slate-100">
                 <span>Reported by: <strong className="text-slate-800">{heroArticle.author_display_name || 'Community Desk'}</strong></span>
                 <Link
-                  href={`${langPrefix}/${heroArticle.category.toLowerCase()}/${heroArticle.slug}`}
+                  href={`${langPrefix}/${getCategorySlug(heroArticle.category)}/${heroArticle.slug}`}
                   className="text-emerald-700 font-bold hover:underline"
                 >
                   Full Coverage &rarr;
@@ -164,7 +165,7 @@ export function HyperlocalCommunityTemplate({
                     <span className="text-slate-400">{article.district || 'Statewide'}</span>
                   </div>
 
-                  <Link href={`${langPrefix}/${article.category.toLowerCase()}/${article.slug}`}>
+                  <Link href={`${langPrefix}/${getCategorySlug(article.category)}/${article.slug}`}>
                     <h3 className="text-base font-bold text-slate-900 hover:text-emerald-700 transition leading-snug mb-2">
                       {article.title}
                     </h3>
@@ -197,7 +198,7 @@ export function HyperlocalCommunityTemplate({
                 {trendingArticles.slice(0, 5).map((article, idx) => (
                   <Link
                     key={article.id}
-                    href={`${langPrefix}/${article.category.toLowerCase()}/${article.slug}`}
+                    href={`${langPrefix}/${getCategorySlug(article.category)}/${article.slug}`}
                     className="block group"
                   >
                     <div className="flex items-start gap-3">

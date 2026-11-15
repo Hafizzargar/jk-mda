@@ -1,25 +1,53 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { FormEvent, useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from '@/lib/supabase';
-import { Button } from '@/components/Button';
 import { LogoutModal } from '@/components/LogoutModal';
 import { requiresMfa } from '@/lib/mfa';
+import { toast } from '@/components/Toast';
 
 export default function MFAEnrollmentPage() {
   const router = useRouter();
   const [status, setStatus] = useState('Checking MFA status...');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  
+
   const [factorId, setFactorId] = useState<string | null>(null);
   const [totpUri, setTotpUri] = useState<string | null>(null);
   const [secretString, setSecretString] = useState<string | null>(null);
-  
-  const [verificationCode, setVerificationCode] = useState('');
+
+  const [digits, setDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const verificationCode = digits.join('');
+
+  // Lock window scroll and force dark theme on auth screens
+  useEffect(() => {
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalTheme = document.documentElement.getAttribute('data-theme');
+
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    document.documentElement.setAttribute('data-theme', 'dark');
+    document.documentElement.classList.add('dark');
+
+    return () => {
+      document.documentElement.style.overflow = originalHtmlOverflow;
+      document.body.style.overflow = originalBodyOverflow;
+      if (originalTheme) {
+        document.documentElement.setAttribute('data-theme', originalTheme);
+        if (originalTheme !== 'dark') {
+          document.documentElement.classList.remove('dark');
+        }
+      }
+    };
+  }, []);
 
   useEffect(() => {
     async function initMFA() {
@@ -42,8 +70,9 @@ export default function MFAEnrollmentPage() {
           return;
         }
 
-        const { data: aalData, error: aalError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-        
+        const { data: aalData, error: aalError } =
+          await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+
         if (aalError) {
           setErrorMsg(aalError.message);
           return;
@@ -52,7 +81,7 @@ export default function MFAEnrollmentPage() {
         // If they are already AAL2, they are fully authenticated and enrolled
         if (aalData.currentLevel === 'aal2') {
           setStatus('MFA is already configured and verified. Redirecting...');
-          setTimeout(() => router.push('/'), 1500);
+          setTimeout(() => router.push('/'), 1200);
           return;
         }
 
@@ -70,6 +99,27 @@ export default function MFAEnrollmentPage() {
           return;
         }
 
+        // Check if we already have an active, unverified factor cached for this session
+        // This prevents the QR code and secret from changing when the page refreshes
+        const cached = typeof window !== 'undefined' ? sessionStorage.getItem('kjin_pending_mfa_factor') : null;
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (parsed?.factorId && parsed?.totpUri && parsed?.secretString) {
+              const stillExists = allFactors.some((f) => f.id === parsed.factorId && f.status === 'unverified');
+              if (stillExists) {
+                setFactorId(parsed.factorId);
+                setTotpUri(parsed.totpUri);
+                setSecretString(parsed.secretString);
+                setStatus('');
+                return;
+              }
+            }
+          } catch {
+            sessionStorage.removeItem('kjin_pending_mfa_factor');
+          }
+        }
+
         // Clean up any stale unverified factors from previous incomplete sessions
         if (existingFactors?.all) {
           for (const factor of existingFactors.all) {
@@ -79,7 +129,7 @@ export default function MFAEnrollmentPage() {
           }
         }
 
-        // Otherwise, they need to enroll
+        // Generate new TOTP factor
         setStatus('Generating MFA factor...');
         const { data: enrollData, error: enrollError } = await supabase.auth.mfa.enroll({
           factorType: 'totp',
@@ -94,37 +144,106 @@ export default function MFAEnrollmentPage() {
         setFactorId(enrollData.id);
         setTotpUri(enrollData.totp.uri);
         setSecretString(enrollData.totp.secret);
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem(
+            'kjin_pending_mfa_factor',
+            JSON.stringify({
+              factorId: enrollData.id,
+              totpUri: enrollData.totp.uri,
+              secretString: enrollData.totp.secret,
+            })
+          );
+        }
         setStatus('');
       } catch (err) {
         setErrorMsg(err instanceof Error ? err.message : 'Failed to initialize MFA.');
         setStatus('');
       }
     }
-    
+
     initMFA();
   }, [router]);
 
-  const handleVerify = async (e: React.FormEvent) => {
+  const handleDigitChange = (index: number, val: string) => {
+    const cleaned = val.replace(/\D/g, '');
+    if (!cleaned) {
+      const next = [...digits];
+      next[index] = '';
+      setDigits(next);
+      return;
+    }
+    const char = cleaned[cleaned.length - 1];
+    const next = [...digits];
+    next[index] = char;
+    setDigits(next);
+
+    if (index < 5 && char) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace') {
+      if (!digits[index] && index > 0) {
+        inputRefs.current[index - 1]?.focus();
+      }
+    } else if (e.key === 'ArrowLeft' && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    } else if (e.key === 'ArrowRight' && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (!pasted) return;
+
+    const next = [...digits];
+    for (let i = 0; i < pasted.length; i++) {
+      next[i] = pasted[i];
+    }
+    setDigits(next);
+
+    const nextFocusIndex = Math.min(pasted.length, 5);
+    inputRefs.current[nextFocusIndex]?.focus();
+  };
+
+  const handleCopySecret = async () => {
+    if (!secretString) return;
+    try {
+      await navigator.clipboard.writeText(secretString);
+      setCopied(true);
+      toast.success('Key copied to clipboard');
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error('Failed to copy key');
+    }
+  };
+
+  const handleVerify = async (e: FormEvent) => {
     e.preventDefault();
     if (!factorId || verificationCode.length !== 6) return;
-    
+
     setIsVerifying(true);
     setErrorMsg(null);
-    
+
     try {
       const challengeResponse = await supabase.auth.mfa.challenge({ factorId });
-      
+
       if (challengeResponse.error) {
         throw new Error(challengeResponse.error.message);
       }
-      
-      const { data: { session } } = await supabase.auth.getSession();
-      
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
       const verifyResponse = await fetch('/api/employees/mfa/verify', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': session ? `Bearer ${session.access_token}` : ''
+          Authorization: session ? `Bearer ${session.access_token}` : '',
         },
         body: JSON.stringify({
           factorId,
@@ -132,12 +251,12 @@ export default function MFAEnrollmentPage() {
           code: verificationCode,
         }),
       });
-      
+
       if (!verifyResponse.ok) {
         const errData = await verifyResponse.json();
         throw new Error(errData.error || 'Verification failed.');
       }
-      
+
       const { data } = await verifyResponse.json();
       const newSession = data?.session || data;
       if (newSession?.access_token && newSession?.refresh_token) {
@@ -146,16 +265,46 @@ export default function MFAEnrollmentPage() {
           refresh_token: newSession.refresh_token,
         });
       }
-      
+
       setStatus('MFA successfully enrolled! Redirecting...');
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('kjin_pending_mfa_factor');
+      }
+
+      // Dispatch single security notification for completing MFA enrollment and entering dashboard
+      const token = newSession?.access_token || session?.access_token;
+      fetch('/api/auth/notify-login', {
+        method: 'POST',
+        keepalive: true,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ email: session?.user?.email }),
+      }).catch(() => {});
+
       setTimeout(() => {
         window.location.href = '/';
       }, 1000);
     } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'Invalid code or verification failed.');
+      const msg = err instanceof Error ? err.message : 'Invalid code or verification failed.';
+      setErrorMsg(msg);
+      toast.error(msg, { title: 'Setup Failed' });
     } finally {
       setIsVerifying(false);
     }
+  };
+
+  const handleRegenerateFactor = async () => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('kjin_pending_mfa_factor');
+    }
+    if (factorId) {
+      try {
+        await supabase.auth.mfa.unenroll({ factorId });
+      } catch {}
+    }
+    window.location.reload();
   };
 
   const handleSignOut = async () => {
@@ -163,77 +312,174 @@ export default function MFAEnrollmentPage() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-950 p-8 text-white">
-      <div className="w-full max-w-lg rounded-2xl border border-slate-800 bg-slate-900 p-8">
-        <div className="mb-6 flex items-center justify-between">
-          <p className="text-sm uppercase tracking-[0.2em] text-cyan-300">Security Setup</p>
-          <button 
+    <main id="login-page-root" className="fixed inset-0 w-screen h-screen max-h-[100dvh] flex items-center justify-center overflow-hidden bg-[#060a12] text-white p-4 sm:p-6 select-none">
+      {/* Centered Modal Card */}
+      <div className="w-full max-w-[740px] rounded-2xl md:rounded-3xl border border-slate-800/80 bg-[#0a1220]/95 backdrop-blur-xl p-6 sm:p-8 shadow-2xl shadow-cyan-950/20">
+        {/* Top Bar: Brand Emblem & Title + Sign Out */}
+        <div className="flex items-center justify-between pb-5 sm:pb-6">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-cyan-400 flex items-center justify-center shadow-lg shadow-cyan-400/20 shrink-0">
+              <span className="font-extrabold text-slate-950 text-base leading-none">K</span>
+            </div>
+            <span className="font-bold text-base sm:text-lg text-white tracking-tight">
+              Kjin Admin
+            </span>
+          </div>
+          <button
+            type="button"
             onClick={handleSignOut}
-            className="text-sm text-slate-400 hover:text-white"
+            className="text-xs sm:text-sm text-slate-400 hover:text-white transition font-medium cursor-pointer"
           >
             Sign out
           </button>
         </div>
-        
-        <h1 className="text-2xl font-bold">Two-Factor Authentication</h1>
-        <p className="mt-2 text-slate-300 text-sm">
-          Your role requires two-factor authentication (MFA) to continue. Use an authenticator app (like Google or Microsoft Authenticator) to scan the QR code below.
-        </p>
 
-        {status && (
-          <div className="mt-6 rounded-lg bg-slate-800 p-4 text-center text-sm text-slate-300">
-            {status}
+        {/* Loading / Status message if factor is generating */}
+        {status && !totpUri && (
+          <div className="py-12 text-center space-y-3">
+            <div className="w-8 h-8 mx-auto border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+            <p className="text-xs sm:text-sm text-slate-400">{status}</p>
           </div>
         )}
 
-        {errorMsg && (
-          <div className="mt-6 rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-center text-sm text-red-200">
-            {errorMsg}
-          </div>
-        )}
-
-        {totpUri && !status.includes('Redirecting') && (
-          <div className="mt-8 flex flex-col items-center">
-            <div className="rounded-xl bg-white p-4">
-              <QRCodeSVG value={totpUri} size={200} />
-            </div>
-            
-            <div className="mt-6 w-full rounded-xl border border-slate-800 bg-slate-950 p-4 text-center">
-              <p className="text-xs text-slate-400">Manual setup secret:</p>
-              <code className="mt-1 block font-mono text-cyan-300 tracking-wider">
-                {secretString}
-              </code>
-            </div>
-
-            <form onSubmit={handleVerify} className="mt-8 w-full space-y-4">
+        {/* Main 2-Column Content */}
+        {totpUri && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 items-start pt-1">
+            {/* Left Column: QR Code & Manual Secret */}
+            <div className="space-y-4">
               <div>
-                <label htmlFor="code" className="block text-sm font-medium text-slate-300">
-                  Verification Code
-                </label>
-                <input
-                  id="code"
-                  type="text"
-                  maxLength={6}
-                  value={verificationCode}
-                  onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
-                  placeholder="000000"
-                  className="mt-2 block w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-center text-2xl font-mono tracking-widest text-white placeholder-slate-600 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
-                  required
-                />
+                <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
+                  Scan the QR code
+                </h1>
+                <p className="mt-1 text-slate-400 text-xs sm:text-sm leading-relaxed">
+                  Open an authenticator app such as Google or Microsoft Authenticator and scan this
+                  code.
+                </p>
               </div>
-              <Button
-                type="submit"
-                disabled={isVerifying || verificationCode.length !== 6}
-                isLoading={isVerifying}
-                variant="primary"
-                size="lg"
-                className="w-full"
-              >
-                {isVerifying ? 'Verifying...' : 'Complete Setup'}
-              </Button>
-            </form>
+
+              {/* White QR Code container */}
+              <div className="rounded-2xl bg-white p-3.5 shadow-xl flex items-center justify-center w-fit mx-auto md:mx-0">
+                <QRCodeSVG value={totpUri} size={170} level="M" />
+              </div>
+
+              {/* Manual Secret Box */}
+              <div className="w-full rounded-xl border border-slate-800/80 bg-[#060c18] p-3 flex items-center justify-between gap-2">
+                <div className="min-w-0 pr-2">
+                  <p className="text-[11px] text-slate-400">Can&apos;t scan? Enter this key manually</p>
+                  <code className="mt-0.5 block font-mono text-xs text-cyan-400 font-semibold tracking-wider select-all truncate">
+                    {secretString}
+                  </code>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleCopySecret}
+                  className="shrink-0 rounded-lg bg-[#0e1b2e] hover:bg-[#162740] border border-slate-700/60 px-3 py-1.5 text-xs text-slate-200 hover:text-white font-medium transition cursor-pointer"
+                >
+                  {copied ? 'Copied!' : 'Copy'}
+                </button>
+              </div>
+
+              {/* Regenerate fresh QR link */}
+              <div className="flex items-center justify-between text-[11px] text-slate-400 px-0.5 pt-0.5">
+                <span>Key mismatch?</span>
+                <button
+                  type="button"
+                  onClick={handleRegenerateFactor}
+                  className="text-cyan-400 hover:text-cyan-300 hover:underline transition font-semibold cursor-pointer"
+                >
+                  Generate fresh QR code
+                </button>
+              </div>
+            </div>
+
+            {/* Right Column: 6-Digit Code Input & Complete Setup */}
+            <div className="md:border-l md:border-slate-800/70 md:pl-8 flex flex-col justify-between h-full space-y-4">
+              <form onSubmit={handleVerify} className="space-y-4">
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
+                    Enter the 6-digit code
+                  </h2>
+                  <p className="mt-1 text-slate-400 text-xs sm:text-sm leading-relaxed">
+                    Your role requires two-factor authentication. Type the code your app shows to
+                    finish setup.
+                  </p>
+
+                  {/* 6 Individual Digit Inputs */}
+                  <div className="mt-5 flex items-center justify-between gap-1.5 sm:gap-2">
+                    {digits.map((digit, idx) => (
+                      <input
+                        key={idx}
+                        ref={(el) => {
+                          inputRefs.current[idx] = el;
+                        }}
+                        type="text"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        maxLength={1}
+                        value={digit}
+                        onChange={(e) => handleDigitChange(idx, e.target.value)}
+                        onKeyDown={(e) => handleKeyDown(idx, e)}
+                        onPaste={handlePaste}
+                        className="w-10 h-12 sm:w-11 sm:h-13 rounded-xl border border-slate-800 bg-[#070e1b] text-center text-lg sm:text-xl font-bold font-mono text-white focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition"
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {errorMsg && (
+                  <p className="text-[11px] text-red-400 font-medium text-center">{errorMsg}</p>
+                )}
+
+                {/* Complete Setup Button */}
+                <div className="pt-2">
+                  <button
+                    type="submit"
+                    disabled={isVerifying || verificationCode.length !== 6}
+                    className={`w-full rounded-xl py-2.5 sm:py-3 px-4 text-sm sm:text-base font-bold transition-all duration-200 flex items-center justify-center gap-2 ${
+                      verificationCode.length === 6 && !isVerifying
+                        ? 'bg-cyan-400 hover:bg-cyan-300 active:bg-cyan-500 text-slate-950 shadow-[0_8px_20px_-4px_rgba(34,211,238,0.45)] hover:shadow-[0_12px_24px_-4px_rgba(34,211,238,0.6)] cursor-pointer'
+                        : 'bg-[#102a36] text-cyan-600/70 cursor-not-allowed border border-cyan-900/40'
+                    }`}
+                  >
+                    {isVerifying ? (
+                      <>
+                        <svg
+                          className="animate-spin h-4 w-4 text-slate-950"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8v8H4z"
+                          />
+                        </svg>
+                        <span>Verifying...</span>
+                      </>
+                    ) : (
+                      <span>Complete setup</span>
+                    )}
+                  </button>
+                </div>
+
+                {/* Footnote */}
+                <p className="text-[11px] sm:text-xs text-slate-400 leading-relaxed pt-1">
+                  The code refreshes every 30 seconds. If it fails, check that your phone&apos;s
+                  clock is set automatically.
+                </p>
+              </form>
+            </div>
           </div>
         )}
+
         <LogoutModal isOpen={isLoggingOut} />
       </div>
     </main>

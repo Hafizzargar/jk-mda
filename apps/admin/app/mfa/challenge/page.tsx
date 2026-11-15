@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/Button';
 import { LogoutModal } from '@/components/LogoutModal';
 import { requiresMfa } from '@/lib/mfa';
+import { toast } from '@/components/Toast';
 
 function MFAChallengeForm() {
   const router = useRouter();
@@ -16,8 +17,79 @@ function MFAChallengeForm() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   
   const [factorId, setFactorId] = useState<string | null>(null);
-  const [verificationCode, setVerificationCode] = useState('');
+  const [digits, setDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [isVerifying, setIsVerifying] = useState(false);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const verificationCode = digits.join('');
+
+  // Lock window scroll and force dark theme on auth screens
+  useEffect(() => {
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalTheme = document.documentElement.getAttribute('data-theme');
+
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    document.documentElement.setAttribute('data-theme', 'dark');
+    document.documentElement.classList.add('dark');
+
+    return () => {
+      document.documentElement.style.overflow = originalHtmlOverflow;
+      document.body.style.overflow = originalBodyOverflow;
+      if (originalTheme) {
+        document.documentElement.setAttribute('data-theme', originalTheme);
+        if (originalTheme !== 'dark') {
+          document.documentElement.classList.remove('dark');
+        }
+      }
+    };
+  }, []);
+
+  const handleDigitChange = (index: number, val: string) => {
+    const cleaned = val.replace(/\D/g, '');
+    if (!cleaned) {
+      const next = [...digits];
+      next[index] = '';
+      setDigits(next);
+      return;
+    }
+    const char = cleaned[cleaned.length - 1];
+    const next = [...digits];
+    next[index] = char;
+    setDigits(next);
+
+    if (index < 5 && char) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace') {
+      if (!digits[index] && index > 0) {
+        inputRefs.current[index - 1]?.focus();
+      }
+    } else if (e.key === 'ArrowLeft' && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    } else if (e.key === 'ArrowRight' && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (!pasted) return;
+
+    const next = [...digits];
+    for (let i = 0; i < pasted.length; i++) {
+      next[i] = pasted[i];
+    }
+    setDigits(next);
+
+    const nextFocusIndex = Math.min(pasted.length, 5);
+    inputRefs.current[nextFocusIndex]?.focus();
+  };
 
   // Self-service recovery state for lost authenticator app
   const [showRecovery, setShowRecovery] = useState(false);
@@ -270,68 +342,118 @@ function MFAChallengeForm() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-950 p-8 text-white">
-      <div className="w-full max-w-lg rounded-2xl border border-slate-800 bg-slate-900 p-8">
-        <div className="mb-6 flex items-center justify-between">
-          <p className="text-sm uppercase tracking-[0.2em] text-cyan-300">Security Challenge</p>
-          <button 
+    <main id="login-page-root" className="fixed inset-0 w-screen h-screen max-h-[100dvh] flex items-center justify-center overflow-hidden bg-[#060a12] text-white p-4 sm:p-6 select-none">
+      <div className="w-full max-w-[480px] rounded-2xl md:rounded-3xl border border-slate-800/80 bg-[#0a1220]/95 backdrop-blur-xl p-6 sm:p-8 shadow-2xl shadow-cyan-950/20">
+        {/* Top Bar: Brand Emblem & Title + Sign Out */}
+        <div className="flex items-center justify-between pb-5 sm:pb-6">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-cyan-400 flex items-center justify-center shadow-lg shadow-cyan-400/20 shrink-0">
+              <span className="font-extrabold text-slate-950 text-base leading-none">K</span>
+            </div>
+            <span className="font-bold text-base sm:text-lg text-white tracking-tight">
+              Kjin Admin
+            </span>
+          </div>
+          <button
+            type="button"
             onClick={handleSignOut}
-            className="text-sm text-slate-400 hover:text-white"
+            className="text-xs sm:text-sm text-slate-400 hover:text-white transition font-medium cursor-pointer"
           >
             Sign out
           </button>
         </div>
-        
-        <h1 className="text-2xl font-bold">Two-Factor Authentication</h1>
-        <p className="mt-2 text-slate-300 text-sm">
-          Please enter the 6-digit code from your authenticator app to continue.
-        </p>
 
-        {status && (
-          <div className="mt-6 rounded-lg bg-slate-800 p-4 text-center text-sm text-slate-300">
-            {status}
-          </div>
-        )}
+        <div>
+          <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
+            Enter the 6-digit code
+          </h1>
+          <p className="mt-1 text-slate-400 text-xs sm:text-sm leading-relaxed">
+            Please enter the 6-digit code from your authenticator app to continue to your dashboard.
+          </p>
+        </div>
 
-        {errorMsg && (
-          <div className="mt-6 rounded-lg border border-red-500/30 bg-red-500/10 p-4 text-center text-sm text-red-200">
-            {errorMsg}
+        {status && !factorId && (
+          <div className="py-8 text-center space-y-3">
+            <div className="w-8 h-8 mx-auto border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+            <p className="text-xs sm:text-sm text-slate-400">{status}</p>
           </div>
         )}
 
         {factorId && !status.includes('Redirecting') && (
-          <div className="mt-8 flex flex-col items-center">
-            <form onSubmit={handleVerify} className="w-full space-y-4">
-              <div>
-                <label htmlFor="code" className="block text-sm font-medium text-slate-300">
-                  Verification Code
-                </label>
+          <form onSubmit={handleVerify} className="mt-6 space-y-4">
+            {/* 6 Individual Digit Inputs */}
+            <div className="flex items-center justify-between gap-1.5 sm:gap-2">
+              {digits.map((digit, idx) => (
                 <input
-                  id="code"
+                  key={idx}
+                  ref={(el) => {
+                    inputRefs.current[idx] = el;
+                  }}
                   type="text"
-                  maxLength={6}
-                  value={verificationCode}
-                  onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
-                  placeholder="000000"
-                  className="mt-2 block w-full rounded-xl border border-slate-700 bg-slate-950 p-3 text-center text-2xl font-mono tracking-widest text-white placeholder-slate-600 outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
-                  required
-                  autoFocus
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) => handleDigitChange(idx, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(idx, e)}
+                  onPaste={handlePaste}
+                  autoFocus={idx === 0}
+                  className="w-10 h-12 sm:w-11 sm:h-13 rounded-xl border border-slate-800 bg-[#070e1b] text-center text-lg sm:text-xl font-bold font-mono text-white focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400 transition"
                 />
-              </div>
-              <Button
+              ))}
+            </div>
+
+            {errorMsg && (
+              <p className="text-[11px] text-red-400 font-medium text-center">{errorMsg}</p>
+            )}
+
+            {/* Verify Button */}
+            <div className="pt-2">
+              <button
                 type="submit"
                 disabled={isVerifying || verificationCode.length !== 6}
-                isLoading={isVerifying}
-                variant="primary"
-                size="lg"
-                className="w-full"
+                className={`w-full rounded-xl py-2.5 sm:py-3 px-4 text-sm sm:text-base font-bold transition-all duration-200 flex items-center justify-center gap-2 ${
+                  verificationCode.length === 6 && !isVerifying
+                    ? 'bg-cyan-400 hover:bg-cyan-300 active:bg-cyan-500 text-slate-950 shadow-[0_8px_20px_-4px_rgba(34,211,238,0.45)] hover:shadow-[0_12px_24px_-4px_rgba(34,211,238,0.6)] cursor-pointer'
+                    : 'bg-[#102a36] text-cyan-600/70 cursor-not-allowed border border-cyan-900/40'
+                }`}
               >
-                {isVerifying ? 'Verifying...' : 'Verify'}
-              </Button>
-            </form>
+                {isVerifying ? (
+                  <>
+                    <svg
+                      className="animate-spin h-4 w-4 text-slate-950"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v8H4z"
+                      />
+                    </svg>
+                    <span>Verifying...</span>
+                  </>
+                ) : (
+                  <span>Continue to dashboard</span>
+                )}
+              </button>
+            </div>
+
+            {/* Footnote */}
+            <p className="text-[11px] sm:text-xs text-slate-400 leading-relaxed text-center pt-1">
+              The code refreshes every 30 seconds.
+            </p>
 
             {/* Lost Authenticator / Reset MFA Option */}
-            <div className="mt-6 w-full border-t border-slate-800/80 pt-4 text-center">
+            <div className="border-t border-slate-800/80 pt-4 text-center">
               <p className="text-xs text-slate-400">
                 Deleted your authenticator app or lost your phone?
               </p>
@@ -341,12 +463,12 @@ function MFAChallengeForm() {
                   setShowRecovery(true);
                   setErrorMsg(null);
                 }}
-                className="mt-1.5 text-xs font-bold text-cyan-400 hover:text-cyan-300 underline transition"
+                className="mt-1.5 text-xs font-semibold text-cyan-400 hover:text-cyan-300 underline transition cursor-pointer"
               >
                 Reset Authenticator via Registered Email →
               </button>
             </div>
-          </div>
+          </form>
         )}
 
         {/* Self-Service Email Recovery Panel */}

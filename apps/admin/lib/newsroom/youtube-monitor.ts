@@ -11,6 +11,7 @@ import {
 import { getCanonicalCategory } from '../taxonomy-options.ts';
 import { sendNewsApprovalAlert } from './email-notifier.ts';
 import { generateSlug } from './gemini-drafter.ts';
+import { isGeminiInCooldown } from './gemini-circuit-breaker.ts';
 
 export interface YouTubeChannelMeta {
   channelId: string;
@@ -444,12 +445,16 @@ Output your response strictly as valid JSON with keys:
 `;
 
   if (apiKey) {
-    try {
-      const response = await generateText({
-        model: google('gemini-2.5-flash'),
-        prompt: contentPrompt,
-        temperature: 0.2,
-      });
+    const breaker = await isGeminiInCooldown();
+    if (breaker.inCooldown) {
+      console.warn(`[Gemini YouTube Analyzer] Gemini circuit breaker is active (${breaker.remainingMinutes}m remaining). Skipping API call and using intelligent news synthesizer.`);
+    } else {
+      try {
+        const response = await generateText({
+          model: google('gemini-2.5-flash'),
+          prompt: contentPrompt,
+          temperature: 0.2,
+        });
 
       const cleaned = response.text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       const parsed = JSON.parse(cleaned);
@@ -503,6 +508,7 @@ Output your response strictly as valid JSON with keys:
       console.warn('[Gemini YouTube Analyzer] API call failed, falling back to English news synthesizer:', err);
     }
   }
+}
 
   // Automatic translation and journalistic synthesis engine (works without external API keys)
   const synthesized = await synthesizeEnglishNewsDraft({

@@ -3,7 +3,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Metadata } from 'next';
 import { createServerAnonClient } from '@/lib/supabase-server';
-import { isValidDistrict, getDistrictDisplayName, JK_DISTRICTS } from '@/lib/taxonomy';
+import { isValidDistrict, getDistrictDisplayName, JK_DISTRICTS, getCategorySlug } from '@/lib/taxonomy';
 import { parsePageParam, parseLimitParam, getPaginationRange, calculatePaginationMeta } from '@/lib/pagination';
 import { applyTranslations } from '@/lib/i18n';
 import { SITE_URL, SITE_SHORT_NAME } from '@/lib/config';
@@ -148,7 +148,7 @@ export default async function DistrictPage({ params, searchParams }: DistrictPag
               {articles.map((article) => (
                 <Link
                   key={article.id}
-                  href={`${langPrefix}/${article.category.toLowerCase()}/${article.slug}`}
+                  href={`${langPrefix}/${getCategorySlug(article.category)}/${article.slug}`}
                   className={`group flex flex-col h-full ${theme.cardBgClass} rounded-xl ${theme.cardBorderClass} ${theme.cardHoverClass} p-5 transition`}
                 >
                   {article.featured_image_url ? (
