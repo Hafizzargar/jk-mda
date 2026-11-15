@@ -333,7 +333,7 @@ function MFAChallengeForm() {
       setErrorMsg(err instanceof Error ? err.message : 'Invalid code or verification failed.');
     } finally {
       setIsVerifying(false);
-      setVerificationCode('');
+      setDigits(['', '', '', '', '', '']);
     }
   };
 
