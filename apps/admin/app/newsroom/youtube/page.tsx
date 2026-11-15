@@ -172,7 +172,8 @@ const DEFAULT_BEAT_QUOTAS: Record<string, BeatDefinition> = {
 
 export default function YouTubeMonitorPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'drafts' | 'channels'>('drafts');
+  const [activeTab, setActiveTab] = useState<'radar' | 'drafts' | 'channels' | 'approved'>('radar');
+  const [draftSubFilter, setDraftSubFilter] = useState<'pending' | 'approved' | 'all'>('pending');
   const [channels, setChannels] = useState<YouTubeSource[]>([]);
   const [videos, setVideos] = useState<YouTubeVideo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -379,6 +380,32 @@ export default function YouTubeMonitorPage() {
     chenab_valley: true,
   });
   const [isTestingEmail, setIsTestingEmail] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tabParam = urlParams.get('tab');
+      if (tabParam === 'drafts' || tabParam === 'channels' || tabParam === 'radar' || tabParam === 'approved') {
+        setActiveTab(tabParam);
+      } else {
+        const savedTab = localStorage.getItem('kjin_newsroom_active_tab');
+        if (savedTab === 'drafts' || savedTab === 'channels' || savedTab === 'radar' || savedTab === 'approved') {
+          setActiveTab(savedTab as any);
+        }
+      }
+    }
+  }, []);
+
+  const handleTabChange = (tab: 'radar' | 'drafts' | 'channels' | 'approved') => {
+    setActiveTab(tab);
+    setCurrentPage(1);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('kjin_newsroom_active_tab', tab);
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', tab);
+      window.history.replaceState({}, '', url.toString());
+    }
+  };
 
   useEffect(() => {
     loadData();
@@ -1347,7 +1374,14 @@ export default function YouTubeMonitorPage() {
     }
   }
 
+  const approvedVideos = videos.filter((v) => v.processing_status === 'approved');
+  const pendingVideos = videos.filter((v) => v.processing_status === 'draft_proposed');
+  const approvedVideosCount = approvedVideos.length;
+  const pendingDraftsCount = pendingVideos.length;
+
   const filteredVideos = videos.filter((v) => {
+    if (draftSubFilter === 'pending' && v.processing_status !== 'draft_proposed') return false;
+    if (draftSubFilter === 'approved' && v.processing_status !== 'approved') return false;
     if (filterStatus !== 'all' && v.processing_status !== filterStatus) return false;
     if (filterScope !== 'all') {
       const scope = v.ai_analysis?.scope || (
@@ -1371,7 +1405,6 @@ export default function YouTubeMonitorPage() {
   );
 
   const activeChannelsCount = channels.filter((c) => c.is_active).length;
-  const pendingDraftsCount = videos.filter((v) => v.processing_status === 'draft_proposed').length;
 
   return (
     <div className="space-y-3.5 sm:space-y-4">
@@ -1521,6 +1554,72 @@ export default function YouTubeMonitorPage() {
         </div>
       )}
 
+      {/* Primary Newsroom Navigation Tabs */}
+      <div className="flex border-b border-slate-200 dark:border-slate-800 gap-1 overflow-x-auto pb-px">
+        <button
+          type="button"
+          onClick={() => handleTabChange('radar')}
+          className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'radar'
+              ? 'border-purple-600 text-purple-600 dark:text-purple-400 bg-purple-50/50 dark:bg-purple-950/20'
+              : 'border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <span>🛰️ Autonomous Ground Radar &amp; Queue</span>
+          <span className="rounded-full bg-purple-100 dark:bg-purple-900/50 px-2 py-0.5 text-xs text-purple-700 dark:text-purple-300 font-bold">
+            {discoveredArticles.length}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleTabChange('drafts')}
+          className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'drafts'
+              ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400 bg-cyan-50/50 dark:bg-cyan-950/20'
+              : 'border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <span>📰 Video &amp; Social Broadcasts</span>
+          <span className="rounded-full bg-cyan-100 dark:bg-cyan-950 px-2 py-0.5 text-xs text-cyan-800 dark:text-cyan-300 font-bold">
+            {pendingDraftsCount}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleTabChange('channels')}
+          className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'channels'
+              ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400 bg-cyan-50/50 dark:bg-cyan-950/20'
+              : 'border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <span>⚙️ Monitored Sources Registry</span>
+          <span className="rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-xs text-slate-700 dark:text-slate-300 font-semibold">
+            {channels.length}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleTabChange('approved')}
+          className={`flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-bold transition-all whitespace-nowrap cursor-pointer ${
+            activeTab === 'approved'
+              ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-950/20'
+              : 'border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <span>✓ Approved Articles &amp; Live Dispatches</span>
+          <span className="rounded-full bg-emerald-100 dark:bg-emerald-950 px-2 py-0.5 text-xs text-emerald-800 dark:text-emerald-300 font-bold">
+            {approvedVideosCount + discoveredArticles.filter((a) => a.status === 'published').length}
+          </span>
+        </button>
+      </div>
+
+      {/* Tab 1: Autonomous News Discovery Radar & Queue */}
+      {activeTab === 'radar' && (
+      <>
       {/* KJIN Autonomous News Discovery Radar */}
       <div className="rounded-2xl border border-purple-200 dark:border-purple-900/50 bg-gradient-to-r from-purple-50/70 via-indigo-50/40 to-white dark:from-purple-950/20 dark:via-slate-900 dark:to-slate-900 p-4 shadow-xs space-y-3">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -1924,9 +2023,14 @@ export default function YouTubeMonitorPage() {
           </div>
         </div>
       )}
+      </>
+      )}
 
-      {/* Omni-Channel Quick Social Ingestion Bar (Facebook · Instagram · YouTube) - Compact sm */}
-      <div className="rounded-xl border border-cyan-500/30 bg-gradient-to-r from-cyan-950/20 via-slate-900/40 to-purple-950/20 p-2.5 sm:px-3.5 sm:py-2.5 shadow-2xs">
+      {/* Tab 2: Video & Social Broadcasts (FB, Insta, YT) */}
+      {activeTab === 'drafts' && (
+      <div className="space-y-4">
+        {/* Omni-Channel Quick Social Ingestion Bar (Facebook · Instagram · YouTube) - Compact sm */}
+        <div className="rounded-xl border border-cyan-500/30 bg-gradient-to-r from-cyan-950/20 via-slate-900/40 to-purple-950/20 p-2.5 sm:px-3.5 sm:py-2.5 shadow-2xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <div className="flex items-center gap-2">
             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-cyan-500/20 text-sm">
@@ -1995,42 +2099,64 @@ export default function YouTubeMonitorPage() {
         )}
       </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-slate-200 dark:border-slate-800">
+      {/* Sub-Filter Controls for Broadcasts: Awaiting Approval vs Approved vs All */}
+      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2 flex-wrap">
         <button
           type="button"
-          onClick={() => setActiveTab('drafts')}
-          className={`flex items-center gap-2 border-b-2 px-5 py-3 text-sm font-bold transition-colors ${
-            activeTab === 'drafts'
-              ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400'
-              : 'border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white'
+          onClick={() => {
+            setDraftSubFilter('pending');
+            setCurrentPage(1);
+          }}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+            draftSubFilter === 'pending'
+              ? 'bg-amber-500 text-white shadow-xs'
+              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
-          <span>📰 Incoming Broadcasts & AI Drafts</span>
-          <span className="rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-xs text-slate-700 dark:text-slate-300">
-            {videos.length}
+          <span>⏳ Awaiting Approval</span>
+          <span className="rounded-full bg-black/20 dark:bg-white/20 px-1.5 py-0.2 text-[10px] font-mono font-bold">
+            {pendingDraftsCount}
           </span>
         </button>
 
         <button
           type="button"
-          onClick={() => setActiveTab('channels')}
-          className={`flex items-center gap-2 border-b-2 px-5 py-3 text-sm font-bold transition-colors ${
-            activeTab === 'channels'
-              ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400'
-              : 'border-transparent text-slate-500 hover:text-slate-900 dark:hover:text-white'
+          onClick={() => {
+            setDraftSubFilter('approved');
+            setCurrentPage(1);
+          }}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+            draftSubFilter === 'approved'
+              ? 'bg-emerald-600 text-white shadow-xs'
+              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
           }`}
         >
-          <span>⚙️ Monitored Channels Registry</span>
-          <span className="rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-xs text-slate-700 dark:text-slate-300">
-            {channels.length}
+          <span>✓ Approved &amp; Stored Articles</span>
+          <span className="rounded-full bg-black/20 dark:bg-white/20 px-1.5 py-0.2 text-[10px] font-mono font-bold">
+            {approvedVideosCount}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            setDraftSubFilter('all');
+            setCurrentPage(1);
+          }}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer ${
+            draftSubFilter === 'all'
+              ? 'bg-cyan-600 text-white shadow-xs'
+              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <span>All Ingested Broadcasts</span>
+          <span className="rounded-full bg-black/20 dark:bg-white/20 px-1.5 py-0.2 text-[10px] font-mono font-bold">
+            {videos.length}
           </span>
         </button>
       </div>
 
-      {/* Tab 1: Incoming Broadcasts & Gemini Drafts */}
-      {activeTab === 'drafts' && (
-        <div className="space-y-4">
+      <div className="space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-1.5">
@@ -2301,6 +2427,7 @@ export default function YouTubeMonitorPage() {
             )}
           </>
         )}
+        </div>
       </div>
       )}
 
@@ -2397,6 +2524,143 @@ export default function YouTubeMonitorPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Tab 4: Approved & Published Articles Archive */}
+      {activeTab === 'approved' && (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+            <div>
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <span>✓ Approved &amp; Published News Archive</span>
+                <span className="rounded-full bg-emerald-100 dark:bg-emerald-950 px-2.5 py-0.5 text-xs text-emerald-800 dark:text-emerald-300 font-bold border border-emerald-300 dark:border-emerald-800">
+                  {approvedVideosCount + discoveredArticles.filter((a) => a.status === 'published').length} Stories Stored
+                </span>
+              </h3>
+              <p className="text-xs text-slate-500">
+                All approved news formulations and autonomous field discoveries converted into permanent broadsheet articles.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/articles"
+                className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700 transition"
+              >
+                Open Full CMS Desk →
+              </Link>
+            </div>
+          </div>
+
+          {/* Section A: Approved Video & Social Broadcasts */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                <span>📰 Approved Video &amp; Social Broadcasts</span>
+                <span className="rounded-full bg-cyan-100 dark:bg-cyan-950 px-2 py-0.5 text-[10px] text-cyan-800 dark:text-cyan-300 font-bold">
+                  {approvedVideos.length}
+                </span>
+              </h4>
+            </div>
+
+            {approvedVideos.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-800 p-8 text-center text-xs text-slate-500">
+                No broadcast videos have been approved yet. Click &quot;Review &amp; Approve&quot; in the Video &amp; Social Broadcasts tab.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {approvedVideos.map((video) => (
+                  <div
+                    key={video.id}
+                    className="rounded-xl border border-emerald-500/30 bg-emerald-50/10 dark:bg-emerald-950/10 p-4 space-y-3 flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1.5">
+                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">✓ Article Created</span>
+                        <span>{video.published_at ? new Date(video.published_at).toLocaleDateString() : 'Stored'}</span>
+                      </div>
+                      <h5 className="font-bold text-sm text-slate-900 dark:text-white line-clamp-2 leading-snug">
+                        {video.proposed_headline || video.ai_analysis?.headline || video.title}
+                      </h5>
+                      <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+                        {video.proposed_summary || video.ai_analysis?.summary || video.description || 'Synthesized broadsheet formulation.'}
+                      </p>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+                      <span className="text-[11px] font-mono text-slate-400">
+                        {video.youtube_sources?.channel_name || 'Social Stream'}
+                      </span>
+                      {video.article_id && (
+                        <Link
+                          href={`/articles/${video.article_id}`}
+                          className="font-bold text-emerald-600 hover:text-emerald-500 dark:text-emerald-400 transition"
+                        >
+                          Edit Article →
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Section B: Published Autonomous Ground Radar Stories */}
+          <div className="space-y-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                <span>🛰️ Autonomous Radar Published Dispatches</span>
+                <span className="rounded-full bg-purple-100 dark:bg-purple-950 px-2 py-0.5 text-[10px] text-purple-800 dark:text-purple-300 font-bold">
+                  {discoveredArticles.filter((a) => a.status === 'published').length}
+                </span>
+              </h4>
+            </div>
+
+            {discoveredArticles.filter((a) => a.status === 'published').length === 0 ? (
+              <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-800 p-8 text-center text-xs text-slate-500">
+                No autonomous stories published yet. Stories approved manually or via Auto-Approval mode appear here.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                {discoveredArticles
+                  .filter((a) => a.status === 'published')
+                  .map((art) => (
+                    <div
+                      key={art.id}
+                      className="rounded-xl border border-purple-500/30 bg-purple-50/10 dark:bg-purple-950/10 p-4 space-y-3 flex flex-col justify-between"
+                    >
+                      <div>
+                        <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1.5">
+                          <span className="font-semibold text-purple-600 dark:text-purple-400">
+                            📍 {art.district ? art.district.toUpperCase() : art.category}
+                          </span>
+                          <span>{new Date(art.created_at).toLocaleDateString()}</span>
+                        </div>
+                        <h5 className="font-bold text-sm text-slate-900 dark:text-white line-clamp-2 leading-snug">
+                          {art.title}
+                        </h5>
+                        <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+                          Source: {art.source_name || 'Ground Research'}
+                        </p>
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
+                        <span className="text-[11px] font-mono text-slate-400">
+                          {art.category} • {art.status}
+                        </span>
+                        <Link
+                          href={`/articles/${art.id}`}
+                          className="font-bold text-purple-600 hover:text-purple-500 dark:text-purple-400 transition"
+                        >
+                          Edit Article →
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
           </div>
         </div>
       )}
