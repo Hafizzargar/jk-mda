@@ -14,6 +14,12 @@ import {
   getDailyRegionalStats,
   type RegionalDailyStats,
   type DistrictDailyStat,
+  getAutoPublishConfig,
+  scheduleArticleAutoPublish,
+  executeAutoPublishArticle,
+  cancelArticleAutoPublish,
+  processPendingAutoPublishes,
+  type ScheduledAutoPublishItem,
 } from '../lib/newsroom/autonomous-discovery.ts';
 
 describe('P0: KJIN Autonomous News Discovery & Regional Quotas', () => {
@@ -314,5 +320,186 @@ describe('P0: KJIN Autonomous News Discovery & Regional Quotas', () => {
     ];
     const targetC = selectTargetDistrictForBeat(chenabBeat, districtStatsC);
     assert.strictEqual(targetC?.id, 'kishtwar', 'Kishtwar must be selected as it has headroom below max cap');
+  });
+
+  it('manages auto-approval lifecycle: scheduling with 5-minute delay, cancellation, and execution', async () => {
+    let mockSettingsValue: any = {
+      auto_publish_enabled: true,
+      auto_publish_delay_minutes: 5,
+      scheduled_queue: [],
+    };
+
+    let mockArticle: any = {
+      id: 'art-001',
+      title: 'Power Grid Infrastructure Upgraded in Kishtwar',
+      status: 'review',
+      author_id: 'owner-uuid-123',
+      published_at: null,
+      published_by: null,
+    };
+
+    let auditLogs: any[] = [];
+
+    const mockService = {
+      from: (table: string) => ({
+        select: (cols?: string) => ({
+          eq: (col: string, val: any) => ({
+            maybeSingle: () => {
+              if (table === 'site_settings' && col === 'key' && val === 'newsroom_auto_pilot') {
+                return Promise.resolve({ data: { value: mockSettingsValue }, error: null });
+              }
+              return Promise.resolve({ data: null, error: null });
+            },
+            single: () => {
+              if (table === 'articles' && col === 'id' && val === mockArticle.id) {
+                return Promise.resolve({ data: mockArticle, error: null });
+              }
+              return Promise.resolve({ data: null, error: new Error('Not found') });
+            },
+          }),
+          in: (col: string, vals: any[]) => ({
+            limit: () => Promise.resolve({ data: [{ id: 'owner-uuid-123' }], error: null }),
+          }),
+        }),
+        upsert: (payload: any) => {
+          if (table === 'site_settings') {
+            mockSettingsValue = payload.value;
+          }
+          return Promise.resolve({ error: null });
+        },
+        update: (payload: any) => ({
+          eq: (col: string, val: any) => {
+            if (table === 'articles' && col === 'id' && val === mockArticle.id) {
+              mockArticle = { ...mockArticle, ...payload };
+            }
+            if (table === 'site_settings' && col === 'key' && val === 'newsroom_auto_pilot') {
+              mockSettingsValue = payload.value;
+            }
+            return Promise.resolve({ data: mockArticle, error: null });
+          },
+        }),
+        insert: (payload: any) => {
+          if (table === 'audit_logs') {
+            auditLogs.push(payload);
+          }
+          return Promise.resolve({ data: payload, error: null });
+        },
+      }),
+    };
+
+    // 1. Test getAutoPublishConfig
+    const config = await getAutoPublishConfig(mockService);
+    assert.strictEqual(config.enabled, true, 'Auto-publish must be enabled');
+    assert.strictEqual(config.delayMinutes, 5, 'Grace period must default to 5 minutes');
+
+    // 2. Test scheduleArticleAutoPublish
+    const scheduled = await scheduleArticleAutoPublish(mockService, {
+      articleId: 'art-001',
+      headline: 'Power Grid Infrastructure Upgraded in Kishtwar',
+      summary: 'Kishtwar power infrastructure received major upgrades.',
+      category: 'Development',
+      scope: 'State',
+      division: 'Chenab Valley',
+      district: 'Kishtwar',
+      sourceName: 'PIB J&K',
+      delayMinutes: 5,
+      authorId: 'owner-uuid-123',
+    });
+
+    assert.strictEqual(scheduled.articleId, 'art-001');
+    assert.strictEqual(scheduled.status, 'pending');
+    assert.ok(mockSettingsValue.scheduled_queue.length > 0, 'Queue must persist to site_settings');
+
+    const scheduledDate = new Date(scheduled.scheduledFor).getTime();
+    const expectedApprox = Date.now() + 5 * 60 * 1000;
+    assert.ok(
+      Math.abs(scheduledDate - expectedApprox) < 5000,
+      'Scheduled time must be approximately 5 minutes in the future'
+    );
+
+    // 3. Test cancelArticleAutoPublish
+    await cancelArticleAutoPublish(mockService, 'art-001');
+    const cancelledItem = mockSettingsValue.scheduled_queue.find((i: any) => i.articleId === 'art-001');
+    assert.strictEqual(cancelledItem?.status, 'cancelled', 'Status must be marked as cancelled');
+
+    // 4. Test executeAutoPublishArticle (direct or timer execution)
+    // Reset status to pending to simulate timer firing or publish now
+    mockSettingsValue.scheduled_queue[0].status = 'pending';
+    const pubResult = await executeAutoPublishArticle(mockService, 'art-001', 'owner-uuid-123');
+    assert.strictEqual(pubResult.success, true, 'Auto-publish execution must succeed');
+    assert.strictEqual(mockArticle.status, 'published', 'Article must transition to published');
+    assert.ok(mockArticle.published_at, 'published_at must be populated');
+    assert.strictEqual(mockArticle.published_by, 'owner-uuid-123', 'published_by must be populated');
+
+    // Audit log check
+    assert.ok(auditLogs.some((l) => l.action === 'article.auto_published'), 'Audit log must record auto-publish');
+  });
+
+  it('processPendingAutoPublishes automatically triggers publishing for matured schedule items', async () => {
+    let mockArticle = {
+      id: 'art-002',
+      title: 'Doda Medical College Achieves Milestone',
+      status: 'review',
+      author_id: 'author-123',
+      published_at: null,
+      published_by: null,
+    };
+
+    const pastDate = new Date(Date.now() - 60 * 1000).toISOString(); // 1 minute ago (matured)
+    let mockSettingsValue = {
+      auto_publish_enabled: true,
+      auto_publish_delay_minutes: 5,
+      scheduled_queue: [
+        {
+          articleId: 'art-002',
+          headline: 'Doda Medical College Achieves Milestone',
+          category: 'Health',
+          scheduledFor: pastDate,
+          createdAt: new Date(Date.now() - 6 * 60 * 1000).toISOString(),
+          status: 'pending',
+        },
+      ],
+    };
+
+    const mockService = {
+      from: (table: string) => ({
+        select: (cols?: string) => ({
+          eq: (col: string, val: any) => ({
+            maybeSingle: () => {
+              if (table === 'site_settings') {
+                return Promise.resolve({ data: { value: mockSettingsValue }, error: null });
+              }
+              return Promise.resolve({ data: null, error: null });
+            },
+            single: () => {
+              if (table === 'articles' && val === 'art-002') {
+                return Promise.resolve({ data: mockArticle, error: null });
+              }
+              return Promise.resolve({ data: null, error: new Error('Not found') });
+            },
+          }),
+          in: () => ({
+            limit: () => Promise.resolve({ data: [{ id: 'author-123' }], error: null }),
+          }),
+        }),
+        update: (payload: any) => ({
+          eq: (col: string, val: any) => {
+            if (table === 'articles' && val === 'art-002') {
+              mockArticle = { ...mockArticle, ...payload };
+            }
+            if (table === 'site_settings') {
+              mockSettingsValue = payload.value;
+            }
+            return Promise.resolve({ data: mockArticle, error: null });
+          },
+        }),
+        insert: () => Promise.resolve({ error: null }),
+      }),
+    };
+
+    const result = await processPendingAutoPublishes(mockService);
+    assert.strictEqual(result.processed, 1, 'Must process 1 mature item');
+    assert.strictEqual(result.publishedIds[0], 'art-002', 'Must have published art-002');
+    assert.strictEqual(mockArticle.status, 'published', 'Article status must be updated to published');
   });
 });

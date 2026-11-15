@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { runAutonomousNewsDiscovery } from '@/lib/newsroom/autonomous-discovery';
+import { runAutonomousNewsDiscovery, processPendingAutoPublishes } from '@/lib/newsroom/autonomous-discovery';
 import { runYouTubeHourlySync } from '@/lib/newsroom/youtube-monitor';
 
 function verifyCronAuthorization(request: Request): boolean {
@@ -47,13 +47,17 @@ async function handleCronExecution(request: Request) {
     // 2. Broadcast Surveillance (YouTube public feeds & video search)
     const broadcastResult = await runYouTubeHourlySync(service, { autoPublish: false });
 
+    // 3. Process any pending auto-publishes whose 5-min grace window has completed
+    const autoPublishResult = await processPendingAutoPublishes(service).catch(() => ({ processed: 0, publishedIds: [] }));
+
     return Response.json({
       success: true,
       timestamp: new Date().toISOString(),
       worker: 'Railway Scheduled Worker (60m cadence)',
-      policy: '100% Pending Approval (Status: review)',
+      policy: 'Autonomous News Intelligence Engine',
       discovery: discoveryResult,
       broadcastSurveillance: broadcastResult,
+      autoPublish: autoPublishResult,
     });
   } catch (error: any) {
     console.error('[RailwayScheduledWorker] Cron execution failed:', error);

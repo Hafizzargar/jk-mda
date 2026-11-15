@@ -18,11 +18,17 @@ export async function GET(request: Request) {
       ? Math.max(1, Number(data.value.interval_minutes))
       : 1;
     const autoPilotEnabled = data?.value?.auto_pilot_enabled !== false;
+    const autoPublishEnabled = Boolean(data?.value?.auto_publish_enabled);
+    const autoPublishDelayMinutes = Math.max(1, Number(data?.value?.auto_publish_delay_minutes) || 5);
+    const scheduledQueue = Array.isArray(data?.value?.scheduled_queue) ? data.value.scheduled_queue : [];
     const beatQuotas = data?.value?.beat_quotas || null;
 
     return Response.json({
       interval_minutes: intervalMinutes,
       auto_pilot_enabled: autoPilotEnabled,
+      auto_publish_enabled: autoPublishEnabled,
+      auto_publish_delay_minutes: autoPublishDelayMinutes,
+      scheduled_queue: scheduledQueue,
       beat_quotas: beatQuotas,
     });
   } catch (err: any) {
@@ -41,6 +47,8 @@ export async function POST(request: Request) {
     const intervalMinutes = Math.max(1, Number(body.interval_minutes) || 1);
     const autoPilotEnabled = body.auto_pilot_enabled !== false;
     const beatQuotas = body.beat_quotas !== undefined ? body.beat_quotas : undefined;
+    const autoPublishEnabled = body.auto_publish_enabled !== undefined ? Boolean(body.auto_publish_enabled) : undefined;
+    const autoPublishDelayMinutes = body.auto_publish_delay_minutes !== undefined ? Math.max(1, Number(body.auto_publish_delay_minutes) || 5) : undefined;
 
     const { service, profile } = auth;
 
@@ -59,11 +67,17 @@ export async function POST(request: Request) {
     if (beatQuotas !== undefined) {
       mergedValue.beat_quotas = beatQuotas;
     }
+    if (autoPublishEnabled !== undefined) {
+      mergedValue.auto_publish_enabled = autoPublishEnabled;
+    }
+    if (autoPublishDelayMinutes !== undefined) {
+      mergedValue.auto_publish_delay_minutes = autoPublishDelayMinutes;
+    }
 
     const { error } = await service.from('site_settings').upsert({
       key: 'newsroom_auto_pilot',
       value: mergedValue,
-      description: 'Newsroom YouTube Autonomous Surveillance Auto-Pilot schedule configuration and beat quotas',
+      description: 'Newsroom YouTube Autonomous Surveillance Auto-Pilot schedule configuration, beat quotas and auto-publish',
       updated_at: new Date().toISOString(),
       updated_by: profile.id,
     });
@@ -76,6 +90,8 @@ export async function POST(request: Request) {
       success: true,
       interval_minutes: intervalMinutes,
       auto_pilot_enabled: autoPilotEnabled,
+      auto_publish_enabled: mergedValue.auto_publish_enabled ?? false,
+      auto_publish_delay_minutes: mergedValue.auto_publish_delay_minutes ?? 5,
       beat_quotas: mergedValue.beat_quotas || null,
     });
   } catch (err: any) {

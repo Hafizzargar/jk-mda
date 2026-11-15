@@ -224,6 +224,21 @@ export default function YouTubeMonitorPage() {
     source_name: string | null;
     source_url: string | null;
   }>>([]);
+  const [autoPublishEnabled, setAutoPublishEnabled] = useState(false);
+  const [autoPublishDelayMinutes, setAutoPublishDelayMinutes] = useState(5);
+  const [scheduledQueue, setScheduledQueue] = useState<Array<{
+    articleId: string;
+    headline: string;
+    category: string;
+    district?: string | null;
+    scope?: string;
+    scheduledFor: string;
+    createdAt: string;
+    status: 'pending' | 'published' | 'cancelled';
+    publishedAt?: string;
+  }>>([]);
+  const [isTogglingAutoPublish, setIsTogglingAutoPublish] = useState(false);
+  const [nowTimestamp, setNowTimestamp] = useState(Date.now());
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterScope, setFilterScope] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -546,6 +561,140 @@ export default function YouTubeMonitorPage() {
     }
   }
 
+  // Live seconds ticker for countdown timers
+  useEffect(() => {
+    const ticker = setInterval(() => {
+      setNowTimestamp(Date.now());
+    }, 1000);
+    return () => clearInterval(ticker);
+  }, []);
+
+  const handleToggleAutoPublish = async (override?: boolean) => {
+    const nextState = override !== undefined ? override : !autoPublishEnabled;
+    setIsTogglingAutoPublish(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) throw new Error('Not authenticated.');
+
+      const res = await fetch('/api/newsroom/auto-publish', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          action: 'toggle',
+          enabled: nextState,
+          delay_minutes: autoPublishDelayMinutes,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to update auto-publish state.');
+      }
+
+      const data = await res.json();
+      setAutoPublishEnabled(Boolean(data.enabled));
+      setFeedback({
+        type: 'success',
+        text: data.enabled
+          ? `⚡ Autonomous Auto-Approval ENABLED! Stories will auto-publish after ${autoPublishDelayMinutes} minutes with immediate advance email alert.`
+          : '⚪ Manual Approval Mode ENABLED. All stories require manual click to approve and publish.',
+      });
+      setTimeout(() => setFeedback(null), 6000);
+    } catch (err: any) {
+      setFeedback({
+        type: 'error',
+        text: err.message || 'Could not update auto-publish setting.',
+      });
+      setTimeout(() => setFeedback(null), 5000);
+    } finally {
+      setIsTogglingAutoPublish(false);
+    }
+  };
+
+  const handlePublishNow = async (articleId: string) => {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) throw new Error('Not authenticated.');
+
+      const res = await fetch('/api/newsroom/auto-publish', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          action: 'publish_now',
+          article_id: articleId,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to publish story.');
+      }
+
+      setScheduledQueue((prev) =>
+        prev.map((item) => (item.articleId === articleId ? { ...item, status: 'published' } : item))
+      );
+      setFeedback({
+        type: 'success',
+        text: '🚀 Story published live to the public website immediately!',
+      });
+      setTimeout(() => setFeedback(null), 4000);
+      loadData();
+    } catch (err: any) {
+      setFeedback({
+        type: 'error',
+        text: err.message || 'Publish now failed.',
+      });
+      setTimeout(() => setFeedback(null), 4000);
+    }
+  };
+
+  const handleCancelAutoPublish = async (articleId: string) => {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) throw new Error('Not authenticated.');
+
+      const res = await fetch('/api/newsroom/auto-publish', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          action: 'cancel',
+          article_id: articleId,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to cancel auto-publish.');
+      }
+
+      setScheduledQueue((prev) =>
+        prev.map((item) => (item.articleId === articleId ? { ...item, status: 'cancelled' } : item))
+      );
+      setFeedback({
+        type: 'success',
+        text: '🛑 Auto-publish cancelled. Story kept safely in Review queue.',
+      });
+      setTimeout(() => setFeedback(null), 4000);
+    } catch (err: any) {
+      setFeedback({
+        type: 'error',
+        text: err.message || 'Cancel auto-publish failed.',
+      });
+      setTimeout(() => setFeedback(null), 4000);
+    }
+  };
+
   async function loadData() {
     setLoading(true);
     try {
@@ -593,6 +742,13 @@ export default function YouTubeMonitorPage() {
         if (Array.isArray(dData.recentDiscoveries)) {
           setDiscoveredArticles(dData.recentDiscoveries);
         }
+        if (dData.autoPublish) {
+          setAutoPublishEnabled(Boolean(dData.autoPublish.enabled));
+          setAutoPublishDelayMinutes(Number(dData.autoPublish.delayMinutes) || 5);
+          if (Array.isArray(dData.autoPublish.scheduledQueue)) {
+            setScheduledQueue(dData.autoPublish.scheduledQueue);
+          }
+        }
       }
 
       if (settingsRes.ok) {
@@ -610,6 +766,15 @@ export default function YouTubeMonitorPage() {
         }
         if (sData.beat_quotas) {
           setBeatQuotas((prev) => ({ ...prev, ...sData.beat_quotas }));
+        }
+        if (sData.auto_publish_enabled !== undefined) {
+          setAutoPublishEnabled(Boolean(sData.auto_publish_enabled));
+        }
+        if (sData.auto_publish_delay_minutes !== undefined) {
+          setAutoPublishDelayMinutes(Number(sData.auto_publish_delay_minutes) || 5);
+        }
+        if (Array.isArray(sData.scheduled_queue)) {
+          setScheduledQueue(sData.scheduled_queue);
         }
       }
 
@@ -1231,6 +1396,26 @@ export default function YouTubeMonitorPage() {
             {isDiscovering ? 'Discovering News...' : 'Discover News Now'}
           </Button>
 
+          {/* Automatic Approval & Publishing Mode Toggle Button */}
+          <button
+            type="button"
+            onClick={() => handleToggleAutoPublish()}
+            disabled={isTogglingAutoPublish}
+            className={`flex-1 sm:flex-initial justify-center inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg border transition shadow-2xs cursor-pointer disabled:opacity-50 ${
+              autoPublishEnabled
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500 shadow-emerald-900/30'
+                : 'bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
+            }`}
+            title={
+              autoPublishEnabled
+                ? 'Autonomous Auto-Approval is ACTIVE: Stories auto-publish after 5 minutes with advance email alert. Click to switch to manual approval.'
+                : 'Autonomous Auto-Approval is OFF: Click to enable automatic approval with 5-minute advance email alert buffer.'
+            }
+          >
+            <span className={`w-2 h-2 rounded-full ${autoPublishEnabled ? 'bg-emerald-200 animate-ping' : 'bg-slate-400'}`} />
+            <span>{autoPublishEnabled ? '⚡ Auto-Approval: ON (5m Delay)' : '⚪ Auto-Approval: OFF (Manual)'}</span>
+          </button>
+
           <Link
             href="/articles?status=review"
             className="flex-1 sm:flex-initial justify-center inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition shadow-2xs"
@@ -1282,9 +1467,16 @@ export default function YouTubeMonitorPage() {
               <span className="text-[11px] font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/50 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800/40">
                 ~65% Regional Ground Priority
               </span>
-              <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/50 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-800/40">
-                100% Pending Approval (0 Auto-Publish)
-              </span>
+              {autoPublishEnabled ? (
+                <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60 px-2.5 py-0.5 rounded-md border border-emerald-300 dark:border-emerald-700 flex items-center gap-1.5 shadow-2xs">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  Auto-Publish Active ({autoPublishDelayMinutes}m Advance Mail • 0 Manual Approval)
+                </span>
+              ) : (
+                <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/50 px-2 py-0.5 rounded-md border border-amber-200 dark:border-amber-800/40">
+                  100% Pending Approval (Manual Review Required)
+                </span>
+              )}
               <button
                 type="button"
                 onClick={() => {
@@ -1430,55 +1622,131 @@ export default function YouTubeMonitorPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {discoveredArticles.map((art) => (
-              <div
-                key={art.id}
-                className="rounded-xl border border-slate-200 dark:border-slate-800 p-3.5 flex flex-col justify-between hover:border-purple-300 dark:hover:border-purple-800 transition bg-slate-50/50 dark:bg-slate-950/40"
-              >
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-[11px] gap-2">
-                    <span className="font-bold px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300">
-                      {art.category}
-                    </span>
-                    {art.district && (
-                      <span className="font-semibold text-slate-600 dark:text-slate-400">
-                        📍 {art.district}
-                      </span>
-                    )}
-                  </div>
-                  <Link
-                    href={`/articles/${art.id}`}
-                    className="font-bold text-xs text-slate-900 dark:text-slate-100 hover:text-purple-600 dark:hover:text-purple-300 line-clamp-2 leading-snug"
-                  >
-                    {art.title}
-                  </Link>
-                </div>
+            {discoveredArticles.map((art) => {
+              const scheduledItem = scheduledQueue.find((item) => item.articleId === art.id);
+              const isScheduledPending = scheduledItem && scheduledItem.status === 'pending';
+              const remainingSec = isScheduledPending
+                ? Math.max(0, Math.floor((new Date(scheduledItem.scheduledFor).getTime() - nowTimestamp) / 1000))
+                : 0;
+              const isAutoPublished = art.status === 'published' || scheduledItem?.status === 'published';
+              const isCancelled = scheduledItem?.status === 'cancelled';
 
-                <div className="pt-2 mt-2 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between text-[11px]">
-                  <div className="truncate max-w-[160px] text-slate-500 dark:text-slate-400">
-                    {art.source_url ? (
-                      <a
-                        href={art.source_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:underline text-indigo-600 dark:text-indigo-400 font-medium"
-                        title={art.source_name || art.source_url}
-                      >
-                        🌐 {art.source_name || 'Source Link'} ↗
-                      </a>
-                    ) : (
-                      <span>{art.source_name || 'Web Intelligence'}</span>
+              return (
+                <div
+                  key={art.id}
+                  className={`rounded-xl border p-3.5 flex flex-col justify-between transition ${
+                    isScheduledPending && remainingSec > 0
+                      ? 'border-emerald-500/50 dark:border-emerald-600/50 bg-emerald-50/20 dark:bg-emerald-950/20 shadow-xs'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 hover:border-purple-300 dark:hover:border-purple-800'
+                  }`}
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-[11px] gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300">
+                          {art.category}
+                        </span>
+                        {art.district && (
+                          <span className="font-semibold text-slate-600 dark:text-slate-400">
+                            📍 {art.district}
+                          </span>
+                        )}
+                      </div>
+                      {art.status === 'published' ? (
+                        <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
+                          LIVE
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold text-slate-400">
+                          Review
+                        </span>
+                      )}
+                    </div>
+                    <Link
+                      href={`/articles/${art.id}`}
+                      className="font-bold text-xs text-slate-900 dark:text-slate-100 hover:text-purple-600 dark:hover:text-purple-300 line-clamp-2 leading-snug"
+                    >
+                      {art.title}
+                    </Link>
+
+                    {/* Auto-Publish Grace Period Active Countdown Banner */}
+                    {isScheduledPending && remainingSec > 0 && (
+                      <div className="p-2 rounded-lg bg-emerald-950/40 border border-emerald-800/60 my-2 flex items-center justify-between text-[11px]">
+                        <div className="flex items-center gap-1.5 font-bold text-emerald-400">
+                          <span className="animate-spin">⏳</span>
+                          <span>Auto-Publishing in {Math.floor(remainingSec / 60)}m {remainingSec % 60}s</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handlePublishNow(art.id)}
+                            className="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold cursor-pointer"
+                            title="Publish immediately without waiting for remaining timer"
+                          >
+                            Publish Now
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleCancelAutoPublish(art.id)}
+                            className="px-2 py-0.5 rounded bg-red-950/80 hover:bg-red-900 border border-red-800 text-red-300 text-[10px] font-bold cursor-pointer"
+                            title="Cancel automatic publishing and keep in review queue"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {isAutoPublished && (
+                      <div className="px-2 py-1 rounded-lg bg-emerald-900/20 border border-emerald-800/30 my-1.5 flex items-center gap-1.5 text-[11px] text-emerald-500 font-semibold">
+                        <span>✓</span>
+                        <span>Auto-Approved &amp; Published Live</span>
+                      </div>
+                    )}
+
+                    {isCancelled && (
+                      <div className="px-2 py-1 rounded-lg bg-slate-800/60 border border-slate-700/50 my-1.5 flex items-center gap-1.5 text-[11px] text-slate-400 font-medium">
+                        <span>🛑</span>
+                        <span>Auto-Publish Cancelled (Manual Review)</span>
+                      </div>
                     )}
                   </div>
-                  <Link
-                    href={`/articles/${art.id}/edit`}
-                    className="px-2.5 py-1 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-bold text-[11px] transition shrink-0"
-                  >
-                    Review &amp; Publish →
-                  </Link>
+
+                  <div className="pt-2 mt-2 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between text-[11px]">
+                    <div className="truncate max-w-[160px] text-slate-500 dark:text-slate-400">
+                      {art.source_url ? (
+                        <a
+                          href={art.source_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="hover:underline text-indigo-600 dark:text-indigo-400 font-medium"
+                          title={art.source_name || art.source_url}
+                        >
+                          🌐 {art.source_name || 'Source Link'} ↗
+                        </a>
+                      ) : (
+                        <span>{art.source_name || 'Web Intelligence'}</span>
+                      )}
+                    </div>
+                    {art.status === 'published' ? (
+                      <Link
+                        href={`/articles/${art.id}`}
+                        className="px-2.5 py-1 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] transition shrink-0"
+                      >
+                        View Live ↗
+                      </Link>
+                    ) : (
+                      <Link
+                        href={`/articles/${art.id}/edit`}
+                        className="px-2.5 py-1 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-bold text-[11px] transition shrink-0"
+                      >
+                        Review &amp; Publish →
+                      </Link>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

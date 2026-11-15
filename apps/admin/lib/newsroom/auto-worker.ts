@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { runYouTubeHourlySync } from './youtube-monitor';
-import { runAutonomousNewsDiscovery } from './autonomous-discovery';
+import { runAutonomousNewsDiscovery, processPendingAutoPublishes } from './autonomous-discovery';
 
 let hasStarted = false;
 let timerId: NodeJS.Timeout | null = null;
@@ -42,6 +42,10 @@ function scheduleNextRun(service: any, delayMs: number) {
         await runYouTubeHourlySync(service, { autoPublish: false }).catch((err) =>
           console.error('[AutoNewsWorker] Broadcast surveillance sync error:', err)
         );
+        // 3. Process any pending auto-publishes whose 5-min grace window has completed
+        await processPendingAutoPublishes(service).catch((err) =>
+          console.error('[AutoNewsWorker] Auto-publish processor error:', err)
+        );
       }
       const nextDelay = Math.max(60_000, settings.intervalMinutes * 60_000);
       scheduleNextRun(service, nextDelay);
@@ -79,6 +83,9 @@ export function initBackgroundNewsWorker() {
         );
         await runYouTubeHourlySync(service, { autoPublish: false }).catch((err) =>
           console.error('[AutoNewsWorker] Initial broadcast sync error:', err)
+        );
+        await processPendingAutoPublishes(service).catch((err) =>
+          console.error('[AutoNewsWorker] Initial auto-publish processor error:', err)
         );
       }
       const nextDelay = Math.max(60_000, settings.intervalMinutes * 60_000);

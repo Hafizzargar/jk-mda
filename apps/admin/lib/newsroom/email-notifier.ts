@@ -13,6 +13,22 @@ export interface NewsApprovalAlertParams {
   dashboardUrl?: string;
 }
 
+export interface AutoApprovedAlertParams {
+  articleId: string;
+  headline: string;
+  summary: string;
+  category: string;
+  scope: string;
+  division?: string;
+  district?: string | null;
+  platform?: string;
+  sourceName: string;
+  sourceUrl?: string | null;
+  scheduledLiveAt: Date | string;
+  delayMinutes?: number;
+  dashboardUrl?: string;
+}
+
 let cachedTransporter: Transporter | null = null;
 
 function getEmailTransporter(): Transporter | null {
@@ -179,6 +195,176 @@ export async function sendNewsApprovalAlert(params: NewsApprovalAlertParams): Pr
       );
     } else {
       console.error('[EmailNotifier] Failed to send editorial alert email:', err);
+    }
+    return false;
+  }
+}
+
+/**
+ * Sends a real-time auto-approval notification email to the editor/owner
+ * when an article is automatically approved by the autonomous engine.
+ * Notifies the owner that the news will be publicly displayed after the 5-minute buffer.
+ */
+export async function sendAutoApprovedEmailAlert(params: AutoApprovedAlertParams): Promise<boolean> {
+  const transporter = getEmailTransporter();
+  if (!transporter) return false;
+
+  const editorEmail =
+    process.env.NEWSROOM_EDITOR_EMAIL?.trim() ||
+    process.env.TEST_EMAIL_RECIPIENT?.trim() ||
+    process.env.SMTP_USER?.trim() ||
+    'hafezzargar987@gmail.com';
+
+  let sender = process.env.SMTP_FROM?.trim();
+  if (!sender || !sender.includes('@')) {
+    sender = `"KJIN Editorial Intelligence" <${process.env.SMTP_USER || 'hafezzargar987@gmail.com'}>`;
+  }
+  const defaultDashboardUrl =
+    process.env.ADMIN_URL ||
+    process.env.NEXT_PUBLIC_ADMIN_URL ||
+    'http://localhost:3001/newsroom/youtube';
+
+  const actionUrl = params.dashboardUrl || defaultDashboardUrl;
+  const now = new Date();
+  const timeIST = now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+  const scheduledTime = new Date(params.scheduledLiveAt);
+  const scheduledTimeIST = scheduledTime.toLocaleString('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true,
+  });
+
+  const delayMinutes = params.delayMinutes ?? 5;
+  const divisionBadge = params.division || 'Jammu & Kashmir';
+  const districtBadge = params.district ? ` • ${params.district}` : '';
+  const scopeBadge = params.scope || 'State';
+  const platformName = params.platform || 'Autonomous Web Intelligence Radar';
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #060a12; color: #f8fafc; margin: 0; padding: 24px; }
+    .container { max-width: 600px; margin: 0 auto; background-color: #0b1324; border: 1px solid #1e293b; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.5); }
+    .header { background: linear-gradient(135deg, #022c22 0%, #064e3b 50%, #0f172a 100%); padding: 24px 28px; border-bottom: 1px solid #065f46; }
+    .badge { display: inline-block; padding: 4px 10px; background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 9999px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+    .title-h1 { font-size: 20px; font-weight: 800; color: #ffffff; line-height: 1.35; margin: 8px 0; }
+    .content { padding: 28px; }
+    .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+    .tag { display: inline-block; padding: 3px 8px; background-color: #1e293b; color: #38bdf8; border-radius: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; font-family: monospace; }
+    .countdown-box { background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(6, 78, 59, 0.2) 100%); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 16px; margin: 18px 0; }
+    .countdown-title { font-size: 13px; font-weight: 800; color: #34d399; display: flex; align-items: center; gap: 6px; }
+    .countdown-desc { font-size: 12.5px; color: #cbd5e1; margin-top: 6px; line-height: 1.5; }
+    .summary-box { background-color: #020617; border-left: 4px solid #10b981; border-radius: 4px 8px 8px 4px; padding: 16px; margin: 18px 0; font-size: 13.5px; line-height: 1.6; color: #cbd5e1; font-style: italic; }
+    .details-table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 12.5px; }
+    .details-table td { padding: 8px 0; border-bottom: 1px solid #1e293b; color: #94a3b8; }
+    .details-table td.val { text-align: right; font-weight: 600; color: #f1f5f9; }
+    .cta-wrap { text-align: center; margin: 28px 0 16px 0; }
+    .cta-button { display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #059669 0%, #047857 100%); color: #ffffff !important; text-decoration: none; border-radius: 10px; font-size: 14px; font-weight: 700; letter-spacing: 0.025em; box-shadow: 0 4px 14px rgba(5, 150, 105, 0.4); }
+    .footer { padding: 20px; background-color: #020617; border-top: 1px solid #1e293b; text-align: center; font-size: 11px; color: #64748b; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <span class="badge">⚡ Auto-Approved • Live in ${delayMinutes} Minutes</span>
+      <div style="font-size: 12px; font-family: monospace; color: #94a3b8;">KJIN AUTONOMOUS INTELLIGENCE RADAR</div>
+      <h1 class="title-h1">${escapeHtml(params.headline)}</h1>
+    </div>
+
+    <div class="content">
+      <div class="countdown-box">
+        <div class="countdown-title">
+          <span>⏳</span>
+          <span>SCHEDULED LIVE BROADCAST: ${scheduledTimeIST} IST</span>
+        </div>
+        <div class="countdown-desc">
+          This story was <strong>automatically approved</strong> under Autonomous Auto-Publish Mode.
+          It will be publicly displayed on the website after a <strong>${delayMinutes}-minute safety buffer</strong> (at ${scheduledTimeIST}).
+          No manual approval action is needed for it to go live.
+        </div>
+      </div>
+
+      <div class="tags">
+        <span class="tag">SCOPE: ${escapeHtml(scopeBadge)}</span>
+        <span class="tag">BEAT: ${escapeHtml(divisionBadge)}${escapeHtml(districtBadge)}</span>
+        <span class="tag">CATEGORY: ${escapeHtml(params.category)}</span>
+      </div>
+
+      <div class="summary-box">
+        “${escapeHtml(params.summary)}”
+      </div>
+
+      <table class="details-table">
+        <tr>
+          <td>Approval Mode</td>
+          <td class="val" style="color: #34d399;">Automatic (0 Manual Approval Needed)</td>
+        </tr>
+        <tr>
+          <td>Display Countdown</td>
+          <td class="val">${delayMinutes} Minutes Grace Period</td>
+        </tr>
+        <tr>
+          <td>Goes Live At</td>
+          <td class="val" style="color: #38bdf8;">${scheduledTimeIST} IST</td>
+        </tr>
+        <tr>
+          <td>Territory / District</td>
+          <td class="val">${escapeHtml(divisionBadge)}${escapeHtml(districtBadge)}</td>
+        </tr>
+        <tr>
+          <td>Source</td>
+          <td class="val">${escapeHtml(params.sourceName)}</td>
+        </tr>
+        <tr>
+          <td>Discovered Time</td>
+          <td class="val">${timeIST} IST</td>
+        </tr>
+      </table>
+
+      <div class="cta-wrap">
+        <a href="${actionUrl}" class="cta-button" target="_blank">
+          Open Radar Dashboard (Inspect / Cancel) →
+        </a>
+      </div>
+
+      <p style="text-align: center; font-size: 11px; color: #64748b; margin-top: 12px;">
+        To cancel publication or publish immediately before the ${delayMinutes} minutes elapse, open your newsroom dashboard.
+      </p>
+    </div>
+
+    <div class="footer">
+      Kashmir &amp; Jammu Investigative Newsroom (KJIN)<br>
+      Autonomous Editorial Dispatch Desk • Auto-Publish Engine
+    </div>
+  </div>
+</body>
+</html>
+  `;
+
+  try {
+    const info = await transporter.sendMail({
+      from: sender,
+      to: editorEmail,
+      subject: `⚡ [Auto-Approved • Goes Live in ${delayMinutes} Mins] ${params.headline}`,
+      text: `KJIN Autonomous Newsroom — Auto-Approval Notification\n\nHeadline: ${params.headline}\nScope: ${params.scope} | Beat: ${params.category} | Region: ${divisionBadge}${districtBadge}\n\nSummary: ${params.summary}\n\nStatus: Auto-Approved without manual intervention.\nDisplay Schedule: Goes live publicly on the website in ${delayMinutes} minutes (at ${scheduledTimeIST} IST).\n\nInspect or cancel in your dashboard:\n${actionUrl}\n\nDiscovered: ${timeIST} IST`,
+      html: htmlContent,
+    });
+
+    console.log(`[EmailNotifier] Auto-approval alert sent to ${editorEmail} (MessageId: ${info.messageId})`);
+    return true;
+  } catch (err: any) {
+    if (err?.code === 'EAUTH' || err?.responseCode === 535) {
+      cachedTransporter = null;
+      console.error(
+        '[EmailNotifier] Google SMTP Auth Failed (535 BadCredentials). Update SMTP_PASS.'
+      );
+    } else {
+      console.error('[EmailNotifier] Failed to send auto-approval alert email:', err);
     }
     return false;
   }

@@ -2,6 +2,8 @@ import { authorizeEmployeeRequest, isEmployeeAuthorization } from '@/lib/employe
 import {
   runAutonomousNewsDiscovery,
   getDailyRegionalStats,
+  getAutoPublishConfig,
+  processPendingAutoPublishes,
   KJIN_REGIONAL_TARGETS,
 } from '@/lib/newsroom/autonomous-discovery';
 
@@ -41,7 +43,10 @@ export async function GET(request: Request) {
       return auth;
     }
 
-    const [dailyStats, recentResult] = await Promise.all([
+    // Proactively process any pending auto-publishes whose 5-min grace window elapsed
+    await processPendingAutoPublishes(auth.service).catch(() => null);
+
+    const [dailyStats, recentResult, autoPublishConfig] = await Promise.all([
       getDailyRegionalStats(auth.service),
       auth.service
         .from('articles')
@@ -49,6 +54,7 @@ export async function GET(request: Request) {
         .or('author_display_name.eq.KJIN AI Discovery,status.eq.review')
         .order('created_at', { ascending: false })
         .limit(12),
+      getAutoPublishConfig(auth.service),
     ]);
 
     return Response.json({
@@ -64,7 +70,14 @@ export async function GET(request: Request) {
         maxDailyTotal: dailyStats.targetOverview.maxDailyTotal,
         remainingToday: Math.max(0, dailyStats.targetOverview.preferredOperatingTarget - dailyStats.totalDiscoveredToday),
         scheduleMinutes: 60,
-        policy: '100% Pending Approval (0 Auto-Publish)',
+        policy: autoPublishConfig.enabled
+          ? `Auto-Publish Active (${autoPublishConfig.delayMinutes}m Grace • Advance Email Alert)`
+          : '100% Pending Approval (0 Auto-Publish)',
+      },
+      autoPublish: {
+        enabled: autoPublishConfig.enabled,
+        delayMinutes: autoPublishConfig.delayMinutes,
+        scheduledQueue: autoPublishConfig.queue,
       },
       regions: dailyStats.regions,
       beats: KJIN_REGIONAL_TARGETS.map((b) => ({

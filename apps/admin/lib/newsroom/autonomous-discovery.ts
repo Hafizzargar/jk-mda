@@ -28,7 +28,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { generateSlug } from './gemini-drafter.ts';
 import { getCanonicalCategory } from '../taxonomy-options.ts';
-import { sendNewsApprovalAlert } from './email-notifier.ts';
+import { sendNewsApprovalAlert, sendAutoApprovedEmailAlert } from './email-notifier.ts';
 import {
   isGeminiInCooldown,
   tripCircuitBreaker,
@@ -936,6 +936,323 @@ export function isBreakingNewsEvent(headline: string, summary: string, explicitF
   return criticalKeywords.some((kw) => combined.includes(kw));
 }
 
+export interface ScheduledAutoPublishItem {
+  articleId: string;
+  headline: string;
+  category: string;
+  district?: string | null;
+  scope?: string;
+  scheduledFor: string;
+  createdAt: string;
+  status: 'pending' | 'published' | 'cancelled';
+  publishedAt?: string;
+}
+
+export interface AutoPublishConfig {
+  enabled: boolean;
+  delayMinutes: number;
+  queue: ScheduledAutoPublishItem[];
+}
+
+const activeAutoPublishTimers = new Map<string, NodeJS.Timeout>();
+
+/**
+ * Retrieves the current auto-publish configuration from site_settings.
+ */
+export async function getAutoPublishConfig(service: any): Promise<AutoPublishConfig> {
+  try {
+    const { data: row } = await service
+      .from('site_settings')
+      .select('value')
+      .eq('key', 'newsroom_auto_pilot')
+      .maybeSingle();
+
+    const enabled = Boolean(row?.value?.auto_publish_enabled);
+    const delayMinutes = Math.max(1, Number(row?.value?.auto_publish_delay_minutes) || 5);
+    const queue: ScheduledAutoPublishItem[] = Array.isArray(row?.value?.scheduled_queue)
+      ? row.value.scheduled_queue
+      : [];
+
+    return { enabled, delayMinutes, queue };
+  } catch {
+    return { enabled: false, delayMinutes: 5, queue: [] };
+  }
+}
+
+/**
+ * Marks a scheduled item in site_settings.newsroom_auto_pilot queue as published or cancelled.
+ */
+export async function markScheduledQueueStatus(
+  service: any,
+  articleId: string,
+  newStatus: 'published' | 'cancelled'
+) {
+  try {
+    const { data: row } = await service
+      .from('site_settings')
+      .select('value')
+      .eq('key', 'newsroom_auto_pilot')
+      .maybeSingle();
+
+    if (row?.value) {
+      const queue: ScheduledAutoPublishItem[] = Array.isArray(row.value.scheduled_queue)
+        ? row.value.scheduled_queue
+        : [];
+      const updatedQueue = queue.map((item) =>
+        item.articleId === articleId
+          ? {
+              ...item,
+              status: newStatus,
+              publishedAt: newStatus === 'published' ? new Date().toISOString() : item.publishedAt,
+            }
+          : item
+      );
+
+      await service.from('site_settings').update({
+        value: {
+          ...row.value,
+          scheduled_queue: updatedQueue.slice(-60),
+        },
+        updated_at: new Date().toISOString(),
+      }).eq('key', 'newsroom_auto_pilot');
+    }
+  } catch (err) {
+    console.warn('[AutoPublish] Could not update scheduled queue in site_settings:', err);
+  }
+}
+
+/**
+ * Executes the final publication of an auto-approved article after its grace period elapses.
+ */
+export async function executeAutoPublishArticle(
+  service: any,
+  articleId: string,
+  publisherId?: string | null
+): Promise<{ success: boolean; articleId: string; error?: string }> {
+  try {
+    const timer = activeAutoPublishTimers.get(articleId);
+    if (timer) {
+      clearTimeout(timer);
+      activeAutoPublishTimers.delete(articleId);
+    }
+
+    const { data: article, error: fetchErr } = await service
+      .from('articles')
+      .select('id, title, status, author_id')
+      .eq('id', articleId)
+      .single();
+
+    if (fetchErr || !article) {
+      return { success: false, articleId, error: fetchErr?.message || 'Article not found' };
+    }
+
+    if (article.status === 'published') {
+      await markScheduledQueueStatus(service, articleId, 'published');
+      return { success: true, articleId };
+    }
+
+    let finalPublisherId = publisherId || article.author_id;
+    if (!finalPublisherId) {
+      const { data: owners } = await service
+        .from('profiles')
+        .select('id')
+        .in('role_key', ['owner', 'superadmin', 'admin'])
+        .limit(1);
+      finalPublisherId = owners?.[0]?.id || null;
+    }
+
+    const nowIso = new Date().toISOString();
+    const { error: updateErr } = await service
+      .from('articles')
+      .update({
+        status: 'published',
+        published_at: nowIso,
+        published_by: finalPublisherId,
+        updated_at: nowIso,
+      })
+      .eq('id', articleId);
+
+    if (updateErr) {
+      console.error(`[AutoPublish] Failed to publish article ${articleId}:`, updateErr);
+      return { success: false, articleId, error: updateErr.message };
+    }
+
+    // Insert audit log
+    await service.from('audit_logs').insert({
+      actor_profile_id: finalPublisherId,
+      action: 'article.auto_published',
+      target_type: 'article',
+      target_id: articleId,
+      result: 'success',
+      details: {
+        reason: 'Autonomous auto-approval grace period elapsed (5-min window completed)',
+        headline: article.title,
+      },
+    }).catch(() => null);
+
+    await markScheduledQueueStatus(service, articleId, 'published');
+    console.log(`[AutoPublish] ✅ Successfully published story "${article.title}" (ID: ${articleId})`);
+    return { success: true, articleId };
+  } catch (err: any) {
+    console.error(`[AutoPublish] Unexpected error executing auto-publish for ${articleId}:`, err);
+    return { success: false, articleId, error: err.message };
+  }
+}
+
+/**
+ * Cancels a pending auto-publish schedule for an article.
+ */
+export async function cancelArticleAutoPublish(
+  service: any,
+  articleId: string
+): Promise<boolean> {
+  const timer = activeAutoPublishTimers.get(articleId);
+  if (timer) {
+    clearTimeout(timer);
+    activeAutoPublishTimers.delete(articleId);
+  }
+  await markScheduledQueueStatus(service, articleId, 'cancelled');
+  console.log(`[AutoPublish] 🛑 Cancelled auto-publish for article ID: ${articleId}`);
+  return true;
+}
+
+/**
+ * Checks for any pending scheduled articles whose grace period has completed and publishes them.
+ */
+export async function processPendingAutoPublishes(
+  service: any
+): Promise<{ processed: number; publishedIds: string[] }> {
+  try {
+    const { data: row } = await service
+      .from('site_settings')
+      .select('value')
+      .eq('key', 'newsroom_auto_pilot')
+      .maybeSingle();
+
+    if (!row?.value?.scheduled_queue || !Array.isArray(row.value.scheduled_queue)) {
+      return { processed: 0, publishedIds: [] };
+    }
+
+    const now = new Date();
+    const queue: ScheduledAutoPublishItem[] = row.value.scheduled_queue;
+    const matureItems = queue.filter(
+      (item) => item.status === 'pending' && new Date(item.scheduledFor) <= now
+    );
+
+    const publishedIds: string[] = [];
+    for (const item of matureItems) {
+      const res = await executeAutoPublishArticle(service, item.articleId);
+      if (res.success) {
+        publishedIds.push(item.articleId);
+      }
+    }
+
+    return { processed: matureItems.length, publishedIds };
+  } catch (err) {
+    console.warn('[AutoPublish] Error in processPendingAutoPublishes:', err);
+    return { processed: 0, publishedIds: [] };
+  }
+}
+
+/**
+ * Schedules an auto-approved article for publication after delayMinutes and dispatches advance email alert.
+ */
+export async function scheduleArticleAutoPublish(
+  service: any,
+  params: {
+    articleId: string;
+    headline: string;
+    summary: string;
+    category: string;
+    scope: string;
+    division: string;
+    district?: string | null;
+    sourceName: string;
+    sourceUrl?: string | null;
+    delayMinutes?: number;
+    authorId?: string | null;
+  }
+): Promise<ScheduledAutoPublishItem> {
+  const delayMinutes = params.delayMinutes ?? 5;
+  const scheduledTime = new Date(Date.now() + delayMinutes * 60 * 1000);
+  const scheduledItem: ScheduledAutoPublishItem = {
+    articleId: params.articleId,
+    headline: params.headline,
+    category: params.category,
+    district: params.district,
+    scope: params.scope,
+    scheduledFor: scheduledTime.toISOString(),
+    createdAt: new Date().toISOString(),
+    status: 'pending',
+  };
+
+  // 1. Persist to scheduled_queue in site_settings.newsroom_auto_pilot
+  try {
+    const { data: row } = await service
+      .from('site_settings')
+      .select('value')
+      .eq('key', 'newsroom_auto_pilot')
+      .maybeSingle();
+
+    const existingQueue: ScheduledAutoPublishItem[] = Array.isArray(row?.value?.scheduled_queue)
+      ? row.value.scheduled_queue
+      : [];
+    const mergedValue = {
+      ...(row?.value || {}),
+      scheduled_queue: [...existingQueue, scheduledItem].slice(-60),
+    };
+
+    await service.from('site_settings').upsert({
+      key: 'newsroom_auto_pilot',
+      value: mergedValue,
+      description: 'Newsroom YouTube Autonomous Surveillance Auto-Pilot schedule configuration and beat quotas',
+      updated_at: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.warn('[AutoPublish] Error saving to scheduled queue in site_settings:', err);
+  }
+
+  // 2. Dispatch real-time auto-approval advance email alert (sent BEFORE the 5 minutes)
+  Promise.resolve(
+    sendAutoApprovedEmailAlert({
+      articleId: params.articleId,
+      headline: params.headline,
+      summary: params.summary,
+      category: params.category,
+      scope: params.scope,
+      division: params.division,
+      district: params.district,
+      platform: 'Autonomous Web Intelligence Radar',
+      sourceName: params.sourceName,
+      sourceUrl: params.sourceUrl,
+      scheduledLiveAt: scheduledTime,
+      delayMinutes,
+      dashboardUrl: `${process.env.ADMIN_URL || process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001'}/newsroom/youtube`,
+    })
+  ).catch((mailErr) => {
+    console.warn('[AutoPublish] Error dispatching auto-approval email alert:', mailErr);
+  });
+
+  // 3. Arm in-memory timer for graceful execution after 5 minutes
+  const timer = setTimeout(async () => {
+    try {
+      await executeAutoPublishArticle(service, params.articleId, params.authorId);
+    } catch (err) {
+      console.error('[AutoPublish] Timer execution failed:', err);
+    } finally {
+      activeAutoPublishTimers.delete(params.articleId);
+    }
+  }, delayMinutes * 60 * 1000);
+
+  activeAutoPublishTimers.set(params.articleId, timer);
+
+  console.log(
+    `[AutoPublish] ⏰ Scheduled auto-publish for "${params.headline}" in ${delayMinutes}m (at ${scheduledTime.toISOString()})`
+  );
+
+  return scheduledItem;
+}
+
 /**
  * Executes a single grounded autonomous news discovery cycle using Google Search grounding.
  */
@@ -953,6 +1270,8 @@ export async function runAutonomousNewsDiscovery(
   beat?: string;
   district?: string;
   sourceUrl?: string;
+  autoApproved?: boolean;
+  autoPublishDelayMinutes?: number;
   reason?: string;
   dailyStats?: RegionalDailyStats;
 }> {
@@ -1354,23 +1673,48 @@ Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with k
 
     console.log(`[AutonomousDiscovery] Successfully queued in Pending Approval: "${cleanHeadline}" (ID: ${newArticle.id}, Beat: ${beat.shortName}${isBreaking ? ' [BREAKING OVERRIDE]' : ''})`);
 
-    // Dispatch real-time editorial email alert to editor
-    Promise.resolve(
-      sendNewsApprovalAlert({
+    // Check if Autonomous Auto-Approval & Auto-Publish Mode is enabled
+    const autoPublishConfig = await getAutoPublishConfig(service);
+
+    if (autoPublishConfig.enabled) {
+      // Auto-Approval Mode is Active:
+      // Schedule auto-publication in 5 minutes and dispatch immediate advance email alert (BEFORE the 5 mins)
+      await scheduleArticleAutoPublish(service, {
+        articleId: newArticle.id,
         headline: cleanHeadline,
         summary: cleanSummary,
         category: canonicalCat.name,
         scope: effectiveScope,
         division: beat.name,
         district: finalDistrict,
-        platform: 'Autonomous Web Intelligence Radar',
-        sourceName: sourceName,
-        sourceUrl: sourceUrl,
-        dashboardUrl: `${process.env.ADMIN_URL || process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001'}/newsroom/youtube`,
-      })
-    ).catch((mailErr) => {
-      console.warn('[AutonomousDiscovery] Email alert dispatch error:', mailErr);
-    });
+        sourceName,
+        sourceUrl,
+        delayMinutes: autoPublishConfig.delayMinutes,
+        authorId,
+      });
+      console.log(
+        `[AutonomousDiscovery] ⚡ Auto-Approved & queued for live display in ${autoPublishConfig.delayMinutes}m: "${cleanHeadline}"`
+      );
+    } else {
+      // Manual Approval Mode (Standard):
+      // Dispatch real-time editorial email alert to editor for manual review
+      Promise.resolve(
+        sendNewsApprovalAlert({
+          headline: cleanHeadline,
+          summary: cleanSummary,
+          category: canonicalCat.name,
+          scope: effectiveScope,
+          division: beat.name,
+          district: finalDistrict,
+          platform: 'Autonomous Web Intelligence Radar',
+          sourceName: sourceName,
+          sourceUrl: sourceUrl,
+          dashboardUrl: `${process.env.ADMIN_URL || process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001'}/newsroom/youtube`,
+        })
+      ).catch((mailErr) => {
+        console.warn('[AutonomousDiscovery] Email alert dispatch error:', mailErr);
+      });
+    }
 
     // Record initial version
     if (authorId) {
@@ -1397,6 +1741,8 @@ Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with k
       beat: beat.name,
       district: finalDistrict || undefined,
       sourceUrl,
+      autoApproved: autoPublishConfig.enabled,
+      autoPublishDelayMinutes: autoPublishConfig.delayMinutes,
       dailyStats: updatedStats,
     };
   } catch (err: any) {
