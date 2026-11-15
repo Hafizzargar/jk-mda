@@ -1027,10 +1027,8 @@ export async function synthesizeEnglishNewsDraft(input: {
     });
   }
 
-  // 9. Curate clean, high-resolution editorial imagery with content-aware semantic matching
+  // 9. Curate clean text-only news output (No images needed)
   const canonicalCat = getCanonicalCategory(category, scope);
-  const contextForImage = `${headline} ${summary} ${cleanDesc} ${cleanTranscript}`;
-  const { featuredImage, alternatives } = getRecommendedEditorialImage(scope, canonicalCat.name, contextForImage);
 
   return {
     headline: headline.slice(0, 240),
@@ -1040,8 +1038,8 @@ export async function synthesizeEnglishNewsDraft(input: {
     district: null,
     division: region || 'General',
     body_markdown: reportBody,
-    featured_image_url: featuredImage,
-    alternative_images: alternatives,
+    featured_image_url: null, // Text-only news: no images needed
+    alternative_images: [],
   };
 }
 

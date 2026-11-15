@@ -501,7 +501,7 @@ Output your response strictly as valid JSON with keys:
         district: effectiveScope === 'National' || effectiveScope === 'International' ? null : (parsed.district || null),
         keyFacts: Array.isArray(parsed.keyFacts) ? parsed.keyFacts : [parsed.headline || video.title],
         articleBodyMarkdown: finalArticleBody,
-        featured_image_url: recommendedImage.featuredImage,
+        featured_image_url: null, // Text-only news: no images needed
         uncertaintyNotes: parsed.uncertaintyNotes || (transcript ? 'Based on verified transcript translated to English.' : 'Based on broadcast intelligence; verified in English.'),
         is_priority_eligible: parsed.is_priority_eligible !== false,
         rejection_reason: parsed.rejection_reason || null,
@@ -533,7 +533,7 @@ Output your response strictly as valid JSON with keys:
     district: synthesized.district,
     keyFacts: [synthesized.headline, `Aired by ${source.channel_name}`, `Classification: ${synthesized.scope}`],
     articleBodyMarkdown: synthesized.body_markdown,
-    featured_image_url: synthesized.featured_image_url,
+    featured_image_url: null, // Text-only news: no images needed
     uncertaintyNotes: transcript ? 'Analyzed via transcript excerpt.' : 'Broadcast intelligence translated to English from source audio.',
   };
 }
@@ -626,7 +626,7 @@ async function autoPublishEligibleDraft(
     const baseSlug = generateSlug(cleanTitle);
     const finalSlug = `${baseSlug || 'news-report'}-${Date.now().toString(36).slice(-4)}`;
     const finalDistrict = isLocalScope ? (analysis.district || null) : null;
-    const finalImageUrl = analysis.featured_image_url || video.thumbnailUrl || null;
+    const finalImageUrl: string | null = null; // Text-only news: no images needed
 
     // Step 1: Insert article as draft (enforced by DB trigger)
     const { data: newArticle, error: articleErr } = await service

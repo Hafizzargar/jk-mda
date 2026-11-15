@@ -1878,18 +1878,12 @@ Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with k
       return { success: false, skipped: true, reason: `Duplicate story skipped: "${cleanHeadline}".`, dailyStats: stats };
     }
 
-    // 8. Controlled Regional Taxonomy & Image Matching
+    // 8. Controlled Regional Taxonomy & Text-Only News Mandate (No Images Needed)
     const canonicalCat = isCivicTopic || parsed.category?.toLowerCase() === 'problems'
       ? { name: 'Problems', slug: 'problems' }
       : getCanonicalCategory(parsed.category || 'General', effectiveScope);
-    const imageContext = `${cleanHeadline} ${cleanSummary} ${canonicalCat.name}`;
-    const { featuredImage, hasConfidentMatch } = getRecommendedEditorialImage(
-      effectiveScope,
-      canonicalCat.name,
-      imageContext,
-      false // Strict: Only attach image if there is an exact thematic subject match; otherwise publish as clean text-only editorial
-    );
-    const finalFeaturedImage = hasConfidentMatch ? featuredImage : null;
+    // User mandate: Any news created needs NO images — 100% text-only news
+    const finalFeaturedImage: string | null = null;
 
     const sourceUrl = groundedUrl || parsed.sourceUrl || 'https://kjin.in';
     const sourceName = groundedTitle || parsed.sourceName || 'Grounded Web Surveillance';

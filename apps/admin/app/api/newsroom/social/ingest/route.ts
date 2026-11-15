@@ -178,8 +178,8 @@ Output strictly valid JSON with keys:
         district: parsed.district || null,
         keyFacts: Array.isArray(parsed.keyFacts) ? parsed.keyFacts : [],
         articleBodyMarkdown: (parsed.articleBodyMarkdown || '').trim(),
-        featured_image_url: recommended.featuredImage,
-        alternative_images: recommended.alternatives,
+        featured_image_url: null, // Text-only news: no images needed
+        alternative_images: [],
         is_priority_eligible: isEligible,
         rejection_reason: parsed.rejection_reason || null,
       },

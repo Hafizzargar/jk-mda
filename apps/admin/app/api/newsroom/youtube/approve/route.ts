@@ -128,19 +128,10 @@ export async function POST(request: Request) {
     // Ensure 100% clean, professional article script with correct dateline and preserved markdown formatting
     const linkFreeContent = sanitizeDatelineForScope(cleanEditorialText(rawContent, true), effectiveScope, targetDateline);
 
-    // Priority for featured image:
-    // If client explicitly sent featured_image_url (including "" or null to indicate text-only without image), respect it!
-    // Only fall back to video thumbnail/AI image if featured_image_url was omitted (undefined).
+    // Text-only news default: No images needed unless explicitly specified by editor
     let finalImageUrl: string | null = null;
-    if (featured_image_url !== undefined) {
-      finalImageUrl = typeof featured_image_url === 'string' && featured_image_url.trim().length > 0
-        ? featured_image_url.trim()
-        : null;
-    } else {
-      finalImageUrl =
-        videoRecord.ai_analysis?.featured_image_url ||
-        videoRecord.thumbnail_url ||
-        null;
+    if (featured_image_url && typeof featured_image_url === 'string' && featured_image_url.trim().length > 0) {
+      finalImageUrl = featured_image_url.trim();
     }
 
     const { data: profileRecord } = await service

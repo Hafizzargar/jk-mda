@@ -1238,11 +1238,9 @@ export default function YouTubeMonitorPage() {
     // District: ONLY preserved if Local J&K, otherwise empty
     setEditDistrict(scope === 'Local News (J&K)' ? (video.ai_analysis?.district?.toLowerCase() || '') : '');
 
-    // Curate clean editorial news image with content-aware topic matching (e.g. Doctor, Forest, Aviation)
-    const contextForImage = `${video.proposed_headline || video.title} ${video.proposed_summary || video.description || ''}`;
-    const recommended = getRecommendedEditorialImage(scope, canonical.name, contextForImage);
-    setImageAlternatives(recommended.alternatives);
-    const initialImage = video.ai_analysis?.featured_image_url || recommended.featuredImage || '';
+    // Text-only news mandate: default to no image
+    setImageAlternatives([]);
+    const initialImage = video.ai_analysis?.featured_image_url || '';
     setEditImage(initialImage);
 
     // Ensure 100% link-free script without hashtags
@@ -1637,6 +1635,11 @@ export default function YouTubeMonitorPage() {
                 {isTestingEmail ? '...' : '📧 Test Alert'}
               </button>
             </div>
+
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1.5 rounded-lg border border-emerald-200/80 dark:border-emerald-900/50">
+              <span>📝</span>
+              <span>Format: 100% Text-Only News (No Images Needed)</span>
+            </div>
           </div>
 
           {/* Card 3: Instant On-Demand Triggers */}
@@ -1933,6 +1936,9 @@ export default function YouTubeMonitorPage() {
                         )}
                         <span className="font-bold text-[9.5px] px-1.5 py-0.5 rounded bg-cyan-100 text-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800">
                           ⚡ &lt; 6h Fresh
+                        </span>
+                        <span className="font-bold text-[9.5px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                          📝 Text-Only
                         </span>
                       </div>
                       {art.status === 'published' ? (
