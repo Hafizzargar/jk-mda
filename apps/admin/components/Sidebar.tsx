@@ -156,6 +156,17 @@ export function Sidebar({
             },
           ],
         },
+        {
+          name: 'Voices & Editorial Desk',
+          description: 'Autonomous AI & manual Op-Eds and citizen corridor testimonies',
+          href: '/settings/editorial-records',
+          icon: '🗣️',
+          badge: 'Live',
+          badgeColor:
+            'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40 font-bold',
+          roles: ['owner', 'superadmin', 'admin', 'editor'],
+          exact: true,
+        },
       ],
     },
     {
@@ -226,15 +237,6 @@ export function Sidebar({
               badge: 'Curator',
               badgeColor:
                 'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/40 font-bold',
-            },
-            {
-              name: 'Voices & Editorial Desk',
-              href: '/settings/editorial-records',
-              icon: '🗣️',
-              roles: ['owner', 'superadmin', 'admin'],
-              badge: 'Live',
-              badgeColor:
-                'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40 font-bold',
             },
             {
               name: 'Brand & Identity',
