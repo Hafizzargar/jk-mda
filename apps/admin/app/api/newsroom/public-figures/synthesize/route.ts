@@ -13,6 +13,8 @@ interface PublicFigureItem {
   topics: string[];
   searchQuery?: string;
   bio?: string;
+  trackingMode?: 'auto' | 'manual';
+  approvalPolicy?: 'mandatory_review' | 'auto_publish';
 }
 
 export async function POST(request: Request) {
@@ -177,6 +179,9 @@ Return your synthesis strictly as valid JSON inside \`\`\`json ... \`\`\` with s
       .slice(0, 80);
     const uniqueSlug = `${baseSlug}-${Math.random().toString(36).substring(2, 6)}`;
 
+    // Enforce strict editorial review by default; political figure statements require human verification
+    const shouldAutoPublish = autoPublish === true && figure.approvalPolicy === 'auto_publish';
+
     // 5. Store in Supabase: either directly published or into review queue
     const articlePayload = {
       title: generatedStory.title,
@@ -191,8 +196,8 @@ Return your synthesis strictly as valid JSON inside \`\`\`json ... \`\`\` with s
       source_name: generatedStory.sourceName || `${figure.name} Public Briefing`,
       source_url: generatedStory.sourceUrl || 'https://www.kjcpl.site/en',
       created_at: new Date().toISOString(),
-      published_at: autoPublish ? new Date().toISOString() : null,
-      published_by: autoPublish ? user.id : null,
+      published_at: shouldAutoPublish ? new Date().toISOString() : null,
+      published_by: shouldAutoPublish ? user.id : null,
     };
 
     const { data: inserted, error: insertErr } = await service
@@ -211,7 +216,7 @@ Return your synthesis strictly as valid JSON inside \`\`\`json ... \`\`\` with s
 
     let isLive = false;
     let liveUrl: string | null = null;
-    if (autoPublish) {
+    if (shouldAutoPublish) {
       const { error: pubErr } = await service
         .from('articles')
         .update({

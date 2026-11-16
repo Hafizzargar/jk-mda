@@ -20,6 +20,8 @@ interface PublicFigureItem {
   bio?: string;
   isMonitored?: boolean;
   priority?: 'high' | 'normal';
+  trackingMode?: 'auto' | 'manual';
+  approvalPolicy?: 'mandatory_review' | 'auto_publish';
   socialHandles?: {
     facebook?: string;
     youtube?: string;
@@ -40,11 +42,31 @@ interface SynthesizedArticle {
   liveUrl: string | null;
 }
 
+interface ReviewQueueItem {
+  id: string;
+  title: string;
+  slug: string;
+  category: string;
+  district: string | null;
+  excerpt: string | null;
+  content: string | null;
+  source_name: string | null;
+  source_url: string | null;
+  created_at: string;
+  status: string;
+}
+
 export default function PublicFiguresDeskPage() {
   const router = useRouter();
   const [figures, setFigures] = useState<PublicFigureItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [regionFilter, setRegionFilter] = useState('all');
+
+  // Review Queue state (Human Approval)
+  const [reviewQueue, setReviewQueue] = useState<ReviewQueueItem[]>([]);
+  const [loadingQueue, setLoadingQueue] = useState(false);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
+  const [isScanningRadar, setIsScanningRadar] = useState(false);
 
   // Quick Synthesizer state
   const [selectedFigureId, setSelectedFigureId] = useState<string>('mehraj-malik');
@@ -66,11 +88,36 @@ export default function PublicFiguresDeskPage() {
   const [formTopics, setFormTopics] = useState('');
   const [formSearchQuery, setFormSearchQuery] = useState('');
   const [formBio, setFormBio] = useState('');
+  const [formTrackingMode, setFormTrackingMode] = useState<'auto' | 'manual'>('auto');
+  const [formApprovalPolicy, setFormApprovalPolicy] = useState<'mandatory_review' | 'auto_publish'>('mandatory_review');
   const [isSavingFigure, setIsSavingFigure] = useState(false);
 
   useEffect(() => {
     loadFigures();
+    loadReviewQueue();
   }, []);
+
+  async function loadReviewQueue() {
+    try {
+      setLoadingQueue(true);
+      const { data, error } = await supabase
+        .from('articles')
+        .select('id, title, slug, category, district, excerpt, content, source_name, source_url, created_at, status')
+        .eq('status', 'review')
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) {
+        console.warn('Queue fetch error:', error);
+      } else {
+        setReviewQueue((data as ReviewQueueItem[]) || []);
+      }
+    } catch (err) {
+      console.error('Queue error:', err);
+    } finally {
+      setLoadingQueue(false);
+    }
+  }
 
   async function loadFigures() {
     try {
@@ -109,7 +156,7 @@ export default function PublicFiguresDeskPage() {
   async function handleSynthesize(figureOverrideId?: string) {
     const targetId = figureOverrideId || selectedFigureId;
     if (!targetId) {
-      toast.error('Please select a public figure to monitor or synthesize.');
+      toast.error('Please select a public representative.');
       return;
     }
 
@@ -148,14 +195,97 @@ export default function PublicFiguresDeskPage() {
         if (json.article.isLive) {
           toast.success(`Published live on website: "${json.article.title}"`);
         } else {
-          toast.success(`Synthesized story queued for review: "${json.article.title}"`);
+          toast.success(`Draft added to Editorial Approval Queue: "${json.article.title}"`);
         }
+        await loadReviewQueue();
       }
     } catch (err: any) {
       console.error('Synthesis error:', err);
       toast.error(err.message || 'Gemini synthesis failed.');
     } finally {
       setIsSynthesizing(false);
+    }
+  }
+
+  async function handleApproveAndPublish(articleId: string) {
+    try {
+      setApprovingId(articleId);
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) return;
+
+      const { error } = await supabase
+        .from('articles')
+        .update({
+          status: 'published',
+          published_at: new Date().toISOString(),
+          published_by: sessionData.session.user.id,
+        })
+        .eq('id', articleId);
+
+      if (error) throw error;
+
+      toast.success('Approved! Story is now live on broadsheet website.');
+      setReviewQueue((prev) => prev.filter((a) => a.id !== articleId));
+    } catch (err: any) {
+      console.error('Approval error:', err);
+      toast.error('Failed to approve story: ' + (err.message || ''));
+    } finally {
+      setApprovingId(null);
+    }
+  }
+
+  async function handleRejectDraft(articleId: string) {
+    if (!confirm('Discard and delete this AI draft from the review queue?')) return;
+    try {
+      const { error } = await supabase.from('articles').delete().eq('id', articleId);
+      if (error) throw error;
+      toast.info('Draft discarded.');
+      setReviewQueue((prev) => prev.filter((a) => a.id !== articleId));
+    } catch (err: any) {
+      console.error('Delete error:', err);
+      toast.error('Failed to discard draft.');
+    }
+  }
+
+  async function handleRunAutonomousRadarScan() {
+    try {
+      setIsScanningRadar(true);
+      const autoFigures = figures.filter((f) => f.trackingMode !== 'manual');
+      const targetFigures = autoFigures.length > 0 ? autoFigures.slice(0, 3) : figures.slice(0, 3);
+
+      toast.info(`Scanning latest statements & speeches for ${targetFigures.length} monitored leaders...`);
+
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) return;
+
+      let scannedCount = 0;
+      for (const fig of targetFigures) {
+        try {
+          const res = await fetch('/api/newsroom/public-figures/synthesize', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${sessionData.session.access_token}`,
+            },
+            body: JSON.stringify({
+              figureId: fig.id,
+              autoPublish: false, // Strictly false: MUST require human approval
+            }),
+          });
+          if (res.ok) {
+            scannedCount++;
+          }
+        } catch (err) {
+          console.warn(`Error scanning for ${fig.name}:`, err);
+        }
+      }
+
+      toast.success(`Autonomous radar scan completed. ${scannedCount} new drafts queued for human approval!`);
+      await loadReviewQueue();
+    } catch (err: any) {
+      toast.error('Radar scan error: ' + err.message);
+    } finally {
+      setIsScanningRadar(false);
     }
   }
 
@@ -180,6 +310,7 @@ export default function PublicFiguresDeskPage() {
       const liveUrl = `https://www.kjcpl.site/en/${catSlug}/${generatedArticle.slug}`;
       setGeneratedArticle({ ...generatedArticle, isLive: true, liveUrl });
       toast.success('Article published live to broadsheet website!');
+      await loadReviewQueue();
     } catch (err: any) {
       console.error('Publish error:', err);
       toast.error('Failed to publish article.');
@@ -197,6 +328,8 @@ export default function PublicFiguresDeskPage() {
     setFormTopics('Healthcare, Public Works, Roads, Electricity, Assembly');
     setFormSearchQuery('');
     setFormBio('');
+    setFormTrackingMode('auto');
+    setFormApprovalPolicy('mandatory_review');
     setShowModal(true);
   }
 
@@ -211,6 +344,8 @@ export default function PublicFiguresDeskPage() {
     setFormTopics(f.topics.join(', '));
     setFormSearchQuery(f.searchQuery || '');
     setFormBio(f.bio || '');
+    setFormTrackingMode(f.trackingMode || 'auto');
+    setFormApprovalPolicy(f.approvalPolicy || 'mandatory_review');
     setShowModal(true);
   }
 
@@ -246,6 +381,8 @@ export default function PublicFiguresDeskPage() {
                 topics: topicsArray,
                 searchQuery: formSearchQuery.trim() || undefined,
                 bio: formBio.trim() || undefined,
+                trackingMode: formTrackingMode,
+                approvalPolicy: formApprovalPolicy,
               }
             : f
         );
@@ -267,6 +404,8 @@ export default function PublicFiguresDeskPage() {
           bio: formBio.trim() || undefined,
           isMonitored: true,
           priority: 'high',
+          trackingMode: formTrackingMode,
+          approvalPolicy: formApprovalPolicy,
         };
         updatedList = [newFigure, ...figures];
       }
@@ -302,31 +441,41 @@ export default function PublicFiguresDeskPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
-      {/* Page Header */}
+      {/* 1. Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-6 border-b border-slate-200 dark:border-slate-800">
         <div>
           <div className="flex items-center gap-3 mb-1">
             <span className="text-3xl">🎙️</span>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-              Public Figures & Leaders Desk
+              Public Figures &amp; Leaders Desk
             </h1>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
               Gemini AI Grounding
             </span>
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+              🛡️ Mandatory Human Approval
+            </span>
           </div>
           <p className="text-sm text-slate-600 dark:text-slate-400 max-w-3xl">
-            Autonomous statement tracking, viral video speech synthesis, and verified newsroom reporting on public representatives like Mehraj Malik, regional MLAs, MPs, and civic leaders across Jammu, Kashmir, Chenab Valley, Pir Panjal, and Ladakh.
+            Autonomous statement tracking, viral speech synthesis, and verified newsroom reporting on public representatives like Mehraj Malik, regional MLAs, MPs, and civic leaders across J&amp;K.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <Button
+            variant="secondary"
+            onClick={handleRunAutonomousRadarScan}
+            isLoading={isScanningRadar}
+          >
+            🛰️ Scan Radar ({figures.filter(f => f.trackingMode !== 'manual').length} Auto Leaders)
+          </Button>
           <Button variant="primary" onClick={openAddModal}>
             + Add Public Figure
           </Button>
         </div>
       </div>
 
-      {/* Quick Synthesizer Card */}
+      {/* 2. Quick Synthesizer Card */}
       <div className="bg-gradient-to-br from-slate-900 to-slate-950 text-white rounded-2xl p-6 sm:p-8 shadow-xl border border-slate-800 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -334,7 +483,7 @@ export default function PublicFiguresDeskPage() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
             <div>
               <h2 className="text-lg font-bold flex items-center gap-2">
-                <span>⚡</span> Instant Statement & Speech Synthesizer
+                <span>⚡</span> Instant Statement &amp; Speech Synthesizer
               </h2>
               <p className="text-xs text-slate-400">
                 Transform a leader's raw speech, press briefing note, video quote, or latest web statement into a balanced KJCPL news article.
@@ -397,32 +546,45 @@ export default function PublicFiguresDeskPage() {
             />
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2 border-t border-slate-800/80">
-            <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300 select-none">
+          {/* Safety & Approval Policy */}
+          <div className="bg-slate-800/80 p-4 rounded-xl border border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div className="space-y-0.5">
+              <span className="font-bold text-amber-300 flex items-center gap-1.5">
+                <span>🛡️</span>
+                <span>Editorial Safety &amp; Mandatory Human Approval</span>
+              </span>
+              <p className="text-slate-400 text-[11px]">
+                Statements from political representatives carry defamation and legal sensitivities. Synthesized stories are safely queued below for an editor to verify fact-checks before going live.
+              </p>
+            </div>
+
+            <label className="flex items-center gap-2 cursor-pointer text-slate-300 shrink-0 select-none bg-slate-900/60 px-3 py-1.5 rounded-lg border border-slate-700">
               <input
                 type="checkbox"
                 checked={autoPublish}
                 onChange={(e) => setAutoPublish(e.target.checked)}
                 className="rounded border-slate-700 text-purple-600 focus:ring-purple-500 h-4 w-4 bg-slate-800"
               />
-              <span>
-                Publish live immediately to website (<span className="text-amber-400">Default: review queue</span>)
+              <span className="text-[11px] font-medium">
+                Direct Publish Live (<span className="text-red-400">Bypasses Review</span>)
               </span>
             </label>
+          </div>
 
+          <div className="flex items-center justify-end pt-2 border-t border-slate-800/80">
             <Button
               variant="primary"
               onClick={() => handleSynthesize()}
               isLoading={isSynthesizing}
               className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold px-6 py-2.5 shadow-lg shadow-purple-900/30"
             >
-              ⚡ Synthesize News Story with Gemini
+              ⚡ Synthesize Story with Gemini
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Generated Story Preview Drawer / Card */}
+      {/* 3. Generated Story Preview Drawer / Card */}
       {generatedArticle && (
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 sm:p-8 shadow-md border-2 border-purple-500/30 space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200 dark:border-slate-800">
@@ -437,7 +599,7 @@ export default function PublicFiguresDeskPage() {
                   </span>
                 ) : (
                   <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
-                    PENDING REVIEW
+                    PENDING EDITORIAL APPROVAL
                   </span>
                 )}
               </div>
@@ -449,7 +611,7 @@ export default function PublicFiguresDeskPage() {
             <div className="flex flex-wrap items-center gap-2">
               {!generatedArticle.isLive ? (
                 <Button variant="emerald" onClick={handlePublishGeneratedArticle}>
-                  🚀 Publish Live to Website
+                  ✅ Approve &amp; Publish Live
                 </Button>
               ) : (
                 <a
@@ -480,7 +642,7 @@ export default function PublicFiguresDeskPage() {
           {generatedArticle.claimsToVerify?.length > 0 && (
             <div className="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-xl border border-amber-200 dark:border-amber-900/50">
               <h4 className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300 mb-1.5">
-                Fact-Check & Verification Notes
+                Fact-Check &amp; Verification Notes
               </h4>
               <ul className="text-xs text-amber-900 dark:text-amber-200 space-y-1 list-disc list-inside">
                 {generatedArticle.claimsToVerify.map((c, i) => (
@@ -499,7 +661,125 @@ export default function PublicFiguresDeskPage() {
         </div>
       )}
 
-      {/* Monitored Figures Section */}
+      {/* 4. PENDING EDITORIAL APPROVAL QUEUE (Human-in-the-Loop) */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 dark:border-slate-800 space-y-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🛡️</span>
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+                Pending Editorial Approval Queue ({reviewQueue.length})
+              </h2>
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                Human Sign-off Required
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Political and leader drafts waiting for senior editor sign-off before publishing live to broadsheet.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={loadReviewQueue}
+              isLoading={loadingQueue}
+            >
+              🔄 Refresh Queue
+            </Button>
+          </div>
+        </div>
+
+        {loadingQueue ? (
+          <div className="text-center py-8 text-xs text-slate-400">Loading pending approval queue...</div>
+        ) : reviewQueue.length === 0 ? (
+          <div className="text-center py-10 bg-slate-50 dark:bg-slate-950/40 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+            <span className="text-3xl block mb-2">✅</span>
+            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+              All Public Figure Drafts Cleared
+            </p>
+            <p className="text-xs text-slate-400 max-w-sm mx-auto mt-1">
+              No drafts are currently waiting for sign-off. Synthesize a statement above or click "Scan Radar" to queue fresh leader speeches.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {reviewQueue.map((item) => (
+              <div
+                key={item.id}
+                className="p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/60 hover:border-purple-300 dark:hover:border-purple-900/50 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
+              >
+                <div className="space-y-2 max-w-3xl">
+                  <div className="flex items-center gap-2 flex-wrap text-[11px]">
+                    <span className="font-bold text-purple-700 dark:text-purple-400 uppercase tracking-wider">
+                      {item.category}
+                    </span>
+                    {item.district && (
+                      <>
+                        <span>•</span>
+                        <span className="px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold">
+                          📍 {item.district}
+                        </span>
+                      </>
+                    )}
+                    <span>•</span>
+                    <span className="text-slate-400">
+                      Drafted {new Date(item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                    {item.source_name && (
+                      <>
+                        <span>•</span>
+                        <span className="text-slate-500 italic">Source: {item.source_name}</span>
+                      </>
+                    )}
+                  </div>
+
+                  <h3 className="font-serif text-base sm:text-lg font-bold text-slate-900 dark:text-white leading-snug">
+                    {item.title}
+                  </h3>
+
+                  {item.excerpt && (
+                    <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                      {item.excerpt}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0 flex-wrap md:flex-col lg:flex-row">
+                  <Button
+                    variant="emerald"
+                    size="sm"
+                    onClick={() => handleApproveAndPublish(item.id)}
+                    disabled={approvingId === item.id}
+                    isLoading={approvingId === item.id}
+                  >
+                    ✅ Approve &amp; Publish Live
+                  </Button>
+
+                  <Link
+                    href={`/articles/${item.id}`}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 transition"
+                  >
+                    ✏️ Edit Draft
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={() => handleRejectDraft(item.id)}
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition cursor-pointer"
+                    title="Discard draft"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* 5. Monitored Figures Section */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
@@ -536,6 +816,9 @@ export default function PublicFiguresDeskPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {filteredFigures.map((figure) => {
               const isSelected = selectedFigureId === figure.id;
+              const isAuto = figure.trackingMode !== 'manual';
+              const needsReview = figure.approvalPolicy !== 'auto_publish';
+
               return (
                 <div
                   key={figure.id}
@@ -548,7 +831,7 @@ export default function PublicFiguresDeskPage() {
                   <div className="space-y-3">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="font-bold text-base text-slate-900 dark:text-white">
                             {figure.name}
                           </h3>
@@ -565,6 +848,24 @@ export default function PublicFiguresDeskPage() {
 
                       <span className="text-xs px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold shrink-0">
                         {figure.district || figure.region}
+                      </span>
+                    </div>
+
+                    {/* Mode Badges */}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                        isAuto
+                          ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300'
+                          : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                      }`}>
+                        {isAuto ? '🤖 Auto Radar' : '✋ Manual'}
+                      </span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                        needsReview
+                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300'
+                          : 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300'
+                      }`}>
+                        {needsReview ? '🛡️ Needs Human Approval' : '⚡ Auto-Publish'}
                       </span>
                     </div>
 
@@ -602,9 +903,9 @@ export default function PublicFiguresDeskPage() {
                         handleSynthesize(figure.id);
                       }}
                       isLoading={isSynthesizing && selectedFigureId === figure.id}
-                      className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold py-1.5 px-3"
+                      className="text-xs"
                     >
-                      ⚡ Scan & Draft
+                      ⚡ Synthesize News
                     </Button>
 
                     <div className="flex items-center gap-1">
@@ -613,8 +914,8 @@ export default function PublicFiguresDeskPage() {
                         onClick={() => setSelectedFigureId(figure.id)}
                         className={`text-xs px-2.5 py-1.5 rounded-lg font-medium transition cursor-pointer ${
                           isSelected
-                            ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 font-bold'
-                            : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                            ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 font-bold'
+                            : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800'
                         }`}
                       >
                         {isSelected ? '✓ Selected' : 'Select'}
@@ -622,7 +923,7 @@ export default function PublicFiguresDeskPage() {
                       <button
                         type="button"
                         onClick={() => openEditModal(figure)}
-                        className="text-xs p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg"
+                        className="text-xs p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg cursor-pointer"
                         title="Edit public figure profile"
                       >
                         ✏️
@@ -636,7 +937,7 @@ export default function PublicFiguresDeskPage() {
         )}
       </div>
 
-      {/* Add / Edit Public Figure Modal */}
+      {/* 6. Add / Edit Public Figure Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
           <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-xl w-full p-6 sm:p-8 shadow-2xl border border-slate-200 dark:border-slate-800 max-h-[90vh] overflow-y-auto space-y-5">
@@ -729,9 +1030,50 @@ export default function PublicFiguresDeskPage() {
                 </div>
               </div>
 
+              {/* AI Radar & Publishing Governance Settings */}
+              <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-xl border border-slate-200 dark:border-slate-700 space-y-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 block">
+                  🤖 Autonomous AI Tracking &amp; Publishing Policy
+                </span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      AI Tracking Mode
+                    </label>
+                    <select
+                      value={formTrackingMode}
+                      onChange={(e) => setFormTrackingMode(e.target.value as 'auto' | 'manual')}
+                      className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-900 dark:text-white"
+                    >
+                      <option value="auto">🤖 Auto Radar (Scans Web &amp; Social)</option>
+                      <option value="manual">✋ Manual Trigger Only</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Publishing Governance
+                    </label>
+                    <select
+                      value={formApprovalPolicy}
+                      onChange={(e) => setFormApprovalPolicy(e.target.value as 'mandatory_review' | 'auto_publish')}
+                      className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-900 dark:text-white"
+                    >
+                      <option value="mandatory_review">🛡️ Mandatory Review (Must Approve Before Live)</option>
+                      <option value="auto_publish">⚡ Autonomous Instant Publish (High Risk)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-amber-700 dark:text-amber-300 leading-tight">
+                  ⚠️ <strong>Editorial Safety:</strong> Statements from political figures often carry legal, communal, and defamation sensitivities. Keeping "Mandatory Review" guarantees human editorial sign-off before broadcast.
+                </p>
+              </div>
+
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Key Topics & Beats (Comma separated)
+                  Key Topics &amp; Beats (Comma separated)
                 </label>
                 <input
                   type="text"
@@ -757,7 +1099,7 @@ export default function PublicFiguresDeskPage() {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                  Biographical Context & Political Focus
+                  Biographical Context &amp; Political Focus
                 </label>
                 <textarea
                   rows={3}
