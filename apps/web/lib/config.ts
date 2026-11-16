@@ -4,7 +4,7 @@
 export const SITE_URL = (
   process.env.NEXT_PUBLIC_SITE_URL ||
   process.env.SITE_URL ||
-  'https://kjin.in'
+  'https://www.kjcpl.site'
 ).replace(/\/$/, '');
 
 export const SITE_NAME = 'KJCPL News Network';
