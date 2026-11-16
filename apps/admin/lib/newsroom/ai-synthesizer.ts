@@ -11,6 +11,7 @@
  */
 
 import { getCanonicalCategory } from '../taxonomy-options.ts';
+import { getOrderedKeyCascade, markKeyCooldown, markKeySuccess } from './gemini-keys.ts';
 
 export interface EditorialImageOption {
   url: string;
@@ -986,11 +987,11 @@ export async function synthesizeEnglishNewsDraft(input: {
   // 6. Resolve target dateline based on detected scope and location
   const targetDateline = determineDatelineForScope(scope, `${cleanTitle} ${cleanDesc} ${cleanTranscript}`);
 
-  // 7. Attempt Gemini AI Live Synthesis if API Key is configured
+  // 7. Attempt Gemini AI Live Synthesis with multi-key failover cascade
   let reportBody = '';
-  const apiKey = typeof process !== 'undefined' ? (process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY) : null;
+  const keyCascade = getOrderedKeyCascade();
 
-  if (apiKey) {
+  for (const apiKey of keyCascade) {
     try {
       const geminiResult = await executeGeminiInvestigativeSynthesis({
         apiKey,
@@ -1008,9 +1009,12 @@ export async function synthesizeEnglishNewsDraft(input: {
         if (geminiResult.summary) {
           summary = sanitizeDatelineForScope(geminiResult.summary, scope, targetDateline);
         }
+        markKeySuccess(apiKey);
+        break; // Successfully synthesized!
       }
     } catch (geminiErr) {
-      console.warn('[Synthesizer] Gemini AI call failed or timed out. Falling back to deterministic regional intelligence engine:', geminiErr);
+      markKeyCooldown(apiKey, 15);
+      console.warn('[Synthesizer] Key failed, attempting failover to next key in pool:', geminiErr);
     }
   }
 

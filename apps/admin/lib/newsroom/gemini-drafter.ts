@@ -5,10 +5,11 @@
  */
 
 import { generateObject } from 'ai';
-import { google } from '@ai-sdk/google';
+import { google, createGoogleGenerativeAI } from '@ai-sdk/google';
 import { z } from 'zod';
 import type { MatchedResponseResult } from './response-matcher.ts';
 import { isGeminiInCooldown } from './gemini-circuit-breaker.ts';
+import { getOrderedKeyCascade, markKeyCooldown, markKeySuccess } from './gemini-keys.ts';
 
 export interface DraftEventInput {
   headline: string;
@@ -103,8 +104,8 @@ STRICT EDITORIAL RULES:
 8. FACTUAL CONTEXT & CIVIC DEPTH:
 - Enrich reports with accurate factual context (e.g., NH-244 terrain context for accidents, project capacity for dams, seasonal harvest scale for horticulture) without bogging down the reader in bureaucratic ledgers.`;
 
-  // If running in development without an active Gemini API key, provide an intelligent deterministic fallback
-  if (!apiKey) {
+  const keyCascade = getOrderedKeyCascade();
+  if (keyCascade.length === 0) {
     return generateFallbackDraft(input);
   }
 
@@ -116,30 +117,42 @@ STRICT EDITORIAL RULES:
   }
 
   const selectedModel = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
-  try {
-    const result = await generateObject({
-      model: google(selectedModel),
-      prompt,
-      schema: DraftOutputZodSchema,
-    });
 
-    return result.object;
-  } catch (err: unknown) {
-    if (selectedModel !== 'gemini-flash-lite-latest') {
-      try {
-        const fallbackResult = await generateObject({
-          model: google('gemini-flash-lite-latest'),
-          prompt,
-          schema: DraftOutputZodSchema,
-        });
-        return fallbackResult.object;
-      } catch {
-        // Fall through to deterministic fallback
+  // Multi-key failover cascade: try each healthy key in the pool
+  for (const apiKey of keyCascade) {
+    const googleClient = createGoogleGenerativeAI({ apiKey });
+    try {
+      const result = await generateObject({
+        model: googleClient(selectedModel),
+        prompt,
+        schema: DraftOutputZodSchema,
+      });
+
+      markKeySuccess(apiKey);
+      return result.object;
+    } catch (err: unknown) {
+      // If primary model failed, try fast lite fallback on the same key
+      if (selectedModel !== 'gemini-flash-lite-latest') {
+        try {
+          const fallbackResult = await generateObject({
+            model: googleClient('gemini-flash-lite-latest'),
+            prompt,
+            schema: DraftOutputZodSchema,
+          });
+          markKeySuccess(apiKey);
+          return fallbackResult.object;
+        } catch {
+          // Continue to mark cooldown and try next key
+        }
       }
+
+      markKeyCooldown(apiKey, 15);
+      console.warn(`[GeminiDrafter] Key failed, attempting failover to next key in pool:`, err);
     }
-    console.warn('Gemini API call failed, using high-integrity fallback generator:', err);
-    return generateFallbackDraft(input);
   }
+
+  console.warn('[GeminiDrafter] All Gemini keys exhausted or rate-limited, using high-integrity fallback generator.');
+  return generateFallbackDraft(input);
 }
 
 function generateFallbackDraft(input: DraftEventInput): GeneratedDraftResult {
