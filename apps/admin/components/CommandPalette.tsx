@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAdmin } from './AdminShell';
+import { SITE_URL } from '@/lib/config';
 
 export interface CommandItem {
   id: string;
@@ -112,8 +113,8 @@ const COMMANDS: CommandItem[] = [
     id: 'public-site',
     title: 'Open Public Reader Website',
     category: 'External',
-    description: 'View the live Kashmir Journalist Information Network reader portal',
-    href: 'http://localhost:3000',
+    description: 'View the live KJCPL reader portal',
+    href: SITE_URL,
     icon: '🌐',
     badge: 'Live',
     external: true,

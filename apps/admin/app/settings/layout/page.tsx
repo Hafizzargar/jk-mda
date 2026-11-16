@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/Button';
+import { SITE_URL } from '@/lib/config';
 import {
   DEFAULT_HOMEPAGE_LAYOUT,
   HOMEPAGE_SECTION_META,
@@ -203,7 +204,7 @@ export default function HomepageLayoutBuilderPage() {
 
       setFeedback({
         type: 'success',
-        message: '✅ Homepage layout published live! Visit http://localhost:3000 to see your changes.',
+        message: `✅ Homepage layout published live! Visit ${SITE_URL} to see your changes.`,
       });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error saving layout';
@@ -782,7 +783,7 @@ export default function HomepageLayoutBuilderPage() {
             type="button"
             variant="secondary"
             size="sm"
-            href="http://localhost:3000/en"
+            href={`${SITE_URL}/en`}
             external
             icon="↗"
           >

@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase';
 import { DEFAULT_CURATION_SETTINGS, type HomepageCurationSettings } from '@/lib/curation';
 import { getDailyRotatedCorridors } from '@/lib/navbar';
 import { Button } from '@/components/Button';
+import { SITE_URL } from '@/lib/config';
 
 interface PublishedArticle {
   id: string;
@@ -402,7 +403,7 @@ export default function HomepageCuratorPage() {
             type="button"
             variant="secondary"
             size="sm"
-            href="http://localhost:3000/en"
+            href={`${SITE_URL}/en`}
             external
             icon="↗"
           >

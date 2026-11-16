@@ -10,6 +10,7 @@ import { ConfirmModal } from '@/components/ConfirmModal';
 import { Button } from '@/components/Button';
 import { toast } from '@/components/Toast';
 import { getCategorySlug } from '@/lib/taxonomy-options';
+import { SITE_URL } from '@/lib/config';
 
 type Article = {
   id: string;
@@ -360,7 +361,7 @@ export default function ArticleViewPage({ params }: { params?: Promise<{ id: str
 
         {article.status === 'published' && (
           <a
-            href={`http://localhost:3000/en/${getCategorySlug(article.category)}/${article.slug}`}
+            href={`${SITE_URL}/en/${getCategorySlug(article.category)}/${article.slug}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-xs font-semibold text-cyan-600 hover:text-cyan-700 hover:underline dark:text-cyan-400"
@@ -543,7 +544,7 @@ export default function ArticleViewPage({ params }: { params?: Promise<{ id: str
               {/* View on Website (for published articles) */}
               {article.status === 'published' && (
                 <Button
-                  href={`http://localhost:3000/en/${getCategorySlug(article.category)}/${article.slug}`}
+                  href={`${SITE_URL}/en/${getCategorySlug(article.category)}/${article.slug}`}
                   external
                   variant="cyan"
                   icon="🌐"

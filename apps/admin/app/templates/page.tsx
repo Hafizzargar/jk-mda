@@ -8,6 +8,7 @@ import { AVAILABLE_TEMPLATES, type TemplateDefinition, type TemplateId } from '@
 import { requiresMfa } from '@/lib/mfa';
 import { TemplateMockupPreview } from './TemplateMockupPreview';
 import { Button } from '@/components/Button';
+import { SITE_URL } from '@/lib/config';
 
 const ALLOWED_ROLES = ['owner', 'superadmin'];
 
@@ -394,13 +395,13 @@ export default function TemplatesManagementPage() {
             </div>
             <h2 className="text-2xl font-bold text-white">{activeTemplateName}</h2>
             <p className="text-sm text-slate-400">
-              Public visitors on <span className="text-slate-300 font-mono text-xs">kjin.in</span> and localhost are seeing this presentation layout.
+              Public visitors on <span className="text-slate-300 font-mono text-xs">kjcpl.site</span> are seeing this presentation layout.
             </p>
           </div>
 
           <div className="flex items-center gap-3">
             <Button
-              href="http://localhost:3000"
+              href={SITE_URL}
               external
               variant="secondary"
               size="md"
@@ -578,7 +579,7 @@ export default function TemplatesManagementPage() {
                   }`}
                 >
                   <Button
-                    href={`http://localhost:3000/?preview=${tmpl.id}`}
+                    href={`${SITE_URL}/?preview=${tmpl.id}`}
                     external
                     variant="secondary"
                     size="sm"

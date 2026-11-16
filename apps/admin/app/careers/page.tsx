@@ -13,6 +13,7 @@ import {
 } from '@/lib/careers';
 import { Button } from '@/components/Button';
 import { toast } from '@/components/Toast';
+import { SITE_URL } from '@/lib/config';
 
 export default function CareersAdminPage() {
   const router = useRouter();
@@ -404,7 +405,7 @@ export default function CareersAdminPage() {
 
         <div className="flex items-center gap-2">
           <a
-            href="http://localhost:3000/careers"
+            href={`${SITE_URL}/careers`}
             target="_blank"
             rel="noopener noreferrer"
             className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-stone-100 hover:bg-stone-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center gap-1.5 transition"
@@ -476,7 +477,7 @@ export default function CareersAdminPage() {
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 max-w-2xl">
-              Candidates applying on <a href="http://localhost:3000/careers" target="_blank" rel="noopener noreferrer" className="text-cyan-600 dark:text-cyan-400 underline font-medium">http://localhost:3000/careers</a> will be instructed to email their CV & resume to this address. Update or change it here anytime.
+              Candidates applying on <a href={`${SITE_URL}/careers`} target="_blank" rel="noopener noreferrer" className="text-cyan-600 dark:text-cyan-400 underline font-medium">{SITE_URL}/careers</a> will be instructed to email their CV & resume to this address. Update or change it here anytime.
             </p>
           </div>
 

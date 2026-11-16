@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { requiresMfa } from '@/lib/mfa';
 import { DEFAULT_FOOTER_CONTACT, type FooterContactSettings } from '@/lib/contact';
 import { Button } from '@/components/Button';
+import { SITE_URL } from '@/lib/config';
 
 export default function FooterSettingsPage() {
   const router = useRouter();
@@ -210,7 +211,7 @@ export default function FooterSettingsPage() {
               </Button>
             )}
             <Button
-              href="http://localhost:3000"
+              href={SITE_URL}
               external
               variant="secondary"
               size="md"

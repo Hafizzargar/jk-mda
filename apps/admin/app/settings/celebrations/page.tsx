@@ -13,6 +13,7 @@ import {
   type FestiveEffectType,
   type CelebrationStatus,
 } from '@/lib/festive';
+import { SITE_URL } from '@/lib/config';
 
 const EFFECT_OPTIONS: { id: FestiveEffectType; label: string; icon: string; description: string }[] = [
   {
@@ -503,7 +504,7 @@ export default function FestiveCelebrationsDesk() {
 
               {/* Public Website Preview Link */}
               <a
-                href="http://localhost:3000/en"
+                href={`${SITE_URL}/en`}
                 target="_blank"
                 rel="noreferrer"
                 className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 hover:border-slate-600 flex items-center gap-1.5 transition-all"

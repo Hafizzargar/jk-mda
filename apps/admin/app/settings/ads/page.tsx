@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import { requiresMfa } from '@/lib/mfa';
 import { Button } from '@/components/Button';
+import { SITE_URL } from '@/lib/config';
 import {
   DEFAULT_ADS_SETTINGS,
   type CustomAdsSettings,
@@ -642,7 +643,7 @@ export default function AdsSettingsPage() {
           )}
 
           <Button
-            href="http://localhost:3000"
+            href={SITE_URL}
             external
             variant="secondary"
             size="sm"

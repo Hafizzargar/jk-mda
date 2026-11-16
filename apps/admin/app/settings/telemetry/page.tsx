@@ -936,7 +936,7 @@ export default function TelemetrySettingsPage() {
                   </h3>
                 </div>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  The primary black alert ribbon displayed across the top of localhost:3000 broadsheet homepage.
+                  The primary black alert ribbon displayed across the top of the kjcpl.site broadsheet homepage.
                 </p>
               </div>
 

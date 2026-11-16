@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { sanitizeArticleHtml, markdownToHtml } from '@/lib/sanitize';
 import { Button } from '@/components/Button';
 import { getCategorySlug } from '@/lib/taxonomy-options';
+import { SITE_URL } from '@/lib/config';
 
 type ReviewArticle = {
   id: string;
@@ -221,7 +222,7 @@ export default function ArticleReviewPage() {
           <div className="flex items-center gap-2.5">
             {article.status === 'published' && article.slug && (
               <Button
-                href={`http://localhost:3000/en/${getCategorySlug(article.category)}/${article.slug}`}
+                href={`${SITE_URL}/en/${getCategorySlug(article.category)}/${article.slug}`}
                 external
                 variant="emerald"
                 size="md"

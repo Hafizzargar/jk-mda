@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { NotificationBell } from './NotificationBell';
+import { SITE_URL } from '@/lib/config';
 
 interface NavbarProps {
   onOpenMobile: () => void;
@@ -120,7 +121,7 @@ export function Navbar({
 
         {/* Live Public Site External Link */}
         <a
-          href="http://localhost:3000"
+          href={SITE_URL}
           target="_blank"
           rel="noopener noreferrer"
           title="View Live Reader Site"

@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/Button';
 import { useAdmin } from '@/components/AdminShell';
 import { getCategorySlug } from '@/lib/taxonomy-options';
+import { SITE_URL } from '@/lib/config';
 
 interface ViewAnalytics {
   overview: {
@@ -330,7 +331,7 @@ export default function AnalyticsPage() {
                   <td className="py-3 px-3 text-right">
                     <div className="flex items-center justify-end gap-2">
                       <a
-                        href={`http://localhost:3000/en/${getCategorySlug(article.category)}/${article.slug}`}
+                        href={`${SITE_URL}/en/${getCategorySlug(article.category)}/${article.slug}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         title="View story on reader site"
