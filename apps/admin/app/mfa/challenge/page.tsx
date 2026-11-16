@@ -21,6 +21,12 @@ function MFAChallengeForm() {
   const [isVerifying, setIsVerifying] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  // Email OTP via Nodemailer state
+  const [userEmail, setUserEmail] = useState<string>('');
+  const [isEmailOtp, setIsEmailOtp] = useState<boolean>(true);
+  const [isSendingOtp, setIsSendingOtp] = useState<boolean>(false);
+  const [otpSentFeedback, setOtpSentFeedback] = useState<string | null>(null);
+
   const verificationCode = digits.join('');
 
   // Lock window scroll and force dark theme on auth screens
@@ -99,6 +105,30 @@ function MFAChallengeForm() {
   const [isResetting, setIsResetting] = useState(false);
   const [recoveryFeedback, setRecoveryFeedback] = useState<string | null>(null);
 
+  const handleResendEmailOtp = async () => {
+    setIsSendingOtp(true);
+    setErrorMsg(null);
+    setOtpSentFeedback(null);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/auth/otp/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ email: userEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send verification code.');
+      setOtpSentFeedback(data.message || 'Fresh 6-digit code sent to your email.');
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to send code.');
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
   const handleRequestRecoveryCode = async () => {
     setIsSendingCode(true);
     setErrorMsg(null);
@@ -171,84 +201,24 @@ function MFAChallengeForm() {
           return;
         }
 
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role_key')
-          .eq('id', sessionData.session.user.id)
-          .single();
-
-        const role = profile?.role_key || 'author';
-        if (!requiresMfa(role)) {
-          const nextUrl = searchParams.get('next');
-          const destination = nextUrl && nextUrl.startsWith('/') && !nextUrl.startsWith('//') ? nextUrl : '/';
-          router.push(destination);
-          return;
-        }
-
-        const { data: aalData, error: aalError } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-        
-        if (aalError) {
-          setErrorMsg(aalError.message);
-          return;
-        }
-
-        const isReauth = searchParams.get('reauth') === 'true';
-
-        // Check whether user's TOTP authentication is fresh (< 15 mins)
-        let isFresh = false;
-        try {
-          const { data: sessionData } = await supabase.auth.getSession();
-          const token = sessionData.session?.access_token;
-          if (token) {
-            const raw = token.split('.')[1];
-            const base64 = raw.replace(/-/g, '+').replace(/_/g, '/');
-            const claims = JSON.parse(decodeURIComponent(atob(base64).split('').map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')));
-            const totpEntry = claims.amr?.find((m: { method: string; timestamp: number }) => m.method === 'totp' || m.method === 'mfa');
-            const freshThreshold = 900; // 15 minutes maximum freshness window
-            if (totpEntry && (Date.now() / 1000 - totpEntry.timestamp < freshThreshold)) {
-              isFresh = true;
-            }
-          }
-        } catch {
-          isFresh = false;
-        }
-
-        // Only auto-redirect if they are ALREADY AAL2 AND their TOTP is fresh AND not re-authenticating
-        if (aalData.currentLevel === 'aal2' && isFresh && !isReauth) {
-          setStatus('MFA is already verified. Redirecting...');
-          const nextUrl = searchParams.get('next');
-          // Ensure it is a relative path to prevent open redirects
-          if (nextUrl && nextUrl.startsWith('/') && !nextUrl.startsWith('//')) {
-            setTimeout(() => router.push(nextUrl), 300);
-          } else {
-            setTimeout(() => router.push('/'), 300);
-          }
-          return;
-        }
+        const email = sessionData.session.user.email || '';
+        setUserEmail(email);
 
         // Check actual enrolled factors from listFactors()
-        const { data: factorsData, error: factorsError } = await supabase.auth.mfa.listFactors();
-        if (factorsError) {
-          setErrorMsg(factorsError.message);
-          setStatus('');
-          return;
-        }
-
+        const { data: factorsData } = await supabase.auth.mfa.listFactors();
         const allFactors = [...(factorsData?.all ?? []), ...(factorsData?.totp ?? [])];
         const totpFactor = allFactors.find((f) => f.factor_type === 'totp' && f.status === 'verified');
-        if (!totpFactor) {
-          setStatus('MFA is not enrolled. Redirecting to setup...');
-          const search = typeof window !== 'undefined' ? window.location.search : '';
-          setTimeout(() => {
-            window.location.href = `/mfa/enroll${search}`;
-          }, 300);
-          return;
+        if (totpFactor) {
+          setFactorId(totpFactor.id);
+          setIsEmailOtp(false);
+        } else {
+          // Default to Email OTP via Nodemailer
+          setIsEmailOtp(true);
         }
 
-        setFactorId(totpFactor.id);
         setStatus('');
       } catch (err) {
-        setErrorMsg(err instanceof Error ? err.message : 'Failed to initialize MFA.');
+        setErrorMsg(err instanceof Error ? err.message : 'Failed to initialize verification.');
         setStatus('');
       }
     }
@@ -256,79 +226,83 @@ function MFAChallengeForm() {
     initChallenge();
   }, [router, searchParams]);
 
-
-
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!factorId || verificationCode.length !== 6) return;
+    if (verificationCode.length !== 6) return;
     
     setIsVerifying(true);
     setErrorMsg(null);
     
     try {
-      const challengeResponse = await supabase.auth.mfa.challenge({ factorId });
-      
-      if (challengeResponse.error) {
-        throw new Error('Authentication challenge failed. Please try again.');
-      }
-      
       const { data: { session } } = await supabase.auth.getSession();
-      
-      const verifyResponse = await fetch('/api/employees/mfa/verify', {
+
+      // 1. Try Email OTP verification first (Nodemailer code)
+      const otpVerifyRes = await fetch('/api/auth/otp/verify', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
         },
         body: JSON.stringify({
-          factorId,
-          challengeId: challengeResponse.data.id,
           code: verificationCode,
+          email: userEmail,
         }),
       });
-      
-      const verifyResult = await verifyResponse.json();
-      
-      if (!verifyResponse.ok) {
-        throw new Error(verifyResult.error ?? 'Invalid code. Please check your authenticator app and try again.');
-      }
-      
-      // The API returns the upgraded session. We MUST set it so the browser knows we are AAL2.
-      const newSession = verifyResult.data?.session || verifyResult.data;
-      if (newSession?.access_token && newSession?.refresh_token) {
-        await supabase.auth.setSession({
-          access_token: newSession.access_token,
-          refresh_token: newSession.refresh_token,
-        });
-      }
-      
-      // Verify the session actually became aal2
-      const { data: updatedSessionData, error: sessionError } = await supabase.auth.getSession();
-      const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-      
-      if (sessionError || !updatedSessionData.session || aalData?.currentLevel !== 'aal2') {
-        throw new Error('Session did not reach required security level.');
-      }
-      
-      setStatus('Verification successful! Redirecting...');
-      
-      // Dispatch security notification for 2FA session verification (survives page navigation)
-      const token = updatedSessionData.session?.access_token;
-      fetch('/api/auth/notify-login', {
-        method: 'POST',
-        keepalive: true,
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ email: updatedSessionData.session?.user?.email }),
-      }).catch(() => {});
 
-      const nextUrl = searchParams.get('next');
-      const target = nextUrl && nextUrl.startsWith('/') && !nextUrl.startsWith('//') && !nextUrl.startsWith('/auth') && nextUrl !== '/login' ? nextUrl : '/';
-      setTimeout(() => {
-        window.location.href = target;
-      }, 500);
+      if (otpVerifyRes.ok) {
+        setStatus('Verification successful! Redirecting to dashboard...');
+        const nextUrl = searchParams.get('next');
+        const target = nextUrl && nextUrl.startsWith('/') && !nextUrl.startsWith('//') && !nextUrl.startsWith('/auth') && nextUrl !== '/login' ? nextUrl : '/';
+        setTimeout(() => {
+          window.location.href = target;
+        }, 300);
+        return;
+      }
+
+      // 2. If factorId exists, try TOTP factor verification
+      if (factorId) {
+        const challengeResponse = await supabase.auth.mfa.challenge({ factorId });
+        if (challengeResponse.error) {
+          throw new Error('Authentication challenge failed. Please try again.');
+        }
+
+        const verifyResponse = await fetch('/api/employees/mfa/verify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({
+            factorId,
+            challengeId: challengeResponse.data.id,
+            code: verificationCode,
+          }),
+        });
+
+        const verifyResult = await verifyResponse.json();
+        if (!verifyResponse.ok) {
+          throw new Error(verifyResult.error ?? 'Invalid verification code.');
+        }
+
+        const newSession = verifyResult.data?.session || verifyResult.data;
+        if (newSession?.access_token && newSession?.refresh_token) {
+          await supabase.auth.setSession({
+            access_token: newSession.access_token,
+            refresh_token: newSession.refresh_token,
+          });
+        }
+
+        setStatus('Verification successful! Redirecting to dashboard...');
+        const nextUrl = searchParams.get('next');
+        const target = nextUrl && nextUrl.startsWith('/') && !nextUrl.startsWith('//') && !nextUrl.startsWith('/auth') && nextUrl !== '/login' ? nextUrl : '/';
+        setTimeout(() => {
+          window.location.href = target;
+        }, 300);
+        return;
+      }
+
+      const otpResult = await otpVerifyRes.json().catch(() => ({}));
+      throw new Error(otpResult.error || 'Invalid code. Please check your email and try again.');
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Invalid code or verification failed.');
     } finally {
@@ -368,18 +342,31 @@ function MFAChallengeForm() {
             Enter the 6-digit code
           </h1>
           <p className="mt-1 text-slate-400 text-xs sm:text-sm leading-relaxed">
-            Please enter the 6-digit code from your authenticator app to continue to your dashboard.
+            {isEmailOtp ? (
+              <>
+                A verification code was sent to your email{' '}
+                <strong className="text-cyan-400">{userEmail || 'registered inbox'}</strong> via Nodemailer.
+              </>
+            ) : (
+              'Please enter the 6-digit code from your email or authenticator app to continue.'
+            )}
           </p>
         </div>
 
-        {status && !factorId && (
+        {otpSentFeedback && (
+          <div className="mt-3 p-2.5 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-emerald-400 text-xs text-center">
+            {otpSentFeedback}
+          </div>
+        )}
+
+        {status && !factorId && !isEmailOtp && (
           <div className="py-8 text-center space-y-3">
             <div className="w-8 h-8 mx-auto border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
             <p className="text-xs sm:text-sm text-slate-400">{status}</p>
           </div>
         )}
 
-        {factorId && !status.includes('Redirecting') && (
+        {(factorId || isEmailOtp) && !status.includes('Redirecting') && (
           <form onSubmit={handleVerify} className="mt-6 space-y-4">
             {/* 6 Individual Digit Inputs */}
             <div className="flex items-center justify-between gap-1.5 sm:gap-2">
@@ -447,10 +434,18 @@ function MFAChallengeForm() {
               </button>
             </div>
 
-            {/* Footnote */}
-            <p className="text-[11px] sm:text-xs text-slate-400 leading-relaxed text-center pt-1">
-              The code refreshes every 30 seconds.
-            </p>
+            {/* Footnote & Resend Email OTP */}
+            <div className="border-t border-slate-800/80 pt-3 flex items-center justify-between text-xs text-slate-400">
+              <span>Didn't receive the code?</span>
+              <button
+                type="button"
+                onClick={handleResendEmailOtp}
+                disabled={isSendingOtp}
+                className="text-cyan-400 hover:text-cyan-300 font-semibold transition cursor-pointer disabled:opacity-50"
+              >
+                {isSendingOtp ? 'Sending...' : 'Resend Code via Email →'}
+              </button>
+            </div>
 
             {/* Lost Authenticator / Reset MFA Option */}
             <div className="border-t border-slate-800/80 pt-4 text-center">

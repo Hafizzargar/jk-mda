@@ -428,4 +428,59 @@ export async function sendMfaResetEmail(params: SendMfaResetEmailParams): Promis
   }
 }
 
+export interface SendLoginOtpEmailParams {
+  to: string;
+  displayName: string;
+  code: string;
+}
+
+export async function sendLoginOtpEmail(params: SendLoginOtpEmailParams): Promise<MailerResult> {
+  const transporter = getMailTransporter();
+  if (!transporter) {
+    return { success: false, error: 'SMTP transporter not configured' };
+  }
+
+  const fromAddress = process.env.SMTP_FROM || `"KJIN Newsroom" <${process.env.SMTP_USER || 'hafezzargar987@gmail.com'}>`;
+  const subject = `Your KJIN Newsroom Verification Code: ${params.code}`;
+  const textContent = `Hello ${params.displayName},\n\nYour 6-digit login verification code is:\n\n${params.code}\n\nThis code is valid for 10 minutes.\n\nIf you did not request this, please secure your account immediately.\n\nKJIN Newsroom`;
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>KJIN Newsroom Verification Code</title></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #060a12; padding: 32px 16px; color: #f8fafc; margin: 0;">
+  <div style="max-width: 480px; margin: 0 auto; background: #0c192d; border-radius: 16px; border: 1px solid rgba(56,189,248,0.2); padding: 32px; box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
+    <div style="margin-bottom: 24px;">
+      <span style="font-weight: 800; font-size: 20px; color: #38bdf8; letter-spacing: -0.02em;">KJIN Newsroom</span>
+    </div>
+    <h2 style="color: #ffffff; margin: 0 0 8px 0; font-size: 22px; font-weight: 800;">Login Verification Code</h2>
+    <p style="color: #94a3b8; font-size: 14px; margin: 0 0 24px 0; line-height: 1.5;">Hello <strong>${params.displayName}</strong>,<br>Use the 6-digit code below to finish signing in to your administrator dashboard:</p>
+    <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(34, 211, 238, 0.3); border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0;">
+      <span style="font-size: 36px; font-weight: 900; font-family: ui-monospace, monospace; letter-spacing: 8px; color: #22d3ee;">${params.code}</span>
+      <p style="font-size: 12px; color: #64748b; margin: 10px 0 0 0;">Valid for 10 minutes</p>
+    </div>
+    <p style="font-size: 12px; color: #64748b; line-height: 1.6; margin: 24px 0 0 0;">
+      Never share this code with anyone. If you did not attempt to sign in, please secure your account immediately.
+    </p>
+  </div>
+</body>
+</html>
+  `.trim();
+
+  try {
+    const info = await transporter.sendMail({
+      from: fromAddress,
+      to: params.to,
+      subject,
+      text: textContent,
+      html: htmlContent,
+    });
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown mailer error';
+    return { success: false, error: errorMessage };
+  }
+}
+
+
 

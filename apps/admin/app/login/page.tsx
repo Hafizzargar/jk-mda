@@ -166,18 +166,21 @@ function LoginForm() {
         }
       }
 
-      // For accounts without mandatory MFA, sign-in is complete here -> dispatch single security alert
-      fetch('/api/auth/notify-login', {
-        method: 'POST',
-        keepalive: true,
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ email }),
-      }).catch(() => {});
+      // Dispatch 6-digit verification code to email via Nodemailer
+      try {
+        await fetch('/api/auth/otp/send', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ email }),
+        });
+      } catch (e) {
+        console.warn('Failed to dispatch initial OTP email:', e);
+      }
 
-      window.location.href = '/';
+      window.location.href = '/mfa/challenge?next=/';
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Unable to sign in right now.', {
         title: 'Sign In Error',
