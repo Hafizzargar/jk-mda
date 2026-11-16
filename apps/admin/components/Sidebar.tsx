@@ -140,6 +140,13 @@ export function Sidebar({
               exact: true,
             },
             {
+              name: 'Public Figures & Leaders',
+              href: '/newsroom/public-figures',
+              icon: '🎙️',
+              badge: 'Gemini AI',
+              badgeColor: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-500/20 dark:text-purple-300 font-bold',
+            },
+            {
               name: 'Source Registry',
               href: '/newsroom/sources',
               icon: '🔗',
