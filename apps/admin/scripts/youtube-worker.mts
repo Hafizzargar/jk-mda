@@ -1,5 +1,5 @@
 /**
- * Railway Hourly Scheduled Worker for KJIN YouTube News Monitoring
+ * Railway Hourly Scheduled Worker for KJCPL YouTube News Monitoring
  * Executes every 60 minutes (Cron: 0 * * * *).
  *
  * Command: node --env-file=../../.env.local --experimental-strip-types scripts/youtube-worker.mts
