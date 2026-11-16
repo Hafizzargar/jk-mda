@@ -227,6 +227,8 @@ export default function YouTubeMonitorPage() {
   }>>([]);
   const [autoPublishEnabled, setAutoPublishEnabled] = useState(false);
   const [autoPublishDelayMinutes, setAutoPublishDelayMinutes] = useState(5);
+  const [isApprovalGuideOpen, setIsApprovalGuideOpen] = useState(false);
+  const [publishingArticleId, setPublishingArticleId] = useState<string | null>(null);
   const [scheduledQueue, setScheduledQueue] = useState<Array<{
     articleId: string;
     headline: string;
@@ -647,8 +649,9 @@ export default function YouTubeMonitorPage() {
     return () => clearInterval(ticker);
   }, []);
 
-  const handleToggleAutoPublish = async (override?: boolean) => {
+  const handleToggleAutoPublish = async (override?: boolean, customDelay?: number) => {
     const nextState = override !== undefined ? override : !autoPublishEnabled;
+    const delayToUse = customDelay !== undefined ? customDelay : autoPublishDelayMinutes;
     setIsTogglingAutoPublish(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -664,7 +667,7 @@ export default function YouTubeMonitorPage() {
         body: JSON.stringify({
           action: 'toggle',
           enabled: nextState,
-          delay_minutes: autoPublishDelayMinutes,
+          delay_minutes: delayToUse,
         }),
       });
 
@@ -674,17 +677,20 @@ export default function YouTubeMonitorPage() {
 
       const data = await res.json();
       setAutoPublishEnabled(Boolean(data.enabled));
+      if (data.delay_minutes) {
+        setAutoPublishDelayMinutes(Number(data.delay_minutes));
+      }
       setFeedback({
         type: 'success',
         text: data.enabled
-          ? `⚡ Autonomous Auto-Approval ENABLED! Stories will auto-publish after ${autoPublishDelayMinutes} minutes with immediate advance email alert.`
-          : '⚪ Manual Approval Mode ENABLED. All stories require manual click to approve and publish.',
+          ? `⚡ Autonomous Auto-Approval ENABLED: Stories will auto-publish after a ${data.delay_minutes || delayToUse}-minute safety buffer with immediate email alert.`
+          : '✋ Manual Review Mode ENABLED: Stories wait in queue for your manual review and approval before going live.',
       });
       setTimeout(() => setFeedback(null), 6000);
     } catch (err: any) {
       setFeedback({
         type: 'error',
-        text: err.message || 'Could not update auto-publish setting.',
+        text: err.message || 'Could not update approval mode setting.',
       });
       setTimeout(() => setFeedback(null), 5000);
     } finally {
@@ -692,7 +698,15 @@ export default function YouTubeMonitorPage() {
     }
   };
 
+  const handleUpdateAutoPublishDelay = async (newDelay: number) => {
+    setAutoPublishDelayMinutes(newDelay);
+    if (autoPublishEnabled) {
+      await handleToggleAutoPublish(true, newDelay);
+    }
+  };
+
   const handlePublishNow = async (articleId: string) => {
+    setPublishingArticleId(articleId);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
@@ -718,9 +732,12 @@ export default function YouTubeMonitorPage() {
       setScheduledQueue((prev) =>
         prev.map((item) => (item.articleId === articleId ? { ...item, status: 'published' } : item))
       );
+      setDiscoveredArticles((prev) =>
+        prev.map((item) => (item.id === articleId ? { ...item, status: 'published' } : item))
+      );
       setFeedback({
         type: 'success',
-        text: '🚀 Story published live to the public website immediately!',
+        text: '🚀 Story approved & published live to the public website immediately!',
       });
       setTimeout(() => setFeedback(null), 4000);
       loadData();
@@ -730,6 +747,8 @@ export default function YouTubeMonitorPage() {
         text: err.message || 'Publish now failed.',
       });
       setTimeout(() => setFeedback(null), 4000);
+    } finally {
+      setPublishingArticleId(null);
     }
   };
 
@@ -1536,7 +1555,7 @@ export default function YouTubeMonitorPage() {
               <div className="flex items-center justify-between mb-1.5">
                 <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                   <span>⏱️</span>
-                  <span>Autonomous Scan</span>
+                  <span>Autonomous News Scanner</span>
                 </span>
                 <button
                   type="button"
@@ -1548,7 +1567,7 @@ export default function YouTubeMonitorPage() {
                   }`}
                   title="Click to toggle automatic background discovery"
                 >
-                  {autoPilot ? '● Auto-Pilot Active' : '○ Paused'}
+                  {autoPilot ? '● Scanner Active' : '○ Scanner Paused'}
                 </button>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -1560,7 +1579,7 @@ export default function YouTubeMonitorPage() {
 
             <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
               <label htmlFor="radar-schedule-select" className="text-xs font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                Cadence:
+                Scan Cadence:
               </label>
               <select
                 id="radar-schedule-select"
@@ -1588,57 +1607,182 @@ export default function YouTubeMonitorPage() {
           </div>
 
           {/* Card 2: Publishing & Approval Strategy */}
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 p-4 shadow-2xs flex flex-col justify-between space-y-3">
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                  <span>⚡</span>
-                  <span>Publishing Mode</span>
-                </span>
+          <div
+            className={`rounded-2xl border p-4 shadow-2xs flex flex-col justify-between space-y-3 transition-all ${
+              autoPublishEnabled
+                ? 'border-emerald-300 dark:border-emerald-800/80 bg-gradient-to-br from-emerald-50/50 via-white to-white dark:from-emerald-950/20 dark:via-slate-900/90 dark:to-slate-900/90'
+                : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90'
+            }`}
+          >
+            <div className="space-y-2.5">
+              {/* Header with Title, Guide Trigger, and Status Badge */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                    <span>{autoPublishEnabled ? '⚡' : '🛡️'}</span>
+                    <span>Approval &amp; Publishing</span>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsApprovalGuideOpen(true)}
+                    className="text-[11px] text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-bold inline-flex items-center gap-0.5 ml-1 transition cursor-pointer"
+                    title="Click to view full comparison of Auto vs Manual Approval"
+                  >
+                    <span>ℹ️</span>
+                    <span className="underline">Guide</span>
+                  </button>
+                </div>
                 <span
-                  className={`text-[11px] font-bold px-2 py-0.5 rounded-full border ${
+                  className={`text-[11px] font-bold px-2 py-0.5 rounded-full border inline-flex items-center gap-1 ${
                     autoPublishEnabled
                       ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-700'
-                      : 'bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+                      : 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800'
                   }`}
                 >
-                  {autoPublishEnabled ? '⚡ Auto-Publish (5m Delay)' : '✋ Manual Review'}
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      autoPublishEnabled ? 'bg-emerald-500 animate-pulse' : 'bg-blue-500'
+                    }`}
+                  />
+                  {autoPublishEnabled ? 'Auto-Approval' : 'Manual Review'}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {autoPublishEnabled
-                  ? `Stories auto-publish after a ${autoPublishDelayMinutes}-minute email alert buffer. Zero approval clicks needed.`
-                  : 'Stories wait in the pending queue for your manual review and approval before going live.'}
-              </p>
+
+              {/* Segmented Mode Selector: Manual Review vs Auto-Publish */}
+              <div className="grid grid-cols-2 p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 gap-1">
+                <button
+                  type="button"
+                  onClick={() => autoPublishEnabled && handleToggleAutoPublish(false)}
+                  disabled={isTogglingAutoPublish}
+                  className={`py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 ${
+                    !autoPublishEnabled
+                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs border border-slate-200 dark:border-slate-700'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <span>✋</span>
+                  <span>Manual Review</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => !autoPublishEnabled && handleToggleAutoPublish(true)}
+                  disabled={isTogglingAutoPublish}
+                  className={`py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 ${
+                    autoPublishEnabled
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                >
+                  <span>⚡</span>
+                  <span>Auto-Publish</span>
+                </button>
+              </div>
+
+              {/* Dynamic Description & Micro-Pipeline Flow */}
+              <div className="space-y-1.5 text-xs">
+                <p className="text-slate-600 dark:text-slate-300 leading-snug">
+                  {autoPublishEnabled ? (
+                    <>
+                      <strong className="text-emerald-700 dark:text-emerald-300 font-semibold">Autonomous publishing:</strong> Stories auto-publish after a <strong>{autoPublishDelayMinutes}-min buffer</strong>. Advance email alert sent with 1-click cancel link.
+                    </>
+                  ) : (
+                    <>
+                      <strong className="text-blue-700 dark:text-blue-300 font-semibold">Human safety check:</strong> Stories wait in your pending queue. <strong>Zero stories go live</strong> until an editor reviews and approves.
+                    </>
+                  )}
+                </p>
+
+                {/* Visual Pipeline Flow Stepper */}
+                <div className="py-1 px-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-[10px] font-medium text-slate-600 dark:text-slate-300 flex items-center justify-between gap-1 overflow-x-auto">
+                  {autoPublishEnabled ? (
+                    <>
+                      <span className="flex items-center gap-0.5 whitespace-nowrap">🤖 AI Draft</span>
+                      <span className="text-slate-400">→</span>
+                      <span className="flex items-center gap-0.5 whitespace-nowrap text-amber-600 dark:text-amber-400 font-semibold">📧 Alert Sent</span>
+                      <span className="text-slate-400">→</span>
+                      <span className="flex items-center gap-0.5 whitespace-nowrap text-emerald-600 dark:text-emerald-400 font-semibold">⏳ {autoPublishDelayMinutes}m Buffer</span>
+                      <span className="text-slate-400">→</span>
+                      <span className="flex items-center gap-0.5 whitespace-nowrap text-emerald-700 dark:text-emerald-300 font-bold">🚀 Live</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="flex items-center gap-0.5 whitespace-nowrap">🤖 AI Draft</span>
+                      <span className="text-slate-400">→</span>
+                      <span className="flex items-center gap-0.5 whitespace-nowrap text-blue-600 dark:text-blue-400 font-semibold">📋 Review Queue</span>
+                      <span className="text-slate-400">→</span>
+                      <span className="flex items-center gap-0.5 whitespace-nowrap text-purple-600 dark:text-purple-400 font-semibold">👤 Editor Approves</span>
+                      <span className="text-slate-400">→</span>
+                      <span className="flex items-center gap-0.5 whitespace-nowrap text-emerald-700 dark:text-emerald-300 font-bold">🚀 Live</span>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
 
-            <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
-              <button
-                type="button"
-                onClick={() => handleToggleAutoPublish()}
-                disabled={isTogglingAutoPublish}
-                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 ${
-                  autoPublishEnabled
-                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs'
-                    : 'bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 border border-slate-300 dark:border-slate-700'
-                }`}
-              >
-                <span>{autoPublishEnabled ? '✓ Auto-Publish Active' : 'Switch to Auto-Publish'}</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleTestEmail}
-                disabled={isTestingEmail}
-                className="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
-                title="Send a sample email alert"
-              >
-                {isTestingEmail ? '...' : '📧 Test Alert'}
-              </button>
-            </div>
+            {/* Bottom Controls */}
+            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+              {autoPublishEnabled ? (
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 flex items-center gap-1.5">
+                    <label
+                      htmlFor="auto-publish-buffer-select"
+                      className="text-[11px] font-bold text-slate-600 dark:text-slate-400 whitespace-nowrap"
+                    >
+                      Grace Buffer:
+                    </label>
+                    <select
+                      id="auto-publish-buffer-select"
+                      value={autoPublishDelayMinutes}
+                      onChange={(e) => handleUpdateAutoPublishDelay(Number(e.target.value))}
+                      className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-semibold text-xs px-2 py-1 outline-none cursor-pointer focus:ring-2 focus:ring-emerald-500"
+                    >
+                      <option value={2}>2 Min (Rapid Live)</option>
+                      <option value={3}>3 Min (Fast)</option>
+                      <option value={5}>5 Min (Recommended)</option>
+                      <option value={10}>10 Min (Standard)</option>
+                      <option value={15}>15 Min (Extended Safety)</option>
+                    </select>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleTestEmail}
+                    disabled={isTestingEmail}
+                    className="px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer"
+                    title="Send a sample email alert with cancellation link to test your setup"
+                  >
+                    {isTestingEmail ? '...' : '📧 Test Alert'}
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center justify-between gap-2">
+                  <Link
+                    href="/articles?status=review"
+                    className="flex-1 py-1 px-2.5 rounded-lg border border-blue-200 dark:border-blue-900 bg-blue-50/70 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-xs font-bold hover:bg-blue-100 dark:hover:bg-blue-900/60 transition flex items-center justify-center gap-1.5"
+                  >
+                    <span>📋</span>
+                    <span>Review Pending ({discoveredArticles.filter((a) => a.status !== 'published').length})</span>
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleTestEmail}
+                    disabled={isTestingEmail}
+                    className="px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer"
+                    title="Send a sample email alert"
+                  >
+                    {isTestingEmail ? '...' : '📧 Test Alert'}
+                  </button>
+                </div>
+              )}
 
-            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1.5 rounded-lg border border-emerald-200/80 dark:border-emerald-900/50">
-              <span>📝</span>
-              <span>Format: 100% Text-Only News (No Images Needed)</span>
+              {/* Strict text-only badge */}
+              <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/40 px-2.5 py-1 rounded-lg border border-slate-200/60 dark:border-slate-800">
+                <span className="flex items-center gap-1 text-slate-700 dark:text-slate-300">
+                  <span>📝</span>
+                  <span>100% Text-Only News</span>
+                </span>
+                <span className="text-[10px] text-slate-400 font-normal">Clean Broadsheet</span>
+              </div>
             </div>
           </div>
 
@@ -1942,12 +2086,16 @@ export default function YouTubeMonitorPage() {
                         </span>
                       </div>
                       {art.status === 'published' ? (
-                        <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
-                          LIVE
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                          ● LIVE
+                        </span>
+                      ) : isScheduledPending && remainingSec > 0 ? (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 animate-pulse">
+                          ⏳ Auto-Queued
                         </span>
                       ) : (
-                        <span className="text-[10px] font-bold text-slate-400">
-                          Review
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                          ✋ Pending Approval
                         </span>
                       )}
                     </div>
@@ -2020,17 +2168,40 @@ export default function YouTubeMonitorPage() {
                     {art.status === 'published' ? (
                       <Link
                         href={`/articles/${art.id}`}
-                        className="px-2.5 py-1 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] transition shrink-0"
+                        className="px-2.5 py-1 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] transition shrink-0 inline-flex items-center gap-1"
                       >
-                        View Live ↗
+                        <span>View Live</span>
+                        <span>↗</span>
                       </Link>
                     ) : (
-                      <Link
-                        href={`/articles/${art.id}/edit`}
-                        className="px-2.5 py-1 rounded-md bg-purple-600 hover:bg-purple-700 text-white font-bold text-[11px] transition shrink-0"
-                      >
-                        Review &amp; Publish →
-                      </Link>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handlePublishNow(art.id)}
+                          disabled={publishingArticleId === art.id}
+                          className="px-2.5 py-1 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] transition shrink-0 cursor-pointer disabled:opacity-50 inline-flex items-center gap-1 shadow-2xs"
+                          title="Instantly approve and publish live on the website"
+                        >
+                          {publishingArticleId === art.id ? (
+                            <span className="inline-flex items-center gap-1">
+                              <span className="animate-spin text-xs">⏳</span>
+                              <span>Publishing...</span>
+                            </span>
+                          ) : (
+                            <>
+                              <span>✓</span>
+                              <span>Approve</span>
+                            </>
+                          )}
+                        </button>
+                        <Link
+                          href={`/articles/${art.id}/edit`}
+                          className="px-2 py-1 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-[11px] transition shrink-0"
+                          title="Open editor to review or edit text before publishing"
+                        >
+                          ✏️ Edit
+                        </Link>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -3759,6 +3930,148 @@ export default function YouTubeMonitorPage() {
                   Save Beat Quotas
                 </Button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Editorial Publishing & Approval Modes Comparison Guide Modal */}
+      {isApprovalGuideOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-3 sm:p-4">
+          <div className="w-full max-w-2xl rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl p-5 sm:p-6 space-y-4 animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-start justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <span>📖</span>
+                  <span>Understanding Publishing &amp; Approval Modes</span>
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  How autonomous story discovery and live publishing work in your newsroom.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsApprovalGuideOpen(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 font-bold p-1 text-sm cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Side-by-Side Comparison Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Option 1: Manual Approval */}
+              <div className="rounded-xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/40 dark:bg-blue-950/20 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold text-blue-900 dark:text-blue-200 flex items-center gap-1.5">
+                    <span>✋</span>
+                    <span>Manual Approval</span>
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                    Human in the Loop
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-300">
+                  AI scans sources, writes comprehensive fact-checked stories, and places them in your pending review queue.
+                </p>
+                <div className="space-y-1.5 text-[11px] text-slate-700 dark:text-slate-300">
+                  <div className="flex items-start gap-1.5">
+                    <span className="text-emerald-500 font-bold">✓</span>
+                    <span><strong>Zero Surprise Posts:</strong> Nothing goes live until an editor clicks &quot;Approve&quot;.</span>
+                  </div>
+                  <div className="flex items-start gap-1.5">
+                    <span className="text-emerald-500 font-bold">✓</span>
+                    <span><strong>Full Quality Control:</strong> Edit headlines, ledes, and quotes before publication.</span>
+                  </div>
+                  <div className="flex items-start gap-1.5">
+                    <span className="text-emerald-500 font-bold">✓</span>
+                    <span><strong>1-Click Quick Publish:</strong> Approve directly from the radar or edit first.</span>
+                  </div>
+                </div>
+                <div className="pt-2 border-t border-blue-200/60 dark:border-blue-900/40 text-[10px] text-blue-800 dark:text-blue-300 font-semibold">
+                  💡 Best for: Regular daytime shifts, sensitive breaking beats, and high editorial vetting.
+                </div>
+              </div>
+
+              {/* Option 2: Auto-Approval */}
+              <div className="rounded-xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/40 dark:bg-emerald-950/20 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-bold text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5">
+                    <span>⚡</span>
+                    <span>Autonomous Auto-Approval</span>
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300">
+                    Hands-Free Speed
+                  </span>
+                </div>
+                <p className="text-xs text-slate-600 dark:text-slate-300">
+                  AI discovers and drafts stories, then automatically publishes them after a safety grace buffer (e.g. 5 minutes).
+                </p>
+                <div className="space-y-1.5 text-[11px] text-slate-700 dark:text-slate-300">
+                  <div className="flex items-start gap-1.5">
+                    <span className="text-emerald-500 font-bold">✓</span>
+                    <span><strong>Advance Email Alert:</strong> Sent to you the second a story is discovered.</span>
+                  </div>
+                  <div className="flex items-start gap-1.5">
+                    <span className="text-emerald-500 font-bold">✓</span>
+                    <span><strong>Safety Countdown Buffer:</strong> 5 minutes to click &quot;Cancel&quot; if you want to hold it.</span>
+                  </div>
+                  <div className="flex items-start gap-1.5">
+                    <span className="text-emerald-500 font-bold">✓</span>
+                    <span><strong>24/7 Rapid Coverage:</strong> Keeps the news site updated around the clock without manual clicks.</span>
+                  </div>
+                </div>
+                <div className="pt-2 border-t border-emerald-200/60 dark:border-emerald-900/40 text-[10px] text-emerald-800 dark:text-emerald-300 font-semibold">
+                  💡 Best for: Night shifts, wire monitoring, and routine regional developments.
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Summary Comparison Table */}
+            <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden text-xs">
+              <table className="w-full text-left">
+                <thead className="bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 font-bold text-[11px]">
+                  <tr>
+                    <th className="p-2.5">Feature</th>
+                    <th className="p-2.5">✋ Manual Approval</th>
+                    <th className="p-2.5">⚡ Auto-Approval</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-600 dark:text-slate-300 text-[11px]">
+                  <tr>
+                    <td className="p-2.5 font-semibold text-slate-900 dark:text-white">Who Publishes?</td>
+                    <td className="p-2.5">Editor clicks &quot;Approve&quot;</td>
+                    <td className="p-2.5">AI publishes automatically</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 font-semibold text-slate-900 dark:text-white">Safety Buffer</td>
+                    <td className="p-2.5">Indefinite (waits in queue)</td>
+                    <td className="p-2.5">2–15 minute countdown window</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 font-semibold text-slate-900 dark:text-white">Email Notification</td>
+                    <td className="p-2.5">Digest &amp; alerts</td>
+                    <td className="p-2.5">Immediate alert with 1-click cancel</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 font-semibold text-slate-900 dark:text-white">Can Cancel / Intercept?</td>
+                    <td className="p-2.5">Always (delete or edit draft)</td>
+                    <td className="p-2.5">Yes, during countdown timer</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-slate-200 dark:border-slate-800">
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={() => setIsApprovalGuideOpen(false)}
+                className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-4 cursor-pointer"
+              >
+                Got It, Close Guide
+              </Button>
             </div>
           </div>
         </div>
