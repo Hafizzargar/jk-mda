@@ -100,12 +100,18 @@ export default function MFAEnrollmentPage() {
         }
 
         // Check if we already have an active, unverified factor cached for this session
-        // This prevents the QR code and secret from changing when the page refreshes
+        // Discard any stale factors from localhost or mismatched environments
         const cached = typeof window !== 'undefined' ? sessionStorage.getItem('kjin_pending_mfa_factor') : null;
         if (cached) {
           try {
             const parsed = JSON.parse(cached);
-            if (parsed?.factorId && parsed?.totpUri && parsed?.secretString) {
+            if (
+              parsed?.factorId &&
+              parsed?.totpUri &&
+              parsed?.secretString &&
+              !parsed.totpUri.includes('localhost') &&
+              !parsed.totpUri.includes('127.0.0.1')
+            ) {
               const stillExists = allFactors.some((f) => f.id === parsed.factorId && f.status === 'unverified');
               if (stillExists) {
                 setFactorId(parsed.factorId);
@@ -114,6 +120,8 @@ export default function MFAEnrollmentPage() {
                 setStatus('');
                 return;
               }
+            } else {
+              sessionStorage.removeItem('kjin_pending_mfa_factor');
             }
           } catch {
             sessionStorage.removeItem('kjin_pending_mfa_factor');
@@ -129,10 +137,11 @@ export default function MFAEnrollmentPage() {
           }
         }
 
-        // Generate new TOTP factor
+        // Generate new TOTP factor with explicit KJIN Newsroom branding
         setStatus('Generating MFA factor...');
         const { data: enrollData, error: enrollError } = await supabase.auth.mfa.enroll({
           factorType: 'totp',
+          issuer: 'KJIN Newsroom',
         });
 
         if (enrollError) {
