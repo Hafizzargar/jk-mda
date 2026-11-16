@@ -11,8 +11,9 @@ export interface ExternalNewsItem {
   url: string;
   publishedAt: string;
   source: string;
-  category: 'war' | 'geopolitics' | 'discover' | 'science' | 'world';
+  category: 'war' | 'geopolitics' | 'discover' | 'science' | 'world' | 'disaster';
   badge: string;
+  location?: string;
   summary?: string;
 }
 
@@ -21,54 +22,70 @@ const FETCH_TIMEOUT_MS = 3500;
 // Curated seed fallbacks for zero-downtime broadsheet rendering
 const FALLBACK_WAR_NEWS: ExternalNewsItem[] = [
   {
-    id: 'un-peace-1',
-    title: 'UN Security Council Convenes Emergency Session on Red Sea Maritime Transit and Corridor De-escalation',
+    id: 'war-ukraine-1',
+    title: 'Ukraine Front: Heavy Drone & Ballistic Salvo Strikes Power Infrastructure in Kyiv & Kharkiv; Air Defense Scrambled',
     url: 'https://news.un.org/en/news/topic/peace-and-security',
-    publishedAt: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    source: 'UN Peace & Security',
+    publishedAt: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
+    source: 'International Defense Wire',
     category: 'war',
-    badge: 'SECURITY COUNCIL',
-    summary: 'Diplomatic envoys call for multilateral maritime safeguards and renewed humanitarian corridors across contested sea lanes.',
+    badge: 'AIR STRIKES',
+    location: 'UKRAINE',
+    summary: 'Grid operators enact nationwide emergency rolling blackouts as regional defense arrays intercept multiple incoming cruise trajectories.',
   },
   {
-    id: 'un-peace-2',
-    title: 'Middle East Ceasefire Verification: International Observers Deploy to Strategic Crossing Corridors',
+    id: 'war-gaza-2',
+    title: 'Gaza Crisis: UN Relief Agency Reports Critical Hospital Fuel Depletion as Ceasefire Negotiators Reconvene',
     url: 'https://news.un.org/en/news/topic/peace-and-security',
-    publishedAt: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-    source: 'UN Department of Peace Operations',
+    publishedAt: new Date(Date.now() - 1000 * 60 * 42).toISOString(),
+    source: 'UN OCHA Desk',
     category: 'war',
-    badge: 'CEASEFIRE WATCH',
-    summary: 'Verified field monitors inspect vital civilian corridors to safeguard aid convoys and medical evacuations.',
+    badge: 'AID CORRIDOR',
+    location: 'GAZA',
+    summary: 'Humanitarian convoys face severe logistical blockades along southern passage points amid continued frontline civilian displacement.',
   },
   {
-    id: 'bbc-world-1',
-    title: 'Eastern Europe Air Defense Radar Array Upgrades Completed Along Northern Border Flank',
-    url: 'https://www.bbc.com/news/world',
-    publishedAt: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
-    source: 'BBC Global Defense Wire',
-    category: 'war',
-    badge: 'AIR DEFENSE',
-    summary: 'Defense ministries integrate autonomous radar arrays to monitor long-range airspace corridors.',
-  },
-  {
-    id: 'un-peace-3',
-    title: 'Sudan Humanitarian Shield: UN Agencies Secure Protected Airlift Routes for Famine-Hit Regions',
+    id: 'war-iran-3',
+    title: 'Iran & Red Sea: Anti-Ship Ballistic Missiles Target Commercial Cargo Lanes; Coalition Warships Intercept Drones Off Bab el-Mandeb',
     url: 'https://news.un.org/en/news/topic/peace-and-security',
-    publishedAt: new Date(Date.now() - 1000 * 60 * 240).toISOString(),
-    source: 'UN OCHA Intelligence',
+    publishedAt: new Date(Date.now() - 1000 * 60 * 75).toISOString(),
+    source: 'Maritime Security Alert',
     category: 'war',
-    badge: 'RELIEF CORRIDOR',
-    summary: 'Coordinated diplomatic effort opens critical supply links into besieged western provincial capitals.',
+    badge: 'NAVAL MISSILES',
+    location: 'IRAN / RED SEA',
+    summary: 'Global commercial shipping reroutes around Cape of Good Hope as regional air defense units engage low-flying unmanned attack craft.',
   },
   {
-    id: 'bbc-world-2',
-    title: 'South Asia High-Altitude Border Telemetry: Joint Working Group Reviews Line of Actual Control Protocols',
-    url: 'https://www.bbc.com/news/world',
-    publishedAt: new Date(Date.now() - 1000 * 60 * 320).toISOString(),
-    source: 'BBC Strategic Affairs',
-    category: 'geopolitics',
+    id: 'quake-seismic-4',
+    title: 'Earthquake Alert: Magnitude 5.6 Seismic Tremor Strikes Hindu Kush Fault; Strong Shocks Felt Across Kashmir, Doda & Ladakh',
+    url: 'https://news.un.org/en/news/topic/peace-and-security',
+    publishedAt: new Date(Date.now() - 1000 * 60 * 110).toISOString(),
+    source: 'Seismic Telemetry Bureau',
+    category: 'disaster',
+    badge: 'SEISMIC FAULT',
+    location: 'EARTHQUAKE ALERT',
+    summary: 'Disaster management authorities issue immediate structural advisory across mountain corridors following 185km deep tectonic shock.',
+  },
+  {
+    id: 'war-lebanon-5',
+    title: 'Lebanon Border: UNIFIL Observers Report Sustained Artillery Duels and Drone Interceptions Across Southern Blue Line',
+    url: 'https://news.un.org/en/news/topic/peace-and-security',
+    publishedAt: new Date(Date.now() - 1000 * 60 * 155).toISOString(),
+    source: 'UN Peacekeeping Wire',
+    category: 'war',
     badge: 'BORDER RADAR',
-    summary: 'Senior military commanders hold bilateral talks on buffer zone de-escalation in eastern Ladakh sectors.',
+    location: 'LEBANON',
+    summary: 'Diplomatic missions intensify consultations to enforce buffer demilitarization and protect non-combatant residential perimeters.',
+  },
+  {
+    id: 'war-syria-6',
+    title: 'Syria Strikes: Precision Air Raids Target Strategic Weapons Depots Near Contested Eastern Transit Arteries',
+    url: 'https://news.un.org/en/news/topic/peace-and-security',
+    publishedAt: new Date(Date.now() - 1000 * 60 * 210).toISOString(),
+    source: 'Regional Defense Monitor',
+    category: 'war',
+    badge: 'PRECISION STRIKE',
+    location: 'SYRIA',
+    summary: 'Secondary detonations detected near logistics routes following pre-dawn surgical airstrikes on fortified underground bunkers.',
   },
 ];
 
@@ -127,6 +144,39 @@ function cleanXmlText(text: string): string {
     .trim();
 }
 
+export function detectLocationAndBadge(title: string, summary?: string): {
+  location: string;
+  badge: string;
+  category: 'war' | 'disaster' | 'geopolitics';
+} {
+  const text = `${title} ${summary || ''}`.toLowerCase();
+  if (text.includes('earthquake') || text.includes('quake') || text.includes('seismic') || text.includes('richter') || text.includes('tremor') || text.includes('tsunami')) {
+    return { location: 'EARTHQUAKE ALERT', badge: 'SEISMIC SHOCK', category: 'disaster' };
+  }
+  if (text.includes('ukrain') || text.includes('kyiv') || text.includes('kharkiv') || text.includes('donbas') || text.includes('kursk')) {
+    return { location: 'UKRAINE', badge: 'AIR STRIKES', category: 'war' };
+  }
+  if (text.includes('gaza') || text.includes('palestin') || text.includes('rafah') || text.includes('khan younis') || text.includes('west bank')) {
+    return { location: 'GAZA', badge: 'AID CORRIDOR', category: 'war' };
+  }
+  if (text.includes('iran') || text.includes('tehran') || text.includes('red sea') || text.includes('yemen') || text.includes('houthi') || text.includes('bab el-mandeb')) {
+    return { location: 'IRAN / RED SEA', badge: 'NAVAL MISSILES', category: 'war' };
+  }
+  if (text.includes('lebanon') || text.includes('beirut') || text.includes('hezbollah') || text.includes('blue line')) {
+    return { location: 'LEBANON', badge: 'BORDER SHELLING', category: 'war' };
+  }
+  if (text.includes('syria') || text.includes('damascus') || text.includes('aleppo')) {
+    return { location: 'SYRIA', badge: 'PRECISION STRIKE', category: 'war' };
+  }
+  if (text.includes('sudan') || text.includes('khartoum') || text.includes('darfur')) {
+    return { location: 'SUDAN', badge: 'WAR ZONE', category: 'war' };
+  }
+  if (text.includes('ceasefire') || text.includes('truce')) {
+    return { location: 'MIDDLE EAST', badge: 'CEASEFIRE WATCH', category: 'war' };
+  }
+  return { location: 'GLOBAL WIRE', badge: assignConflictBadge(title), category: 'war' };
+}
+
 function assignConflictBadge(title: string): string {
   const lower = title.toLowerCase();
   if (lower.includes('ceasefire') || lower.includes('truce')) return 'CEASEFIRE';
@@ -179,7 +229,16 @@ function parseRssToItems(
       }
 
       const summary = descMatch ? cleanXmlText(descMatch[1]).slice(0, 160) : undefined;
-      const badge = category === 'war' ? assignConflictBadge(title) : assignDiscoverBadge(title);
+      let badge = assignDiscoverBadge(title);
+      let itemLocation: string | undefined = undefined;
+      let effectiveCategory: ExternalNewsItem['category'] = category;
+
+      if (category === 'war') {
+        const detected = detectLocationAndBadge(title, summary);
+        itemLocation = detected.location;
+        badge = detected.badge;
+        effectiveCategory = detected.category;
+      }
 
       items.push({
         id: `${category}-${i}-${encodeURIComponent(title.slice(0, 20))}`,
@@ -187,8 +246,9 @@ function parseRssToItems(
         url,
         publishedAt,
         source: sourceName,
-        category,
+        category: effectiveCategory,
         badge,
+        location: itemLocation,
         summary,
       });
     }

@@ -17,6 +17,7 @@ import { TerritorialBureauTelemetrySlider } from '@/components/telemetry/Territo
 import { SafeEditorialImage } from '@/components/common/SafeEditorialImage';
 import { TodayCenterDispatches } from './TodayCenterDispatches';
 import { CivicProblemsSlider } from './CivicProblemsSlider';
+import { WarConflictTickerSlider } from './WarConflictTickerSlider';
 
 export function ClassicEditorialTemplate({
   langPrefix,
@@ -1195,42 +1196,7 @@ export function ClassicEditorialTemplate({
               </div>
             </section>
           ) : (
-            <section className="w-full bg-white border-b border-slate-200 py-3 px-4 md:px-8 font-sans">
-              <div className="max-w-7xl xl:max-w-[1536px] 2xl:max-w-[1780px] mx-auto">
-                <div className="flex items-center justify-between mb-2 text-xs">
-                  <span className="font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5 text-[11px]">
-                    <span>🏔️</span>
-                    <span>CORRIDOR MOUNTAIN TRANSIT &amp; PASS TELEMETRY</span>
-                  </span>
-                  <Link href={`${langPrefix}/transit`} className="text-[11px] text-[#0891B2] font-semibold hover:underline">
-                    Live Traffic Advisories →
-                  </Link>
-                </div>
-                <div className="grid grid-cols-3 gap-2.5">
-                  {activeTelemetry.mountain_passes.slice(0, 3).map((pass) => (
-                    <Link
-                      key={pass.id}
-                      href={`${langPrefix}/transit#${pass.id}`}
-                      className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200/80 bg-[#FAF8F5] hover:bg-[#F3EFEA] transition"
-                    >
-                      <span className="font-bold text-xs text-[#0F172A]">{pass.name}</span>
-                      <span
-                        className={`px-2 py-0.5 rounded font-bold text-[10px] uppercase flex items-center gap-1 ${
-                          pass.status === 'open'
-                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
-                            : pass.status === 'caution'
-                            ? 'bg-amber-100 text-amber-800 border border-amber-200'
-                            : 'bg-red-100 text-red-800 border border-red-200'
-                        }`}
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full bg-current inline-block" />
-                        <span>{pass.status_label}</span>
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </section>
+            <WarConflictTickerSlider items={conflictNews} langPrefix={langPrefix} />
           )}
 
           {/* Front Page Top Header Leaderboard Ad */}

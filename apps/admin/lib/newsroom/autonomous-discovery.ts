@@ -494,7 +494,7 @@ export const KJIN_REGIONAL_TARGETS: RegionalTarget[] = [
     max: 5,
     scope: 'International',
     districts: [],
-    searchQuery: '("United Nations" OR "Global diplomacy" OR "Middle East crisis" OR "International defense" OR "Geopolitics") latest news breaking',
+    searchQuery: '("Ukraine war frontline" OR "Gaza conflict crisis" OR "Iran Red Sea missile strikes" OR "Earthquake tremor disaster" OR "United Nations ceasefire" OR "Global defense") latest news breaking',
     defaultDateline: 'GLOBAL DESK –',
     isRegional: false,
     weight: 2,
