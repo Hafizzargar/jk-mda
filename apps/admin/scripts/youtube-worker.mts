@@ -32,7 +32,12 @@ async function main() {
     const durationSeconds = ((Date.now() - startTime.getTime()) / 1000).toFixed(2);
     console.log(`[YouTube Worker] Completed in ${durationSeconds}s:`, JSON.stringify(result, null, 2));
 
-    if (result.errors && result.errors.length > 0) {
+    if ('skipped' in result && result.skipped) {
+      console.log(`[YouTube Worker] Job skipped: ${result.reason}`);
+      process.exit(0);
+    }
+
+    if ('errors' in result && Array.isArray(result.errors) && result.errors.length > 0) {
       console.warn(`[YouTube Worker] Finished with ${result.errors.length} channel warnings.`);
     }
 
