@@ -9,6 +9,7 @@ import { applyTranslations } from '@/lib/i18n';
 import { SITE_URL, SITE_SHORT_NAME } from '@/lib/config';
 import { getTemplateTheme, type TemplateId } from '@/lib/templates';
 import { getBrandSettings } from '@/lib/brand';
+import { getNavbarSettings } from '@/lib/navbar';
 import { SiteNavbar } from '@/components/navigation/SiteNavbar';
 import { SiteFooter } from '@/components/navigation/SiteFooter';
 import { Breadcrumbs } from '@/components/navigation/Breadcrumbs';
@@ -186,8 +187,11 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
 
   const dbTemplateId = (settingRow?.value as { template_id?: string } | null)?.template_id as TemplateId | undefined;
   const theme = getTemplateTheme(dbTemplateId);
-  const brandSettings = await getBrandSettings(supabase);
-  const contactSettings = await getFooterContactSettings(supabase);
+  const [brandSettings, navbarSettings, contactSettings] = await Promise.all([
+    getBrandSettings(supabase),
+    getNavbarSettings(supabase),
+    getFooterContactSettings(supabase),
+  ]);
 
   const breadcrumbs = [
     { label: 'Home', href: `${langPrefix}/` },
@@ -251,6 +255,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
           lang={lang}
           theme={theme}
           activeCategory={categorySlug}
+          navbarSettings={navbarSettings}
         />
 
         {/* Top Breadcrumb Navigation */}

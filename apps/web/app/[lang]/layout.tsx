@@ -15,6 +15,7 @@ import { getTemplateTheme, type TemplateId } from '@/lib/templates';
 import { ScrollToTop } from '@/components/navigation/ScrollToTop';
 import { FestiveCelebrationOverlay } from '@/components/celebration/FestiveCelebrationOverlay';
 import { getBrandSettings } from '@/lib/brand';
+import { DEFAULT_NAVBAR_SETTINGS, type NavbarBrandConfig } from '@/lib/navbar';
 import { getFestiveSettings, type FestiveCelebrationSettings } from '@/lib/festive';
 import { getCachedSiteSetting } from '@/lib/site-settings-cache';
 
@@ -133,11 +134,17 @@ export default async function RootLayout({
   }
 
   let festiveSettings: FestiveCelebrationSettings | null = null;
+  let brandSettings: NavbarBrandConfig = DEFAULT_NAVBAR_SETTINGS.brand;
   try {
     const supabase = createServerAnonClient();
-    festiveSettings = await getFestiveSettings(supabase);
+    const [fetchedFestive, fetchedBrand] = await Promise.all([
+      getFestiveSettings(supabase),
+      getBrandSettings(supabase),
+    ]);
+    festiveSettings = fetchedFestive;
+    if (fetchedBrand) brandSettings = fetchedBrand;
   } catch (err) {
-    console.warn('[RootLayout] Using fallback festive settings:', err);
+    console.warn('[RootLayout] Using fallback settings:', err);
   }
 
   const theme = getTemplateTheme(activeTemplateId);
@@ -145,10 +152,10 @@ export default async function RootLayout({
   const orgJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'NewsMediaOrganization',
-    name: 'KJCPL News Network',
-    alternateName: ['KJCPL', 'KJCPL Truth'],
+    name: brandSettings.full_name || 'Kashmir Jammu Chenab Pir Panjal Leh Network',
+    alternateName: [brandSettings.name || 'KJCPL', `${brandSettings.name || 'KJCPL'} Truth`],
     url: `${SITE_URL}/en`,
-    logo: `${SITE_URL}/kcpjln-symbol.webp`,
+    logo: `${SITE_URL}${brandSettings.logo_url || '/kcpjln-symbol.webp'}`,
     publishingPrinciples: `${SITE_URL}/en`,
     masthead: `${SITE_URL}/en`,
     diversityPolicy: `${SITE_URL}/en`,
@@ -160,8 +167,8 @@ export default async function RootLayout({
   const websiteJsonLd = {
     '@context': 'https://schema.org',
     '@type': 'WebSite',
-    name: 'KJCPL News Network',
-    alternateName: ['KJCPL', 'kjcpl.site'],
+    name: brandSettings.full_name || 'Kashmir Jammu Chenab Pir Panjal Leh Network',
+    alternateName: [brandSettings.name || 'KJCPL', 'kjcpl.site'],
     url: `${SITE_URL}/en`,
     potentialAction: {
       '@type': 'SearchAction',
@@ -183,6 +190,11 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{window.__KJIN_BRAND__=${JSON.stringify(brandSettings)};localStorage.setItem('kjin_brand_config',JSON.stringify(${JSON.stringify(brandSettings)}));}catch(e){}})();`,
+          }}
+        />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://images.unsplash.com" crossOrigin="anonymous" />

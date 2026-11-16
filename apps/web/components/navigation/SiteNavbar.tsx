@@ -12,6 +12,7 @@ import {
   DEFAULT_NAVBAR_SETTINGS,
   sanitizeNavbarSettings,
   type NavbarSettings,
+  type NavbarBrandConfig,
   BASE_TERRITORIAL_CORRIDORS,
   getDailyRotatedCorridors,
 } from '@/lib/navbar';
@@ -102,11 +103,12 @@ export function SiteNavbar({
     }
   }, [navbarSettings]);
 
-  // Cache brand settings in localStorage for instantaneous loader display
+  // Cache brand settings in localStorage and window for instantaneous loader display
   useEffect(() => {
     if (navSettings?.brand && typeof window !== 'undefined') {
       try {
         localStorage.setItem('kjin_brand_config', JSON.stringify(navSettings.brand));
+        (window as unknown as { __KJIN_BRAND__?: NavbarBrandConfig }).__KJIN_BRAND__ = navSettings.brand;
       } catch {
         // ignore storage errors
       }

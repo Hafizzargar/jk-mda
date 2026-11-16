@@ -2,11 +2,17 @@ import { NextResponse } from 'next/server';
 import { createServerAnonClient } from '@/lib/supabase-server';
 import { SITE_URL, SITE_NAME } from '@/lib/config';
 import { getCategorySlug } from '@/lib/taxonomy';
+import { getBrandSettings } from '@/lib/brand';
 
 export const revalidate = 300; // 5 minutes cache for ultra-fast Google News discovery
 
 export async function GET() {
   const supabase = createServerAnonClient();
+  const brand = await getBrandSettings(supabase);
+  const publicationName = (brand.full_name || brand.name || SITE_NAME)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
   
   // Google News Sitemaps strictly require articles published in the last 48 hours.
   const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
@@ -36,7 +42,7 @@ export async function GET() {
     <loc>${SITE_URL}/en/${categorySlug}/${article.slug}</loc>
     <news:news>
       <news:publication>
-        <news:name>${SITE_NAME.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</news:name>
+        <news:name>${publicationName}</news:name>
         <news:language>en</news:language>
       </news:publication>
       <news:publication_date>${pubDate}</news:publication_date>

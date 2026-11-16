@@ -7,64 +7,56 @@ import { DEFAULT_NAVBAR_SETTINGS, type NavbarBrandConfig, sanitizeNavbarSettings
 import { isFestiveCelebrationActive, type FestiveCelebrationSettings } from '@/lib/festive';
 
 export default function Loading() {
-  const [brand, setBrand] = useState<NavbarBrandConfig>(DEFAULT_NAVBAR_SETTINGS.brand);
+  const [brand, setBrand] = useState<NavbarBrandConfig>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const winBrand = (window as unknown as { __KJIN_BRAND__?: NavbarBrandConfig }).__KJIN_BRAND__;
+        if (winBrand && typeof winBrand === 'object' && winBrand.name) {
+          return { ...DEFAULT_NAVBAR_SETTINGS.brand, ...winBrand };
+        }
+        const cached = localStorage.getItem('kjin_brand_config');
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && typeof parsed === 'object' && parsed.name) {
+            return { ...DEFAULT_NAVBAR_SETTINGS.brand, ...parsed };
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+    return DEFAULT_NAVBAR_SETTINGS.brand;
+  });
   const [festive, setFestive] = useState<FestiveCelebrationSettings | null>(null);
 
   useEffect(() => {
     let isMounted = true;
 
-    // Fast sync from local cache on client mount
-    try {
-      const cached = localStorage.getItem('kjin_brand_config');
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (parsed && typeof parsed === 'object' && parsed.name) {
-          setBrand({
-            ...DEFAULT_NAVBAR_SETTINGS.brand,
-            ...parsed,
-          });
+    // Fetch dynamic brand settings and active celebration in parallel via edge API
+    Promise.all([
+      fetch('/api/brand')
+        .then((res) => (res.ok ? res.json() : null))
+        .catch(() => null),
+      fetch('/api/celebrations')
+        .then((res) => (res.ok ? res.json() : null))
+        .catch(() => null),
+    ]).then(([brandData, celebData]) => {
+      if (!isMounted) return;
+      if (brandData?.brand) {
+        setBrand(brandData.brand);
+        try {
+          localStorage.setItem('kjin_brand_config', JSON.stringify(brandData.brand));
+          (window as unknown as { __KJIN_BRAND__?: NavbarBrandConfig }).__KJIN_BRAND__ = brandData.brand;
+        } catch {
+          // ignore
         }
       }
-    } catch {
-      // ignore
-    }
-
-    async function fetchBrandSettings() {
-      try {
-        const { data } = await supabase
-          .from('site_settings')
-          .select('value')
-          .eq('key', 'navbar_settings')
-          .maybeSingle();
-
-        if (isMounted && data?.value) {
-          const sanitized = sanitizeNavbarSettings(data.value);
-          if (sanitized.brand) {
-            setBrand(sanitized.brand);
-            try {
-              localStorage.setItem('kjin_brand_config', JSON.stringify(sanitized.brand));
-            } catch {
-              // ignore
-            }
-          }
-        }
-      } catch (err) {
-        console.error('[Loading] Error loading brand:', err);
+      const active = celebData?.celebration || celebData?.celebrations;
+      if (active) {
+        setFestive(active);
       }
-    }
+    });
 
-    // Fetch active celebration for festive splash loading
-    fetch('/api/celebrations')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        const active = data?.celebration || data?.celebrations;
-        if (isMounted && active) {
-          setFestive(active);
-        }
-      })
-      .catch(() => {});
-
-    fetchBrandSettings();
     return () => {
       isMounted = false;
     };
