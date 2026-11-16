@@ -82,8 +82,12 @@ export async function POST(request: Request) {
     });
 
     if (!mailResult.success) {
-      console.error('[OTP Mailer Error]:', mailResult.error);
-      return Response.json({ error: 'Failed to dispatch email verification code. Please check SMTP settings.' }, { status: 500 });
+      console.warn('[OTP Mailer Warning]: Nodemailer dispatch failed, falling back to Supabase auth OTP:', mailResult.error);
+      const { error: sbOtpErr } = await service.auth.signInWithOtp({ email: targetEmail });
+      if (sbOtpErr) {
+        console.error('[OTP Fallback Error]:', sbOtpErr);
+        return Response.json({ error: 'Failed to dispatch email verification code. Please check SMTP settings.' }, { status: 500 });
+      }
     }
 
     // Return masked email

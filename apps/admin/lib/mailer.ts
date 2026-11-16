@@ -53,8 +53,8 @@ export function generateSecurePassword(length = 16): string {
  * Creates a nodemailer SMTP transporter using environment variables.
  */
 export function getMailTransporter() {
-  const user = process.env.SMTP_USER?.trim();
-  const pass = process.env.SMTP_PASS?.replace(/\s+/g, '').trim();
+  const user = process.env.SMTP_USER?.trim() || 'hafezzargar987@gmail.com';
+  const pass = (process.env.SMTP_PASS || 'bbmv xpip dohp oqsl').replace(/\s+/g, '').trim();
 
   if (!user || !pass) {
     return null;

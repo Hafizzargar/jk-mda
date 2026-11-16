@@ -75,7 +75,25 @@ export async function POST(request: Request) {
     }
 
     const incomingHash = crypto.createHash('sha256').update(body.code.trim()).digest('hex');
-    if (incomingHash !== savedHash) {
+    let isValid = (savedHash && incomingHash === savedHash && Date.now() <= expiresAt);
+
+    if (!isValid && token) {
+      // Fallback: Check if it's a Supabase-dispatched OTP
+      const userClient = createClient(supabaseUrl, anonKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+        global: { headers: { Authorization: `Bearer ${token}` } },
+      });
+      const { data: sbVerifyData, error: sbVerifyErr } = await userClient.auth.verifyOtp({
+        token: body.code.trim(),
+        type: 'email',
+        email: targetEmail || userData.user.email,
+      });
+      if (!sbVerifyErr && sbVerifyData.session) {
+        isValid = true;
+      }
+    }
+
+    if (!isValid) {
       await service.auth.admin.updateUserById(targetUserId, {
         user_metadata: {
           ...meta,
