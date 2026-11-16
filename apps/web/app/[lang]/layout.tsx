@@ -1,6 +1,7 @@
 import '../globals.css';
 import type { Metadata, Viewport } from 'next';
 import { SITE_URL, SITE_NAME, SITE_SHORT_NAME } from '@/lib/config';
+import { safeJsonLd } from '@/lib/sanitize';
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -20,8 +21,8 @@ import { getCachedSiteSetting } from '@/lib/site-settings-cache';
 export async function generateMetadata(): Promise<Metadata> {
   let brandName = SITE_SHORT_NAME;
   let brandFullName = SITE_NAME;
-  let logo = '/kjin-emblem.png';
-  let tagline = 'Independent, verified news and information for Jammu and Kashmir.';
+  let logo = '/kcpjln-symbol.webp';
+  let tagline = 'Independent, verified news, ground dispatches, and mountain transit telemetry for Jammu, Kashmir, and Ladakh.';
 
   try {
     const supabase = createServerAnonClient();
@@ -34,6 +35,24 @@ export async function generateMetadata(): Promise<Metadata> {
     console.warn('[RootLayout:generateMetadata] Fallback metadata:', err);
   }
 
+  const keywords = [
+    'KJCPL',
+    'KJCPL News',
+    'KJCPL Truth',
+    'Jammu and Kashmir News',
+    'Kashmir News Today',
+    'Srinagar News',
+    'Chenab Valley News',
+    'Doda News',
+    'Kishtwar News',
+    'Pir Panjal News',
+    'Poonch Rajouri News',
+    'Ladakh News',
+    'Mughal Road Status',
+    'Zojila Pass Status',
+    'Breaking News Jammu and Kashmir',
+  ];
+
   return {
     metadataBase: new URL(SITE_URL),
     title: {
@@ -41,9 +60,44 @@ export async function generateMetadata(): Promise<Metadata> {
       template: `%s | ${brandName}`,
     },
     description: tagline,
+    keywords,
+    authors: [{ name: 'KJCPL Editorial Bureau', url: `${SITE_URL}/en` }],
+    creator: 'KJCPL News Network',
+    publisher: brandFullName,
     robots: {
       index: true,
       follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-video-preview': -1,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+      },
+    },
+    openGraph: {
+      title: `${brandFullName} | ${brandName}`,
+      description: tagline,
+      url: `${SITE_URL}/en`,
+      siteName: brandFullName,
+      locale: 'en_IN',
+      type: 'website',
+      images: [
+        {
+          url: `${SITE_URL}/kcpjln-wide-banner.webp`,
+          width: 1200,
+          height: 630,
+          alt: brandFullName,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: `${brandFullName} | ${brandName}`,
+      description: tagline,
+      images: [`${SITE_URL}/kcpjln-wide-banner.webp`],
+      site: '@kjcpl_news',
+      creator: '@kjcpl_news',
     },
     icons: {
       icon: [
@@ -88,6 +142,37 @@ export default async function RootLayout({
 
   const theme = getTemplateTheme(activeTemplateId);
 
+  const orgJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'NewsMediaOrganization',
+    name: 'KJCPL News Network',
+    alternateName: ['KJCPL', 'KJCPL Truth'],
+    url: `${SITE_URL}/en`,
+    logo: `${SITE_URL}/kcpjln-symbol.webp`,
+    publishingPrinciples: `${SITE_URL}/en`,
+    masthead: `${SITE_URL}/en`,
+    diversityPolicy: `${SITE_URL}/en`,
+    ethicsPolicy: `${SITE_URL}/en`,
+    correctionsPolicy: `${SITE_URL}/en`,
+    verificationFactCheckingPolicy: `${SITE_URL}/en`,
+  };
+
+  const websiteJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: 'KJCPL News Network',
+    alternateName: ['KJCPL', 'kjcpl.site'],
+    url: `${SITE_URL}/en`,
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: {
+        '@type': 'EntryPoint',
+        urlTemplate: `${SITE_URL}/en?q={search_term_string}`,
+      },
+      'query-input': 'required name=search_term_string',
+    },
+  };
+
   return (
     <html
       lang={lang}
@@ -115,6 +200,14 @@ export default async function RootLayout({
         suppressHydrationWarning
         className={`min-h-screen w-full max-w-full overflow-x-hidden ${theme.pageBgClass} ${theme.textPrimaryClass} ${theme.fontFamilyClass} ${theme.selectionClass} antialiased transition-colors duration-200`}
       >
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(orgJsonLd) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: safeJsonLd(websiteJsonLd) }}
+        />
         <ScrollToTop />
         <FestiveCelebrationOverlay initialSettings={festiveSettings} />
         {children}

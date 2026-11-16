@@ -18,7 +18,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .limit(SITEMAP_MAX_ARTICLES);
 
   const articleUrls: MetadataRoute.Sitemap = (articles || []).map((article) => ({
-    url: `${SITE_URL}/${getCategorySlug(article.category)}/${article.slug}`,
+    url: `${SITE_URL}/en/${getCategorySlug(article.category)}/${article.slug}`,
     lastModified: new Date(article.updated_at || article.published_at || Date.now()),
     changeFrequency: 'daily',
     priority: 0.8,
@@ -26,7 +26,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // 2. Controlled Category feeds
   const categoryUrls: MetadataRoute.Sitemap = Object.keys(NEWS_CATEGORIES).map((cat) => ({
-    url: `${SITE_URL}/category/${cat}`,
+    url: `${SITE_URL}/en/category/${cat}`,
     lastModified: new Date(),
     changeFrequency: 'hourly',
     priority: 0.9,
@@ -34,7 +34,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // 3. Controlled District feeds
   const districtUrls: MetadataRoute.Sitemap = Object.keys(JK_DISTRICTS).map((dist) => ({
-    url: `${SITE_URL}/district/${dist}`,
+    url: `${SITE_URL}/en/district/${dist}`,
     lastModified: new Date(),
     changeFrequency: 'hourly',
     priority: 0.85,
@@ -42,19 +42,54 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // 4. Regional division feeds (Pir Panjal, Chenab Valley, Kashmir, Jammu, Leh)
   const regionUrls: MetadataRoute.Sitemap = Object.keys(REGIONAL_DIVISIONS).map((reg) => ({
-    url: `${SITE_URL}/region/${reg}`,
+    url: `${SITE_URL}/en/region/${reg}`,
     lastModified: new Date(),
     changeFrequency: 'hourly',
     priority: 0.9,
   }));
 
-  return [
+  // 5. Core Top-level Section URLs
+  const coreUrls: MetadataRoute.Sitemap = [
     {
-      url: SITE_URL,
+      url: `${SITE_URL}/en`,
       lastModified: new Date(),
       changeFrequency: 'always',
       priority: 1.0,
     },
+    {
+      url: `${SITE_URL}/en/latest`,
+      lastModified: new Date(),
+      changeFrequency: 'always',
+      priority: 0.95,
+    },
+    {
+      url: `${SITE_URL}/en/transit`,
+      lastModified: new Date(),
+      changeFrequency: 'hourly',
+      priority: 0.9,
+    },
+    {
+      url: `${SITE_URL}/en/india`,
+      lastModified: new Date(),
+      changeFrequency: 'hourly',
+      priority: 0.9,
+    },
+    {
+      url: `${SITE_URL}/en/international`,
+      lastModified: new Date(),
+      changeFrequency: 'hourly',
+      priority: 0.9,
+    },
+    {
+      url: `${SITE_URL}/en/map`,
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 0.85,
+    },
+  ];
+
+  return [
+    ...coreUrls,
     ...regionUrls,
     ...categoryUrls,
     ...districtUrls,

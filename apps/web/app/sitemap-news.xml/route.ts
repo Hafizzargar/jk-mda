@@ -3,13 +3,12 @@ import { createServerAnonClient } from '@/lib/supabase-server';
 import { SITE_URL, SITE_NAME } from '@/lib/config';
 import { getCategorySlug } from '@/lib/taxonomy';
 
-export const revalidate = 600; // 10 minutes cache
+export const revalidate = 300; // 5 minutes cache for ultra-fast Google News discovery
 
 export async function GET() {
   const supabase = createServerAnonClient();
   
-  // Google News Sitemaps should only include articles published in the last 48 hours.
-  // We'll fetch up to 1000 recent articles.
+  // Google News Sitemaps strictly require articles published in the last 48 hours.
   const twoDaysAgo = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
   
   const { data: articles } = await supabase
@@ -28,12 +27,13 @@ export async function GET() {
     try {
       if (article.published_at) pubDate = new Date(article.published_at).toISOString();
     } catch {
-      // fallback to current time
+      // fallback
     }
-    const cleanTitle = (article.title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const cleanTitle = (article.title || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    const categorySlug = getCategorySlug(article.category);
     return `
   <url>
-    <loc>${SITE_URL}/${getCategorySlug(article.category)}/${article.slug}</loc>
+    <loc>${SITE_URL}/en/${categorySlug}/${article.slug}</loc>
     <news:news>
       <news:publication>
         <news:name>${SITE_NAME.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</news:name>
@@ -49,7 +49,7 @@ export async function GET() {
   return new NextResponse(xml, {
     headers: {
       'Content-Type': 'application/xml; charset=utf-8',
-      'Cache-Control': 'public, max-age=600, s-maxage=600, stale-while-revalidate=1200',
+      'Cache-Control': 'public, max-age=300, s-maxage=300, stale-while-revalidate=600',
     },
   });
 }

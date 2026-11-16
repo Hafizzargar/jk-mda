@@ -29,7 +29,7 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
 
   const { data: article } = await supabase
     .from('articles')
-    .select('title, excerpt, featured_image_url, category, published_at, updated_at, author_display_name, article_translations(title, excerpt, language_code)')
+    .select('title, excerpt, featured_image_url, category, district, published_at, updated_at, author_display_name, article_translations(title, excerpt, language_code)')
     .eq('slug', resolvedParams.slug)
     .maybeSingle();
 
@@ -54,11 +54,29 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
   const categorySlug = getCategorySlug(article.category);
   const canonicalRoutePrefix = resolvedParams.lang ? `/${resolvedParams.lang}` : '/en';
   const canonicalUrl = `${SITE_URL}${canonicalRoutePrefix}/${categorySlug}/${resolvedParams.slug}`;
+  const authorCleanName = (article.author_display_name || `${brandSettings.name} Bureau`).replace(/\bKJIN\b/gi, 'KJCPL');
+
+  const keywords = [
+    article.category,
+    article.district ? getDistrictDisplayName(article.district) : null,
+    'Jammu and Kashmir',
+    'Kashmir News',
+    'Breaking News',
+    'KJCPL',
+    'KJCPL News Network',
+    'Chenab Valley',
+    'Pir Panjal',
+    'India News',
+  ].filter(Boolean) as string[];
 
   return {
     metadataBase: new URL(SITE_URL),
     title: `${title} | ${brandSettings.name}`,
     description: excerpt,
+    keywords,
+    authors: [{ name: authorCleanName, url: `${SITE_URL}/en` }],
+    creator: `${brandSettings.name} Newsroom`,
+    publisher: brandSettings.full_name,
     alternates: {
       canonical: canonicalUrl,
     },
@@ -68,6 +86,13 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
       'max-image-preview': 'large',
       'max-snippet': -1,
       'max-video-preview': -1,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+        'max-video-preview': -1,
+      },
     },
     openGraph: {
       title: title,
@@ -78,8 +103,9 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
       type: 'article',
       publishedTime: article.published_at || undefined,
       modifiedTime: article.updated_at || undefined,
-      authors: [article.author_display_name || `${brandSettings.name} Desk`],
+      authors: [authorCleanName],
       section: article.category,
+      tags: keywords,
       images: article.featured_image_url
         ? [
             {
@@ -89,13 +115,22 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
               height: 630,
             },
           ]
-        : [],
+        : [
+            {
+              url: `${SITE_URL}/kcpjln-wide-banner.webp`,
+              alt: brandSettings.full_name,
+              width: 1200,
+              height: 630,
+            },
+          ],
     },
     twitter: {
       card: 'summary_large_image',
       title: title,
       description: excerpt,
-      images: article.featured_image_url ? [article.featured_image_url] : [],
+      images: article.featured_image_url ? [article.featured_image_url] : [`${SITE_URL}/kcpjln-wide-banner.webp`],
+      creator: '@kjcpl_news',
+      site: '@kjcpl_news',
     },
   };
 }
@@ -179,6 +214,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   const parsedModified = rawModified ? new Date(rawModified) : parsedPublished;
   const dateModified = !isNaN(parsedModified.getTime()) ? parsedModified.toISOString() : datePublished;
 
+  const authorCleanName = (article.author_display_name || `${brandSettings.name} Bureau`).replace(/\bKJIN\b/gi, 'KJCPL');
+
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'NewsArticle',
@@ -188,26 +225,65 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     },
     headline: displayArticle.title,
     description: displayArticle.excerpt || undefined,
-    image: displayArticle.featured_image_url ? [displayArticle.featured_image_url] : [],
+    image: displayArticle.featured_image_url
+      ? [displayArticle.featured_image_url]
+      : [`${SITE_URL}/kcpjln-wide-banner.webp`],
     datePublished,
     dateModified,
     articleSection: displayArticle.category,
-    inLanguage: resolvedParams.lang,
+    inLanguage: resolvedParams.lang || 'en',
+    isAccessibleForFree: true,
+    copyrightYear: new Date(datePublished).getFullYear(),
+    copyrightHolder: {
+      '@type': 'NewsMediaOrganization',
+      name: brandSettings.full_name,
+      url: SITE_URL,
+    },
     author: [
       {
         '@type': 'Person',
-        name: article.author_display_name || `${brandSettings.name} Desk`,
+        name: authorCleanName,
+        url: `${SITE_URL}/en`,
+        jobTitle: 'Senior Bureau Correspondent',
       },
     ],
     publisher: {
-      '@type': 'Organization',
+      '@type': 'NewsMediaOrganization',
       name: brandSettings.full_name,
       url: SITE_URL,
       logo: {
         '@type': 'ImageObject',
-        url: brandSettings.logo_url || `${SITE_URL}/logo.png`,
+        url: brandSettings.logo_url || `${SITE_URL}/kcpjln-symbol.webp`,
+        width: 512,
+        height: 512,
       },
+      publishingPrinciples: `${SITE_URL}/en`,
     },
+  };
+
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Home',
+        item: `${SITE_URL}/en`,
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: displayArticle.category || 'News',
+        item: `${SITE_URL}/en/category/${articleCategorySlug}`,
+      },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: displayArticle.title,
+        item: articleCanonicalUrl,
+      },
+    ],
   };
 
   // Fetch Active Template Setting to align theme & background colors
@@ -233,6 +309,10 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(breadcrumbJsonLd) }}
       />
       <ViewTracker articleId={article.id} />
       
