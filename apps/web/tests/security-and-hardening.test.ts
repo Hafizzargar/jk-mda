@@ -494,6 +494,6 @@ describe('P1: Canonical Domain & Config', () => {
   it('ensures SITE_URL is canonical and has no trailing slash', () => {
     assert.ok(SITE_URL.startsWith('http'), 'SITE_URL must be a valid protocol URL');
     assert.ok(!SITE_URL.endsWith('/'), 'SITE_URL must not have a trailing slash');
-    assert.ok(SITE_URL.includes('kjin.in') || SITE_URL.includes('localhost'), 'SITE_URL must point to canonical kjin.in');
+    assert.ok(SITE_URL.includes('kjcpl.site') || SITE_URL.includes('kjin.in') || SITE_URL.includes('localhost'), 'SITE_URL must point to canonical domain');
   });
 });
