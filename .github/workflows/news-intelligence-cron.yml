@@ -1,0 +1,39 @@
+name: Autonomous News Intelligence Cron
+
+on:
+  schedule:
+    # Executes at minute 0 of every hour (24 times a day)
+    - cron: '0 * * * *'
+  # Allows triggering manually from the GitHub Actions tab anytime
+  workflow_dispatch:
+
+jobs:
+  surveillance_cron:
+    name: Autonomous News Discovery & Surveillance
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Ping News Intelligence Endpoint
+        run: |
+          ADMIN_URL="${{ vars.ADMIN_URL || 'https://jk-mda-admin.vercel.app' }}"
+          ENDPOINT="${ADMIN_URL}/api/cron/news-intelligence"
+          echo "Pinging Autonomous News Intelligence at: ${ENDPOINT}"
+
+          HTTP_CODE=$(curl -s -L -w "%{http_code}" -o response.json -X POST \
+            -H "Content-Type: application/json" \
+            -H "User-Agent: GitHub-Actions-Newsroom-Cron/1.0" \
+            -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
+            "${ENDPOINT}")
+
+          echo "Response HTTP Status: ${HTTP_CODE}"
+          echo "Response Body:"
+          cat response.json || true
+          echo ""
+
+          if [ "${HTTP_CODE}" -ge 200 ] && [ "${HTTP_CODE}" -lt 300 ]; then
+            echo "Autonomous News Intelligence completed successfully."
+          else
+            echo "Endpoint returned status ${HTTP_CODE}."
+            # Do not fail hard if database is still waking up, but report response
+          fi
