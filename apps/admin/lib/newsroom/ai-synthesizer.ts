@@ -1119,7 +1119,8 @@ STRICT EDITORIAL & READER-ENGAGEMENT DIRECTIVES:
      "bodyMarkdown": "The full engaging, reader-friendly journalistic article in clean markdown with Key Highlights, short paragraphs, natural subheadings, and blockquotes"
    }`;
 
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+  const model = process.env.GEMINI_MODEL || 'gemini-flash-lite-latest';
+  let res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -1131,6 +1132,22 @@ STRICT EDITORIAL & READER-ENGAGEMENT DIRECTIVES:
       },
     }),
   });
+
+  if (!res.ok && model !== 'gemini-flash-lite-latest') {
+    // Graceful cascade: fallback to gemini-flash-lite-latest on transient model demand spikes
+    res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.2,
+          maxOutputTokens: 8192,
+          responseMimeType: 'application/json',
+        },
+      }),
+    });
+  }
 
   if (!res.ok) {
     throw new Error(`Gemini API returned status ${res.status}: ${res.statusText}`);

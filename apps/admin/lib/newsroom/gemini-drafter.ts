@@ -115,15 +115,28 @@ STRICT EDITORIAL RULES:
     return generateFallbackDraft(input);
   }
 
+  const selectedModel = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
   try {
     const result = await generateObject({
-      model: google('gemini-2.5-flash'),
+      model: google(selectedModel),
       prompt,
       schema: DraftOutputZodSchema,
     });
 
     return result.object;
   } catch (err: unknown) {
+    if (selectedModel !== 'gemini-flash-lite-latest') {
+      try {
+        const fallbackResult = await generateObject({
+          model: google('gemini-flash-lite-latest'),
+          prompt,
+          schema: DraftOutputZodSchema,
+        });
+        return fallbackResult.object;
+      } catch {
+        // Fall through to deterministic fallback
+      }
+    }
     console.warn('Gemini API call failed, using high-integrity fallback generator:', err);
     return generateFallbackDraft(input);
   }
