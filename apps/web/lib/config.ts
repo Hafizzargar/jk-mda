@@ -6,14 +6,18 @@ function getCanonicalSiteUrl(): string {
     if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
       return 'https://www.kjcpl.site';
     }
+    return 'http://localhost:3000';
   }
 
-  const raw = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL;
-  if (process.env.NODE_ENV === 'production' && (!raw || raw.includes('localhost'))) {
-    return 'https://www.kjcpl.site';
+  if (process.env.NODE_ENV === 'development') {
+    const rawDev = process.env.NEXT_PUBLIC_SITE_URL || process.env.SITE_URL;
+    if (rawDev && rawDev.includes('localhost')) {
+      return rawDev.replace(/\/$/, '');
+    }
+    return 'http://localhost:3000';
   }
 
-  return (raw || 'https://www.kjcpl.site').replace(/\/$/, '');
+  return 'https://www.kjcpl.site';
 }
 
 export const SITE_URL = getCanonicalSiteUrl();

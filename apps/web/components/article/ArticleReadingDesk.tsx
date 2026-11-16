@@ -63,6 +63,7 @@ export function ArticleReadingDesk({
   telemetry,
 }: ArticleReadingDeskProps) {
   const activeTelemetry = telemetry || DEFAULT_TELEMETRY_SETTINGS;
+  const authorName = (article.author_display_name || `${brandName} Staff Desk`).replace(/\bKJIN\b/gi, 'KJCPL');
   const [scrollProgress, setScrollProgress] = useState(0);
   const [fontScale, setFontScale] = useState<number>(0); // -1, 0, 1
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -179,11 +180,11 @@ export function ArticleReadingDesk({
                 {/* Author Avatar & Info */}
                 <div className="flex items-center space-x-3">
                   <div className="w-11 h-11 rounded-full bg-[#0F172A] text-white flex items-center justify-center font-bold text-sm">
-                    {article.author_display_name ? article.author_display_name[0]?.toUpperCase() : 'K'}
+                    {authorName ? authorName[0]?.toUpperCase() : 'K'}
                   </div>
                   <div>
                     <div className="flex items-center gap-1.5 font-bold text-[#0F172A] uppercase tracking-wider">
-                      <span>{article.author_display_name || `${brandName} Staff Desk`}</span>
+                      <span>{authorName}</span>
                       <span className="text-slate-400 font-normal hidden sm:inline">• Senior Resident Bureau</span>
                     </div>
                     <div className="text-slate-500 text-[11px] flex items-center gap-2 mt-0.5">
@@ -329,20 +330,20 @@ export function ArticleReadingDesk({
             {/* Author Bio Dossier Card */}
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row gap-4 items-start font-sans">
               <div className="w-14 h-14 rounded-full bg-[#0F172A] text-white flex-shrink-0 flex items-center justify-center font-bold text-xl">
-                {article.author_display_name ? article.author_display_name[0]?.toUpperCase() : 'K'}
+                {authorName ? authorName[0]?.toUpperCase() : 'K'}
               </div>
               <div className="space-y-2 flex-1">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <h3 className="text-lg font-bold text-[#0F172A]">
-                      {article.author_display_name || `${brandName} Desk`}
+                      {authorName}
                     </h3>
                     <p className="text-xs text-[#0891B2] font-semibold uppercase tracking-wider">
                       Senior Bureau Correspondent • {districtName || 'J&K Region'}
                     </p>
                   </div>
                   <a
-                    href="mailto:editorial@kjin.org"
+                    href="mailto:editorial@kjcpl.site"
                     className="text-xs uppercase font-bold text-white bg-[#0F172A] px-3 py-1.5 rounded-xl hover:bg-slate-800 transition"
                   >
                     Direct Wire Tips
@@ -379,7 +380,7 @@ export function ArticleReadingDesk({
                 </div>
               </div>
               <a
-                href="mailto:grievance@kjin.org"
+                href="mailto:grievance@kjcpl.site"
                 className="whitespace-nowrap px-4 py-2 bg-white hover:bg-slate-100 text-slate-900 font-bold rounded-xl uppercase tracking-wider transition shadow-sm border border-slate-300"
               >
                 File Revision Notice
@@ -699,7 +700,7 @@ export function ArticleReadingDesk({
                   </div>
 
                   <div className="px-5 py-3 bg-[#f5f3f0] border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                    <span>By {item.author_display_name || `${brandName} Desk`}</span>
+                    <span>By {(item.author_display_name || `${brandName} Desk`).replace(/\bKJIN\b/gi, 'KJCPL')}</span>
                     <span className="font-semibold text-slate-800">5 Min Read</span>
                   </div>
                 </article>
