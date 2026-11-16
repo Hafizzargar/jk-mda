@@ -86,7 +86,7 @@ export async function POST(request: Request) {
       const { data: sbVerifyData, error: sbVerifyErr } = await userClient.auth.verifyOtp({
         token: body.code.trim(),
         type: 'email',
-        email: targetEmail || userData.user.email,
+        email: body.email || userData.user.email || '',
       });
       if (!sbVerifyErr && sbVerifyData.session) {
         isValid = true;
