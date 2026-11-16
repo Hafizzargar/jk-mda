@@ -317,6 +317,7 @@ export default function YouTubeMonitorPage() {
   });
   const isSyncingRef = useRef(false);
   const isDiscoveringRef = useRef(false);
+  const nextScanTimestampRef = useRef<number>(0);
 
   // Dynamic Beat & District Target Quotas State (Min / Max per region and per district)
   const [beatQuotas, setBeatQuotas] = useState<Record<string, BeatQuotaConfig>>({
@@ -417,28 +418,33 @@ export default function YouTubeMonitorPage() {
   }, []);
 
   useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (autoPilot) {
-      timer = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev <= 1) {
-            // 1. Run autonomous web news discovery (Gemini Grounding across Google News & wires)
-            if (!isDiscoveringRef.current) {
-              handleDiscoverNow(true);
-            }
-            // 2. Run YouTube channel surveillance sync
-            if (!isSyncingRef.current) {
-              handleSyncNow(true);
-            }
-            return autoPilotIntervalMinutes * 60;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+    // If nextScanTimestamp is not initialized or expired, start from interval
+    if (!nextScanTimestampRef.current || nextScanTimestampRef.current <= Date.now()) {
+      nextScanTimestampRef.current = Date.now() + autoPilotIntervalMinutes * 60 * 1000;
     }
-    return () => {
-      if (timer) clearInterval(timer);
-    };
+
+    const ticker = setInterval(() => {
+      const now = Date.now();
+      setNowTimestamp(now);
+
+      if (autoPilot) {
+        if (!nextScanTimestampRef.current || nextScanTimestampRef.current <= now) {
+          // Time to trigger autonomous scan
+          if (!isDiscoveringRef.current) {
+            handleDiscoverNow(true);
+          }
+          if (!isSyncingRef.current) {
+            handleSyncNow(true);
+          }
+          nextScanTimestampRef.current = now + autoPilotIntervalMinutes * 60 * 1000;
+        }
+
+        const remainingSecs = Math.max(0, Math.ceil((nextScanTimestampRef.current - now) / 1000));
+        setCountdown(remainingSecs);
+      }
+    }, 1000);
+
+    return () => clearInterval(ticker);
   }, [autoPilot, autoPilotIntervalMinutes]);
 
   function formatCountdownTime(totalSeconds: number): string {
@@ -458,6 +464,7 @@ export default function YouTubeMonitorPage() {
   async function handleUpdateAutoPilotSettings(newInterval: number, newEnabled: boolean) {
     setAutoPilotIntervalMinutes(newInterval);
     setAutoPilot(newEnabled);
+    nextScanTimestampRef.current = Date.now() + newInterval * 60 * 1000;
     setCountdown(newInterval * 60);
     if (typeof window !== 'undefined') {
       localStorage.setItem('kjin_autopilot_interval', String(newInterval));
@@ -641,13 +648,6 @@ export default function YouTubeMonitorPage() {
     }
   }
 
-  // Live seconds ticker for countdown timers
-  useEffect(() => {
-    const ticker = setInterval(() => {
-      setNowTimestamp(Date.now());
-    }, 1000);
-    return () => clearInterval(ticker);
-  }, []);
 
   const handleToggleAutoPublish = async (override?: boolean, customDelay?: number) => {
     const nextState = override !== undefined ? override : !autoPublishEnabled;
@@ -859,7 +859,10 @@ export default function YouTubeMonitorPage() {
         const enabled = sData.auto_pilot_enabled !== false;
         setAutoPilotIntervalMinutes(mins);
         setAutoPilot(enabled);
-        setCountdown(mins * 60);
+        if (!nextScanTimestampRef.current || nextScanTimestampRef.current <= Date.now()) {
+          nextScanTimestampRef.current = Date.now() + mins * 60 * 1000;
+          setCountdown(mins * 60);
+        }
         if (typeof window !== 'undefined') {
           localStorage.setItem('kjin_autopilot_interval', String(mins));
           localStorage.setItem('kjin_autopilot_enabled', String(enabled));
