@@ -472,13 +472,9 @@ export function SiteNavbar({
               <span>5 Territorial Corridors Active</span>
             </span>
             <span className="text-stone-300">|</span>
-            <Link
-              href={`${langPrefix}/transit`}
-              className="hover:text-stone-900 transition flex items-center gap-1 font-sans font-semibold text-stone-700 hover:underline"
-            >
-              <span>Mountain Transit Telemetry</span>
-              <span>&rarr;</span>
-            </Link>
+            <span className="text-stone-500 font-sans font-medium text-[11px]">
+              22 Districts Live
+            </span>
           </div>
         </div>
       </nav>

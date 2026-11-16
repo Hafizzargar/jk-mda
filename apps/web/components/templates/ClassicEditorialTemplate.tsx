@@ -1294,10 +1294,10 @@ export function ClassicEditorialTemplate({
                 </div>
 
                 <Link
-                  href={`${langPrefix}/map`}
+                  href={`${langPrefix}/latest`}
                   className="mt-4 block w-full py-2 bg-slate-900 text-white text-center text-[11px] font-bold uppercase tracking-wider rounded-xl shadow-sm hover:bg-slate-800 transition"
                 >
-                  View All District Filings on Map →
+                  ⚡ View Full Bureau Wire Stream →
                 </Link>
               </div>
             );
