@@ -560,8 +560,24 @@ export async function getCivicProblemsDailyStatus(
 ): Promise<CivicProblemsDailyStatus> {
   const startOfDay = getNewsroomStartOfDay(now);
   const startOfDayIso = startOfDay.toISOString();
-  const maxDaily = 2;
-  const intervalHours = 6;
+  let maxDaily = 2;
+  let intervalHours = 6;
+
+  try {
+    const { data: configRow } = await service
+      .from('site_settings')
+      .select('value')
+      .eq('key', 'newsroom_auto_pilot')
+      .maybeSingle();
+    if (configRow?.value?.civic_max_daily) {
+      maxDaily = Math.max(1, Number(configRow.value.civic_max_daily));
+    }
+    if (configRow?.value?.civic_interval_hours) {
+      intervalHours = Math.max(1, Number(configRow.value.civic_interval_hours));
+    }
+  } catch {
+    // Fall back to default 2 daily, 6h interval (e.g. In unit tests)
+  }
 
   try {
     const { data: rows } = await service

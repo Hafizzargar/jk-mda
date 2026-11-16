@@ -379,6 +379,10 @@ export default function YouTubeMonitorPage() {
   const [isQuotasModalOpen, setIsQuotasModalOpen] = useState(false);
   const [isSavingQuotas, setIsSavingQuotas] = useState(false);
   const [editingQuotas, setEditingQuotas] = useState<Record<string, BeatQuotaConfig>>({});
+  const [civicMaxDaily, setCivicMaxDaily] = useState<number>(2);
+  const [civicIntervalHours, setCivicIntervalHours] = useState<number>(6);
+  const [isCivicModalOpen, setIsCivicModalOpen] = useState(false);
+  const [isSavingCivicSettings, setIsSavingCivicSettings] = useState(false);
   const [expandedBeatDistricts, setExpandedBeatDistricts] = useState<Record<string, boolean>>({
     chenab_valley: true,
   });
@@ -528,6 +532,39 @@ export default function YouTubeMonitorPage() {
       setFeedback({ text: err.message || 'Failed to save beat quotas.', type: 'error' });
     } finally {
       setIsSavingQuotas(false);
+    }
+  }
+
+  async function handleSaveCivicSettings(maxDaily: number, intervalHours: number) {
+    setIsSavingCivicSettings(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) return;
+      const res = await fetch('/api/newsroom/youtube/settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+        body: JSON.stringify({
+          civic_max_daily: maxDaily,
+          civic_interval_hours: intervalHours,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed to save civic settings.');
+      setCivicMaxDaily(maxDaily);
+      setCivicIntervalHours(intervalHours);
+      setIsCivicModalOpen(false);
+      setFeedback({
+        text: `✅ Ground problems policy updated: ${maxDaily} problems/day with ${intervalHours}h auto-pacing. Manual publishing remains instant!`,
+        type: 'success',
+      });
+      await loadData();
+    } catch (err: any) {
+      console.error('Failed to save civic settings:', err);
+      setFeedback({ text: err.message || 'Failed to save civic settings.', type: 'error' });
+    } finally {
+      setIsSavingCivicSettings(false);
     }
   }
 
@@ -869,6 +906,12 @@ export default function YouTubeMonitorPage() {
         }
         if (sData.beat_quotas) {
           setBeatQuotas((prev) => ({ ...prev, ...sData.beat_quotas }));
+        }
+        if (sData.civic_max_daily !== undefined) {
+          setCivicMaxDaily(Number(sData.civic_max_daily));
+        }
+        if (sData.civic_interval_hours !== undefined) {
+          setCivicIntervalHours(Number(sData.civic_interval_hours));
         }
         if (sData.auto_publish_enabled !== undefined) {
           setAutoPublishEnabled(Boolean(sData.auto_publish_enabled));
@@ -1893,12 +1936,27 @@ export default function YouTubeMonitorPage() {
               <span className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">
                 🚨 Ground Grievances
               </span>
-              <span className="text-[10px] font-mono font-bold text-amber-700 dark:text-amber-400">
-                {civicProblems ? (civicProblems.canDiscoverNow ? 'Ready' : `Next in ${civicProblems.hoursUntilNextAllowed}h`) : '6h Shift'}
-              </span>
+              <button
+                type="button"
+                onClick={() => setIsCivicModalOpen(true)}
+                className="text-[10px] font-mono font-bold text-amber-700 dark:text-amber-400 hover:underline flex items-center gap-1 cursor-pointer"
+                title="Configure daily quota and automated interval sliders"
+              >
+                <span>⚙️ Sliders</span>
+                <span>{civicProblems ? (civicProblems.canDiscoverNow ? 'Ready' : `Next in ${civicProblems.hoursUntilNextAllowed}h`) : `${civicIntervalHours}h Shift`}</span>
+              </button>
             </div>
-            <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
-              {civicProblems?.currentToday ?? 0} <span className="text-sm font-semibold text-slate-400">/ {civicProblems?.maxDaily ?? 2}</span>
+            <div className="flex items-baseline justify-between">
+              <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
+                {civicProblems?.currentToday ?? 0} <span className="text-sm font-semibold text-slate-400">/ {civicMaxDaily}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCivicModalOpen(true)}
+                className="text-[10px] font-bold text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/80 hover:bg-amber-200 transition cursor-pointer"
+              >
+                Pacing Sliders →
+              </button>
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
               Grassroots water, power &amp; road issues
@@ -3931,6 +3989,138 @@ export default function YouTubeMonitorPage() {
                   className="flex-1 sm:flex-initial justify-center bg-purple-600 hover:bg-purple-700 text-white font-bold"
                 >
                   Save Beat Quotas
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Civic Problems Daily Quota & Pacing Sliders Modal */}
+      {isCivicModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-900 border border-amber-300 dark:border-amber-800 rounded-2xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-5 animate-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🚨</span>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    Civic Problems &amp; Ground Grievances Policy
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Control automated AI discovery pacing and daily limits with sliders
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCivicModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-lg font-bold p-1 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Instant Manual Publishing Notice */}
+            <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs text-emerald-800 dark:text-emerald-300 space-y-1">
+              <div className="font-bold flex items-center gap-1.5">
+                <span>⚡</span>
+                <span>Manual Creation is ALWAYS Instant (0 Min Wait)</span>
+              </div>
+              <p className="text-[11px] leading-relaxed text-emerald-700 dark:text-emerald-400">
+                When you or your editors manually write and publish a civic problem, it publishes immediately in minutes. You never have to wait for the automatic interval.
+              </p>
+            </div>
+
+            {/* Sliders Container */}
+            <div className="space-y-5 pt-1">
+              {/* Slider 1: Daily Target Problems */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  <span>1. Daily Problems Target (Per Day):</span>
+                  <span className="px-2.5 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950 font-mono text-amber-800 dark:text-amber-300 font-bold">
+                    {civicMaxDaily} {civicMaxDaily === 1 ? 'Report' : 'Reports'} / Day
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={1}
+                  max={5}
+                  step={1}
+                  value={civicMaxDaily}
+                  onChange={(e) => setCivicMaxDaily(Number(e.target.value))}
+                  className="w-full accent-amber-600 cursor-pointer h-2 bg-slate-200 dark:bg-slate-700 rounded-lg"
+                />
+                <div className="flex justify-between text-[10px] text-slate-400 font-mono">
+                  <span>1 / Day</span>
+                  <span>2 (Standard)</span>
+                  <span>3 / Day</span>
+                  <span>4 / Day</span>
+                  <span>5 / Day</span>
+                </div>
+              </div>
+
+              {/* Slider 2: Shift Pacing Interval */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs font-semibold text-slate-700 dark:text-slate-300">
+                  <span>2. Automated Radar Shift Interval:</span>
+                  <span className="px-2.5 py-0.5 rounded-md bg-blue-100 dark:bg-blue-950 font-mono text-blue-800 dark:text-blue-300 font-bold">
+                    {civicIntervalHours} Hours Between Reports
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min={1}
+                  max={24}
+                  step={1}
+                  value={civicIntervalHours}
+                  onChange={(e) => setCivicIntervalHours(Number(e.target.value))}
+                  className="w-full accent-blue-600 cursor-pointer h-2 bg-slate-200 dark:bg-slate-700 rounded-lg"
+                />
+                <div className="flex justify-between text-[10px] text-slate-400 font-mono">
+                  <span>1h (Frequent)</span>
+                  <span>6h (Standard)</span>
+                  <span>12h (Relaxed)</span>
+                  <span>24h (Once daily)</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => {
+                  handleDiscoverCivicProblem();
+                  setIsCivicModalOpen(false);
+                }}
+                className="w-full sm:w-auto text-xs font-bold text-amber-700 hover:text-amber-800 dark:text-amber-400 py-2 px-3 rounded-lg border border-amber-300 dark:border-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/50 transition cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <span>🚨</span>
+                <span>Scan Ground Radar Now</span>
+              </button>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setIsCivicModalOpen(false)}
+                  disabled={isSavingCivicSettings}
+                  className="cursor-pointer"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  isLoading={isSavingCivicSettings}
+                  disabled={isSavingCivicSettings}
+                  onClick={() => handleSaveCivicSettings(civicMaxDaily, civicIntervalHours)}
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold cursor-pointer"
+                >
+                  Save Sliders
                 </Button>
               </div>
             </div>

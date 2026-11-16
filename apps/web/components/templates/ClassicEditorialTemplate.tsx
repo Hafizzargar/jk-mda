@@ -16,6 +16,7 @@ import { FALLBACK_BROADSHEET_ARTICLES } from '@/lib/seed-articles';
 import { TerritorialBureauTelemetrySlider } from '@/components/telemetry/TerritorialBureauTelemetrySlider';
 import { SafeEditorialImage } from '@/components/common/SafeEditorialImage';
 import { TodayCenterDispatches } from './TodayCenterDispatches';
+import { CivicProblemsSlider } from './CivicProblemsSlider';
 
 export function ClassicEditorialTemplate({
   langPrefix,
@@ -1521,89 +1522,17 @@ export function ClassicEditorialTemplate({
 
             const renderCivicProblems = (key = 'civic_problems') => {
               const items = (problemArticles && problemArticles.length > 0)
-                ? problemArticles.slice(0, 2)
+                ? problemArticles
                 : (problemArticle ? [problemArticle] : []);
 
               if (items.length === 0 && scope && scope.type !== 'home') return null;
 
               return (
-                <div key={key} className="bg-white p-5 rounded-2xl border border-amber-200/90 shadow-sm bg-gradient-to-br from-white via-amber-50/25 to-orange-50/30 font-sans" data-purpose="civic-problems">
-                  <div className="flex items-center justify-between mb-3 pb-2 border-b border-amber-100">
-                    <span className="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded bg-amber-600/10 text-amber-700 border border-amber-600/20 flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-pulse inline-block" />
-                      Problems • Civic Issues
-                    </span>
-                    <span className="text-[10px] font-mono text-slate-500 font-semibold">2 Reports / Day (6h Shift)</span>
-                  </div>
-
-                  {items.length > 0 ? (
-                    <div className="space-y-4">
-                      {items.map((art, idx) => {
-                        const tag = getCivicProblemTag(art.title, art.excerpt);
-                        return (
-                          <div
-                            key={art.id}
-                            className={idx > 0 ? 'pt-3.5 border-t border-amber-100/80' : ''}
-                          >
-                            <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
-                              <span className={`px-2 py-0.5 text-[9px] font-bold uppercase rounded border ${tag.color}`}>
-                                {tag.label}
-                              </span>
-                              {art.district && (
-                                <span className="px-2 py-0.5 text-[9px] font-bold uppercase rounded bg-slate-100 text-slate-700 border border-slate-200">
-                                  📍 {getDistrictDisplayName(art.district)}
-                                </span>
-                              )}
-                              <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-amber-100/70 text-amber-800 font-bold ml-auto">
-                                {idx === 0 ? 'Shift 1' : 'Shift 2 (6h Shift)'}
-                              </span>
-                            </div>
-                            <h3 className="font-serif text-sm font-bold text-[#0F172A] leading-snug mb-1.5 hover:text-[#0891B2] transition">
-                              <Link href={getArtHref(art)}>
-                                {art.title}
-                              </Link>
-                            </h3>
-                            {art.excerpt && (
-                              <p className="text-xs text-slate-600 font-serif line-clamp-2 leading-relaxed mb-2">
-                                {art.excerpt}
-                              </p>
-                            )}
-                            <div className="flex items-center justify-between text-[10px] text-slate-400">
-                              <span suppressHydrationWarning>{formatArticleDate(art.published_at)}</span>
-                              <span className="text-slate-500 font-medium">By {cleanAuthor(art.author_display_name)}</span>
-                            </div>
-                          </div>
-                        );
-                      })}
-
-                      {items.length === 1 && (
-                        <div className="pt-2 border-t border-dashed border-amber-200/80 text-[10px] text-amber-700/80 font-medium flex items-center justify-between">
-                          <span>⏳ Next Civic Dispatch:</span>
-                          <span className="font-mono">Shift 2 after 6-hour interval</span>
-                        </div>
-                      )}
-
-                      <div className="pt-2 border-t border-amber-100 flex items-center justify-end text-[10px]">
-                        <Link
-                          href={`${langPrefix}/category/problems`}
-                          className="font-bold text-amber-700 hover:text-amber-800 transition flex items-center gap-1"
-                        >
-                          All J&amp;K Ground Grievances →
-                        </Link>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="py-2.5 text-center text-xs text-slate-500">
-                      <p className="italic">Monitoring drinking water, electricity, internet blackouts &amp; transit issues across J&amp;K.</p>
-                      <Link
-                        href={`${langPrefix}/category/problems`}
-                        className="mt-2 inline-block text-[11px] font-bold text-amber-700 hover:underline"
-                      >
-                        View Problems Archive →
-                      </Link>
-                    </div>
-                  )}
-                </div>
+                <CivicProblemsSlider
+                  key={key}
+                  articles={items}
+                  langPrefix={langPrefix}
+                />
               );
             };
 

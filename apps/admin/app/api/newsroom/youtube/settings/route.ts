@@ -22,6 +22,12 @@ export async function GET(request: Request) {
     const autoPublishDelayMinutes = Math.max(1, Number(data?.value?.auto_publish_delay_minutes) || 5);
     const scheduledQueue = Array.isArray(data?.value?.scheduled_queue) ? data.value.scheduled_queue : [];
     const beatQuotas = data?.value?.beat_quotas || null;
+    const civicMaxDaily = data?.value?.civic_max_daily !== undefined
+      ? Math.max(1, Math.min(10, Number(data.value.civic_max_daily)))
+      : 2;
+    const civicIntervalHours = data?.value?.civic_interval_hours !== undefined
+      ? Math.max(1, Math.min(24, Number(data.value.civic_interval_hours)))
+      : 6;
 
     return Response.json({
       interval_minutes: intervalMinutes,
@@ -30,6 +36,8 @@ export async function GET(request: Request) {
       auto_publish_delay_minutes: autoPublishDelayMinutes,
       scheduled_queue: scheduledQueue,
       beat_quotas: beatQuotas,
+      civic_max_daily: civicMaxDaily,
+      civic_interval_hours: civicIntervalHours,
     });
   } catch (err: any) {
     return Response.json({ error: err.message || 'Failed to load settings.' }, { status: 500 });
@@ -49,6 +57,8 @@ export async function POST(request: Request) {
     const beatQuotas = body.beat_quotas !== undefined ? body.beat_quotas : undefined;
     const autoPublishEnabled = body.auto_publish_enabled !== undefined ? Boolean(body.auto_publish_enabled) : undefined;
     const autoPublishDelayMinutes = body.auto_publish_delay_minutes !== undefined ? Math.max(1, Number(body.auto_publish_delay_minutes) || 5) : undefined;
+    const civicMaxDaily = body.civic_max_daily !== undefined ? Math.max(1, Math.min(10, Number(body.civic_max_daily))) : undefined;
+    const civicIntervalHours = body.civic_interval_hours !== undefined ? Math.max(1, Math.min(24, Number(body.civic_interval_hours))) : undefined;
 
     const { service, profile } = auth;
 
@@ -72,6 +82,12 @@ export async function POST(request: Request) {
     }
     if (autoPublishDelayMinutes !== undefined) {
       mergedValue.auto_publish_delay_minutes = autoPublishDelayMinutes;
+    }
+    if (civicMaxDaily !== undefined) {
+      mergedValue.civic_max_daily = civicMaxDaily;
+    }
+    if (civicIntervalHours !== undefined) {
+      mergedValue.civic_interval_hours = civicIntervalHours;
     }
 
     const { error } = await service.from('site_settings').upsert({

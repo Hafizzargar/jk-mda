@@ -153,7 +153,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
         .eq('status', 'published')
         .ilike('category', 'problems')
         .order('published_at', { ascending: false, nullsFirst: false })
-        .limit(2)
+        .limit(6)
     ).catch(() => ({ data: [], error: null })),
     Promise.resolve(
       supabase
@@ -235,8 +235,8 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     : [];
   const dbProblemArticles = ((applyTranslations(rawProblemArticles, lang) as unknown) as ArticleItem[]) || [];
   const problemArticles = dbProblemArticles.length > 0
-    ? dbProblemArticles.slice(0, 2)
-    : FALLBACK_BROADSHEET_ARTICLES.filter((a) => a.category.toLowerCase() === 'investigation').slice(0, 2);
+    ? dbProblemArticles
+    : FALLBACK_BROADSHEET_ARTICLES.filter((a) => a.category.toLowerCase() === 'investigation').slice(0, 4);
   const problemArticle = problemArticles[0] || null;
 
   const rawInternationalArticles = internationalResult?.data || [];
