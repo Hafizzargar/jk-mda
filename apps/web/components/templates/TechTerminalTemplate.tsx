@@ -11,7 +11,7 @@ export function TechTerminalTemplate({
   trendingArticles,
   navbarSettings,
 }: TemplateProps) {
-  const brandName = navbarSettings?.brand?.name || 'KJIN';
+  const brandName = navbarSettings?.brand?.name || 'KJCPL';
 
   return (
     <div className="min-h-screen bg-[#050805] text-[#22c55e] pb-24 font-mono selection:bg-[#22c55e] selection:text-black">

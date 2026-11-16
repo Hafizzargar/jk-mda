@@ -8,8 +8,8 @@ export function applyTranslations<
 >(articles: T[], _lang?: string): T[] {
   return articles.map((article) => {
     let author = article.author_display_name;
-    if (author === 'KCPJLN' || (author && author.startsWith('KCPJLN'))) {
-      author = 'KJIN';
+    if (author === 'KCPJLN' || (author && author.startsWith('KCPJLN')) || author === 'KJIN' || (author && author.startsWith('KJIN'))) {
+      author = 'KJCPL';
     }
 
     return {

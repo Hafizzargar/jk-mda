@@ -70,7 +70,7 @@ Note: This requires verification before attributing as a direct response to this
     /jammu|kashmir|srinagar/i.test(input.headline)
   );
 
-  const prompt = `You are a senior investigative editor for Kashmir Jammu Independent News (KJIN).
+  const prompt = `You are a senior investigative editor for KJCPL (KJCPL News Network).
 Prepare an objective, sourced news article draft based ONLY on the following confirmed facts:
 
 EVENT REPORT:
@@ -193,7 +193,7 @@ ${govSection}
 <ul>
   ${sourcesListHtml || '<li>Regional Newsroom Dispatch</li>'}
 </ul>
-<p><em>KJIN Editorial Note: This draft was compiled under source-driven monitoring protocols and remains subject to editorial fact-checking prior to publication.</em></p>
+<p><em>KJCPL Editorial Note: This draft was compiled under source-driven monitoring protocols and remains subject to editorial fact-checking prior to publication.</em></p>
 `.trim();
 
   return {

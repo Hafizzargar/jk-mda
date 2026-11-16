@@ -4,7 +4,7 @@ export default function RootNotFound() {
   return (
     <html lang="en">
       <head>
-        <title>404 - Page Not Found | KJIN</title>
+        <title>404 - Page Not Found | KJCPL</title>
         <meta httpEquiv="refresh" content="2;url=/en" />
       </head>
       <body className="min-h-screen bg-stone-100 text-stone-900 flex items-center justify-center p-4 font-sans">
@@ -18,7 +18,7 @@ export default function RootNotFound() {
             href="/en"
             className="inline-block bg-stone-900 text-white font-semibold px-6 py-3 rounded-lg hover:bg-stone-800 transition text-sm"
           >
-            Return to KJIN Homepage
+            Return to KJCPL Homepage
           </Link>
         </div>
       </body>

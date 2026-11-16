@@ -140,7 +140,7 @@ export async function POST(request: Request) {
     } else {
       const result = await generateObject({
         model: google('gemini-2.5-flash'),
-        system: `You are an expert news editor and journalist for KJIN (Kashmir Jammu Independent News). 
+        system: `You are an expert news editor and journalist for KJCPL (KJCPL News Network). 
 Your task is to take raw notes, facts, or press releases and draft a professional, objective, and clear news article.
 - Output MUST be structured as a JSON object with title, excerpt, content, slug, category, and district.
 - 'content' must be valid, clean HTML (using <p>, <h2>, <ul>, etc.) representing the body of the article. Do not include <html> or <body> tags.

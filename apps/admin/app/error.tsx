@@ -11,7 +11,7 @@ export default function AdminErrorBoundary({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error('[KJIN Admin Error Boundary]:', error);
+    console.error('[KJCPL Admin Error Boundary]:', error);
   }, [error]);
 
   return (

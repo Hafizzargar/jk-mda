@@ -437,7 +437,7 @@ export default function ArticleViewPage({ params }: { params?: Promise<{ id: str
                 )}
 
                 <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs text-slate-500 dark:text-slate-400 border-t border-b border-slate-100 dark:border-slate-800 py-3">
-                  <div>By <span className="font-semibold text-slate-900 dark:text-white">{article.author_display_name || 'KJIN desk'}</span></div>
+                  <div>By <span className="font-semibold text-slate-900 dark:text-white">{article.author_display_name || 'KJCPL desk'}</span></div>
                   <div className="flex items-center gap-1">
                     <span>Created: {new Date(article.created_at).toLocaleDateString()}</span>
                   </div>

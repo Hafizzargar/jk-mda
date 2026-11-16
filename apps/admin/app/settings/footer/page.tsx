@@ -709,7 +709,7 @@ export default function FooterSettingsPage() {
             <div className="rounded-2xl border border-slate-800 bg-[#0c1017] p-6 space-y-6 shadow-xl text-xs text-slate-300">
               <div>
                 <div className="text-base font-black text-white tracking-tight uppercase">
-                  {form.organization_name || 'KJIN'}
+                  {form.organization_name || 'KJCPL'}
                 </div>
                 <div className="text-[11px] text-cyan-400 font-medium mt-0.5">
                   {form.tagline}

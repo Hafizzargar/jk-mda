@@ -137,11 +137,11 @@ export default function MFAEnrollmentPage() {
           }
         }
 
-        // Generate new TOTP factor with explicit KJIN Newsroom branding
+        // Generate new TOTP factor with explicit KJCPL Newsroom branding
         setStatus('Generating MFA factor...');
         const { data: enrollData, error: enrollError } = await supabase.auth.mfa.enroll({
           factorType: 'totp',
-          issuer: 'KJIN Newsroom',
+          issuer: 'KJCPL Newsroom',
         });
 
         if (enrollError) {
@@ -331,7 +331,7 @@ export default function MFAEnrollmentPage() {
               <span className="font-extrabold text-slate-950 text-base leading-none">K</span>
             </div>
             <span className="font-bold text-base sm:text-lg text-white tracking-tight">
-              Kjin Admin
+              KJCPL Admin
             </span>
           </div>
           <button

@@ -110,7 +110,7 @@ export async function POST(request: Request) {
         .eq('id', user.id)
         .maybeSingle();
 
-      const authorDisplayName = profileData?.display_name || user.email?.split('@')[0] || 'KJIN Newsroom';
+      const authorDisplayName = profileData?.display_name || user.email?.split('@')[0] || 'KJCPL Newsroom';
 
       const { data: fallbackArticle, error: fallbackError } = await service
         .from('articles')
@@ -185,7 +185,7 @@ export async function POST(request: Request) {
         division: targetDistrict || 'Jammu & Kashmir',
         district: targetDistrict,
         platform: 'Newsroom Event Ground Wire',
-        sourceName: primarySource?.source_name || primarySource?.sourceName || 'KJIN Wire',
+        sourceName: primarySource?.source_name || primarySource?.sourceName || 'KJCPL Wire',
         sourceUrl: primarySource?.url || null,
         dashboardUrl: `${process.env.ADMIN_URL || process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001'}/newsroom/youtube`,
       })

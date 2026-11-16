@@ -1578,7 +1578,7 @@ export async function runAutonomousNewsDiscovery(
   const cutoffIstString = cutoffTime.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'full', timeStyle: 'medium' });
 
   // 3. Compose grounded research prompt with strict credibility, multi-source discovery, & 6-factor scoring
-  const prompt = `You are a Senior Investigative Correspondent and Field Bureau Chief for KJIN (Kashmir Jammu Independent News Network).
+  const prompt = `You are a Senior Investigative Correspondent and Field Bureau Chief for KJCPL (KJCPL News Network).
 Your mission is to autonomously search the web and discover the latest, verified, high-impact news published strictly within the last 6 HOURS for this regional beat:
 
 BEAT: ${beat.name}
@@ -1592,7 +1592,7 @@ TARGET DATELINE: ${effectiveDateline}
 - Current Real-World Reference Time: ${nowIstString} IST (${nowIso})
 - Earliest Permitted Publishing Cutoff: ${cutoffIstString} IST (${cutoffTime.toISOString()}) — EXACTLY 6 HOURS AGO.
 - MANDATORY LOGIC:
-  1. KJIN readers demand hyper-fresh breaking intelligence. The news development, incident, official order, or public reporting MUST have occurred or been published WITHIN THE LAST 6 HOURS from ${nowIstString}.
+  1. KJCPL readers demand hyper-fresh breaking intelligence. The news development, incident, official order, or public reporting MUST have occurred or been published WITHIN THE LAST 6 HOURS from ${nowIstString}.
   2. STRICTLY REJECT and DO NOT RETURN old news from yesterday, 8, 12, 24, or 48 hours ago.
   3. If your search results only contain news older than 6 hours (e.g. from yesterday or days ago), you MUST return:
      { "hasCredibleNews": false, "reason": "No breaking or developing news found within the strict 6-hour freshness window." }
@@ -1919,7 +1919,7 @@ Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with k
         district: finalDistrict,
         status: 'draft',
         author_id: authorId,
-        author_display_name: 'KJIN AI Discovery',
+        author_display_name: 'KJCPL AI Discovery',
         source_name: sourceName,
         source_url: sourceUrl,
         featured_image_url: finalFeaturedImage,

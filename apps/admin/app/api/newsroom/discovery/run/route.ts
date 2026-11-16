@@ -54,7 +54,7 @@ export async function GET(request: Request) {
       auth.service
         .from('articles')
         .select('id, title, slug, status, category, district, created_at, source_name, source_url')
-        .or('author_display_name.eq.KJIN AI Discovery,status.eq.review')
+        .or('author_display_name.eq.KJCPL AI Discovery,author_display_name.eq.KJIN AI Discovery,status.eq.review')
         .order('created_at', { ascending: false })
         .limit(12),
       getAutoPublishConfig(auth.service),

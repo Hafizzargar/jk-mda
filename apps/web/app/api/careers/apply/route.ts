@@ -123,7 +123,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: 'Thank you! Your application has been submitted to the KJIN editorial desk.',
+      message: 'Thank you! Your application has been submitted to the KJCPL editorial desk.',
       application_id: newApplication.id,
     });
   } catch (err) {

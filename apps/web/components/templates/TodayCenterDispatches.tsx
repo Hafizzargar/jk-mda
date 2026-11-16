@@ -18,7 +18,7 @@ interface TodayCenterDispatchesProps {
 export function TodayCenterDispatches({
   articles,
   langPrefix,
-  brandName = 'KJIN',
+  brandName = 'KJCPL',
   initialCount = 4,
 }: TodayCenterDispatchesProps) {
   const [visibleCount, setVisibleCount] = useState<number>(initialCount);
@@ -28,7 +28,7 @@ export function TodayCenterDispatches({
   }
 
   const cleanAuthor = (author?: string | null): string => {
-    if (!author || author === 'KCPJLN' || author.startsWith('KCPJLN')) {
+    if (!author || author === 'KCPJLN' || author.startsWith('KCPJLN') || author === 'KJIN' || author.startsWith('KJIN')) {
       return brandName;
     }
     return author;

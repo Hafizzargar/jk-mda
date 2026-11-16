@@ -14,15 +14,15 @@ export async function POST(request: Request) {
       'hafezzargar987@gmail.com';
 
     const success = await sendNewsApprovalAlert({
-      headline: 'KJIN AI Newsroom Alert: Verification System Active',
+      headline: 'KJCPL AI Newsroom Alert: Verification System Active',
       summary: 'This is a test notification confirming your email dispatch system is operational. Whenever autonomous news intelligence or broadcast surveillance queues a new story, you will receive an immediate approval briefing here.',
       category: 'Local News',
       scope: 'State (Jammu & Kashmir)',
       division: 'Chenab Valley & Jammu Plains',
       district: 'doda',
       platform: 'Autonomous Intelligence Radar',
-      sourceName: 'KJIN Automated Editorial Gatekeeper',
-      sourceUrl: 'https://kjin.org',
+      sourceName: 'KJCPL Automated Editorial Gatekeeper',
+      sourceUrl: 'https://kjinnews.com',
     });
 
     if (!success) {

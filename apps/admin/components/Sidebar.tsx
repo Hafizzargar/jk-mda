@@ -53,7 +53,7 @@ export function Sidebar({
   userRole,
   userEmail,
   onSignOut,
-  brandName = 'KJIN',
+  brandName = 'KJCPL',
   brandLogo = '/kjin-emblem.png',
 }: SidebarProps) {
   const pathname = usePathname();

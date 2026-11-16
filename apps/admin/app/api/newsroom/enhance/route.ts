@@ -23,7 +23,7 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Gemini API key is not configured.' }, { status: 503 });
     }
 
-    const prompt = `You are the Chief Headline & Audience Engagement Editor for KJIN (Kashmir Jammu Independent News).
+    const prompt = `You are the Chief Headline & Audience Engagement Editor for KJCPL (KJCPL News Network).
 Your mission is to take the following draft story and generate 3 irresistible, attractive, and exciting headline options, along with a captivating, enticing description (lead excerpt).
 
 CURRENT TITLE: ${title || 'Untitled'}

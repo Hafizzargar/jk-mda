@@ -53,7 +53,7 @@ export function CareersPortal({
     const subject = job
       ? `Job Application: ${job.title} - [Your Full Name]`
       : `Newsroom Application & Contributor Pitch - [Your Full Name]`;
-    const body = `Dear KJIN Editorial Board,\n\nI am writing to submit my application for the role of "${
+    const body = `Dear KJCPL Editorial Board,\n\nI am writing to submit my application for the role of "${
       job ? job.title : 'Newsroom Contributor / Author'
     }".\n\nPlease find attached my updated Resume / CV and links to my work.\n\nFull Name: \nContact Number / WhatsApp: \nCurrent Location (City/District): \nYears of Experience: \nPortfolio / Publication Links: \nEarliest Available Start Date: \n\nThank you for considering my application.\n\nBest regards,\n`;
 

@@ -25,7 +25,7 @@ export interface FooterContactSettings {
 }
 
 export const DEFAULT_FOOTER_CONTACT: FooterContactSettings = {
-  organization_name: 'KJIN (Kashmir & Jammu Information Network)',
+  organization_name: 'KJCPL News Network',
   tagline: 'Verified Journalism & Public Affairs across Jammu & Kashmir',
   description: 'Independent, non-partisan journal of record dedicated to verified investigative reporting, regional public affairs, and civic documentation across Jammu, Kashmir, and Ladakh.',
   primary_address: 'Press Enclave, Residency Road, Srinagar, Jammu & Kashmir 190001',
@@ -53,12 +53,13 @@ export const DEFAULT_FOOTER_CONTACT: FooterContactSettings = {
 export function sanitizeContactSettings(input: Partial<FooterContactSettings>): FooterContactSettings {
   const rawOrg = String(input.organization_name || DEFAULT_FOOTER_CONTACT.organization_name).trim();
   const orgName = rawOrg
-    .replace(/\bKCPJLN\b/g, 'KJIN')
-    .replace(/Kashmir Chenab Panjal Jammu Ladakh Network/gi, 'Kashmir & Jammu Information Network')
+    .replace(/\b(KCPJLN|KJIN)\b/g, 'KJCPL')
+    .replace(/Kashmir Chenab Panjal Jammu Ladakh Network/gi, 'KJCPL News Network')
+    .replace(/Kashmir & Jammu Information Network/gi, 'KJCPL News Network')
     .slice(0, 150);
 
   return {
-    organization_name: orgName || 'KJIN (Kashmir & Jammu Information Network)',
+    organization_name: orgName || 'KJCPL News Network',
     tagline: String(input.tagline || DEFAULT_FOOTER_CONTACT.tagline).trim().slice(0, 200),
     description: String(input.description || DEFAULT_FOOTER_CONTACT.description).trim().slice(0, 500),
     primary_address: String(input.primary_address || DEFAULT_FOOTER_CONTACT.primary_address).trim().slice(0, 300),

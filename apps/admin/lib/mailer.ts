@@ -95,15 +95,15 @@ export async function sendEmployeeInviteEmail(params: SendInviteEmailParams): Pr
 
   const defaultAdminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001';
   const loginUrl = params.loginUrl || `${defaultAdminUrl}/login`;
-  const fromAddress = process.env.SMTP_FROM?.trim() || `"KJIN Newsroom" <${process.env.SMTP_USER}>`;
+  const fromAddress = process.env.SMTP_FROM?.trim() || `"KJCPL Newsroom" <${process.env.SMTP_USER}>`;
   const mfaRequired = ['owner', 'superadmin', 'admin'].includes(params.roleKey.toLowerCase());
 
-  const subject = `Welcome to KJIN Newsroom — Your Account Credentials (${params.roleKey.toUpperCase()})`;
+  const subject = `Welcome to KJCPL Newsroom — Your Account Credentials (${params.roleKey.toUpperCase()})`;
 
   const textContent = `
 Hello ${params.displayName},
 
-You have been invited to join the KJIN Newsroom team as an employee.
+You have been invited to join the KJCPL Newsroom team as an employee.
 
 Here are your account credentials to access the administrative portal:
 
@@ -118,7 +118,7 @@ Next Steps:
 3. Update your password upon initial sign in.${mfaRequired ? '\n4. Set up Multi-Factor Authentication (MFA/TOTP) with an authenticator app (Google Authenticator, Authy, or 1Password).' : ''}
 
 Best regards,
-KJIN Newsroom Administration
+KJCPL Newsroom Administration
 `.trim();
 
   const htmlContent = `
@@ -147,9 +147,9 @@ KJIN Newsroom Administration
 </head>
 <body>
   <div class="card">
-    <span class="badge">KJIN Newsroom</span>
+    <span class="badge">KJCPL Newsroom</span>
     <h1>Welcome, ${params.displayName}</h1>
-    <p>You have been invited to join the <strong>KJIN Newsroom</strong> administrative portal as an <strong>${params.roleKey}</strong>.</p>
+    <p>You have been invited to join the <strong>KJCPL Newsroom</strong> administrative portal as an <strong>${params.roleKey}</strong>.</p>
     
     <div class="credentials-box">
       <div class="credential-row">
@@ -184,7 +184,7 @@ KJIN Newsroom Administration
     </div>
   </div>
   <div class="footer">
-    &copy; ${new Date().getFullYear()} KJIN Newsroom. All rights reserved.
+    &copy; ${new Date().getFullYear()} KJCPL Newsroom. All rights reserved.
   </div>
 </body>
 </html>
@@ -242,18 +242,18 @@ export async function sendLoginAlertEmail(params: SendLoginAlertParams): Promise
 
   const defaultAdminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001';
   const logoutUrl = params.logoutUrl || `${defaultAdminUrl}/auth/logout-all`;
-  const fromAddress = process.env.SMTP_FROM?.trim() || `"KJIN Newsroom" <${process.env.SMTP_USER}>`;
+  const fromAddress = process.env.SMTP_FROM?.trim() || `"KJCPL Newsroom" <${process.env.SMTP_USER}>`;
   const now = params.loginTime || new Date();
   const timeIST = now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'full', timeStyle: 'medium' });
   const timeUTC = now.toUTCString();
   const name = params.displayName || params.to.split('@')[0];
 
-  const subject = `Security Alert: New Sign-in to KJIN Newsroom (${timeIST})`;
+  const subject = `Security Alert: New Sign-in to KJCPL Newsroom (${timeIST})`;
 
   const textContent = `
 Hello ${name},
 
-A new sign-in was detected on your KJIN Newsroom account.
+A new sign-in was detected on your KJCPL Newsroom account.
 
 Login Details:
 - Time (IST): ${timeIST}
@@ -270,7 +270,7 @@ ${logoutUrl}
 After logging out, please sign in again and change your account password.
 
 Best regards,
-KJIN Newsroom Security
+KJCPL Newsroom Security
 `.trim();
 
   const htmlContent = `
@@ -301,7 +301,7 @@ KJIN Newsroom Security
     <span class="badge">🔔 Security Notification</span>
     <h1>New Sign-in Detected</h1>
     <p>Hello <strong>${name}</strong>,</p>
-    <p>A new sign-in was recorded on your <strong>KJIN Newsroom</strong> administrative portal.</p>
+    <p>A new sign-in was recorded on your <strong>KJCPL Newsroom</strong> administrative portal.</p>
     
     <div class="info-box">
       <div class="info-row">
@@ -347,7 +347,7 @@ KJIN Newsroom Security
     </div>
   </div>
   <div class="footer">
-    &copy; ${now.getFullYear()} KJIN Newsroom Security &bull; Automated Telemetry Alert
+    &copy; ${now.getFullYear()} KJCPL Newsroom Security &bull; Automated Telemetry Alert
   </div>
 </body>
 </html>
@@ -389,9 +389,9 @@ export async function sendMfaResetEmail(params: SendMfaResetEmailParams): Promis
     return { success: false, error: 'SMTP transporter not configured' };
   }
 
-  const fromAddress = process.env.SMTP_FROM || 'KJIN Newsroom <hafezzargar987@gmail.com>';
-  const subject = `Your KJIN MFA Reset Code: ${params.code}`;
-  const textContent = `Hello ${params.displayName},\n\nA request was made to reset your Two-Factor Authentication (MFA) device for your KJIN account.\n\nYour 6-digit recovery code is:\n\n${params.code}\n\nThis code expires in 15 minutes. If you did not request this, please notify newsroom security immediately.`;
+  const fromAddress = process.env.SMTP_FROM || 'KJCPL Newsroom <hafezzargar987@gmail.com>';
+  const subject = `Your KJCPL MFA Reset Code: ${params.code}`;
+  const textContent = `Hello ${params.displayName},\n\nA request was made to reset your Two-Factor Authentication (MFA) device for your KJCPL account.\n\nYour 6-digit recovery code is:\n\n${params.code}\n\nThis code expires in 15 minutes. If you did not request this, please notify newsroom security immediately.`;
 
   const htmlContent = `
 <!DOCTYPE html>
@@ -441,18 +441,18 @@ export async function sendLoginOtpEmail(params: SendLoginOtpEmailParams): Promis
     return { success: false, error: 'SMTP transporter not configured' };
   }
 
-  const fromAddress = process.env.SMTP_FROM || `"KJIN Newsroom" <${process.env.SMTP_USER || 'hafezzargar987@gmail.com'}>`;
-  const subject = `Your KJIN Newsroom Verification Code: ${params.code}`;
-  const textContent = `Hello ${params.displayName},\n\nYour 6-digit login verification code is:\n\n${params.code}\n\nThis code is valid for 10 minutes.\n\nIf you did not request this, please secure your account immediately.\n\nKJIN Newsroom`;
+  const fromAddress = process.env.SMTP_FROM || `"KJCPL Newsroom" <${process.env.SMTP_USER || 'hafezzargar987@gmail.com'}>`;
+  const subject = `Your KJCPL Newsroom Verification Code: ${params.code}`;
+  const textContent = `Hello ${params.displayName},\n\nYour 6-digit login verification code is:\n\n${params.code}\n\nThis code is valid for 10 minutes.\n\nIf you did not request this, please secure your account immediately.\n\nKJCPL Newsroom`;
 
   const htmlContent = `
 <!DOCTYPE html>
 <html>
-<head><meta charset="utf-8"><title>KJIN Newsroom Verification Code</title></head>
+<head><meta charset="utf-8"><title>KJCPL Newsroom Verification Code</title></head>
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #060a12; padding: 32px 16px; color: #f8fafc; margin: 0;">
   <div style="max-width: 480px; margin: 0 auto; background: #0c192d; border-radius: 16px; border: 1px solid rgba(56,189,248,0.2); padding: 32px; box-shadow: 0 20px 40px rgba(0,0,0,0.5);">
     <div style="margin-bottom: 24px;">
-      <span style="font-weight: 800; font-size: 20px; color: #38bdf8; letter-spacing: -0.02em;">KJIN Newsroom</span>
+      <span style="font-weight: 800; font-size: 20px; color: #38bdf8; letter-spacing: -0.02em;">KJCPL Newsroom</span>
     </div>
     <h2 style="color: #ffffff; margin: 0 0 8px 0; font-size: 22px; font-weight: 800;">Login Verification Code</h2>
     <p style="color: #94a3b8; font-size: 14px; margin: 0 0 24px 0; line-height: 1.5;">Hello <strong>${params.displayName}</strong>,<br>Use the 6-digit code below to finish signing in to your administrator dashboard:</p>

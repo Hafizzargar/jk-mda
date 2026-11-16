@@ -24,7 +24,7 @@ export async function POST(request: Request) {
 
     let targetUserId: string | null = null;
     let targetEmail: string | null = null;
-    let targetDisplayName: string = 'KJIN Employee';
+    let targetDisplayName: string = 'KJCPL Employee';
 
     if (token) {
       const userClient = createClient(supabaseUrl, anonKey, {

@@ -1577,9 +1577,9 @@ export default function EmployeesPage() {
                   {actionModal.type === 'update-name' && `Updating details for ${actionModal.employee.email}.`}
                   {actionModal.type === 'change-status' && (
                     actionModal.nextStatus === 'disabled' ? (
-                      <>Disabling this account will revoke their sessions and <strong className="font-semibold text-slate-900 dark:text-white">block them from logging in</strong> to KJIN ({actionModal.employee.display_name || actionModal.employee.email}). You can enable them again at any time.</>
+                      <>Disabling this account will revoke their sessions and <strong className="font-semibold text-slate-900 dark:text-white">block them from logging in</strong> to KJCPL ({actionModal.employee.display_name || actionModal.employee.email}). You can enable them again at any time.</>
                     ) : (
-                      <>Enabling this account will remove the login ban and <strong className="font-semibold text-slate-900 dark:text-white">allow them to log in</strong> to KJIN again ({actionModal.employee.display_name || actionModal.employee.email}).</>
+                      <>Enabling this account will remove the login ban and <strong className="font-semibold text-slate-900 dark:text-white">allow them to log in</strong> to KJCPL again ({actionModal.employee.display_name || actionModal.employee.email}).</>
                     )
                   )}
                   {actionModal.type === 'permanent-delete' && (

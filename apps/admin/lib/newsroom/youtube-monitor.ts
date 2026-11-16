@@ -333,7 +333,7 @@ export async function analyzeVideoWithGemini(
   const detectedScope = detectNewsScope(video.title, cleanDescription, source.region);
 
   const contentPrompt = `
-You are a senior investigative editor at KJIN (Kashmir & Jammu Investigative Newsroom).
+You are a senior investigative editor at KJCPL (KJCPL News Network).
 Your objective is to read raw YouTube broadcast information and compose a 100% ORIGINAL, INDEPENDENT NEWS ARTICLE DRAFT written strictly from scratch in English.
 
 RAW SOURCE MATERIAL (FOR FACT EXTRACTION ONLY):
@@ -602,7 +602,7 @@ async function autoPublishEligibleDraft(
 
     const authorProfile = authors?.[0] || null;
     const authorId = authorProfile?.id || null;
-    const authorName = authorProfile?.display_name || 'KJIN Newsroom Desk';
+    const authorName = authorProfile?.display_name || 'KJCPL Newsroom Desk';
 
     const cleanTitle = cleanEditorialBroadcastText(analysis.headline || video.title).slice(0, 250);
     const effectiveScope = analysis.scope || 'National';

@@ -12,7 +12,7 @@ export function HyperlocalCommunityTemplate({
   trendingArticles,
   navbarSettings,
 }: TemplateProps) {
-  const brandName = navbarSettings?.brand?.name || 'KJIN';
+  const brandName = navbarSettings?.brand?.name || 'KJCPL';
   const districts = [
     'Srinagar', 'Jammu', 'Baramulla', 'Anantnag', 'Pulwama',
     'Budgam', 'Kupwara', 'Ganderbal', 'Shopian', 'Doda'

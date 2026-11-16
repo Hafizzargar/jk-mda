@@ -22,7 +22,7 @@ export function Navbar({
   userRole,
   theme = 'light',
   onToggleTheme,
-  brandName = 'KJIN',
+  brandName = 'KJCPL',
   brandLogo = '/kjin-emblem.png',
 }: NavbarProps) {
   return (

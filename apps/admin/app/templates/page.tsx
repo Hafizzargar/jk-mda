@@ -644,7 +644,7 @@ export default function TemplatesManagementPage() {
             <form onSubmit={handleActivate} className="mt-5 space-y-4">
               <div className="rounded-xl border border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-950 p-4 text-xs text-slate-700 dark:text-slate-300 space-y-2">
                 <p>
-                  <strong>Notice:</strong> This action will immediately change how all readers see the public KJIN news portal.
+                  <strong>Notice:</strong> This action will immediately change how all readers see the public KJCPL news portal.
                 </p>
                 <p className="text-slate-500 dark:text-slate-400">
                   The switch is recorded in the operational audit trail.

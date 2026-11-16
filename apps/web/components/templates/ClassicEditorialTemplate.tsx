@@ -48,7 +48,7 @@ export function ClassicEditorialTemplate({
 }: TemplateProps) {
   const activeTelemetry = telemetry || DEFAULT_TELEMETRY_SETTINGS;
   const lang = langPrefix ? langPrefix.replace('/', '') : 'en';
-  const brandName = navbarSettings?.brand?.name || 'KJIN';
+  const brandName = navbarSettings?.brand?.name || 'KJCPL';
   const cleanAuthor = (author?: string | null): string => {
     if (!author || author === 'KCPJLN' || author.startsWith('KCPJLN')) {
       return brandName;
@@ -537,7 +537,7 @@ export function ClassicEditorialTemplate({
                   <Image
                     alt={
                       heroArticle.title ||
-                      'Regional photographic record verified by KJIN documentary desk'
+                      'Regional photographic record verified by KJCPL documentary desk'
                     }
                     className="w-full h-full object-cover"
                     src={getOptimizedMediaUrl(heroArticle.featured_image_url, 450)}
@@ -548,7 +548,7 @@ export function ClassicEditorialTemplate({
                   <div className="absolute inset-0 bg-gradient-to-t from-stone-950/80 via-transparent to-transparent pointer-events-none"></div>
                   <div className="absolute bottom-1.5 left-2.5 right-2.5 flex items-center justify-between text-[8.5px] sm:text-[9.5px] text-stone-200 font-sans z-10 gap-1">
                     <span className="font-medium tracking-wide truncate">Regional documentary record verified</span>
-                    <span className="font-mono text-stone-300 shrink-0">Photo: KJIN</span>
+                    <span className="font-mono text-stone-300 shrink-0">Photo: KJCPL</span>
                   </div>
                 </div>
               )}

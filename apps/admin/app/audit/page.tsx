@@ -872,7 +872,7 @@ export default function AuditLogsPage() {
                   </div>
                   <div className="col-span-2 truncate">
                     <span className="text-slate-400">User Agent: </span>
-                    <span>{selectedLog.user_agent || 'KJIN Browser Session'}</span>
+                    <span>{selectedLog.user_agent || 'KJCPL Browser Session'}</span>
                   </div>
                 </div>
               </div>

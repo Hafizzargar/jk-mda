@@ -10,7 +10,7 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error('[KJIN Admin Global Error]:', error);
+    console.error('[KJCPL Admin Global Error]:', error);
   }, [error]);
 
   return (

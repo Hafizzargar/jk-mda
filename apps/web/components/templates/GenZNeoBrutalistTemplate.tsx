@@ -12,8 +12,8 @@ export function GenZNeoBrutalistTemplate({
   trendingArticles,
   navbarSettings,
 }: TemplateProps) {
-  const brandName = navbarSettings?.brand?.name || 'KJIN';
-  const brandFullName = navbarSettings?.brand?.full_name || 'Kashmir Chenab Panjal Jammu Ladakh Network';
+  const brandName = navbarSettings?.brand?.name || 'KJCPL';
+  const brandFullName = navbarSettings?.brand?.full_name || 'KJCPL News Network';
   const categories = [
     { name: 'Politics', color: 'bg-yellow-300', emoji: '🏛️' },
     { name: 'Local', color: 'bg-lime-300', emoji: '📍' },

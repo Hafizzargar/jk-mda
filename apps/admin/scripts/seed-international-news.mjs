@@ -53,8 +53,8 @@ The bilateral agreement facilitates direct air-freight routing for certified Gra
 "Under the newly ratified protocol, consignments carrying official GI cryptographic tags will benefit from pre-arrival electronic customs clearance," stated Farooq Ahmad Wani, Director of the Kashmir Export Promotion Council. "This reduces shelf transit time by nearly 72 hours, ensuring the volatile aromatic oils of Kashmiri saffron arrive in peak condition."
 
 Gulf supermarket chains have committed to an initial aggregate procurement volume of $14.5 million across the upcoming winter quarter, representing a historic high for valley horticulture cooperatives.`,
-    source_name: 'KJIN International Trade Desk (Dubai)',
-    source_url: 'https://kjin.org/dispatches/kashmir-gcc-trade-accord-2026',
+    source_name: 'KJCPL International Trade Desk (Dubai)',
+    source_url: 'https://kjinnews.com/dispatches/kashmir-gcc-trade-accord-2026',
     featured_image_url: 'https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=1200&q=80',
     published_hours_ago: 0.8,
   },
@@ -75,8 +75,8 @@ Equipped with solar-powered deep-penetrating radar arrays and satellite telemetr
 Lead glaciologist Dr. Elena Keller of the Zurich Alpine Research Institute emphasized the global stakes: "The glaciers of Jammu, Kashmir, and Ladakh represent the water tower of South Asia. Collaborative telemetry gives local communities predictive warnings against glacial lake outburst floods (GLOFs) while informing international carbon reduction targets."
 
 The research data will be made openly accessible to academic institutions worldwide through the Global Cryosphere Telemetry Portal.`,
-    source_name: 'KJIN Science & Global Affairs Desk',
-    source_url: 'https://kjin.org/dispatches/international-glacier-mission-2026',
+    source_name: 'KJCPL Science & Global Affairs Desk',
+    source_url: 'https://kjinnews.com/dispatches/international-glacier-mission-2026',
     featured_image_url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80',
     published_hours_ago: 2.2,
   },
@@ -97,8 +97,8 @@ Delegates from the United Kingdom, Germany, North America, and the Gulf pledged 
 "Our connection to our homeland remains vibrant across generations," said diaspora council president Dr. Mehmooda Akhtar. "By digitizing these treasures with high-resolution multispectral scanning, we are making our shared cultural legacy accessible to youth in Srinagar, Jammu, and around the globe."
 
 The foundation will begin its first wave of digitization grants in partnership with the SP Museum and the Dogra Art Gallery early next month.`,
-    source_name: 'KJIN Global Diaspora Bureau (Vienna)',
-    source_url: 'https://kjin.org/dispatches/diaspora-conclave-vienna-2026',
+    source_name: 'KJCPL Global Diaspora Bureau (Vienna)',
+    source_url: 'https://kjinnews.com/dispatches/diaspora-conclave-vienna-2026',
     featured_image_url: 'https://images.unsplash.com/photo-1516483638261-f4dbaf036963?auto=format&fit=crop&w=1200&q=80',
     published_hours_ago: 4.5,
   },

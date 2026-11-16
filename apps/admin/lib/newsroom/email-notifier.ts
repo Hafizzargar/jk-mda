@@ -71,7 +71,7 @@ export async function sendNewsApprovalAlert(params: NewsApprovalAlertParams): Pr
 
   let sender = process.env.SMTP_FROM?.trim();
   if (!sender || !sender.includes('@')) {
-    sender = `"KJIN Editorial Intelligence" <${process.env.SMTP_USER || 'hafezzargar987@gmail.com'}>`;
+    sender = `"KJCPL Editorial Intelligence" <${process.env.SMTP_USER || 'hafezzargar987@gmail.com'}>`;
   }
   const defaultDashboardUrl =
     process.env.ADMIN_URL ||
@@ -114,7 +114,7 @@ export async function sendNewsApprovalAlert(params: NewsApprovalAlertParams): Pr
   <div class="container">
     <div class="header">
       <span class="badge">● Action Required • Newsroom Verification</span>
-      <div style="font-size: 12px; font-family: monospace; color: #94a3b8;">KJIN EDITORIAL INTELLIGENCE DESK</div>
+      <div style="font-size: 12px; font-family: monospace; color: #94a3b8;">KJCPL EDITORIAL INTELLIGENCE DESK</div>
       <h1 class="title-h1">${escapeHtml(params.headline)}</h1>
     </div>
 
@@ -168,7 +168,7 @@ export async function sendNewsApprovalAlert(params: NewsApprovalAlertParams): Pr
     </div>
 
     <div class="footer">
-      Kashmir &amp; Jammu Investigative Newsroom (KJIN)<br>
+      KJCPL News Network<br>
       Automated Editorial Gatekeeper • Powered by Google Gemini 2.5 Flash
     </div>
   </div>
@@ -181,7 +181,7 @@ export async function sendNewsApprovalAlert(params: NewsApprovalAlertParams): Pr
       from: sender,
       to: editorEmail,
       subject: `[Approval Required] ${params.headline}`,
-      text: `KJIN Newsroom Verification Required\n\nHeadline: ${params.headline}\nScope: ${params.scope} | Beat: ${params.category} | Region: ${divisionBadge}\n\nSummary: ${params.summary}\n\nVerify and publish on your dashboard:\n${actionUrl}\n\nTime: ${timeIST} IST`,
+      text: `KJCPL Newsroom Verification Required\n\nHeadline: ${params.headline}\nScope: ${params.scope} | Beat: ${params.category} | Region: ${divisionBadge}\n\nSummary: ${params.summary}\n\nVerify and publish on your dashboard:\n${actionUrl}\n\nTime: ${timeIST} IST`,
       html: htmlContent,
     });
 
@@ -217,7 +217,7 @@ export async function sendAutoApprovedEmailAlert(params: AutoApprovedAlertParams
 
   let sender = process.env.SMTP_FROM?.trim();
   if (!sender || !sender.includes('@')) {
-    sender = `"KJIN Editorial Intelligence" <${process.env.SMTP_USER || 'hafezzargar987@gmail.com'}>`;
+    sender = `"KJCPL Editorial Intelligence" <${process.env.SMTP_USER || 'hafezzargar987@gmail.com'}>`;
   }
   const defaultDashboardUrl =
     process.env.ADMIN_URL ||
@@ -272,7 +272,7 @@ export async function sendAutoApprovedEmailAlert(params: AutoApprovedAlertParams
   <div class="container">
     <div class="header">
       <span class="badge">⚡ Auto-Approved • Live in ${delayMinutes} Minutes</span>
-      <div style="font-size: 12px; font-family: monospace; color: #94a3b8;">KJIN AUTONOMOUS INTELLIGENCE RADAR</div>
+      <div style="font-size: 12px; font-family: monospace; color: #94a3b8;">KJCPL AUTONOMOUS INTELLIGENCE RADAR</div>
       <h1 class="title-h1">${escapeHtml(params.headline)}</h1>
     </div>
 
@@ -338,7 +338,7 @@ export async function sendAutoApprovedEmailAlert(params: AutoApprovedAlertParams
     </div>
 
     <div class="footer">
-      Kashmir &amp; Jammu Investigative Newsroom (KJIN)<br>
+      KJCPL News Network<br>
       Autonomous Editorial Dispatch Desk • Auto-Publish Engine
     </div>
   </div>
@@ -351,7 +351,7 @@ export async function sendAutoApprovedEmailAlert(params: AutoApprovedAlertParams
       from: sender,
       to: editorEmail,
       subject: `⚡ [Auto-Approved • Goes Live in ${delayMinutes} Mins] ${params.headline}`,
-      text: `KJIN Autonomous Newsroom — Auto-Approval Notification\n\nHeadline: ${params.headline}\nScope: ${params.scope} | Beat: ${params.category} | Region: ${divisionBadge}${districtBadge}\n\nSummary: ${params.summary}\n\nStatus: Auto-Approved without manual intervention.\nDisplay Schedule: Goes live publicly on the website in ${delayMinutes} minutes (at ${scheduledTimeIST} IST).\n\nInspect or cancel in your dashboard:\n${actionUrl}\n\nDiscovered: ${timeIST} IST`,
+      text: `KJCPL Autonomous Newsroom — Auto-Approval Notification\n\nHeadline: ${params.headline}\nScope: ${params.scope} | Beat: ${params.category} | Region: ${divisionBadge}${districtBadge}\n\nSummary: ${params.summary}\n\nStatus: Auto-Approved without manual intervention.\nDisplay Schedule: Goes live publicly on the website in ${delayMinutes} minutes (at ${scheduledTimeIST} IST).\n\nInspect or cancel in your dashboard:\n${actionUrl}\n\nDiscovered: ${timeIST} IST`,
       html: htmlContent,
     });
 

@@ -60,8 +60,8 @@ The comprehensive earthworks, executed with specialized amphibious suction dredg
 "The secondary channel is our front-line defense against sudden glacial runoff or autumn cloudbursts in South Kashmir," explained Chief Engineer Tariq Ahmad Mir at the Ram Bagh weir control room. "With the newly constructed reinforced retaining dikes at Bemina and Sharifabad, low-lying neighborhoods in central Srinagar are significantly shielded from backflow inundation."
 
 Residents of Rajbagh, Mehjoor Nagar, and Bemina praised the prompt pre-winter delivery of the project, which will keep arterial roads clear through rainy seasons.`,
-    source_name: 'KJIN Srinagar Bureau Dispatch',
-    source_url: 'https://kjin.org/dispatches/srinagar-jhelum-spill-expansion',
+    source_name: 'KJCPL Srinagar Bureau Dispatch',
+    source_url: 'https://kjinnews.com/dispatches/srinagar-jhelum-spill-expansion',
     featured_image_url: 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?auto=format&fit=crop&w=1200&q=80',
     published_hours_ago: 1,
   },
@@ -80,8 +80,8 @@ The two-week shutdown included the installation of new magnetic sensors, brake c
 ### Strict Safety Standards & Digital Ticketing
 
 Tourism officials noted that daily passenger capacity will remain capped at 3,200 skiers and visitors to prevent congestion at the ridge. Online reservations for November and December have reached 84% booking density, spurred by early snowfall forecasts across northern Pir Panjal.`,
-    source_name: 'KJIN Tourism & Trade Desk',
-    source_url: 'https://kjin.org/dispatches/gulmarg-gondola-certification-2026',
+    source_name: 'KJCPL Tourism & Trade Desk',
+    source_url: 'https://kjinnews.com/dispatches/gulmarg-gondola-certification-2026',
     featured_image_url: 'https://images.unsplash.com/photo-1517048676732-d65bc937f952?auto=format&fit=crop&w=1200&q=80',
     published_hours_ago: 1.5,
   },
@@ -100,8 +100,8 @@ Equipped with automated sorting, computer-vision grading, and atmospheric nitrog
 ### Grower Independence and Price Realization
 
 "Previously, independent growers had to rush their crop to Azadpur Mandi within days of picking, causing market gluts," noted fruit cooperative president Ghulam Nabi Dar. "With local CA chambers right in Achabal, farmers can stagger sales into late spring when national prices peak."`,
-    source_name: 'KJIN Agriculture Bureau',
-    source_url: 'https://kjin.org/dispatches/achabal-cold-storage-inauguration',
+    source_name: 'KJCPL Agriculture Bureau',
+    source_url: 'https://kjinnews.com/dispatches/achabal-cold-storage-inauguration',
     featured_image_url: 'https://images.unsplash.com/photo-1619546813926-a78fa6372cd2?auto=format&fit=crop&w=1200&q=80',
     published_hours_ago: 2,
   },
@@ -120,8 +120,8 @@ Agricultural scientists from SKUAST-Kashmir attributed the bumper yield to the N
 ### Quality Certification and Digital Traceability
 
 Every certified consignment processed at the Dusoo Saffron Park is now issued with cryptographic QR seals verifying crocin, picrocrocin, and safranal purity metrics, commanding premium bids from European buyers.`,
-    source_name: 'KJIN Rural Economy Wire',
-    source_url: 'https://kjin.org/dispatches/pampore-saffron-harvest-2026',
+    source_name: 'KJCPL Rural Economy Wire',
+    source_url: 'https://kjinnews.com/dispatches/pampore-saffron-harvest-2026',
     featured_image_url: 'https://images.unsplash.com/photo-1600121848594-d8644e57abab?auto=format&fit=crop&w=1200&q=80',
     published_hours_ago: 2.5,
   },
@@ -140,8 +140,8 @@ The old rusted galvanized iron pipes, prone to frequent winter burstings and sil
 ### Community Reactions
 
 "For three seasons our families depended on water tankers during peak morning hours," said Fatima Begum of village Ranger. "Now we have clean tap connections with consistent pressure inside our homes."`,
-    source_name: 'KJIN Civic Grievances Watch',
-    source_url: 'https://kjin.org/dispatches/chadoora-water-pipeline-restored',
+    source_name: 'KJCPL Civic Grievances Watch',
+    source_url: 'https://kjinnews.com/dispatches/chadoora-water-pipeline-restored',
     featured_image_url: 'https://images.unsplash.com/photo-1541888946425-d0fbb1861564?auto=format&fit=crop&w=1200&q=80',
     published_hours_ago: 3,
   },
@@ -160,8 +160,8 @@ The realigned bypass connects Gagangeer directly to the western portal of the Z-
 ### Anti-Avalanche Infrastructure
 
 Alongside surfacing works, snowsheds and dynamic avalanche deflectors have been tested along the steep slopes near Hung, ensuring emergency vehicle access throughout severe December blizzards.`,
-    source_name: 'KJIN Infrastructure Desk',
-    source_url: 'https://kjin.org/dispatches/sonamarg-bypass-macadamization',
+    source_name: 'KJCPL Infrastructure Desk',
+    source_url: 'https://kjinnews.com/dispatches/sonamarg-bypass-macadamization',
     featured_image_url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80',
     published_hours_ago: 3.5,
   },
@@ -180,8 +180,8 @@ The plant runs on a 45 kW rooftop photovoltaic array with lithium-ferro-phosphat
 ### Preserving Freshness and Fair Value
 
 Local fishermen who harvest native Schizothorax (Kashmiri trout) and common carp can now pack their catches immediately at lake shores, preventing spoiling during the 4-hour transit to Srinagar and Jammu markets.`,
-    source_name: 'KJIN Environment & Co-operatives',
-    source_url: 'https://kjin.org/dispatches/wular-solar-ice-plant',
+    source_name: 'KJCPL Environment & Co-operatives',
+    source_url: 'https://kjinnews.com/dispatches/wular-solar-ice-plant',
     featured_image_url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80',
     published_hours_ago: 4,
   },
@@ -200,8 +200,8 @@ The facility houses 25 low-power laptops powered by a 10 kW rooftop solar microg
 ### Empowering Border Youth
 
 School principal Mohammad Shafi Mir described the transformation: "Our children in this remote frontier valley now have the identical digital access as students in Srinagar or Delhi, from competitive exam resources to coding courses."`,
-    source_name: 'KJIN Education Bureau',
-    source_url: 'https://kjin.org/dispatches/teetwal-solar-digital-lab',
+    source_name: 'KJCPL Education Bureau',
+    source_url: 'https://kjinnews.com/dispatches/teetwal-solar-digital-lab',
     featured_image_url: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=1200&q=80',
     published_hours_ago: 4.5,
   },
@@ -220,8 +220,8 @@ The project replaced hazardous concrete fencing with pressure-treated cedar rail
 ### Eco-Tourism Boost
 
 Kulgam trade associations reported a 35% surge in weekend family footfalls, with trained local youth from neighboring Damhal Hanjipora serving as licensed interpretive wilderness guides.`,
-    source_name: 'KJIN Heritage & Wilderness',
-    source_url: 'https://kjin.org/dispatches/aharbal-falls-eco-trail',
+    source_name: 'KJCPL Heritage & Wilderness',
+    source_url: 'https://kjinnews.com/dispatches/aharbal-falls-eco-trail',
     featured_image_url: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=1200&q=80',
     published_hours_ago: 5,
   },
@@ -240,8 +240,8 @@ Equipped with microwave road surface sensors, solar-powered CCTV cameras, and au
 ### Safe Commercial Logistics
 
 The system provides apple and timber haulers with up-to-the-minute advisories on black ice formation, significantly reducing winter vehicular pileups on hair-pin curves.`,
-    source_name: 'KJIN Regional Governance Desk',
-    source_url: 'https://kjin.org/dispatches/peer-ki-gali-radar-activation',
+    source_name: 'KJCPL Regional Governance Desk',
+    source_url: 'https://kjinnews.com/dispatches/peer-ki-gali-radar-activation',
     featured_image_url: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80',
     published_hours_ago: 5.5,
   },
@@ -260,8 +260,8 @@ The buses feature lithium-iron-phosphate battery packs offering a 200-kilometer 
 ### Commuter Acclaim
 
 "The new electric services are punctual, quiet, and fully air-conditioned at uniform affordable fares," said Anita Sharma, a university student commuting daily between Akhnoor and Jammu City.`,
-    source_name: 'KJIN Urban Transit Watch',
-    source_url: 'https://kjin.org/dispatches/jammu-ebus-fleet-expansion',
+    source_name: 'KJCPL Urban Transit Watch',
+    source_url: 'https://kjinnews.com/dispatches/jammu-ebus-fleet-expansion',
     featured_image_url: 'https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?auto=format&fit=crop&w=1200&q=80',
     published_hours_ago: 6,
   },
@@ -280,8 +280,8 @@ The special Vande Bharat test rake crossed the majestic Chenab Arch Bridge—soa
 ### Seamless Valley Connectivity
 
 Senior railway engineers confirmed that all telemetry sensors, structural accelerometers, and acoustic monitors performed comfortably within safety design thresholds. Regular commercial service linking the national capital to the valley is slated to commence shortly.`,
-    source_name: 'KJIN Rail Transport Wire',
-    source_url: 'https://kjin.org/dispatches/chenab-bridge-vande-bharat-trials',
+    source_name: 'KJCPL Rail Transport Wire',
+    source_url: 'https://kjinnews.com/dispatches/chenab-bridge-vande-bharat-trials',
     featured_image_url: 'https://images.unsplash.com/photo-1474487548417-781cb71495f3?auto=format&fit=crop&w=1200&q=80',
     published_hours_ago: 6.5,
   },
@@ -300,8 +300,8 @@ The investments are anchored around sterile injectables, specialized veterinary 
 ### Local Employment Mandate
 
 Under the operational covenants signed with the Industries Department, all beneficiary industrial units must source at least 70% of non-technical and semi-skilled staff from registered residents of Kathua and Samba districts.`,
-    source_name: 'KJIN Commerce & Industry',
-    source_url: 'https://kjin.org/dispatches/ghati-estate-kathua-investment',
+    source_name: 'KJCPL Commerce & Industry',
+    source_url: 'https://kjinnews.com/dispatches/ghati-estate-kathua-investment',
     featured_image_url: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=1200&q=80',
     published_hours_ago: 7,
   },
@@ -320,8 +320,8 @@ The upgraded infrastructure incorporates traditional Dogra stone jaali facades, 
 ### Border Harmony and Pilgrimage Facilities
 
 "Our shrines represent centuries of shared regional devotion and peace," remarked caretaker Harbans Singh. "These comfortable, well-lit public facilities will ensure senior citizens and visiting families have a safe and spiritually uplifting experience."`,
-    source_name: 'KJIN Heritage & Culture Desk',
-    source_url: 'https://kjin.org/dispatches/samba-pilgrimage-upgrades-2026',
+    source_name: 'KJCPL Heritage & Culture Desk',
+    source_url: 'https://kjinnews.com/dispatches/samba-pilgrimage-upgrades-2026',
     featured_image_url: 'https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=1200&q=80',
     published_hours_ago: 7.5,
   },
@@ -340,8 +340,8 @@ The contactless gates scan pilgrims wristbands at microsecond speeds, updating c
 ### Safety and Comfort Enhancements
 
 Board officials noted that real-time flow regulation prevents over-saturation at narrow choke points along the traditional track and new battery-car path, ensuring smooth movement even during peak weekend rush.`,
-    source_name: 'KJIN Shrine Logistics Watch',
-    source_url: 'https://kjin.org/dispatches/vaishno-devi-rfid-gates-2026',
+    source_name: 'KJCPL Shrine Logistics Watch',
+    source_url: 'https://kjinnews.com/dispatches/vaishno-devi-rfid-gates-2026',
     featured_image_url: 'https://images.unsplash.com/photo-1519817650390-64a93db51149?auto=format&fit=crop&w=1200&q=80',
     published_hours_ago: 8,
   },
@@ -360,8 +360,8 @@ Synthesized from fallen pine needles and indigenous plant extracts, the non-toxi
 ### Field Validation Across Orchards
 
 Extensive multi-season field trials conducted across apple and plum orchards in Budhal and Thanamandi demonstrated an 82% reduction in frost kill, offering smallholder farmers an affordable safeguard against erratic mountain climate shocks.`,
-    source_name: 'KJIN Science & Research Desk',
-    source_url: 'https://kjin.org/dispatches/bgsbu-rajouri-anti-frost-patent',
+    source_name: 'KJCPL Science & Research Desk',
+    source_url: 'https://kjinnews.com/dispatches/bgsbu-rajouri-anti-frost-patent',
     featured_image_url: 'https://images.unsplash.com/photo-1532094349884-543bc11b234d?auto=format&fit=crop&w=1200&q=80',
     published_hours_ago: 8.5,
   },
@@ -380,8 +380,8 @@ The project had undergone extensive generator rewindings, hydraulic governor cal
 ### Ending Winter Low-Voltage Cycles
 
 Local trade councils and hospital administrators in Mendhar and Surankote expressed gratitude for the prompt recommissioning, which will guarantee uninterrupted power for cold-storage vaccines and domestic heating.`,
-    source_name: 'KJIN Energy & Power Watch',
-    source_url: 'https://kjin.org/dispatches/surankote-hydel-power-restored',
+    source_name: 'KJCPL Energy & Power Watch',
+    source_url: 'https://kjinnews.com/dispatches/surankote-hydel-power-restored',
     featured_image_url: 'https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=1200&q=80',
     published_hours_ago: 9,
   },
@@ -400,8 +400,8 @@ Independent laboratory assays conducted by the CSIR-Indian Institute of Integrat
 ### Uplifting Mountain Farmers
 
 "Switching from maize to lavender cultivation has multiplied household earnings four-fold," remarked cooperative chair Naseema Akhtar. "Over 400 women in our block are now full shareholders in distillation cooperatives."`,
-    source_name: 'KJIN Aroma Industry Wire',
-    source_url: 'https://kjin.org/dispatches/bhaderwah-lavender-export-2026',
+    source_name: 'KJCPL Aroma Industry Wire',
+    source_url: 'https://kjinnews.com/dispatches/bhaderwah-lavender-export-2026',
     featured_image_url: 'https://images.unsplash.com/photo-1528183429752-a97d0bf99b5a?auto=format&fit=crop&w=1200&q=80',
     published_hours_ago: 9.5,
   },
@@ -420,8 +420,8 @@ The 10.2-kilometer twin tunnels will convey diverted waters from the Drangdhuran
 ### Engineering Feats in Crushed Gneiss
 
 Senior geologists praised the specialized rock-bolting and fiberglass forepoling techniques employed to navigate deep fault shear zones safely, keeping the project on schedule for commercial generation.`,
-    source_name: 'KJIN Energy & Infrastructure',
-    source_url: 'https://kjin.org/dispatches/pakal-dul-tunnel-breakthrough',
+    source_name: 'KJCPL Energy & Infrastructure',
+    source_url: 'https://kjinnews.com/dispatches/pakal-dul-tunnel-breakthrough',
     featured_image_url: 'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?auto=format&fit=crop&w=1200&q=80',
     published_hours_ago: 10,
   },
@@ -440,8 +440,8 @@ For decades, the narrow cliffside roadway at Panthyal had been prone to sudden b
 ### Smooth Four-Lane Corridor
 
 The new structure features impact-absorbing gravel cushions and continuous CCTV surveillance, enabling passenger cars and heavy goods convoys to bypass the chute safely at regular highway cruising speeds.`,
-    source_name: 'KJIN Highway Transport Watch',
-    source_url: 'https://kjin.org/dispatches/panthyal-tunnel-opened-ramban',
+    source_name: 'KJCPL Highway Transport Watch',
+    source_url: 'https://kjinnews.com/dispatches/panthyal-tunnel-opened-ramban',
     featured_image_url: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=1200&q=80',
     published_hours_ago: 10.5,
   },
@@ -460,8 +460,8 @@ Situated at 4,400 meters elevation, the installation employs bifacial solar pane
 ### Transforming Nomadic Life
 
 Pashmina herders in Hanle can now run electric spinning wheels, butter churners, and warm lighting through the bitter winter months, fostering sustainable livelihoods in indigenous pastoral homelands.`,
-    source_name: 'KJIN Ladakh Bureau',
-    source_url: 'https://kjin.org/dispatches/changthang-solar-microgrid-leh',
+    source_name: 'KJCPL Ladakh Bureau',
+    source_url: 'https://kjinnews.com/dispatches/changthang-solar-microgrid-leh',
     featured_image_url: 'https://images.unsplash.com/photo-1509395176047-4a66953fd231?auto=format&fit=crop&w=1200&q=80',
     published_hours_ago: 11,
   },
@@ -480,8 +480,8 @@ The pavilion features 360-degree immersive virtual reality headsets, digitized o
 ### Cultural Heritage and Tourism Impact
 
 Over 400 school students and visitors toured the gallery on its opening morning, experiencing the harsh meteorological realities and courageous teamwork that defined the 1999 defense of the frontier passes.`,
-    source_name: 'KJIN Kargil Bureau',
-    source_url: 'https://kjin.org/dispatches/drass-war-memorial-vr-gallery',
+    source_name: 'KJCPL Kargil Bureau',
+    source_url: 'https://kjinnews.com/dispatches/drass-war-memorial-vr-gallery',
     featured_image_url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=1200&q=80',
     published_hours_ago: 11.5,
   },
@@ -500,8 +500,8 @@ The advanced equipment features ultra-fast deep-learning reconstruction algorith
 ### Expanding Patient Access
 
 Director SKIMS confirmed that round-the-clock emergency neuro-imaging will now be available for acute stroke and trauma patients, drastically curtailing diagnostic turnaround times for rural referrals.`,
-    source_name: 'KJIN Health & Medical Desk',
-    source_url: 'https://kjin.org/dispatches/skims-soura-mri-installation',
+    source_name: 'KJCPL Health & Medical Desk',
+    source_url: 'https://kjinnews.com/dispatches/skims-soura-mri-installation',
     featured_image_url: 'https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&w=1200&q=80',
     published_hours_ago: 12,
   },
@@ -520,8 +520,8 @@ The multi-year research program establishes an advanced glacier observational ne
 ### Sustaining Indus River Tributary Water Security
 
 Faculty researchers emphasized that precise real-time snowpack and glacier mass balance data will prove vital for predicting seasonal runoff into the Chenab and Jhelum basins, helping regional water managers plan agriculture and hydropower schedules.`,
-    source_name: 'KJIN Education & Science Desk',
-    source_url: 'https://kjin.org/dispatches/jammu-university-glacier-research-mou',
+    source_name: 'KJCPL Education & Science Desk',
+    source_url: 'https://kjinnews.com/dispatches/jammu-university-glacier-research-mou',
     featured_image_url: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80',
     published_hours_ago: 12.5,
   },

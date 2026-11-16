@@ -185,7 +185,7 @@ async function refreshWeatherInBackground(): Promise<void> {
         const url = `https://api.open-meteo.com/v1/forecast?latitude=${st.lat}&longitude=${st.lon}&current_weather=true`;
         const res = await fetch(url, {
           next: { revalidate: 600 },
-          headers: { 'User-Agent': 'KJIN-Regional-Telemetry/1.0' },
+          headers: { 'User-Agent': 'KJCPL-Regional-Telemetry/1.0' },
           signal: AbortSignal.timeout(600),
         });
 

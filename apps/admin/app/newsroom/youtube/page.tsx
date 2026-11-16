@@ -2620,7 +2620,7 @@ export default function YouTubeMonitorPage() {
                         </div>
                       </div>
 
-                      {/* KJIN Synthesized Original Story (From Scratch by Gemini) */}
+                      {/* KJCPL Synthesized Original Story (From Scratch by Gemini) */}
                       {video.proposed_headline && (
                         <div className="mt-2 rounded-xl bg-purple-950/20 border border-purple-500/30 p-3 text-xs space-y-1.5">
                           <div className="flex items-center justify-between gap-1.5 font-bold text-purple-700 dark:text-purple-300">
@@ -3304,7 +3304,7 @@ export default function YouTubeMonitorPage() {
               <div>
                 <div className="flex items-center justify-between">
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-                    Original KJIN Headline
+                    Original KJCPL Headline
                   </label>
                   <span className="text-[11px] text-cyan-500 font-semibold">
                     Written from zero in English (No Hindi/Urdu)

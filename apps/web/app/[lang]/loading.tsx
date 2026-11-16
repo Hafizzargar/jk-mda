@@ -75,7 +75,7 @@ export default function Loading() {
   const secondaryColor = festive?.colors?.[1] || festive?.colors?.[0] || '#EF4444';
 
   const logoSrc = brand.logo_url || '/kjin-emblem.png';
-  const brandName = brand.name || 'KJIN';
+  const brandName = brand.name || 'KJCPL';
   const subtitle = brand.loader_text || brand.tagline || 'ONE REGION, MANY VOICES, TRUSTED NEWS';
 
   return (

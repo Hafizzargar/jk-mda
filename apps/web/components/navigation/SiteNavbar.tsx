@@ -244,7 +244,7 @@ export function SiteNavbar({
                 <div className="w-full h-full bg-stone-900 rounded-full flex flex-col items-center justify-center p-0.5 sm:p-1 text-center border border-amber-300/40 relative overflow-hidden">
                   <Image
                     src={navSettings.brand.logo_url || '/kjin-emblem.png'}
-                    alt={navSettings.brand.name || 'KJIN'}
+                    alt={navSettings.brand.name || 'KJCPL'}
                     fill
                     className="object-contain p-0.5 rounded-full"
                     decoding="async"
@@ -256,7 +256,7 @@ export function SiteNavbar({
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline space-x-1 sm:space-x-1.5">
                 <h1 className="font-masthead text-lg sm:text-xl font-black text-stone-900 tracking-tight leading-none truncate">
-                  {navSettings.brand.name || 'KJIN'}
+                  {navSettings.brand.name || 'KJCPL'}
                 </h1>
                 {(navSettings.brand.show_est_badge ?? true) && (
                   <span className="text-[8px] sm:text-[9px] font-serif font-bold text-amber-800 tracking-widest uppercase bg-amber-100/70 px-1 py-0.5 rounded shrink-0">
@@ -659,7 +659,7 @@ export function SiteNavbar({
             {/* 7. Institutional Footer Seal */}
             <div className="pt-2 pb-6 border-t border-stone-200 text-center font-serif text-[10px] text-stone-600 space-y-1">
               <p className="font-bold uppercase tracking-wider text-stone-700">
-                {navSettings.brand.name || 'KJIN'} Institutional Dispatch
+                {navSettings.brand.name || 'KJCPL'} Institutional Dispatch
               </p>
               <p className="text-[9px] text-stone-600">
                 Independent Field Press of Record &bull; Certified Editorial Standards

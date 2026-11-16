@@ -28,7 +28,7 @@ export function SiteFooter({
   const rawBrandName = brandSettings?.name?.trim() ||
     (contact.organization_name?.includes('(') ? contact.organization_name.split('(')[0].trim() : contact.organization_name?.trim()) ||
     SITE_SHORT_NAME;
-  const brandName = rawBrandName.replace(/\bKCPJLN\b/g, 'KJIN') || 'KJIN';
+  const brandName = rawBrandName.replace(/\b(KCPJLN|KJIN)\b/g, 'KJCPL') || 'KJCPL';
 
   const rawBrandFullName = brandSettings?.full_name?.trim() ||
     (contact.organization_name?.includes('(')

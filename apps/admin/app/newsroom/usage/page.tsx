@@ -160,7 +160,7 @@ export default function AiUsagePage() {
       {/* Architecture & Safeguards Breakdown */}
       <div className="rounded-xl sm:rounded-2xl border border-slate-200/90 bg-white p-4 sm:p-6 shadow-2xs dark:border-slate-800 dark:bg-slate-900 space-y-3 sm:space-y-4">
         <h2 className="text-sm sm:text-base font-extrabold text-slate-900 dark:text-white">
-          Cost &amp; Token Safeguards Enforced in KJIN
+          Cost &amp; Token Safeguards Enforced in KJCPL
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 text-xs">

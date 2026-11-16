@@ -1717,7 +1717,7 @@ test('footer: POST superadmin successfully updates contact info and records audi
     jsonRequest('http://localhost/api/settings/footer', {
       token: MFA_VALID_TOKEN,
       body: {
-        organization_name: 'KJIN Verified Newsroom',
+        organization_name: 'KJCPL Verified Newsroom',
         phone_primary: '+91 194 245 7777',
         email_editorial: 'desk@kjin.org',
         primary_address: 'Residency Road, Srinagar 190001',
@@ -1728,7 +1728,7 @@ test('footer: POST superadmin successfully updates contact info and records audi
   assert.equal(res.status, 200);
   const body = (await res.json()) as { success: boolean; footer_contact: any };
   assert.equal(body.success, true);
-  assert.equal(body.footer_contact.organization_name, 'KJIN Verified Newsroom');
+  assert.equal(body.footer_contact.organization_name, 'KJCPL Verified Newsroom');
   assert.equal(body.footer_contact.phone_primary, '+91 194 245 7777');
   assert.equal(body.footer_contact.email_editorial, 'desk@kjin.org');
 

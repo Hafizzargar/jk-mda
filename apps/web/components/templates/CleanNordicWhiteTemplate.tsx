@@ -12,7 +12,7 @@ export function CleanNordicWhiteTemplate({
   trendingArticles,
   navbarSettings,
 }: TemplateProps) {
-  const brandName = navbarSettings?.brand?.name || 'KJIN';
+  const brandName = navbarSettings?.brand?.name || 'KJCPL';
   const brandTagline = navbarSettings?.brand?.tagline || 'Verified Independent Journalism';
 
   return (

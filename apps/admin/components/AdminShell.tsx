@@ -21,7 +21,7 @@ export interface AdminContextType {
 export const AdminContext = createContext<AdminContextType>({
   theme: 'light',
   toggleTheme: () => {},
-  brandName: 'KJIN',
+  brandName: 'KJCPL',
   brandLogo: '/kjin-emblem.png',
   userRole: null,
 });
@@ -46,7 +46,7 @@ export function AdminShell({ children }: AdminShellProps) {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
 
-  const [brandName, setBrandName] = useState('KJIN');
+  const [brandName, setBrandName] = useState('KJCPL');
   const [brandLogo, setBrandLogo] = useState('/kjin-emblem.png');
 
   // Initialize theme state from localStorage on client mount

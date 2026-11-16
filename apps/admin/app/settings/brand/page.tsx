@@ -26,7 +26,7 @@ const PRESET_LOGOS = [
     desc: 'Official widescreen masthead banner with 5 regional divisions',
   },
   {
-    name: 'Classic KJIN River Emblem (PNG)',
+    name: 'Classic KJCPL River Emblem (PNG)',
     url: '/kjin-emblem.png',
     desc: 'Classic circular mountain river heritage emblem',
   },
@@ -125,7 +125,7 @@ export default function BrandSettingsPage() {
         ...fullNavSettings,
         brand: {
           ...brand,
-          name: brand.name.trim() || 'KJIN',
+          name: brand.name.trim() || 'KJCPL',
           full_name: brand.full_name?.trim() || '',
           tagline: brand.tagline.trim(),
           logo_url: brand.logo_url.trim() || '/kcpjln-symbol.webp',
@@ -170,14 +170,14 @@ export default function BrandSettingsPage() {
     }
   };
 
-  const applyKJINPreset = () => {
+  const applyKJCPLPreset = () => {
     setBrand({
       ...brand,
-      name: 'KJIN',
-      full_name: 'Kashmir & Jammu Information Network',
+      name: 'KJCPL',
+      full_name: 'KJCPL News Network',
       tagline: 'J&K Journal of Record',
       logo_url: '/kjin-emblem.png',
-      loader_text: 'Jammu & Kashmir Journal of Record',
+      loader_text: 'KJCPL Journal of Record',
       show_name: true,
       show_tagline: true,
       show_logo_image: true,
@@ -185,7 +185,7 @@ export default function BrandSettingsPage() {
       show_est_badge: true,
       show_loader_emblem: true,
     });
-    toast.info('Applied KJIN (Kashmir & Jammu Information Network) identity preset.');
+    toast.info('Applied KJCPL (KJCPL News Network) identity preset.');
   };
 
   if (loading) {
@@ -215,7 +215,7 @@ export default function BrandSettingsPage() {
             <span>🎨</span> One-Place Brand &amp; Identity Control
           </h1>
           <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 mt-1 max-w-3xl">
-            Control the site short acronym (<strong>KJIN</strong>), company full name, official tagline, and emblem logo from this single hub. Any modification saved here is automatically and immediately reflected across the web frontend, mobile drawer, page titles, footer, and admin portal.
+            Control the site short acronym (<strong>KJCPL</strong>), company full name, official tagline, and emblem logo from this single hub. Any modification saved here is automatically and immediately reflected across the web frontend, mobile drawer, page titles, footer, and admin portal.
           </p>
         </div>
 
@@ -258,17 +258,17 @@ export default function BrandSettingsPage() {
             <span>Official Identity Preset</span>
           </div>
           <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
-            Apply the official KJIN (Kashmir &amp; Jammu Information Network) broadsheet identity:
+            Apply the official KJCPL broadsheet identity:
           </p>
         </div>
         <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
           <button
             type="button"
-            onClick={applyKJINPreset}
+            onClick={applyKJCPLPreset}
             className="px-4 py-2 rounded-xl border border-cyan-500/60 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300 text-xs font-bold hover:bg-cyan-500/20 transition flex items-center gap-2 shadow-2xs"
           >
             <span className="w-2 h-2 rounded-full bg-cyan-400" />
-            <span>Apply KJIN Official Preset</span>
+            <span>Apply KJCPL Official Preset</span>
           </button>
         </div>
       </div>
@@ -300,7 +300,7 @@ export default function BrandSettingsPage() {
               {brand.show_name && (
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-black font-serif tracking-tight text-slate-950 dark:text-white uppercase leading-none">
-                    {brand.name || 'KJIN'}
+                    {brand.name || 'KJCPL'}
                   </span>
                   {(brand.show_est_badge ?? true) && (
                     <span className="text-[10px] font-serif font-bold text-amber-800 tracking-widest uppercase bg-amber-100/70 dark:bg-amber-900/40 dark:text-amber-300 px-1.5 py-0.5 rounded">
@@ -347,7 +347,7 @@ export default function BrandSettingsPage() {
                 type="text"
                 value={brand.name}
                 onChange={(e) => setBrand({ ...brand, name: e.target.value })}
-                placeholder="e.g. KJIN"
+                placeholder="e.g. KJCPL"
                 className="w-full px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-900 dark:text-white font-medium focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
                 required
               />

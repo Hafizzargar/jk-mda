@@ -143,7 +143,7 @@ export async function POST(request: Request) {
     const baseSlug = generateSlug(finalTitle);
     const finalSlug = `${baseSlug || 'news-report'}-${Date.now().toString(36).slice(-4)}`;
 
-    const authorName = profileRecord?.display_name?.trim() || auth.user.email?.split('@')[0] || 'KJIN Newsroom';
+    const authorName = profileRecord?.display_name?.trim() || auth.user.email?.split('@')[0] || 'KJCPL Newsroom';
     const sourceChannelName = videoRecord.youtube_sources?.channel_name || 'Broadcast Surveillance';
     const finalDistrict = isLocalScope ? (district || videoRecord.ai_analysis?.district || null) : null;
 

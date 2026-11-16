@@ -222,7 +222,7 @@ async function refreshWarNewsInBackground(limit: number): Promise<void> {
       {
         signal: controller.signal,
         headers: {
-          'User-Agent': 'KJIN-Editorial-Radar/1.0 (+https://kjin.in)',
+          'User-Agent': 'KJCPL-Editorial-Radar/1.0 (+https://kjinnews.com)',
           Accept: 'application/rss+xml, application/xml, text/xml',
         },
       }
@@ -254,7 +254,7 @@ async function refreshDiscoverNewsInBackground(limit: number): Promise<void> {
     const response = await fetch('https://phys.org/rss-feed/', {
       signal: controller.signal,
       headers: {
-        'User-Agent': 'KJIN-Editorial-Radar/1.0 (+https://kjin.in)',
+        'User-Agent': 'KJCPL-Editorial-Radar/1.0 (+https://kjinnews.com)',
         Accept: 'application/rss+xml, application/xml, text/xml',
       },
     });

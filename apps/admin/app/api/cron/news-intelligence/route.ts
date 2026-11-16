@@ -39,7 +39,7 @@ async function handleCronExecution(request: Request) {
 
     const service = createClient(url, key, { auth: { persistSession: false } });
 
-    console.log('[RailwayScheduledWorker] Cron triggered: executing KJIN News Intelligence discovery cycle...');
+    console.log('[RailwayScheduledWorker] Cron triggered: executing KJCPL News Intelligence discovery cycle...');
 
     // 1. Autonomous Web Discovery (Google Search Grounding across beats, Chenab Valley prioritized)
     const discoveryResult = await runAutonomousNewsDiscovery(service);

@@ -7,6 +7,6 @@ export const SITE_URL = (
   'https://kjin.in'
 ).replace(/\/$/, '');
 
-export const SITE_NAME = 'Kashmir Jammu Information Network';
-export const SITE_SHORT_NAME = 'KJIN';
+export const SITE_NAME = 'KJCPL News Network';
+export const SITE_SHORT_NAME = 'KJCPL';
 export const DEFAULT_LOCALE = 'en_IN';

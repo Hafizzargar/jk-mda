@@ -45,12 +45,12 @@ export interface CareersSettings {
 }
 
 export const DEFAULT_CAREERS_SETTINGS: CareersSettings = {
-  page_title: 'Work With Us • Careers at KJIN',
+  page_title: 'Work With Us • Careers at KJCPL',
   page_subtitle: 'Join Jammu & Kashmir’s Premier Independent Journal of Record',
   hiring_status: 'open',
   contact_email: 'h26412301@gmail.com',
   culture_statement:
-    'At Kashmir & Jammu Information Network (KJIN), we hold reporting integrity, verified sourcing, and ground public-interest documentation above all else. We are building an authoritative, multilingual editorial team across the Kashmir Valley, Jammu Plains, Chenab Valley, Pir Panjal, and Ladakh.',
+    'At KJCPL News Network, we hold reporting integrity, verified sourcing, and ground public-interest documentation above all else. We are building an authoritative, multilingual editorial team across the Kashmir Valley, Jammu Plains, Chenab Valley, Pir Panjal, and Ladakh.',
   benefits: [
     'Comprehensive field insurance & high-altitude travel allowances',
     'Independent editorial freedom adhering strictly to PCI code of ethics',
@@ -72,7 +72,7 @@ export const DEFAULT_CAREERS_SETTINGS: CareersSettings = {
       requirements: [
         'Bachelor’s or Master’s in Journalism, English, Mass Communication, or related field',
         'Minimum 3 years of copy editing experience in a reputable print or digital newspaper',
-        'Strong command of English grammar and AP/KJIN broadsheet house style',
+        'Strong command of English grammar and AP/KJCPL broadsheet house style',
         'Working familiarity with regional J&K terminology, geography, and administrative bodies',
       ],
       responsibilities: [

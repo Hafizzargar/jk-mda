@@ -2,12 +2,12 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const email = process.env.KJIN_OWNER_EMAIL?.trim().toLowerCase();
-const displayName = process.env.KJIN_OWNER_NAME?.trim() || 'KJIN Owner';
+const email = (process.env.KJCPL_OWNER_EMAIL || process.env.KJIN_OWNER_EMAIL)?.trim().toLowerCase();
+const displayName = process.env.KJCPL_OWNER_NAME?.trim() || process.env.KJIN_OWNER_NAME?.trim() || 'KJCPL Owner';
 const redirectTo = `${process.env.NEXT_PUBLIC_ADMIN_URL ?? 'http://localhost:3001'}/login`;
 
 if (!supabaseUrl || !serviceRoleKey || !email || !/^\S+@\S+\.\S+$/.test(email)) {
-  throw new Error('Set NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, and a valid KJIN_OWNER_EMAIL before running bootstrap-owner.');
+  throw new Error('Set NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, and a valid KJCPL_OWNER_EMAIL before running bootstrap-owner.');
 }
 
 const supabase = createClient(supabaseUrl, serviceRoleKey, {
@@ -21,7 +21,7 @@ const { data: owner, error: ownerError } = await supabase
   .maybeSingle();
 
 if (ownerError) throw ownerError;
-if (owner) throw new Error('A KJIN Owner already exists; bootstrap is one-time only.');
+if (owner) throw new Error('A KJCPL Owner already exists; bootstrap is one-time only.');
 
 const { data: invite, error: inviteError } = await supabase
   .from('employee_invites')

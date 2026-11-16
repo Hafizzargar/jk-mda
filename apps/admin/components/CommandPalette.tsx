@@ -304,7 +304,7 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
               <kbd className="rounded bg-slate-800 px-1.5 py-0.5 font-mono text-[10px] text-slate-300 border border-slate-700">↵</kbd> to select
             </span>
           </div>
-          <span className="text-slate-500 font-mono">{brandName || 'KJIN'} Command OS</span>
+          <span className="text-slate-500 font-mono">{brandName || 'KJCPL'} Command OS</span>
         </div>
       </div>
     </div>

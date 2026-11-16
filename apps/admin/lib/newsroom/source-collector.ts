@@ -22,7 +22,7 @@ export interface CollectionResult {
   statusCode?: number;
 }
 
-const DEFAULT_USER_AGENT = 'KJIN-Editorial-Monitor/1.0 (+https://kjin.in; newsroom-monitor@kjin.in)';
+const DEFAULT_USER_AGENT = 'KJCPL-Editorial-Monitor/1.0 (+https://kjinnews.com; newsroom-monitor@kjinnews.com)';
 const FETCH_TIMEOUT_MS = 8000;
 
 /**

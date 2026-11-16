@@ -74,7 +74,7 @@ export async function POST(request: Request) {
 
     // Prompt Gemini with the 80/10/10 J&K mandate
     const prompt = `
-You are a senior investigative editor at KJIN (Kashmir & Jammu Investigative Newsroom).
+You are a senior investigative editor at KJCPL (KJCPL News Network).
 Your task is to analyze this breaking social broadcast from ${detectedPlatform.toUpperCase()} and formulate a 100% ORIGINAL, professional news article in English.
 
 RAW SOCIAL BROADCAST:

@@ -78,7 +78,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const prompt = `You are the Executive Managing Editor of Kashmir Jammu Independent News (KJIN).
+    const prompt = `You are the Executive Managing Editor of KJCPL (KJCPL News Network).
 Review the following breaking stories recently published on the wire:
 
 ${articlesList}

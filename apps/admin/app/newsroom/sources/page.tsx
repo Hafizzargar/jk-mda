@@ -545,7 +545,7 @@ export default function SourceManagerPage() {
                       className="rounded text-amber-600"
                     />
                     <span className="text-[11px] font-bold text-amber-900 dark:text-amber-200">
-                      I confirm this channel is explicitly owner-approved for KJIN monitoring.
+                      I confirm this channel is explicitly owner-approved for KJCPL monitoring.
                     </span>
                   </label>
                 </div>

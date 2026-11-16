@@ -325,7 +325,7 @@ function MFAChallengeForm() {
               <span className="font-extrabold text-slate-950 text-base leading-none">K</span>
             </div>
             <span className="font-bold text-base sm:text-lg text-white tracking-tight">
-              Kjin Admin
+              KJCPL Admin
             </span>
           </div>
           <button

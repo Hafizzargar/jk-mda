@@ -5,8 +5,8 @@ import { AdminShell } from '@/components/AdminShell';
 import { ScrollToTop } from '@/components/ScrollToTop';
 
 export const metadata: Metadata = {
-  title: 'KJIN Admin',
-  description: 'Editorial and administrative dashboard for KJIN operations.',
+  title: 'KJCPL Admin',
+  description: 'Editorial and administrative dashboard for KJCPL operations.',
   icons: {
     icon: [
       { url: '/kjin-emblem.png', type: 'image/png' },

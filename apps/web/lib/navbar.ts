@@ -142,12 +142,12 @@ export const DEFAULT_NAVBAR_SETTINGS: NavbarSettings = {
   brand: {
     logo_url: '/kjin-emblem.png',
     show_logo_image: true,
-    name: 'KJIN',
-    full_name: 'Kashmir & Jammu Information Network',
+    name: 'KJCPL',
+    full_name: 'KJCPL News Network',
     show_name: true,
     tagline: 'J&K Journal of Record',
     show_tagline: true,
-    loader_text: 'Jammu & Kashmir Journal of Record',
+    loader_text: 'KJCPL Journal of Record',
     show_loader_emblem: true,
     est_badge_text: 'EST. 1948',
     show_est_badge: true,
@@ -200,10 +200,10 @@ export function sanitizeNavbarSettings(raw: unknown): NavbarSettings {
   const rawActions = (obj.actions && typeof obj.actions === 'object' ? obj.actions : {}) as Record<string, unknown>;
 
   const rawBrandName = typeof rawBrand.name === 'string' && rawBrand.name.trim() ? rawBrand.name.trim().slice(0, 50) : DEFAULT_NAVBAR_SETTINGS.brand.name;
-  const sanitizedBrandName = rawBrandName === 'KCPJLN' ? 'KJIN' : rawBrandName;
+  const sanitizedBrandName = (rawBrandName === 'KCPJLN' || rawBrandName === 'KJIN') ? 'KJCPL' : rawBrandName;
 
   const rawBrandFullName = typeof rawBrand.full_name === 'string' ? rawBrand.full_name.trim().slice(0, 150) : (DEFAULT_NAVBAR_SETTINGS.brand.full_name || '');
-  const sanitizedBrandFullName = rawBrandFullName.replace(/Kashmir Chenab Panjal Jammu Ladakh Network/gi, 'Kashmir & Jammu Information Network');
+  const sanitizedBrandFullName = rawBrandFullName.replace(/Kashmir Chenab Panjal Jammu Ladakh Network|Kashmir & Jammu Information Network/gi, 'KJCPL News Network');
 
   const rawLogo = typeof rawBrand.logo_url === 'string' && rawBrand.logo_url.trim() ? rawBrand.logo_url.trim() : DEFAULT_NAVBAR_SETTINGS.brand.logo_url;
   const sanitizedLogo = rawLogo.includes('kcpjln') ? '/kjin-emblem.png' : rawLogo;

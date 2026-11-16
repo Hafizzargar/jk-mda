@@ -35,7 +35,7 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
 
   if (!article) {
     return {
-      title: `Article Not Found | ${brandSettings.name || 'KJIN'}`,
+      title: `Article Not Found | ${brandSettings.name || 'KJCPL'}`,
       description: 'The requested article could not be found or has not been published yet.',
     };
   }

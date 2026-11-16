@@ -114,7 +114,7 @@ export async function authenticateEmployeeRequest(
       details: { method: request.method, path: new URL(request.url).pathname },
       ...auditContext,
     });
-    return Response.json({ error: 'An active KJIN employee profile is required.' }, { status: 403 });
+    return Response.json({ error: 'An active KJCPL employee profile is required.' }, { status: 403 });
   }
 
   return { user: userData.user, profile, service, userClient, auditContext, aal, amr, iat };

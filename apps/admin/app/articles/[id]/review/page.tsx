@@ -122,7 +122,7 @@ export default function ArticleReviewPage() {
         summary: data.excerpt || data.summary || '',
         body: data.content || data.body || '',
         category: data.category || 'General',
-        author: data.author_display_name || data.author || 'KJIN Desk',
+        author: data.author_display_name || data.author || 'KJCPL Desk',
         language: (data.language_code || data.language || 'en'),
         status: data.status,
         slug: data.slug,

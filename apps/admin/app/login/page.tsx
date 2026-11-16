@@ -211,7 +211,7 @@ function LoginForm() {
           <div className="w-8 h-8 rounded-xl bg-cyan-400 flex items-center justify-center shadow-lg shadow-cyan-400/20 shrink-0">
             <span className="font-extrabold text-slate-950 text-base leading-none">K</span>
           </div>
-          <span className="font-bold text-base xl:text-lg text-white tracking-tight">Kjin Admin</span>
+          <span className="font-bold text-base xl:text-lg text-white tracking-tight">KJCPL Admin</span>
         </div>
 
         {/* Center: Hero Heading, Subtitle & Stepped Cascading Cards */}
@@ -269,7 +269,7 @@ function LoginForm() {
           <div className="w-8 h-8 rounded-xl bg-cyan-400 flex items-center justify-center shadow-lg shadow-cyan-400/20 shrink-0">
             <span className="font-extrabold text-slate-950 text-base leading-none">K</span>
           </div>
-          <span className="font-bold text-base text-white tracking-tight">Kjin Admin</span>
+          <span className="font-bold text-base text-white tracking-tight">KJCPL Admin</span>
         </div>
 
         <div className="w-full max-w-[360px] xl:max-w-[380px] my-auto space-y-3 xl:space-y-3.5">

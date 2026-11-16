@@ -978,9 +978,9 @@ export async function synthesizeEnglishNewsDraft(input: {
       .filter((s) => s.length > 20)
       .slice(0, 3)
       .join('. ');
-    summary = summarySentences ? `${summarySentences}.` : `An independent investigative dispatch on ${scope} developments synthesized by KJIN Newsroom.`;
+    summary = summarySentences ? `${summarySentences}.` : `An independent investigative dispatch on ${scope} developments synthesized by KJCPL Newsroom.`;
   } else {
-    summary = `Key developments regarding ${headline} as reported by ${channelName} and verified through KJIN automated news surveillance.`;
+    summary = `Key developments regarding ${headline} as reported by ${channelName} and verified through KJCPL automated news surveillance.`;
   }
 
   // 6. Resolve target dateline based on detected scope and location
@@ -1058,7 +1058,7 @@ async function executeGeminiInvestigativeSynthesis(params: {
 }): Promise<{ headline: string; summary: string; bodyMarkdown: string } | null> {
   const { apiKey, headline, summary, cleanDesc, cleanTranscript, scope, channelName, targetDateline } = params;
 
-  const prompt = `You are a Senior Investigative Journalist and Bureau Chief for KJIN (Kashmir Jammu Independent News Network).
+  const prompt = `You are a Senior Investigative Journalist and Bureau Chief for KJCPL (KJCPL News Network).
 Synthesize an engaging, high-impact, reader-friendly, 100% original English news report based on the following verified broadcast material:
 
 HEADLINE CANDIDATE: ${headline}

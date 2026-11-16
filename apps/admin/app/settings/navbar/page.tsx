@@ -355,7 +355,7 @@ export default function NavbarSettingsPage() {
                   {form.brand.show_name && (
                     <div className="flex items-baseline space-x-1.5">
                       <span className="text-xl font-black font-masthead tracking-tight leading-none text-stone-900">
-                        {form.brand.name || 'KJIN'}
+                        {form.brand.name || 'KJCPL'}
                       </span>
                       {(form.brand.show_est_badge ?? true) && (
                         <span className="text-[9px] font-serif font-bold text-amber-800 tracking-widest uppercase bg-amber-100/70 px-1 py-0.5 rounded">
@@ -492,7 +492,7 @@ export default function NavbarSettingsPage() {
                       brand: { ...form.brand, name: e.target.value },
                     })
                   }
-                  placeholder="e.g. KCPL, KJIN"
+                  placeholder="e.g. KJCPL"
                   className="w-full px-4 py-2.5 rounded-xl border border-slate-800 bg-slate-950 text-white font-medium focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition"
                 />
                 <p className="text-[11px] text-slate-500">
@@ -732,7 +732,7 @@ export default function NavbarSettingsPage() {
                       {form.brand.show_name && (
                         <div className="flex items-baseline space-x-1">
                           <span className="text-lg font-black font-serif tracking-tight leading-none text-slate-900">
-                            {form.brand.name || 'KJIN'}
+                            {form.brand.name || 'KJCPL'}
                           </span>
                           {(form.brand.show_est_badge ?? true) && (
                             <span className="text-[7.5px] font-serif font-bold text-amber-800 tracking-widest uppercase bg-amber-100/70 px-1 py-0.2 rounded">
@@ -761,7 +761,7 @@ export default function NavbarSettingsPage() {
                   </div>
                   <div className="p-3 rounded-lg border border-slate-200 bg-[#f4efe8] text-slate-900 space-y-1">
                     <div className="text-lg font-black uppercase font-serif tracking-tight leading-tight text-slate-900">
-                      {form.brand.name || 'KJIN'}
+                      {form.brand.name || 'KJCPL'}
                     </div>
                     {form.brand.full_name && (
                       <div className="text-[10px] font-semibold text-slate-600 leading-tight">
@@ -769,7 +769,7 @@ export default function NavbarSettingsPage() {
                       </div>
                     )}
                     <div className="text-[9px] font-mono text-slate-500 pt-1 border-t border-slate-300">
-                      &copy; 2026 {form.brand.name || 'KJIN'}{form.brand.full_name ? ` (${form.brand.full_name})` : ''}. All rights reserved.
+                      &copy; 2026 {form.brand.name || 'KJCPL'}{form.brand.full_name ? ` (${form.brand.full_name})` : ''}. All rights reserved.
                     </div>
                   </div>
                   <p className="text-[10px] text-slate-400">
@@ -816,7 +816,7 @@ export default function NavbarSettingsPage() {
                       )}
                     </div>
                     <div className="text-xs font-black uppercase tracking-wider text-slate-800 font-serif">
-                      {form.brand.name || 'KJIN'}
+                      {form.brand.name || 'KJCPL'}
                     </div>
                     <div className="text-[8px] font-mono text-slate-400 uppercase tracking-widest mt-0.5 truncate max-w-[200px]">
                       {form.brand.loader_text || form.brand.tagline || 'Jammu & Kashmir Journal of Record'}
@@ -1033,7 +1033,7 @@ export default function NavbarSettingsPage() {
                 <span>🌐</span> Publication Language Policy
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                KJIN operates strictly and exclusively as an English-language publication network.
+                KJCPL operates strictly and exclusively as an English-language publication network.
               </p>
             </div>
 

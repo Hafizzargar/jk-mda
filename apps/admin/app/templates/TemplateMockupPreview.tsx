@@ -17,7 +17,7 @@ export function TemplateMockupPreview({ templateId }: TemplateMockupPreviewProps
                 THE J&K BROADSHEET &bull; EST. 2026
               </div>
               <div className="text-xs font-serif font-black tracking-wider uppercase text-slate-950">
-                KJIN JOURNAL OF RECORD
+                KJCPL JOURNAL OF RECORD
               </div>
             </div>
 
@@ -54,7 +54,7 @@ export function TemplateMockupPreview({ templateId }: TemplateMockupPreviewProps
           {/* Top Bar with Glow Pill */}
           <div className="flex items-center justify-between border-b border-slate-800/80 pb-1.5">
             <span className="text-[10px] font-black tracking-tight bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-              KJIN MAGAZINE
+              KJCPL MAGAZINE
             </span>
             <span className="px-1.5 py-0.5 rounded-full bg-blue-500/20 border border-blue-400/30 text-[8px] font-bold text-blue-300">
               ● LIVE FEED
@@ -91,7 +91,7 @@ export function TemplateMockupPreview({ templateId }: TemplateMockupPreviewProps
         <div className="w-full h-44 bg-[#fafaf9] text-stone-900 p-3.5 rounded-xl border border-stone-200 font-sans overflow-hidden select-none flex flex-col justify-between shadow-inner">
           <div className="flex items-center justify-between border-b border-stone-200 pb-1.5">
             <span className="text-[10px] font-serif font-black tracking-tight text-stone-900">
-              KJIN Focus
+              KJCPL Focus
             </span>
             <span className="text-[8px] text-stone-500 uppercase tracking-widest font-mono">
               4 MIN READ
@@ -312,7 +312,7 @@ export function TemplateMockupPreview({ templateId }: TemplateMockupPreviewProps
           <div className="flex items-center justify-between border-b border-[#14532d] pb-1 text-[7px] text-[#4ade80]">
             <span className="flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-[#22c55e] animate-ping"></span>
-              $ kjin-wire --live
+              $ kjcpl-wire --live
             </span>
             <span className="text-[#22c55e] font-bold">[ACTIVE]</span>
           </div>
@@ -320,7 +320,7 @@ export function TemplateMockupPreview({ templateId }: TemplateMockupPreviewProps
           {/* Terminal Console Output */}
           <div className="space-y-1 my-1">
             <div className="text-[8px] text-neutral-300">
-              <span className="text-[#22c55e] font-black">&gt;_</span> KJIN TELEMETRY DESK
+              <span className="text-[#22c55e] font-black">&gt;_</span> KJCPL TELEMETRY DESK
             </div>
             <div className="text-[7px] text-[#22c55e] bg-[#020402] border border-[#14532d] p-1 rounded">
               [STATUS: VERIFIED] 20 NODES ONLINE<br />

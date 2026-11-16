@@ -87,7 +87,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const systemPrompt = `You are the Editor-in-Chief and Head of the Editorial Board for Kashmir Jammu Independent News (KJIN).
+    const systemPrompt = `You are the Editor-in-Chief and Head of the Editorial Board for KJCPL (KJCPL News Network).
 You write for a historic broadsheet newspaper of record representing Jammu, Kashmir, Chenab Valley, and Ladakh.
 Your editorial stance is balanced, intellectually rigorous, respectful of regional diversity, constitutional principles, and deeply attuned to grassroots realities.
 
