@@ -22,209 +22,10 @@ export interface ExternalNewsItem {
 
 const FETCH_TIMEOUT_MS = 3500;
 
-// Curated seed fallbacks for zero-downtime broadsheet rendering (100% internal routes - never leak SEO to external outlets)
-export const FALLBACK_WAR_NEWS: ExternalNewsItem[] = [
-  {
-    id: 'war-ukraine-1',
-    title: 'Ukraine Front: Heavy Drone & Ballistic Salvo Strikes Power Infrastructure in Kyiv & Kharkiv; Air Defense Scrambled',
-    url: '/en/international',
-    publishedAt: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
-    source: 'KJCPL Defense Wire',
-    category: 'war',
-    badge: 'AIR STRIKES',
-    location: 'UKRAINE',
-    summary: 'Grid operators enact nationwide emergency rolling blackouts as regional defense arrays intercept multiple incoming cruise trajectories.',
-  },
-  {
-    id: 'war-gaza-2',
-    title: 'Gaza Crisis: UN Relief Agency Reports Critical Hospital Fuel Depletion as Ceasefire Negotiators Reconvene',
-    url: '/en/international',
-    publishedAt: new Date(Date.now() - 1000 * 60 * 42).toISOString(),
-    source: 'KJCPL Global Desk',
-    category: 'war',
-    badge: 'AID CORRIDOR',
-    location: 'GAZA',
-    summary: 'Humanitarian convoys face severe logistical blockades along southern passage points amid continued frontline civilian displacement.',
-  },
-  {
-    id: 'war-iran-3',
-    title: 'Iran & Red Sea: Anti-Ship Ballistic Missiles Target Commercial Cargo Lanes; Coalition Warships Intercept Drones Off Bab el-Mandeb',
-    url: '/en/international',
-    publishedAt: new Date(Date.now() - 1000 * 60 * 75).toISOString(),
-    source: 'KJCPL Maritime Desk',
-    category: 'war',
-    badge: 'NAVAL MISSILES',
-    location: 'IRAN / RED SEA',
-    summary: 'Global commercial shipping reroutes around Cape of Good Hope as regional air defense units engage low-flying unmanned attack craft.',
-  },
-  {
-    id: 'war-un-ai-treaty-4',
-    title: 'UN Disarmament Commission Convenes Geneva Talks on Lethal Autonomous Weapons Systems and Military AI Controls',
-    url: '/en/international',
-    publishedAt: new Date(Date.now() - 1000 * 60 * 110).toISOString(),
-    source: 'KJCPL Strategic Wire',
-    category: 'geopolitics',
-    badge: 'UN TALKS',
-    location: 'GENEVA / NEW YORK',
-    summary: 'Intergovernmental delegates convene at Palais des Nations in Geneva for multi-day deliberations on regulatory principles for autonomous military systems.',
-  },
-  {
-    id: 'war-lebanon-5',
-    title: 'Lebanon Border: UNIFIL Observers Report Sustained Artillery Duels and Drone Interceptions Across Southern Blue Line',
-    url: '/en/international',
-    publishedAt: new Date(Date.now() - 1000 * 60 * 155).toISOString(),
-    source: 'KJCPL Defense Radar',
-    category: 'war',
-    badge: 'BORDER RADAR',
-    location: 'LEBANON',
-    summary: 'Diplomatic missions intensify consultations to enforce buffer demilitarization and protect non-combatant residential perimeters.',
-  },
-  {
-    id: 'war-syria-6',
-    title: 'Syria Strikes: Precision Air Raids Target Strategic Weapons Depots Near Contested Eastern Transit Arteries',
-    url: '/en/international',
-    publishedAt: new Date(Date.now() - 1000 * 60 * 210).toISOString(),
-    source: 'KJCPL Middle East Wire',
-    category: 'war',
-    badge: 'PRECISION STRIKE',
-    location: 'SYRIA',
-    summary: 'Secondary detonations detected near logistics routes following pre-dawn surgical airstrikes on fortified underground bunkers.',
-  },
-];
-
-export const FALLBACK_TOP_STORIES_NEWS: ExternalNewsItem[] = [
-  {
-    id: 'top-isro-gaganyaan-1',
-    title: 'ISRO Validates Semi-Cryogenic Upper Stage Endurance for Gaganyaan Crewed Orbital Flight Module',
-    url: '/en/category/science',
-    publishedAt: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
-    source: 'KJCPL Science & Tech Desk',
-    category: 'science',
-    badge: 'AEROSPACE',
-    location: 'ISRO BENGALURU',
-    summary: 'Propulsion research complex certifies vacuum ignition parameters for upcoming uncrewed test flight.',
-  },
-  {
-    id: 'top-finance-outlay-2',
-    title: 'Union Finance Ministry Sanctions Special ₹420-Crore Capital Outlay for Trans-Himalayan Border Infrastructure',
-    url: '/en/category/economy',
-    publishedAt: new Date(Date.now() - 1000 * 60 * 55).toISOString(),
-    source: 'KJCPL New Delhi Bureau',
-    category: 'geopolitics',
-    badge: 'UNION ECONOMY',
-    location: 'NEW DELHI',
-    summary: 'Department of Expenditure releases initial tranche for high-altitude connectivity roads and helipads.',
-  },
-  {
-    id: 'top-chenab-rail-3',
-    title: 'Chenab Valley Railway Link Completes Final Sub-Zero Winter Trials Ahead of Commercial Commissioning',
-    url: '/en/transit/chenab-valley-railway-link-completes-sub-zero-winter-trials',
-    publishedAt: new Date(Date.now() - 1000 * 60 * 95).toISOString(),
-    source: 'KJCPL Chenab Bureau',
-    category: 'geopolitics',
-    badge: 'INFRASTRUCTURE',
-    location: 'CHENAB VALLEY',
-    summary: 'Northern Railway technical safety teams certify Sangaldan-Reasi viaduct section under freezing conditions.',
-  },
-  {
-    id: 'top-doda-health-4',
-    title: 'Doda Administration Deploys 4x4 Mobile Health Outreach Fleet to Highland Panchayats in Marmat and Kastigarh',
-    url: '/en/local/doda-winter-health-outreach-fleet-marmat-kastigarh-2026',
-    publishedAt: new Date(Date.now() - 1000 * 60 * 140).toISOString(),
-    source: 'KJCPL Doda Bureau',
-    category: 'geopolitics',
-    badge: 'PUBLIC HEALTH',
-    location: 'DODA',
-    summary: 'Specialized medical response teams reach snow-bound villages with critical diagnostic equipment and insulated medical supplies.',
-  },
-  {
-    id: 'top-kishtwar-saffron-5',
-    title: 'Kishtwar Saffron and Walnut Growers Launch Solar-Powered Controlled Drying and Packaging Hub in Paddar',
-    url: '/en/economy/kishtwar-saffron-cooperative-receives-gi-tagged-processing-hub-paddar-2026',
-    publishedAt: new Date(Date.now() - 1000 * 60 * 190).toISOString(),
-    source: 'KJCPL Kishtwar Bureau',
-    category: 'geopolitics',
-    badge: 'AGRI COMMERCE',
-    location: 'KISHTWAR',
-    summary: 'Highland agricultural cooperative completes modern drying center to retain crocin levels in Paddar saffron.',
-  },
-  {
-    id: 'top-ramban-nh44-6',
-    title: 'NHAI and Ramban Administration Commission Pre-Cast Rockfall Canopies Along Vulnerable Mehar-Cafeteria Stretch',
-    url: '/en/transit/ramban-nh44-rockfall-protection-mehar-cafeteria-slope-stabilization-2026',
-    publishedAt: new Date(Date.now() - 1000 * 60 * 240).toISOString(),
-    source: 'KJCPL Ramban Bureau',
-    category: 'geopolitics',
-    badge: 'TRANSIT CORRIDOR',
-    location: 'RAMBAN',
-    summary: 'Heavy-duty steel-reinforced rockfall shelters deployed to safeguard vehicular movement along Jammu-Srinagar National Highway.',
-  },
-  {
-    id: 'top-sind-trout-7',
-    title: 'Sind River Alpine Trout Hatchery Records 40% Increase in Fingerling Survivability Following Modernization',
-    url: '/en/category/environment',
-    publishedAt: new Date(Date.now() - 1000 * 60 * 300).toISOString(),
-    source: 'KJCPL Ganderbal Bureau',
-    category: 'discover',
-    badge: 'AQUACULTURE',
-    location: 'GANDERBAL',
-    summary: 'Fisheries department achieves breakthrough in rainbow and brown trout breeding with temperature-controlled oxygenation bays.',
-  },
-  {
-    id: 'top-handicrafts-gi-8',
-    title: 'Directorate of Handicrafts & Handloom Grants Direct Export Accreditation to 1,200 Certified Kani Shawl Artisans',
-    url: '/en/category/culture',
-    publishedAt: new Date(Date.now() - 1000 * 60 * 360).toISOString(),
-    source: 'KJCPL Srinagar Bureau',
-    category: 'discover',
-    badge: 'HERITAGE CRAFT',
-    location: 'SRINAGAR',
-    summary: 'GI-tagged QR authentication labels eliminate intermediary trading cuts for traditional Kashmiri master weavers.',
-  },
-];
-
-const FALLBACK_DISCOVER_NEWS: ExternalNewsItem[] = [
-  {
-    id: 'discover-1',
-    title: 'Himalayan Glaciological Sensors Detect Novel Sub-Glacial Meltwater Dynamics at 5,000m',
-    url: '/en/category/science',
-    publishedAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-    source: 'KJCPL Frontier Sciences',
-    category: 'discover',
-    badge: 'GLACIAL RADAR',
-    summary: 'Autonomous acoustic sensors reveal subterranean water channels influencing Siachen and Karakoram glacier velocities.',
-  },
-  {
-    id: 'discover-2',
-    title: 'Next-Generation Solid-State Sodium Batteries Achieve Sub-Zero Energy Density Breakthrough',
-    url: '/en/category/science',
-    publishedAt: new Date(Date.now() - 1000 * 60 * 150).toISOString(),
-    source: 'KJCPL Innovation Desk',
-    category: 'discover',
-    badge: 'CLEAN ENERGY',
-    summary: 'New electrolyte chemistry prevents dendritic degradation in high-altitude freezing temperatures down to -40°C.',
-  },
-  {
-    id: 'discover-3',
-    title: 'Hyperspectral Satellite Constellation Maps Soil Micro-Nutrient Depletion Across Mountain Basins',
-    url: '/en/category/science',
-    publishedAt: new Date(Date.now() - 1000 * 60 * 210).toISOString(),
-    source: 'KJCPL Earth Observation',
-    category: 'discover',
-    badge: 'EARTH OBSERVATION',
-    summary: 'Open-access satellite data yields 5-meter resolution agricultural soil indices for high-altitude saffron and apple valleys.',
-  },
-  {
-    id: 'discover-4',
-    title: 'Quantum Magnetometry Array Deployed for Deep Geothermal Fault Line Mapping',
-    url: '/en/category/science',
-    publishedAt: new Date(Date.now() - 1000 * 60 * 300).toISOString(),
-    source: 'KJCPL Clean Energy Wire',
-    category: 'discover',
-    badge: 'GEOTHERMAL TECH',
-    summary: 'Non-invasive sensors locate high-temperature subterranean reservoirs suitable for zero-emission district heating.',
-  },
-];
+// Dynamic external news items (strictly loaded from the database; zero static news in code)
+export const FALLBACK_WAR_NEWS: ExternalNewsItem[] = [];
+export const FALLBACK_TOP_STORIES_NEWS: ExternalNewsItem[] = [];
+export const FALLBACK_DISCOVER_NEWS: ExternalNewsItem[] = [];
 
 export function truncateTeaser(text: string, maxLength = 160): string {
   if (!text || text.length <= maxLength) return text;
@@ -586,24 +387,15 @@ export async function getWarAndConflictNews(limit = 6): Promise<ExternalNewsItem
         };
       });
 
-      if (dynamicItems.length >= limit) {
-        cachedWarNews = dynamicItems;
-        lastWarFetchTime = now;
-        return dynamicItems.slice(0, limit);
-      }
-
-      const needed = limit - dynamicItems.length;
-      const combined = [...dynamicItems, ...FALLBACK_WAR_NEWS.slice(0, needed)];
-      cachedWarNews = combined;
+      cachedWarNews = dynamicItems;
       lastWarFetchTime = now;
-      return combined;
+      return dynamicItems.slice(0, limit);
     }
   } catch {
-    // Proceed to fallback
+    // Proceed
   }
 
-  // 3. Authoritative international defense & UN dispatches
-  return FALLBACK_WAR_NEWS.slice(0, limit);
+  return [];
 }
 
 let cachedTickerNews: ExternalNewsItem[] | null = null;
@@ -653,7 +445,7 @@ export async function getTopStoriesTickerNews(limit = 8): Promise<ExternalNewsIt
     // Fallback to verified seed items
   }
 
-  return FALLBACK_TOP_STORIES_NEWS.slice(0, limit);
+  return [];
 }
 
 /**
@@ -694,23 +486,14 @@ export async function getDiscoverNews(limit = 4): Promise<ExternalNewsItem[]> {
         };
       });
 
-      if (dynamicItems.length >= limit) {
-        cachedDiscoverNews = dynamicItems;
-        lastDiscoverFetchTime = now;
-        return dynamicItems.slice(0, limit);
-      }
-
-      const needed = limit - dynamicItems.length;
-      const combined = [...dynamicItems, ...FALLBACK_DISCOVER_NEWS.slice(0, needed)];
-      cachedDiscoverNews = combined;
+      cachedDiscoverNews = dynamicItems;
       lastDiscoverFetchTime = now;
-      return combined;
+      return dynamicItems.slice(0, limit);
     }
   } catch {
-    // Proceed to fallback
+    // Proceed
   }
 
-  // 3. Fallback to curated internal dispatches (never external links)
-  return FALLBACK_DISCOVER_NEWS.slice(0, limit);
+  return [];
 }
 

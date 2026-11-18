@@ -12,7 +12,6 @@ import { getDistrictDisplayName } from '@/lib/taxonomy';
 import { DEFAULT_TELEMETRY_SETTINGS } from '@/lib/telemetry';
 import { formatArticleDate } from '@/lib/date';
 import { getOptimizedMediaUrl } from '@/lib/media';
-import { FALLBACK_BROADSHEET_ARTICLES } from '@/lib/seed-articles';
 import { TerritorialBureauTelemetrySlider } from '@/components/telemetry/TerritorialBureauTelemetrySlider';
 import { SafeEditorialImage } from '@/components/common/SafeEditorialImage';
 import { TodayCenterDispatches } from './TodayCenterDispatches';
@@ -174,7 +173,7 @@ export function ClassicEditorialTemplate({
   const getCoreId = (id?: string | null) => (id || '').replace(/^db-(conflict|discover)-/, '');
 
   // 1. Lead Story resolution (used to guarantee 0 duplication across other slots)
-  const leadArticle = heroArticle || recentArticles[0] || allArticles[0] || FALLBACK_BROADSHEET_ARTICLES[0];
+  const leadArticle = heroArticle || recentArticles[0] || allArticles[0] || null;
   const leadId = leadArticle?.id;
   if (leadId) claimedArticleIds.add(leadId);
 
@@ -243,12 +242,12 @@ export function ClassicEditorialTemplate({
   const autoHeadline = heroArticle?.title || recentArticles[0]?.title;
 
   const developingHeadline = isNational
-    ? (heroArticle?.title || 'Union Parliament advances legislative agenda on inter-state fiscal relations; Supreme Court constitution bench reviews landmark petitions.')
+    ? (heroArticle?.title || activeTelemetry.live_wire?.headline || recentArticles[0]?.title || '')
     : isInternational
-    ? (heroArticle?.title || 'United Nations General Assembly adopts multilateral resolution on regional conflict resolution and humanitarian security.')
+    ? (heroArticle?.title || activeTelemetry.live_wire?.headline || recentArticles[0]?.title || '')
     : isRegion
-    ? (heroArticle?.title || activeTelemetry.live_wire?.headline || `Grassroots field dispatches and regional coverage from ${scope?.title}.`)
-    : (curationHeadline || (isWireAuto && autoHeadline ? autoHeadline : (activeTelemetry.live_wire?.headline?.trim() || autoHeadline || 'Chenab Valley railway link completes final sub-zero winter trials; commercial timetable issued for Sangaldan-Reasi sector.')));
+    ? (heroArticle?.title || activeTelemetry.live_wire?.headline || (scope?.title ? `Grassroots field dispatches and regional coverage from ${scope.title}.` : ''))
+    : (curationHeadline || (isWireAuto && autoHeadline ? autoHeadline : (activeTelemetry.live_wire?.headline?.trim() || autoHeadline || '')));
 
   const developingBadge = isNational
     ? 'NATIONAL WIRE'
@@ -258,7 +257,7 @@ export function ClassicEditorialTemplate({
     ? `${(scope?.title || 'CORRIDOR').toUpperCase()} WIRE`
     : (activeTelemetry.live_wire?.badge?.trim() || 'DEVELOPING');
 
-  const showDevelopingRibbon = isNational || isInternational || isRegion || (curation?.developing_is_active ?? (activeTelemetry.live_wire?.is_active !== false));
+  const showDevelopingRibbon = Boolean(developingHeadline) && (isNational || isInternational || isRegion || (curation?.developing_is_active ?? (activeTelemetry.live_wire?.is_active !== false)));
 
   const wireColumnTitle = isNational
     ? 'All-India National Wire'
@@ -1055,32 +1054,16 @@ export function ClassicEditorialTemplate({
                       title: art.title,
                       href: getArtHref(art),
                     }))
-                  : [
-                      {
-                        id: 'disp-1',
-                        code: 'KJ',
-                        category: 'HYDRO-ENERGY',
-                        time: '4h ago',
-                        title: 'Kishtwar Ratle Hydro Project Installs First Rotor Shaft in Subterranean Powerhouse',
-                        href: `${langPrefix}/latest`,
-                      },
-                      {
-                        id: 'disp-2',
-                        code: 'LP',
-                        category: 'HIGH-ALTITUDE ECOLOGY',
-                        time: '7h ago',
-                        title: 'Wildlife Institute of India Completes Snow Leopard Census across Hemis & Zanskar',
-                        href: `${langPrefix}/latest`,
-                      },
-                      {
-                        id: 'disp-3',
-                        code: 'PP',
-                        category: 'TRANSIT ARCHITECTURE',
-                        time: '11h ago',
-                        title: 'Rajouri-Poonch National Highway Realignment Nears Milestone with 4 Major Tunnels',
-                        href: `${langPrefix}/latest`,
-                      },
-                    ]
+                  : (allArticles || []).slice(0, 3).map((art, idx) => ({
+                      id: art.id,
+                      code: idx === 0 ? 'KJ' : idx === 1 ? 'LP' : 'PP',
+                      category: art.district
+                        ? getDistrictDisplayName(art.district).toUpperCase()
+                        : art.category.toUpperCase(),
+                      time: formatTimeAgo(art.published_at),
+                      title: art.title,
+                      href: getArtHref(art),
+                    }))
                 ).map((dispatch) => (
                   <article key={dispatch.id} className="flex space-x-2 sm:space-x-3 py-1.5 sm:py-2 border-b border-stone-100 last:border-b-0">
                     <div className="w-10 h-10 sm:w-12 sm:h-12 rounded bg-stone-100 border border-stone-200 flex-shrink-0 flex items-center justify-center font-serif text-stone-400 font-bold text-xs sm:text-sm">
@@ -1531,7 +1514,7 @@ export function ClassicEditorialTemplate({
             };
 
             const renderLeadHeroGroup = (key = 'lead_hero_group') => {
-              const leadArticle = heroArticle || recentArticles[0] || allArticles[0] || FALLBACK_BROADSHEET_ARTICLES[0];
+              const leadArticle = heroArticle || recentArticles[0] || allArticles[0] || null;
               return (
               <div key={key} className="space-y-8 font-sans" data-purpose="lead-hero-group">
                 {leadArticle && (
