@@ -381,8 +381,8 @@ export function ClassicEditorialTemplate({
   const footerVariant: 'full' | 'compact' = isHomePage ? 'full' : 'compact';
 
   return (
-    <div className="bg-newsprint min-h-screen text-[#0F172A] selection:bg-amber-100 selection:text-amber-900 font-serif flex flex-col justify-between w-full max-w-full overflow-x-clip">
-      <div className="w-full max-w-full overflow-x-clip">
+    <div className="bg-newsprint min-h-screen text-[#0F172A] selection:bg-amber-100 selection:text-amber-900 font-serif flex flex-col justify-between w-full max-w-full">
+      <div className="w-full max-w-full">
         {/* Global Navigation Bar */}
         <SiteNavbar
           lang={lang}

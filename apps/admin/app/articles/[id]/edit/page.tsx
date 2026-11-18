@@ -34,7 +34,7 @@ type Article = {
   author_display_name?: string | null;
 };
 
-export default function EditArticlePage({ params }: { params?: Promise<{ id: string }> }) {
+export default function EditArticlePage() {
   const router = useRouter();
   const routeParams = useParams<{ id: string }>();
   const id = routeParams?.id || '';

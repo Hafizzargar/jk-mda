@@ -42,7 +42,7 @@ type ArticleVersion = {
   profiles?: { display_name: string } | null;
 };
 
-export default function ArticleViewPage({ params }: { params?: Promise<{ id: string }> }) {
+export default function ArticleViewPage() {
   const routeParams = useParams<{ id: string }>();
   const id = routeParams?.id || '';
   const router = useRouter();

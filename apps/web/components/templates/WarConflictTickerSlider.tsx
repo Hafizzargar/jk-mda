@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { FALLBACK_WAR_NEWS, type ExternalNewsItem } from '@/lib/external-news';
+import { FALLBACK_TOP_STORIES_NEWS, type ExternalNewsItem } from '@/lib/external-news';
 
 interface WarConflictTickerSliderProps {
   items?: ExternalNewsItem[];
@@ -20,7 +20,7 @@ export function WarConflictTickerSlider({
   langPrefix = '/en',
 }: WarConflictTickerSliderProps) {
   const [items, setItems] = useState<ExternalNewsItem[]>(
-    Array.isArray(initialItems) && initialItems.length > 0 ? initialItems : FALLBACK_WAR_NEWS
+    Array.isArray(initialItems) && initialItems.length > 0 ? initialItems : FALLBACK_TOP_STORIES_NEWS
   );
 
   useEffect(() => {
@@ -44,7 +44,7 @@ export function WarConflictTickerSlider({
     };
   }, [initialItems]);
 
-  const newsList = useMemo(() => (Array.isArray(items) && items.length > 0 ? items : FALLBACK_WAR_NEWS), [items]);
+  const newsList = useMemo(() => (Array.isArray(items) && items.length > 0 ? items : FALLBACK_TOP_STORIES_NEWS), [items]);
   const total = newsList.length;
 
   if (total === 0) return null;

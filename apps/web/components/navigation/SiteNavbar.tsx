@@ -235,9 +235,13 @@ export function SiteNavbar({
   };
 
   return (
-    <header className={`w-full max-w-full overflow-x-clip sticky top-0 z-50 transition-all duration-300 ${
-      isScrolled ? 'shadow-md bg-[#fbf9f4]/95 border-b border-stone-300/80 backdrop-blur-md' : `${navBg} ${navBorder} relative`
-    }`}>
+    <header
+      className={`w-full sticky top-0 z-50 transition-all duration-300 ${
+        isScrolled
+          ? 'shadow-md bg-[#fbf9f4]/95 border-b border-stone-300/80 backdrop-blur-md'
+          : `${navBg} ${navBorder}`
+      }`}
+    >
       {/* Top loader bar when user clicks Chenab, Jammu, or any regional bureau */}
       {loadingRegion && (
         <div className="absolute top-0 inset-x-0 h-[2.5px] bg-amber-100 z-50 overflow-hidden">

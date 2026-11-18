@@ -92,6 +92,97 @@ export const FALLBACK_WAR_NEWS: ExternalNewsItem[] = [
   },
 ];
 
+export const FALLBACK_TOP_STORIES_NEWS: ExternalNewsItem[] = [
+  {
+    id: 'top-isro-gaganyaan-1',
+    title: 'ISRO Validates Semi-Cryogenic Upper Stage Endurance for Gaganyaan Crewed Orbital Flight Module',
+    url: '/en/category/science',
+    publishedAt: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
+    source: 'KJCPL Science & Tech Desk',
+    category: 'science',
+    badge: 'AEROSPACE',
+    location: 'ISRO BENGALURU',
+    summary: 'Propulsion research complex certifies vacuum ignition parameters for upcoming uncrewed test flight.',
+  },
+  {
+    id: 'top-finance-outlay-2',
+    title: 'Union Finance Ministry Sanctions Special ₹420-Crore Capital Outlay for Trans-Himalayan Border Infrastructure',
+    url: '/en/category/economy',
+    publishedAt: new Date(Date.now() - 1000 * 60 * 55).toISOString(),
+    source: 'KJCPL New Delhi Bureau',
+    category: 'geopolitics',
+    badge: 'UNION ECONOMY',
+    location: 'NEW DELHI',
+    summary: 'Department of Expenditure releases initial tranche for high-altitude connectivity roads and helipads.',
+  },
+  {
+    id: 'top-chenab-rail-3',
+    title: 'Chenab Valley Railway Link Completes Final Sub-Zero Winter Trials Ahead of Commercial Commissioning',
+    url: '/en/transit/chenab-valley-railway-link-completes-sub-zero-winter-trials',
+    publishedAt: new Date(Date.now() - 1000 * 60 * 95).toISOString(),
+    source: 'KJCPL Chenab Bureau',
+    category: 'geopolitics',
+    badge: 'INFRASTRUCTURE',
+    location: 'CHENAB VALLEY',
+    summary: 'Northern Railway technical safety teams certify Sangaldan-Reasi viaduct section under freezing conditions.',
+  },
+  {
+    id: 'top-doda-health-4',
+    title: 'Doda Administration Deploys 4x4 Mobile Health Outreach Fleet to Highland Panchayats in Marmat and Kastigarh',
+    url: '/en/local/doda-winter-health-outreach-fleet-marmat-kastigarh-2026',
+    publishedAt: new Date(Date.now() - 1000 * 60 * 140).toISOString(),
+    source: 'KJCPL Doda Bureau',
+    category: 'geopolitics',
+    badge: 'PUBLIC HEALTH',
+    location: 'DODA',
+    summary: 'Specialized medical response teams reach snow-bound villages with critical diagnostic equipment and insulated medical supplies.',
+  },
+  {
+    id: 'top-kishtwar-saffron-5',
+    title: 'Kishtwar Saffron and Walnut Growers Launch Solar-Powered Controlled Drying and Packaging Hub in Paddar',
+    url: '/en/economy/kishtwar-saffron-cooperative-receives-gi-tagged-processing-hub-paddar-2026',
+    publishedAt: new Date(Date.now() - 1000 * 60 * 190).toISOString(),
+    source: 'KJCPL Kishtwar Bureau',
+    category: 'geopolitics',
+    badge: 'AGRI COMMERCE',
+    location: 'KISHTWAR',
+    summary: 'Highland agricultural cooperative completes modern drying center to retain crocin levels in Paddar saffron.',
+  },
+  {
+    id: 'top-ramban-nh44-6',
+    title: 'NHAI and Ramban Administration Commission Pre-Cast Rockfall Canopies Along Vulnerable Mehar-Cafeteria Stretch',
+    url: '/en/transit/ramban-nh44-rockfall-protection-mehar-cafeteria-slope-stabilization-2026',
+    publishedAt: new Date(Date.now() - 1000 * 60 * 240).toISOString(),
+    source: 'KJCPL Ramban Bureau',
+    category: 'geopolitics',
+    badge: 'TRANSIT CORRIDOR',
+    location: 'RAMBAN',
+    summary: 'Heavy-duty steel-reinforced rockfall shelters deployed to safeguard vehicular movement along Jammu-Srinagar National Highway.',
+  },
+  {
+    id: 'top-sind-trout-7',
+    title: 'Sind River Alpine Trout Hatchery Records 40% Increase in Fingerling Survivability Following Modernization',
+    url: '/en/category/environment',
+    publishedAt: new Date(Date.now() - 1000 * 60 * 300).toISOString(),
+    source: 'KJCPL Ganderbal Bureau',
+    category: 'discover',
+    badge: 'AQUACULTURE',
+    location: 'GANDERBAL',
+    summary: 'Fisheries department achieves breakthrough in rainbow and brown trout breeding with temperature-controlled oxygenation bays.',
+  },
+  {
+    id: 'top-handicrafts-gi-8',
+    title: 'Directorate of Handicrafts & Handloom Grants Direct Export Accreditation to 1,200 Certified Kani Shawl Artisans',
+    url: '/en/category/culture',
+    publishedAt: new Date(Date.now() - 1000 * 60 * 360).toISOString(),
+    source: 'KJCPL Srinagar Bureau',
+    category: 'discover',
+    badge: 'HERITAGE CRAFT',
+    location: 'SRINAGAR',
+    summary: 'GI-tagged QR authentication labels eliminate intermediary trading cuts for traditional Kashmiri master weavers.',
+  },
+];
+
 const FALLBACK_DISCOVER_NEWS: ExternalNewsItem[] = [
   {
     id: 'discover-1',
@@ -562,7 +653,7 @@ export async function getTopStoriesTickerNews(limit = 8): Promise<ExternalNewsIt
     // Fallback to verified seed items
   }
 
-  return FALLBACK_WAR_NEWS.slice(0, limit);
+  return FALLBACK_TOP_STORIES_NEWS.slice(0, limit);
 }
 
 /**

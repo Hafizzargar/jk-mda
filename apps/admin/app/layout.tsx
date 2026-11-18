@@ -4,6 +4,9 @@ import { headers } from 'next/headers';
 import { AdminShell } from '@/components/AdminShell';
 import { ScrollToTop } from '@/components/ScrollToTop';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export const metadata: Metadata = {
   title: 'KJCPL Admin',
   description: 'Editorial and administrative dashboard for KJCPL operations.',
