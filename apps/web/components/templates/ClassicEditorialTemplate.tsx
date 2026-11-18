@@ -1133,9 +1133,9 @@ export function ClassicEditorialTemplate({
                         <span className="text-stone-400 font-mono text-[8px] truncate max-w-[130px]">{item.source}</span>
                       </div>
                       <h4 className="text-xs font-serif font-bold text-stone-900 leading-snug hover:text-red-700 transition">
-                        <a href={item.url} target="_blank" rel="noopener noreferrer">
-                          {item.title} <span className="text-[9px] text-stone-400">↗</span>
-                        </a>
+                        <Link href={item.url && item.url.startsWith('/') ? item.url : `${langPrefix}/international`}>
+                          {item.title}
+                        </Link>
                       </h4>
                     </article>
                   ))}
@@ -1163,9 +1163,9 @@ export function ClassicEditorialTemplate({
                         <span className="text-slate-400">{item.source}</span>
                       </div>
                       <h4 className="font-serif text-xs font-bold text-slate-100 hover:text-cyan-300 leading-snug">
-                        <a href={item.url} target="_blank" rel="noopener noreferrer">
-                          {decodeHtmlEntities(item.title)} <span className="text-[9px] text-slate-400">↗</span>
-                        </a>
+                        <Link href={item.url && item.url.startsWith('/') ? item.url : `${langPrefix}/category/science`}>
+                          {decodeHtmlEntities(item.title)}
+                        </Link>
                       </h4>
                     </article>
                   ))}
@@ -1501,15 +1501,12 @@ export function ClassicEditorialTemplate({
                           <span className="text-slate-400 font-mono truncate max-w-[120px]">{item.source}</span>
                         </div>
                         <h4 className="text-xs font-serif font-bold text-[#0F172A] leading-snug hover:text-red-700 transition">
-                          <a
-                            href={item.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <Link
+                            href={item.url && item.url.startsWith('/') ? item.url : `${langPrefix}/international`}
                             className="hover:underline flex items-start gap-1"
                           >
                             <span>{item.title}</span>
-                            <span className="text-[10px] text-slate-400 inline-block font-sans">↗</span>
-                          </a>
+                          </Link>
                         </h4>
                         {item.summary && (
                           <p className="text-[10px] text-slate-500 line-clamp-2 mt-1 leading-relaxed">
@@ -1981,9 +1978,9 @@ export function ClassicEditorialTemplate({
                             <span className="text-slate-400">{item.source}</span>
                           </div>
                           <h4 className="font-serif text-xs font-bold text-slate-100 hover:text-cyan-300 leading-snug">
-                            <a href={item.url} target="_blank" rel="noopener noreferrer">
-                              {item.title} <span className="text-[9px] text-slate-400">↗</span>
-                            </a>
+                            <Link href={item.url && item.url.startsWith('/') ? item.url : `${langPrefix}/category/science`}>
+                              {item.title}
+                            </Link>
                           </h4>
                         </article>
                       ))}
@@ -2006,7 +2003,7 @@ export function ClassicEditorialTemplate({
                           Scientific Discoveries, Climate Models &amp; Clean Energy
                         </h3>
                       </div>
-                      <span className="text-[11px] text-slate-400 font-mono">Synced: Phys.org &amp; Global Labs</span>
+                      <span className="text-[11px] text-slate-400 font-mono">Synced: KJCPL Science Desk &amp; Frontier Labs</span>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -2021,9 +2018,9 @@ export function ClassicEditorialTemplate({
                               <span className="text-slate-400 truncate max-w-[100px]">{item.source}</span>
                             </div>
                             <h4 className="font-serif text-sm font-bold text-slate-100 hover:text-cyan-300 leading-snug transition mb-2">
-                              <a href={item.url} target="_blank" rel="noopener noreferrer">
-                                {item.title} <span className="text-[10px] text-slate-400">↗</span>
-                              </a>
+                              <Link href={item.url && item.url.startsWith('/') ? item.url : `${langPrefix}/category/science`}>
+                                {item.title}
+                              </Link>
                             </h4>
                             {item.summary && (
                               <p className="text-xs text-slate-300 line-clamp-3 leading-relaxed">{item.summary}</p>

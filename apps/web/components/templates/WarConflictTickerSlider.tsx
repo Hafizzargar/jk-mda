@@ -138,8 +138,19 @@ export function WarConflictTickerSlider({ items, langPrefix }: WarConflictTicker
           <div className="war-marquee-track flex items-center gap-6 sm:gap-8">
             {marqueeItems.map((item, idx) => {
               const zone = resolveZoneStyle(item);
-              const isExternal = Boolean(item.url && item.url.startsWith('http'));
-              const href = isExternal ? item.url : `${langPrefix}/international`;
+              const resolveInternalHref = (url?: string) => {
+                if (!url || url === '#' || url.startsWith('http://') || url.startsWith('https://')) {
+                  return `${langPrefix}/international`;
+                }
+                if (url.startsWith('/en/') || url.startsWith('/ur/') || url.startsWith('/hi/')) {
+                  return url;
+                }
+                if (url.startsWith('/')) {
+                  return `${langPrefix}${url}`;
+                }
+                return `${langPrefix}/international`;
+              };
+              const href = resolveInternalHref(item.url);
 
               return (
                 <div key={`${item.id}-${idx}`} className="flex items-center gap-2 shrink-0">
@@ -148,14 +159,12 @@ export function WarConflictTickerSlider({ items, langPrefix }: WarConflictTicker
                   >
                     {zone.label}
                   </span>
-                  <a
+                  <Link
                     href={href}
-                    target={isExternal ? '_blank' : undefined}
-                    rel={isExternal ? 'noopener noreferrer' : undefined}
                     className="text-[11.5px] sm:text-[12.5px] text-slate-100 hover:text-white hover:underline font-medium whitespace-nowrap transition-colors"
                   >
                     {item.title}
-                  </a>
+                  </Link>
                   <span className="text-[10px] text-slate-400 font-mono whitespace-nowrap">
                     &bull; {getTimeAgo(item.publishedAt)}
                   </span>

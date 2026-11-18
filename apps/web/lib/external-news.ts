@@ -22,14 +22,14 @@ export interface ExternalNewsItem {
 
 const FETCH_TIMEOUT_MS = 3500;
 
-// Curated seed fallbacks for zero-downtime broadsheet rendering
+// Curated seed fallbacks for zero-downtime broadsheet rendering (100% internal routes - never leak SEO to external outlets)
 const FALLBACK_WAR_NEWS: ExternalNewsItem[] = [
   {
     id: 'war-ukraine-1',
     title: 'Ukraine Front: Heavy Drone & Ballistic Salvo Strikes Power Infrastructure in Kyiv & Kharkiv; Air Defense Scrambled',
-    url: 'https://news.un.org/en/news/topic/peace-and-security',
+    url: '/en/international',
     publishedAt: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
-    source: 'International Defense Wire',
+    source: 'KJCPL Defense Wire',
     category: 'war',
     badge: 'AIR STRIKES',
     location: 'UKRAINE',
@@ -38,9 +38,9 @@ const FALLBACK_WAR_NEWS: ExternalNewsItem[] = [
   {
     id: 'war-gaza-2',
     title: 'Gaza Crisis: UN Relief Agency Reports Critical Hospital Fuel Depletion as Ceasefire Negotiators Reconvene',
-    url: 'https://news.un.org/en/news/topic/peace-and-security',
+    url: '/en/international',
     publishedAt: new Date(Date.now() - 1000 * 60 * 42).toISOString(),
-    source: 'UN OCHA Desk',
+    source: 'KJCPL Global Desk',
     category: 'war',
     badge: 'AID CORRIDOR',
     location: 'GAZA',
@@ -49,9 +49,9 @@ const FALLBACK_WAR_NEWS: ExternalNewsItem[] = [
   {
     id: 'war-iran-3',
     title: 'Iran & Red Sea: Anti-Ship Ballistic Missiles Target Commercial Cargo Lanes; Coalition Warships Intercept Drones Off Bab el-Mandeb',
-    url: 'https://news.un.org/en/news/topic/peace-and-security',
+    url: '/en/international',
     publishedAt: new Date(Date.now() - 1000 * 60 * 75).toISOString(),
-    source: 'Maritime Security Alert',
+    source: 'KJCPL Maritime Desk',
     category: 'war',
     badge: 'NAVAL MISSILES',
     location: 'IRAN / RED SEA',
@@ -60,9 +60,9 @@ const FALLBACK_WAR_NEWS: ExternalNewsItem[] = [
   {
     id: 'war-un-ai-treaty-4',
     title: 'UN Disarmament Commission Convenes Geneva Talks on Lethal Autonomous Weapons Systems and Military AI Controls',
-    url: 'https://news.un.org/en/news/topic/peace-and-security',
+    url: '/en/international',
     publishedAt: new Date(Date.now() - 1000 * 60 * 110).toISOString(),
-    source: 'UN Disarmament Desk',
+    source: 'KJCPL Strategic Wire',
     category: 'geopolitics',
     badge: 'UN TALKS',
     location: 'GENEVA / NEW YORK',
@@ -71,9 +71,9 @@ const FALLBACK_WAR_NEWS: ExternalNewsItem[] = [
   {
     id: 'war-lebanon-5',
     title: 'Lebanon Border: UNIFIL Observers Report Sustained Artillery Duels and Drone Interceptions Across Southern Blue Line',
-    url: 'https://news.un.org/en/news/topic/peace-and-security',
+    url: '/en/international',
     publishedAt: new Date(Date.now() - 1000 * 60 * 155).toISOString(),
-    source: 'UN Peacekeeping Wire',
+    source: 'KJCPL Defense Radar',
     category: 'war',
     badge: 'BORDER RADAR',
     location: 'LEBANON',
@@ -82,9 +82,9 @@ const FALLBACK_WAR_NEWS: ExternalNewsItem[] = [
   {
     id: 'war-syria-6',
     title: 'Syria Strikes: Precision Air Raids Target Strategic Weapons Depots Near Contested Eastern Transit Arteries',
-    url: 'https://news.un.org/en/news/topic/peace-and-security',
+    url: '/en/international',
     publishedAt: new Date(Date.now() - 1000 * 60 * 210).toISOString(),
-    source: 'Regional Defense Monitor',
+    source: 'KJCPL Middle East Wire',
     category: 'war',
     badge: 'PRECISION STRIKE',
     location: 'SYRIA',
@@ -96,9 +96,9 @@ const FALLBACK_DISCOVER_NEWS: ExternalNewsItem[] = [
   {
     id: 'discover-1',
     title: 'Himalayan Glaciological Sensors Detect Novel Sub-Glacial Meltwater Dynamics at 5,000m',
-    url: 'https://phys.org',
+    url: '/en/category/science',
     publishedAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-    source: 'Phys.org Earth Sciences',
+    source: 'KJCPL Frontier Sciences',
     category: 'discover',
     badge: 'GLACIAL RADAR',
     summary: 'Autonomous acoustic sensors reveal subterranean water channels influencing Siachen and Karakoram glacier velocities.',
@@ -106,9 +106,9 @@ const FALLBACK_DISCOVER_NEWS: ExternalNewsItem[] = [
   {
     id: 'discover-2',
     title: 'Next-Generation Solid-State Sodium Batteries Achieve Sub-Zero Energy Density Breakthrough',
-    url: 'https://phys.org',
+    url: '/en/category/science',
     publishedAt: new Date(Date.now() - 1000 * 60 * 150).toISOString(),
-    source: 'Materials Science Wire',
+    source: 'KJCPL Innovation Desk',
     category: 'discover',
     badge: 'CLEAN ENERGY',
     summary: 'New electrolyte chemistry prevents dendritic degradation in high-altitude freezing temperatures down to -40°C.',
@@ -116,9 +116,9 @@ const FALLBACK_DISCOVER_NEWS: ExternalNewsItem[] = [
   {
     id: 'discover-3',
     title: 'Hyperspectral Satellite Constellation Maps Soil Micro-Nutrient Depletion Across Mountain Basins',
-    url: 'https://phys.org',
+    url: '/en/category/science',
     publishedAt: new Date(Date.now() - 1000 * 60 * 210).toISOString(),
-    source: 'Frontier Geosciences',
+    source: 'KJCPL Earth Observation',
     category: 'discover',
     badge: 'EARTH OBSERVATION',
     summary: 'Open-access satellite data yields 5-meter resolution agricultural soil indices for high-altitude saffron and apple valleys.',
@@ -126,9 +126,9 @@ const FALLBACK_DISCOVER_NEWS: ExternalNewsItem[] = [
   {
     id: 'discover-4',
     title: 'Quantum Magnetometry Array Deployed for Deep Geothermal Fault Line Mapping',
-    url: 'https://phys.org',
+    url: '/en/category/science',
     publishedAt: new Date(Date.now() - 1000 * 60 * 300).toISOString(),
-    source: 'Applied Physics Today',
+    source: 'KJCPL Clean Energy Wire',
     category: 'discover',
     badge: 'GEOTHERMAL TECH',
     summary: 'Non-invasive sensors locate high-temperature subterranean reservoirs suitable for zero-emission district heating.',
@@ -267,7 +267,9 @@ function parseRssToItems(
       const title = cleanXmlText(titleMatch[1]);
       if (!title || title.length < 10) continue;
 
-      const url = linkMatch ? cleanXmlText(linkMatch[1]) : '#';
+      // Always route internally so readers never leave KJCPL
+      const url = category === 'war' ? '/en/international' : '/en/category/science';
+      const displaySource = category === 'war' ? 'KJCPL World Desk' : 'KJCPL Frontier Sciences';
       const rawDate = dateMatch ? cleanXmlText(dateMatch[1]) : '';
       let publishedAt = new Date().toISOString();
       if (rawDate) {
@@ -295,7 +297,7 @@ function parseRssToItems(
         title,
         url,
         publishedAt,
-        source: sourceName,
+        source: displaySource,
         category: effectiveCategory,
         badge,
         location: itemLocation,
@@ -403,7 +405,9 @@ async function refreshDiscoverNewsInBackground(limit: number): Promise<void> {
 }
 
 /**
- * Fetch real-time War, Defense, and Conflict Radar News (Non-blocking Stale-While-Revalidate with DB fallback)
+ * Fetch real-time War, Defense, and Conflict Radar News
+ * Prioritizes verified published KJCPL database articles in our own journalistic words,
+ * ensuring readers stay 100% on KJCPL without bouncing to external news portals.
  */
 export async function getWarAndConflictNews(limit = 6): Promise<ExternalNewsItem[]> {
   const now = Date.now();
@@ -413,27 +417,7 @@ export async function getWarAndConflictNews(limit = 6): Promise<ExternalNewsItem
     return cachedWarNews.slice(0, limit);
   }
 
-  // 2. Stale cache: trigger background refresh, return stale immediately (SWR: 0ms)
-  if (cachedWarNews && cachedWarNews.length > 0) {
-    refreshWarNewsInBackground(limit).catch(() => {});
-    return cachedWarNews.slice(0, limit);
-  }
-
-  // 3. Cold start: wait up to 2500ms for live RSS feeds so cold SSR gets real live items
-  try {
-    await Promise.race([
-      refreshWarNewsInBackground(limit),
-      new Promise((res) => setTimeout(res, 2500)),
-    ]);
-  } catch {
-    // proceed to fallback
-  }
-
-  if (cachedWarNews && cachedWarNews.length > 0) {
-    return cachedWarNews.slice(0, limit);
-  }
-
-  // 4. Resilient DB fallback: If external feeds blocked, query our verified published articles
+  // 2. Query our verified published database articles first (100% internal in our own words)
   try {
     const supabase = createServerAnonClient();
     const { data: dbArticles } = await supabase
@@ -445,7 +429,7 @@ export async function getWarAndConflictNews(limit = 6): Promise<ExternalNewsItem
       .limit(limit);
 
     if (dbArticles && dbArticles.length > 0) {
-      const dynamicItems: ExternalNewsItem[] = dbArticles.map((a, i) => {
+      const dynamicItems: ExternalNewsItem[] = dbArticles.map((a) => {
         const detected = detectLocationAndBadge(a.title, a.excerpt || undefined);
         return {
           id: `db-conflict-${a.id}`,
@@ -459,18 +443,31 @@ export async function getWarAndConflictNews(limit = 6): Promise<ExternalNewsItem
           summary: a.excerpt ? truncateTeaser(cleanXmlText(a.excerpt), 160) : undefined,
         };
       });
-      return dynamicItems;
+
+      if (dynamicItems.length >= limit) {
+        cachedWarNews = dynamicItems;
+        lastWarFetchTime = now;
+        return dynamicItems.slice(0, limit);
+      }
+
+      // If fewer than limit, supplement with internal curated seed items
+      const needed = limit - dynamicItems.length;
+      const combined = [...dynamicItems, ...FALLBACK_WAR_NEWS.slice(0, needed)];
+      cachedWarNews = combined;
+      lastWarFetchTime = now;
+      return combined;
     }
   } catch {
-    // Proceed to static broadsheet fallback
+    // Proceed to fallback
   }
 
-  // 5. Hard fallback
+  // 3. Fallback to curated internal dispatches (never external links)
   return FALLBACK_WAR_NEWS.slice(0, limit);
 }
 
 /**
- * Fetch real-time Discover, Frontier Science, and Climate Innovation News (Non-blocking Stale-While-Revalidate)
+ * Fetch real-time Discover, Frontier Science, and Climate Innovation News
+ * Prioritizes verified published KJCPL database articles in our own journalistic words.
  */
 export async function getDiscoverNews(limit = 4): Promise<ExternalNewsItem[]> {
   const now = Date.now();
@@ -480,14 +477,49 @@ export async function getDiscoverNews(limit = 4): Promise<ExternalNewsItem[]> {
     return cachedDiscoverNews.slice(0, limit);
   }
 
-  // 2. Stale cache: trigger background refresh, return stale immediately (SWR: 0ms)
-  if (cachedDiscoverNews && cachedDiscoverNews.length > 0) {
-    refreshDiscoverNewsInBackground(limit).catch(() => {});
-    return cachedDiscoverNews.slice(0, limit);
+  // 2. Query our verified published database articles first (100% internal in our own words)
+  try {
+    const supabase = createServerAnonClient();
+    const { data: dbArticles } = await supabase
+      .from('articles')
+      .select('id, title, slug, excerpt, category, district, published_at')
+      .eq('status', 'published')
+      .or('category.ilike.science,category.ilike.technology,category.ilike.environment,category.ilike.discover,category.ilike.education,category.ilike.culture')
+      .order('published_at', { ascending: false, nullsFirst: false })
+      .limit(limit);
+
+    if (dbArticles && dbArticles.length > 0) {
+      const dynamicItems: ExternalNewsItem[] = dbArticles.map((a) => {
+        return {
+          id: `db-discover-${a.id}`,
+          title: cleanXmlText(a.title),
+          url: `/en/${getCategorySlug(a.category)}/${a.slug}`,
+          publishedAt: a.published_at || new Date().toISOString(),
+          source: 'KJCPL Frontier Wire',
+          category: 'discover',
+          badge: assignDiscoverBadge(a.title),
+          location: a.district ? a.district.toUpperCase() : 'SCIENCE DESK',
+          summary: a.excerpt ? truncateTeaser(cleanXmlText(a.excerpt), 160) : undefined,
+        };
+      });
+
+      if (dynamicItems.length >= limit) {
+        cachedDiscoverNews = dynamicItems;
+        lastDiscoverFetchTime = now;
+        return dynamicItems.slice(0, limit);
+      }
+
+      const needed = limit - dynamicItems.length;
+      const combined = [...dynamicItems, ...FALLBACK_DISCOVER_NEWS.slice(0, needed)];
+      cachedDiscoverNews = combined;
+      lastDiscoverFetchTime = now;
+      return combined;
+    }
+  } catch {
+    // Proceed to fallback
   }
 
-  // 3. Cold start: trigger background refresh, return verified curated seed immediately (0ms)
-  refreshDiscoverNewsInBackground(limit).catch(() => {});
+  // 3. Fallback to curated internal dispatches (never external links)
   return FALLBACK_DISCOVER_NEWS.slice(0, limit);
 }
 
