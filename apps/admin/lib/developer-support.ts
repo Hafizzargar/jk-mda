@@ -16,7 +16,7 @@ export const DEFAULT_DEVELOPER_SUPPORT: DeveloperSupportSettings = {
   developer_name: 'KJCPL Development Team',
   developer_description: 'Website design, development, technology infrastructure and maintenance.',
   developer_website: 'https://kjcpl.site',
-  support_email: 'dev@kjcpl.site',
+  support_email: 'h26412301@gmail.com',
   support_phone: '+91 6005950197',
   show_mail_us: true,
   show_call_us: true,

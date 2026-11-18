@@ -80,7 +80,7 @@ export async function authenticateEmployeeRequest(
         });
 
         const matchingKeys = Object.keys(cookieParts).filter(
-          (k) => (k.startsWith('sb-') || k.includes('supabase')) && k.includes('auth-token')
+          (k) => (k.startsWith('sb-') || k.includes('supabase')) && k.includes('auth-token') && !k.includes('code-verifier')
         );
 
         let authCookieVal = '';

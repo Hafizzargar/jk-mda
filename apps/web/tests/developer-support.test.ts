@@ -16,7 +16,7 @@ test('P1: Developer & Technical Support — Defaults & Structure', () => {
   assert.equal(DEFAULT_DEVELOPER_SUPPORT.show_developer_section, true);
   assert.equal(DEFAULT_DEVELOPER_SUPPORT.developer_name, 'KJCPL Development Team');
   assert.equal(DEFAULT_DEVELOPER_SUPPORT.developer_website, 'https://kjcpl.site');
-  assert.equal(DEFAULT_DEVELOPER_SUPPORT.support_email, 'dev@kjcpl.site');
+  assert.equal(DEFAULT_DEVELOPER_SUPPORT.support_email, 'h26412301@gmail.com');
   assert.equal(DEFAULT_DEVELOPER_SUPPORT.show_mail_us, true);
   assert.equal(DEFAULT_DEVELOPER_SUPPORT.show_call_us, true);
   assert.equal(DEFAULT_DEVELOPER_SUPPORT.footer_position, 'bottom');

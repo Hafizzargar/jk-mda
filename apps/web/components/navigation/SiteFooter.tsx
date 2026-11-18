@@ -61,11 +61,11 @@ export function SiteFooter({
   const cardBg = isDark ? 'bg-slate-900/60' : 'bg-white/80';
   const cardBorder = isDark ? 'border-slate-800' : 'border-slate-200';
 
-  // Helper to ensure professional institutional newsdesk emails are presented
-  const editorialEmail = contact.email_editorial && !contact.email_editorial.includes('@gmail') ? contact.email_editorial : 'news@kjcpl.site';
-  const careersEmail = contact.email_careers && !contact.email_careers.includes('@gmail') ? contact.email_careers : 'careers@kjcpl.site';
-  const pressEmail = contact.email_press && !contact.email_press.includes('@gmail') ? contact.email_press : 'press@kjcpl.site';
-  const grievanceEmail = contact.email_grievance && !contact.email_grievance.includes('@gmail') ? contact.email_grievance : 'grievance@kjcpl.site';
+  // Dedicated contact email resolution (respects user configured contact email)
+  const editorialEmail = contact.email_editorial?.trim() || 'h26412301@gmail.com';
+  const careersEmail = contact.email_careers?.trim() || 'h26412301@gmail.com';
+  const pressEmail = contact.email_press?.trim() || 'h26412301@gmail.com';
+  const grievanceEmail = contact.email_grievance?.trim() || 'h26412301@gmail.com';
   const grievanceOfficer = contact.grievance_officer_name && !contact.grievance_officer_name.toLowerCase().includes('hafiz')
     ? contact.grievance_officer_name
     : 'Adv. Bashir Ahmad (Public Grievance Redressal Officer)';
