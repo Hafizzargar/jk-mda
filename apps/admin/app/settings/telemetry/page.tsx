@@ -96,11 +96,13 @@ export default function TelemetrySettingsPage() {
   const getAuthToken = async (): Promise<string | undefined> => {
     try {
       const { data: sessionData } = await supabase.auth.getSession();
-      if (sessionData?.session?.access_token) {
-        return sessionData.session.access_token;
+      const session = sessionData?.session;
+      const nowSec = Math.floor(Date.now() / 1000);
+      if (session?.access_token && session.expires_at && session.expires_at > nowSec + 60) {
+        return session.access_token;
       }
       const { data: refreshed } = await supabase.auth.refreshSession();
-      return refreshed?.session?.access_token;
+      return refreshed?.session?.access_token || session?.access_token;
     } catch {
       return undefined;
     }
@@ -110,12 +112,8 @@ export default function TelemetrySettingsPage() {
     try {
       setIsGeneratingAI(true);
       let token = await getAuthToken();
-      if (!token) {
-        const { data: refreshed } = await supabase.auth.refreshSession();
-        token = refreshed?.session?.access_token;
-      }
 
-      const res = await fetch('/api/settings/telemetry/ai-generate', {
+      let res = await fetch('/api/settings/telemetry/ai-generate', {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -124,12 +122,33 @@ export default function TelemetrySettingsPage() {
         },
       });
 
+      if (res.status === 401) {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        if (refreshed?.session?.access_token) {
+          token = refreshed.session.access_token;
+          res = await fetch('/api/settings/telemetry/ai-generate', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+          });
+        }
+      }
+
       let data: any = null;
       const text = await res.text();
       try {
         data = JSON.parse(text);
       } catch {
-        if (!res.ok) throw new Error(text || `Server returned ${res.status}`);
+        if (!res.ok) {
+          throw new Error(
+            res.status === 401
+              ? 'Staff session expired. Please sign in again.'
+              : `Server returned ${res.status}`
+          );
+        }
       }
 
       if (!res.ok) {
@@ -169,12 +188,8 @@ export default function TelemetrySettingsPage() {
       setSuccessMsg(null);
 
       let token = await getAuthToken();
-      if (!token) {
-        const { data: refreshed } = await supabase.auth.refreshSession();
-        token = refreshed?.session?.access_token;
-      }
 
-      const res = await fetch('/api/settings/telemetry/auto-sync', {
+      let res = await fetch('/api/settings/telemetry/auto-sync', {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -183,12 +198,33 @@ export default function TelemetrySettingsPage() {
         },
       });
 
+      if (res.status === 401) {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        if (refreshed?.session?.access_token) {
+          token = refreshed.session.access_token;
+          res = await fetch('/api/settings/telemetry/auto-sync', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+          });
+        }
+      }
+
       let data: any = null;
       const text = await res.text();
       try {
         data = JSON.parse(text);
       } catch {
-        if (!res.ok) throw new Error(text || `Server returned ${res.status} ${res.statusText}`);
+        if (!res.ok) {
+          throw new Error(
+            res.status === 401
+              ? 'Staff session expired. Please sign in again.'
+              : `Server returned ${res.status} (${res.statusText || 'Error'})`
+          );
+        }
       }
 
       if (!res.ok) {
@@ -249,12 +285,8 @@ export default function TelemetrySettingsPage() {
       setSuccessMsg(null);
 
       let token = await getAuthToken();
-      if (!token) {
-        const { data: refreshed } = await supabase.auth.refreshSession();
-        token = refreshed?.session?.access_token;
-      }
 
-      const res = await fetch('/api/settings/telemetry', {
+      let res = await fetch('/api/settings/telemetry', {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -264,12 +296,34 @@ export default function TelemetrySettingsPage() {
         body: JSON.stringify(telemetry),
       });
 
+      if (res.status === 401) {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        if (refreshed?.session?.access_token) {
+          token = refreshed.session.access_token;
+          res = await fetch('/api/settings/telemetry', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify(telemetry),
+          });
+        }
+      }
+
       let data: any = null;
       const text = await res.text();
       try {
         data = JSON.parse(text);
       } catch {
-        if (!res.ok) throw new Error(text || `Server returned ${res.status} ${res.statusText}`);
+        if (!res.ok) {
+          throw new Error(
+            res.status === 401
+              ? 'Staff session expired. Please sign in again.'
+              : `Server returned ${res.status} (${res.statusText || 'Error'})`
+          );
+        }
       }
 
       if (!res.ok) {

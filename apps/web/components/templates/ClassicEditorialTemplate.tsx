@@ -380,8 +380,8 @@ export function ClassicEditorialTemplate({
   const footerVariant: 'full' | 'compact' = isHomePage ? 'full' : 'compact';
 
   return (
-    <div className="bg-newsprint min-h-screen text-[#0F172A] selection:bg-amber-100 selection:text-amber-900 font-serif flex flex-col justify-between w-full max-w-full overflow-x-hidden">
-      <div className="w-full max-w-full overflow-x-hidden">
+    <div className="bg-newsprint min-h-screen text-[#0F172A] selection:bg-amber-100 selection:text-amber-900 font-serif flex flex-col justify-between w-full max-w-full overflow-x-clip">
+      <div className="w-full max-w-full overflow-x-clip">
         {/* Global Navigation Bar */}
         <SiteNavbar
           lang={lang}
@@ -400,7 +400,7 @@ export function ClassicEditorialTemplate({
         {/* ========================================================================= */}
         {/* 1. MOBILE-ONLY VIEW (md:hidden): Pixel-Matched Stream from User HTML Mockup */}
         {/* ========================================================================= */}
-        <div className="block md:hidden pb-6 w-full max-w-full overflow-x-hidden">
+        <div className="block md:hidden pb-6 w-full max-w-full overflow-x-clip">
           <main className="px-2.5 sm:px-3.5 py-2.5 sm:py-3 space-y-3 sm:space-y-4 w-full max-w-md mx-auto" data-purpose="newspaper-stream">
             {isPageTwoOrHigher ? (
               <>
@@ -2415,6 +2415,7 @@ export function ClassicEditorialTemplate({
           theme={theme}
           contactSettings={contactSettings}
           brandSettings={navbarSettings?.brand}
+          developerSettings={contactSettings?.developer_support}
           variant={footerVariant}
         />
       </div>

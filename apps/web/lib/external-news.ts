@@ -229,8 +229,20 @@ export function detectLocationAndBadge(title: string, summary?: string): {
   }
 
   // Domestic & Sectoral News (Must NOT be tagged with WAR RADAR or CRISIS labels)
-  if (text.includes('isro') || text.includes('space') || text.includes('satellite') || text.includes('rocket') || text.includes('payload')) {
+  if (text.includes('isro') || text.includes('gaganyaan') || text.includes('space') || text.includes('satellite') || text.includes('rocket') || text.includes('cryogenic') || text.includes('payload')) {
     return { location: 'TECH & SPACE', badge: 'AEROSPACE', category: 'geopolitics' };
+  }
+  if (text.includes('finance') || text.includes('ministry') || text.includes('outlay') || text.includes('budget') || text.includes('crore') || text.includes('capital outlay') || text.includes('sanction')) {
+    return { location: 'UNION ECONOMY', badge: 'FISCAL POLICY', category: 'geopolitics' };
+  }
+  if (text.includes('court') || text.includes('judiciary') || text.includes('supreme court') || text.includes('high court') || text.includes('verdict') || text.includes('bench')) {
+    return { location: 'JUDICIARY', badge: 'LEGAL RECORD', category: 'geopolitics' };
+  }
+  if (text.includes('dysp') || text.includes('police') || text.includes('demise') || text.includes('passes away') || text.includes('heart attack') || text.includes('constable') || text.includes('dar')) {
+    return { location: 'NEWSROOM DESK', badge: 'CIVIL DISPATCH', category: 'geopolitics' };
+  }
+  if (text.includes('raabta') || text.includes('jal shakti') || text.includes('pipeline') || text.includes('water supply') || text.includes('civic')) {
+    return { location: 'CIVIC INITIATIVE', badge: 'GROUND REPORT', category: 'geopolitics' };
   }
   if (text.includes('imo') || text.includes('maritime') || text.includes('shipping') || text.includes('cargo') || text.includes('vessel')) {
     return { location: 'MARITIME & TRADE', badge: 'SHIPPING WIRE', category: 'geopolitics' };
@@ -262,10 +274,10 @@ function assignConflictBadge(title: string): string {
   if (lower.includes('ceasefire') || lower.includes('truce')) return 'CEASEFIRE';
   if (lower.includes('un ') || lower.includes('security council') || lower.includes('guterres')) return 'MULTILATERAL';
   if (lower.includes('defense') || lower.includes('missile') || lower.includes('drone') || lower.includes('strike')) return 'DEFENSE STRIKE';
-  if (lower.includes('air') || lower.includes('aviation')) return 'AIR DEFENSE';
+  if (lower.includes('air strike') || lower.includes('aviation strike')) return 'AIR DEFENSE';
   if (lower.includes('aid') || lower.includes('famine') || lower.includes('relief') || lower.includes('hospital')) return 'HUMANITARIAN';
   if (lower.includes('treaty') || lower.includes('talks') || lower.includes('diploma') || lower.includes('summit')) return 'DIPLOMACY';
-  if (lower.includes('trade') || lower.includes('economy') || lower.includes('market') || lower.includes('budget')) return 'COMMERCE';
+  if (lower.includes('trade') || lower.includes('economy') || lower.includes('market') || lower.includes('budget') || lower.includes('finance')) return 'COMMERCE';
   return 'TOP STORY';
 }
 

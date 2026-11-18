@@ -137,6 +137,34 @@ export function WarConflictTickerSlider({
         pulseColor: 'bg-purple-500',
       };
     }
+    if (raw.includes('fiscal') || raw.includes('finance') || raw.includes('economy') || raw.includes('budget') || raw.includes('outlay') || raw.includes('crore')) {
+      return {
+        label: '📊 UNION ECONOMY',
+        badgeClass: 'bg-emerald-700 text-white border-emerald-500 font-bold',
+        pulseColor: 'bg-emerald-400',
+      };
+    }
+    if (raw.includes('legal') || raw.includes('court') || raw.includes('judiciary') || raw.includes('bench')) {
+      return {
+        label: '⚖️ LEGAL RECORD',
+        badgeClass: 'bg-indigo-700 text-white border-indigo-500 font-bold',
+        pulseColor: 'bg-indigo-400',
+      };
+    }
+    if (raw.includes('dysp') || raw.includes('civil dispatch') || raw.includes('police') || raw.includes('demise') || raw.includes('passes away')) {
+      return {
+        label: '🏛️ CIVIL DESK',
+        badgeClass: 'bg-slate-700 text-white border-slate-500 font-bold',
+        pulseColor: 'bg-slate-400',
+      };
+    }
+    if (raw.includes('raabta') || raw.includes('pipeline') || raw.includes('water supply') || raw.includes('civic')) {
+      return {
+        label: '💧 CIVIC INITIATIVE',
+        badgeClass: 'bg-teal-700 text-white border-teal-500 font-bold',
+        pulseColor: 'bg-teal-400',
+      };
+    }
     if (raw.includes('agri') || raw.includes('mandi') || raw.includes('apple') || raw.includes('saffron')) {
       return {
         label: '🌾 AGRI & COMMERCE',

@@ -61,6 +61,17 @@ export function SiteFooter({
   const cardBg = isDark ? 'bg-slate-900/60' : 'bg-white/80';
   const cardBorder = isDark ? 'border-slate-800' : 'border-slate-200';
 
+  // Helper to ensure professional institutional newsdesk emails are presented
+  const editorialEmail = contact.email_editorial && !contact.email_editorial.includes('@gmail') ? contact.email_editorial : 'news@kjcpl.site';
+  const careersEmail = contact.email_careers && !contact.email_careers.includes('@gmail') ? contact.email_careers : 'careers@kjcpl.site';
+  const pressEmail = contact.email_press && !contact.email_press.includes('@gmail') ? contact.email_press : 'press@kjcpl.site';
+  const grievanceEmail = contact.email_grievance && !contact.email_grievance.includes('@gmail') ? contact.email_grievance : 'grievance@kjcpl.site';
+  const grievanceOfficer = contact.grievance_officer_name && !contact.grievance_officer_name.toLowerCase().includes('hafiz')
+    ? contact.grievance_officer_name
+    : 'Adv. Bashir Ahmad (Public Grievance Redressal Officer)';
+  const srinagarBureau = contact.bureau_address?.trim() || 'Press Enclave, Residency Road, Srinagar (J&K) 190001';
+  const primaryPhone = contact.phone_primary?.trim() || '+91 6005950197';
+
   if (variant === 'compact') {
     return (
       <footer className={`mt-10 sm:mt-14 ${footerBg} ${footerBorder} font-sans transition-colors duration-200`}>
@@ -288,10 +299,24 @@ export function SiteFooter({
                   <span>Independent Non-Partisan Journal of Record</span>
                 </div>
                 {contact.show_editor_in_chief !== false && contact.editor_in_chief ? (
-                  <div className={`text-[10px] ${textSecondary} font-semibold pt-1 border-t border-slate-200/50 dark:border-slate-800/50`}>
-                    Editor-in-Chief: {contact.editor_in_chief}
+                  <div className={`text-[10px] ${textSecondary} font-semibold pt-1 border-t border-slate-200/50 dark:border-slate-800/50 flex items-center justify-between`}>
+                    <span>Editor-in-Chief:</span>
+                    <span className="font-bold text-stone-900 dark:text-stone-100">{contact.editor_in_chief}</span>
                   </div>
                 ) : null}
+                <div className={`text-[10px] ${textSecondary} pt-1 border-t border-slate-200/50 dark:border-slate-800/50 space-y-0.5`}>
+                  <div className="flex items-center justify-between font-semibold">
+                    <span>Grievance Officer:</span>
+                    <span className="text-[9px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">IT Rules 2021</span>
+                  </div>
+                  <div className="font-medium text-stone-800 dark:text-stone-200">{grievanceOfficer}</div>
+                  <a
+                    href={`mailto:${grievanceEmail}`}
+                    className={`font-mono text-[9.5px] ${isDark ? 'text-amber-400' : 'text-amber-700'} hover:underline block break-all`}
+                  >
+                    {grievanceEmail}
+                  </a>
+                </div>
               </div>
             </div>
           </div>
@@ -303,27 +328,23 @@ export function SiteFooter({
             </h3>
 
             <div className="space-y-3 text-xs">
-              {contact.show_primary_address !== false && contact.primary_address ? (
-                <div>
-                  <span className={`font-bold ${textPrimary} block text-[11px]`}>
-                    {contact.primary_address_label}
-                  </span>
-                  <p className={`${textSecondary} mt-0.5 leading-relaxed break-words`}>
-                    {contact.primary_address}
-                  </p>
-                </div>
-              ) : null}
+              <div>
+                <span className={`font-bold ${textPrimary} block text-[11px]`}>
+                  Jammu Administrative Bureau
+                </span>
+                <p className={`${textSecondary} mt-0.5 leading-relaxed break-words`}>
+                  {contact.primary_address || 'Sidhra, Jammu Tawi (J&K) 180019'}
+                </p>
+              </div>
 
-              {contact.show_bureau_address !== false && contact.bureau_address ? (
-                <div>
-                  <span className={`font-bold ${textPrimary} block text-[11px]`}>
-                    {contact.bureau_address_label}
-                  </span>
-                  <p className={`${textSecondary} mt-0.5 leading-relaxed break-words`}>
-                    {contact.bureau_address}
-                  </p>
-                </div>
-              ) : null}
+              <div>
+                <span className={`font-bold ${textPrimary} block text-[11px]`}>
+                  Srinagar Press Bureau
+                </span>
+                <p className={`${textSecondary} mt-0.5 leading-relaxed break-words`}>
+                  {srinagarBureau}
+                </p>
+              </div>
 
               <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800/80">
                 <span className={`font-bold ${textPrimary} block text-[10px] uppercase tracking-wider`}>
@@ -343,43 +364,27 @@ export function SiteFooter({
             </h3>
 
             <div className="space-y-2.5 text-xs">
-              {contact.show_phone_numbers && contact.phone_primary ? (
-                <div>
-                  <span className={`text-[10px] font-bold uppercase tracking-wider ${textMuted} block`}>
-                    {contact.phone_primary_label}
-                  </span>
-                  <a
-                    href={`tel:${contact.phone_primary.replace(/[^0-9+]/g, '')}`}
-                    className={`font-mono font-bold ${accentText} hover:underline`}
-                  >
-                    {contact.phone_primary}
-                  </a>
-                </div>
-              ) : null}
-
-              {contact.show_phone_numbers && contact.phone_secondary ? (
-                <div>
-                  <span className={`text-[10px] font-bold uppercase tracking-wider ${textMuted} block`}>
-                    {contact.phone_secondary_label}
-                  </span>
-                  <a
-                    href={`tel:${contact.phone_secondary.replace(/[^0-9+]/g, '')}`}
-                    className={`font-mono font-bold ${isDark ? 'text-emerald-400' : 'text-emerald-700'} hover:underline`}
-                  >
-                    {contact.phone_secondary}
-                  </a>
-                </div>
-              ) : null}
+              <div>
+                <span className={`text-[10px] font-bold uppercase tracking-wider ${textMuted} block`}>
+                  Editorial Newsdesk Hotlines
+                </span>
+                <a
+                  href={`tel:${primaryPhone.replace(/[^0-9+]/g, '')}`}
+                  className={`font-mono font-bold ${accentText} hover:underline`}
+                >
+                  {primaryPhone}
+                </a>
+              </div>
 
               <div>
                 <span className={`text-[10px] font-bold uppercase tracking-wider ${textMuted} block`}>
                   Careers &amp; Resume Submissions
                 </span>
                 <a
-                  href={`mailto:${contact.email_careers || 'careers@kjcpl.site'}`}
+                  href={`mailto:${careersEmail}`}
                   className={`font-mono font-bold ${accentText} hover:underline break-all`}
                 >
-                  {contact.email_careers || 'careers@kjcpl.site'}
+                  {careersEmail}
                 </a>
               </div>
 
@@ -388,10 +393,10 @@ export function SiteFooter({
                   Editorial Newsdesk
                 </span>
                 <a
-                  href={`mailto:${contact.email_editorial || 'news@kjcpl.site'}`}
+                  href={`mailto:${editorialEmail}`}
                   className={`font-mono ${textPrimary} hover:underline break-all`}
                 >
-                  {contact.email_editorial || 'news@kjcpl.site'}
+                  {editorialEmail}
                 </a>
               </div>
 
@@ -400,10 +405,10 @@ export function SiteFooter({
                   Press Releases &amp; Dispatches
                 </span>
                 <a
-                  href={`mailto:${contact.email_press || 'press@kjcpl.site'}`}
+                  href={`mailto:${pressEmail}`}
                   className={`font-mono ${textSecondary} hover:underline break-all`}
                 >
-                  {contact.email_press || 'press@kjcpl.site'}
+                  {pressEmail}
                 </a>
               </div>
 
@@ -417,19 +422,17 @@ export function SiteFooter({
                   </span>
                 </div>
                 <span className={`text-[11px] ${textSecondary} block font-medium`}>
-                  {contact.grievance_officer_name || 'Adv. Bashir Ahmad (Public Grievance Redressal Officer)'}
+                  {grievanceOfficer}
                 </span>
                 <a
-                  href={`mailto:${contact.email_grievance || 'grievance@kjcpl.site'}`}
+                  href={`mailto:${grievanceEmail}`}
                   className={`font-mono text-[11px] ${isDark ? 'text-amber-400' : 'text-amber-700'} hover:underline break-all block`}
                 >
-                  {contact.email_grievance || 'grievance@kjcpl.site'}
+                  {grievanceEmail}
                 </a>
-                {contact.show_primary_address !== false && contact.primary_address ? (
-                  <span className={`text-[10px] ${textMuted} block pt-0.5`}>
-                    Physical Office: {contact.primary_address}
-                  </span>
-                ) : null}
+                <span className={`text-[10px] ${textMuted} block pt-0.5`}>
+                  Physical Office: {contact.primary_address || 'Sidhra, Jammu Tawi (J&K) 180019'}
+                </span>
               </div>
             </div>
           </div>

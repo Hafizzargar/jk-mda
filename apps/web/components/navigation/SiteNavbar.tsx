@@ -47,9 +47,29 @@ export function SiteNavbar({
   const [mounted, setMounted] = useState(false);
   const [loadingRegion, setLoadingRegion] = useState<string | null>(null);
   const [logoFailed, setLogoFailed] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  // Smooth scroll listener to dynamically compact navbar on scroll
+  useEffect(() => {
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const scrollY = window.scrollY || document.documentElement.scrollTop;
+          setIsScrolled(scrollY > 35);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   // Lock body scroll when mobile menu is active for smooth drawer feel & close on Escape
@@ -215,7 +235,9 @@ export function SiteNavbar({
   };
 
   return (
-    <header className={`w-full max-w-full overflow-x-hidden sticky top-0 z-50 backdrop-blur-md ${navBg} ${navBorder} transition-colors duration-200 relative`}>
+    <header className={`w-full max-w-full overflow-x-clip sticky top-0 z-50 transition-all duration-300 ${
+      isScrolled ? 'shadow-md bg-[#fbf9f4]/95 border-b border-stone-300/80 backdrop-blur-md' : `${navBg} ${navBorder} relative`
+    }`}>
       {/* Top loader bar when user clicks Chenab, Jammu, or any regional bureau */}
       {loadingRegion && (
         <div className="absolute top-0 inset-x-0 h-[2.5px] bg-amber-100 z-50 overflow-hidden">
@@ -224,7 +246,9 @@ export function SiteNavbar({
       )}
       {/* 1. Slim Top Utility Strip */}
       {navSettings.top_strip.enabled && (
-        <div className="w-full border-b border-stone-200/80">
+        <div className={`w-full border-b border-stone-200/80 transition-all duration-300 overflow-hidden ${
+          isScrolled ? 'max-h-0 opacity-0 py-0 border-b-0 pointer-events-none' : 'max-h-12 opacity-100'
+        }`}>
           <div className="w-full max-w-7xl 2xl:max-w-[1440px] mx-auto px-3 sm:px-4 md:px-8 py-1 sm:py-1.5 flex items-center justify-between text-[9px] sm:text-[10.5px] uppercase tracking-wider text-stone-600 font-medium overflow-hidden gap-1.5 sm:gap-2">
             {/* Left: Dateline & Hijri/Calendar */}
             <div className="flex items-center space-x-1 sm:space-x-2 min-w-0 truncate">
@@ -245,12 +269,16 @@ export function SiteNavbar({
       )}
 
       {/* 2. Master Heraldic Masthead */}
-      <div className="w-full max-w-7xl 2xl:max-w-[1440px] mx-auto px-3 sm:px-4 md:px-8 py-2.5 flex items-center justify-between gap-2 sm:gap-3">
+      <div className={`w-full max-w-7xl 2xl:max-w-[1440px] mx-auto px-3 sm:px-4 md:px-8 flex items-center justify-between gap-2 sm:gap-3 transition-all duration-300 ${
+        isScrolled ? 'py-1.5 sm:py-2' : 'py-2.5 sm:py-3.5'
+      }`}>
         {/* Brand Crest & Name */}
         <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
           <Link href={`${langPrefix}/`} className="flex items-center space-x-2 sm:space-x-3 group transition-all min-w-0">
             {(navSettings.brand.show_logo_image ?? true) && (
-              <div className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-full p-0.5 bg-gradient-to-tr from-amber-600 via-amber-200 to-amber-700 shadow-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <div className={`relative rounded-full p-0.5 bg-gradient-to-tr from-amber-600 via-amber-200 to-amber-700 shadow-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-all duration-300 ${
+                isScrolled ? 'w-7 h-7 sm:w-9 sm:h-9' : 'w-9 h-9 sm:w-11 sm:h-11'
+              }`}>
                 <div className="w-full h-full bg-white rounded-full flex items-center justify-center p-0.5 border border-amber-300/40 relative overflow-hidden shadow-inner">
                   <Image
                     src={logoFailed ? '/kjcpl-emblem.png' : (navSettings.brand.logo_url?.trim() || '/kjcpl-emblem.png')}
@@ -268,7 +296,9 @@ export function SiteNavbar({
             )}
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline space-x-1 sm:space-x-1.5">
-                <h1 className="font-masthead text-lg sm:text-xl font-black text-stone-900 tracking-tight leading-none truncate">
+                <h1 className={`font-masthead font-black text-stone-900 tracking-tight leading-none truncate transition-all duration-300 ${
+                  isScrolled ? 'text-base sm:text-lg' : 'text-lg sm:text-xl'
+                }`}>
                   {navSettings.brand.name || 'KJCPL'}
                 </h1>
                 {(navSettings.brand.show_est_badge ?? true) && (
@@ -278,7 +308,9 @@ export function SiteNavbar({
                 )}
               </div>
               {(navSettings.brand.show_tagline ?? true) && Boolean(navSettings.brand.tagline?.trim()) && (
-                <p className="text-[8.5px] sm:text-[9.5px] font-serif italic text-stone-600 leading-tight tracking-wide mt-0.5 truncate">
+                <p className={`text-[8.5px] sm:text-[9.5px] font-serif italic text-stone-600 leading-tight tracking-wide mt-0.5 truncate transition-all duration-200 ${
+                  isScrolled ? 'hidden sm:block' : 'block'
+                }`}>
                   {navSettings.brand.tagline}
                 </p>
               )}
@@ -375,9 +407,11 @@ export function SiteNavbar({
       {/* 2b. Five Territorial Corridor Filter Navigation Bar (Daily +1 Shift Rotation) */}
       <nav
         aria-label="Regional Corridors"
-        className="w-full border-t border-stone-200/80 bg-stone-100/60"
+        className={`w-full border-t border-stone-200/80 bg-stone-100/90 backdrop-blur-sm select-none transition-all duration-300 ${
+          isScrolled ? 'py-1' : 'py-1.5'
+        }`}
       >
-        <div className="w-full max-w-7xl 2xl:max-w-[1440px] mx-auto px-3 sm:px-4 md:px-8 py-1.5 flex items-center justify-between gap-3">
+        <div className="w-full max-w-7xl 2xl:max-w-[1440px] mx-auto px-3 sm:px-4 md:px-8 flex items-center justify-between gap-3">
           {/* Scrollable pill container wrapped in relative flex with interactive chevron buttons */}
           <div className="relative flex items-center min-w-0 flex-1">
             {/* Left Scroll Indicator Arrow */}
@@ -401,7 +435,9 @@ export function SiteNavbar({
             <div
               ref={corridorsScrollRef}
               onScroll={checkCorridorsScroll}
-              className="flex items-center space-x-2 text-[11px] font-semibold tracking-wide whitespace-nowrap overflow-x-auto no-scrollbar py-0.5 min-w-0 scroll-smooth w-full"
+              className={`flex items-center space-x-2 text-[11px] font-semibold tracking-wide whitespace-nowrap overflow-x-auto no-scrollbar min-w-0 scroll-smooth w-full transition-all duration-200 ${
+                isScrolled ? 'py-0' : 'py-0.5'
+              }`}
             >
               <Link
                 href={`${langPrefix}/`}
@@ -492,9 +528,13 @@ export function SiteNavbar({
         </div>
       </nav>
 
-      {/* 2c. Top Stories Wire Ticker (Displays across all pages and sub-pages) */}
+      {/* 2c. Top Stories Wire Ticker (Displays across all pages and sub-pages; auto-collapses on scroll down to maximize reader space) */}
       {!hideTicker && (
-        <WarConflictTickerSlider items={tickerItems} langPrefix={langPrefix} />
+        <div className={`transition-all duration-300 overflow-hidden ${
+          isScrolled ? 'max-h-0 opacity-0 pointer-events-none' : 'max-h-16 opacity-100'
+        }`}>
+          <WarConflictTickerSlider items={tickerItems} langPrefix={langPrefix} />
+        </div>
       )}
       {/* 3. Mobile Navigation Dropdown Menu (Broadsheet Editorial Architecture) */}
       {mobileMenuOpen && (
