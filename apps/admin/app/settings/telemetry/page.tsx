@@ -26,6 +26,8 @@ export default function TelemetrySettingsPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [isAutoSyncing, setIsAutoSyncing] = useState(false);
+  const [lastAutoSyncedTime, setLastAutoSyncedTime] = useState<string | null>(null);
   const [recentArticles, setRecentArticles] = useState<Array<{ id: string; title: string; category: string }>>([]);
 
   useEffect(() => {
@@ -112,6 +114,37 @@ export default function TelemetrySettingsPage() {
       toast.error(msg);
     } finally {
       setIsGeneratingAI(false);
+    }
+  };
+
+  const handleAutoSync = async () => {
+    try {
+      setIsAutoSyncing(true);
+      setErrorMsg(null);
+      setSuccessMsg(null);
+
+      const res = await fetch('/api/settings/telemetry/auto-sync', {
+        method: 'POST',
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to auto-synchronize telemetry');
+      }
+
+      if (data.telemetry) {
+        setTelemetry(data.telemetry);
+      }
+      setLastAutoSyncedTime(data.synced_time || 'Just now');
+      setSuccessMsg(data.message || 'Telemetry auto-synchronized from live sensors & newsroom dispatches!');
+      toast.success('Telemetry auto-synchronized with live sensors & traffic dispatches!');
+    } catch (err: unknown) {
+      console.error('Auto-sync failed:', err);
+      const msg = err instanceof Error ? err.message : 'Auto-sync failed';
+      setErrorMsg(msg);
+      toast.error(msg);
+    } finally {
+      setIsAutoSyncing(false);
     }
   };
 
@@ -280,7 +313,7 @@ export default function TelemetrySettingsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 flex-wrap">
           <Link
             href="/transit"
             target="_blank"
@@ -291,13 +324,61 @@ export default function TelemetrySettingsPage() {
           </Link>
           {canManage && (
             <Button
+              onClick={handleAutoSync}
+              disabled={isAutoSyncing || saving}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs uppercase tracking-wider px-4 py-2.5 rounded-xl shadow-sm flex items-center gap-1.5"
+            >
+              <span>{isAutoSyncing ? '⏳' : '⚡'}</span>
+              <span>{isAutoSyncing ? 'Auto-Syncing...' : 'Auto-Sync Telemetry'}</span>
+            </Button>
+          )}
+          {canManage && (
+            <Button
               onClick={() => handleSave()}
-              disabled={saving}
+              disabled={saving || isAutoSyncing}
               className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs uppercase tracking-wider px-5 py-2.5 rounded-xl shadow-sm"
             >
               {saving ? 'Syncing...' : 'Publish Telemetry'}
             </Button>
           )}
+        </div>
+      </div>
+
+      {/* Autonomous Sensor & Newsroom Dispatches Uplink Banner */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-slate-900 to-cyan-950/40 border border-emerald-500/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-sm">
+        <div className="flex items-start gap-3">
+          <span className="relative flex h-3 w-3 mt-1 shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+          </span>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-bold text-white text-sm">
+                Autonomous Telemetry Uplink (No Manual Entry Required)
+              </span>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                Live Sensor Sync Connected
+              </span>
+              {lastAutoSyncedTime && (
+                <span className="text-[11px] text-cyan-400 font-mono">
+                  Synced: {lastAutoSyncedTime}
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-slate-400 mt-1 max-w-2xl leading-relaxed">
+              Auto-synchronizes mountain pass conditions (Peer Ki Gali, Zojila, Sinthan, NH-44), surface temperatures, snow depths, avalanche stages, and mandi spot rates directly from live Open-Meteo sensors and vetted morning newsroom dispatches.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0 w-full md:w-auto">
+          <Button
+            onClick={handleAutoSync}
+            disabled={isAutoSyncing || saving}
+            className="w-full md:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs px-4 py-2 rounded-xl shadow-sm flex items-center justify-center gap-1.5"
+          >
+            <span>{isAutoSyncing ? '⏳' : '⚡'}</span>
+            <span>{isAutoSyncing ? 'Synchronizing Sensors...' : 'Run Auto-Sync Now'}</span>
+          </Button>
         </div>
       </div>
 

@@ -440,7 +440,14 @@ function ArticlesPageContent() {
       width: '140px',
       render: (article) => {
         const author = article.author_display_name;
-        const isGenericOrOwnerAuthor = !author || author === 'Hafeez Zargar' || author === 'Hafiz Zargar' || author.startsWith('KJIN') || author.includes('Bureau') || author.includes('Team');
+        const isGenericOrOwnerAuthor =
+          !author ||
+          typeof author !== 'string' ||
+          author === 'Hafeez Zargar' ||
+          author === 'Hafiz Zargar' ||
+          author.startsWith('KJIN') ||
+          author.includes('Bureau') ||
+          author.includes('Team');
         const displayAuthor = isGenericOrOwnerAuthor
           ? getCorrespondentForArticle(article)
           : author;
@@ -630,7 +637,7 @@ function ArticlesPageContent() {
 
         {/* Author & Timestamp */}
         <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-0.5 font-medium">
-          <span className="truncate max-w-[170px]">✍️ {(!article.author_display_name || article.author_display_name === 'Hafeez Zargar' || article.author_display_name === 'Hafiz Zargar' || article.author_display_name.startsWith('KJIN') || article.author_display_name.includes('Bureau') || article.author_display_name.includes('Team')) ? getCorrespondentForArticle(article) : article.author_display_name}</span>
+          <span className="truncate max-w-[170px]">✍️ {(!article.author_display_name || typeof article.author_display_name !== 'string' || article.author_display_name === 'Hafeez Zargar' || article.author_display_name === 'Hafiz Zargar' || article.author_display_name.startsWith('KJIN') || article.author_display_name.includes('Bureau') || article.author_display_name.includes('Team')) ? getCorrespondentForArticle(article) : article.author_display_name}</span>
           <span className="font-mono text-[10px]">{new Date(article.updated_at).toLocaleDateString()}</span>
         </div>
 

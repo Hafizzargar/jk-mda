@@ -182,6 +182,17 @@ export function Sidebar({
           roles: ['owner', 'superadmin', 'admin', 'editor'],
           exact: true,
         },
+        {
+          name: 'Regional Telemetry & Passes',
+          description: 'Live mountain passes, road transit telemetry, mandi spot rates & sensors',
+          href: '/settings/telemetry',
+          icon: '🏔️',
+          badge: 'Live Radar',
+          badgeColor:
+            'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40 font-bold',
+          roles: ['owner', 'superadmin', 'admin', 'editor'],
+          exact: true,
+        },
       ],
     },
     {
@@ -279,15 +290,6 @@ export function Sidebar({
               badge: 'Emails',
               badgeColor:
                 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/40 font-bold',
-            },
-            {
-              name: 'Regional Telemetry & Passes',
-              href: '/settings/telemetry',
-              icon: '🏔️',
-              roles: ['owner', 'superadmin', 'admin'],
-              badge: 'Live',
-              badgeColor:
-                'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40 font-bold',
             },
             {
               name: 'Festive & Celebrations',
