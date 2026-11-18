@@ -184,8 +184,12 @@ export function ClassicEditorialTemplate({
       ? cleanWire
       : recentArticles.filter((art) => art.id !== leadId && !subIds.has(art.id)).slice(0, 5);
 
+  const isPageTwoOrHigher = Boolean(paginationMeta && paginationMeta.currentPage > 1);
+
   const candidateStream = propStreamArticles && propStreamArticles.length > 0 ? propStreamArticles : recentArticles.slice(2);
-  const streamArticles = candidateStream.filter((art) => art.id !== leadId && !subIds.has(art.id));
+  const streamArticles = isPageTwoOrHigher
+    ? (propStreamArticles && propStreamArticles.length > 0 ? propStreamArticles : allArticles)
+    : candidateStream.filter((art) => art.id !== leadId && !subIds.has(art.id));
 
   const candidateDossier = propDossierArticles && propDossierArticles.length > 0 ? propDossierArticles : recentArticles.slice(7, 13);
   const dossierArticles = candidateDossier.filter((art) => art.id !== leadId);
@@ -370,7 +374,6 @@ export function ClassicEditorialTemplate({
 
   const isHomePage = !scope || scope.type === 'home';
   const footerVariant: 'full' | 'compact' = isHomePage ? 'full' : 'compact';
-  const isPageTwoOrHigher = Boolean(paginationMeta && paginationMeta.currentPage > 1);
 
   return (
     <div className="bg-newsprint min-h-screen text-[#0F172A] selection:bg-amber-100 selection:text-amber-900 font-serif flex flex-col justify-between w-full max-w-full overflow-x-hidden">
@@ -389,7 +392,10 @@ export function ClassicEditorialTemplate({
           <WarConflictTickerSlider items={conflictNews} langPrefix={langPrefix} />
         )}
 
-
+        {/* ========================================================================= */}
+        {/* Dispatches Anchor for Direct Navigation (Always visible on all screen sizes) */}
+        {/* ========================================================================= */}
+        <div id="dispatches" className="scroll-mt-24 pointer-events-none select-none" />
 
         {/* ========================================================================= */}
         {/* 1. MOBILE-ONLY VIEW (md:hidden): Pixel-Matched Stream from User HTML Mockup */}
@@ -2059,7 +2065,7 @@ export function ClassicEditorialTemplate({
                 );
               }
               return (
-                <section id="dispatches" key={key} className="max-w-7xl xl:max-w-[1536px] 2xl:max-w-[1780px] mx-auto px-4 md:px-8 py-8 w-full font-sans" data-purpose="field-dispatches-full">
+                <section id="dispatches-full" key={key} className="max-w-7xl xl:max-w-[1536px] 2xl:max-w-[1780px] mx-auto px-4 md:px-8 py-8 w-full font-sans" data-purpose="field-dispatches-full">
                   <div className="flex items-center justify-between pb-3 mb-6 border-b-2 border-slate-900">
                     <div className="flex items-center gap-2.5">
                       <span className="w-3 h-3 bg-slate-900 inline-block" />

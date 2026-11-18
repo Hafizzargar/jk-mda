@@ -42,7 +42,7 @@ export function PaginationControls({
   const handlePageClick = () => {
     if (typeof window !== 'undefined') {
       const el = document.getElementById('dispatches') || document.getElementById('dispatches-mobile');
-      if (el) {
+      if (el && el.offsetParent !== null) {
         el.scrollIntoView({ behavior: 'smooth', block: 'start' });
       } else {
         window.scrollTo({ top: 0, behavior: 'smooth' });
