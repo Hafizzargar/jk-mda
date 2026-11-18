@@ -63,40 +63,41 @@ async function fetchLivePassTemperature(lat: number, lon: number): Promise<{ tem
 }
 
 export async function POST(request: Request) {
-  const authorization = await authenticateEmployeeRequest(request);
-  if (!isEmployeeAuthorization(authorization)) return authorization;
+  try {
+    const authorization = await authenticateEmployeeRequest(request);
+    if (!isEmployeeAuthorization(authorization)) return authorization;
 
-  if (!EDIT_ROLES.includes(authorization.profile.role_key)) {
-    return Response.json(
-      { error: 'You do not have permission to trigger telemetry auto-sync.' },
-      { status: 403 }
+    if (!EDIT_ROLES.includes(authorization.profile.role_key)) {
+      return Response.json(
+        { error: 'You do not have permission to trigger telemetry auto-sync.' },
+        { status: 403 }
+      );
+    }
+
+    const current = await getTelemetrySettings(authorization.service);
+    const currentTimeIST = formatISTTime();
+
+    // 1. Fetch published transit, weather & mandi articles from database
+    const { data: dispatches } = await authorization.service
+      .from('articles')
+      .select('id, title, excerpt, category, district, published_at')
+      .eq('status', 'published')
+      .order('published_at', { ascending: false })
+      .limit(30);
+
+    const articles = dispatches || [];
+    const articlesText = articles.map(a => `${a.title} ${a.excerpt || ''}`).join(' ').toLowerCase();
+
+    // 2. Fetch live temperatures across mountain passes in parallel
+    const weatherMap: Record<string, { temp: number; desc: string }> = {};
+    await Promise.all(
+      Object.entries(PASS_COORDINATES).map(async ([passId, coord]) => {
+        const live = await fetchLivePassTemperature(coord.lat, coord.lon);
+        if (live) {
+          weatherMap[passId] = live;
+        }
+      })
     );
-  }
-
-  const current = await getTelemetrySettings(authorization.service);
-  const currentTimeIST = formatISTTime();
-
-  // 1. Fetch published transit, weather & mandi articles from database
-  const { data: dispatches } = await authorization.service
-    .from('articles')
-    .select('id, title, excerpt, category, district, published_at')
-    .eq('status', 'published')
-    .order('published_at', { ascending: false })
-    .limit(30);
-
-  const articles = dispatches || [];
-  const articlesText = articles.map(a => `${a.title} ${a.excerpt || ''}`).join(' ').toLowerCase();
-
-  // 2. Fetch live temperatures across mountain passes in parallel
-  const weatherMap: Record<string, { temp: number; desc: string }> = {};
-  await Promise.all(
-    Object.entries(PASS_COORDINATES).map(async ([passId, coord]) => {
-      const live = await fetchLivePassTemperature(coord.lat, coord.lon);
-      if (live) {
-        weatherMap[passId] = live;
-      }
-    })
-  );
 
   // 3. Auto-synthesize Mountain Passes from live sensors & dispatches
   const updatedPasses: MountainPassItem[] = current.mountain_passes.map((pass) => {
@@ -325,4 +326,11 @@ export async function POST(request: Request) {
     telemetry: autoTelemetry,
     synced_time: currentTimeIST,
   });
+} catch (err: unknown) {
+  console.error('[Telemetry Auto-Sync Error]:', err);
+  return Response.json(
+    { error: err instanceof Error ? err.message : 'An unexpected error occurred during autonomous telemetry sync.' },
+    { status: 500 }
+  );
+}
 }

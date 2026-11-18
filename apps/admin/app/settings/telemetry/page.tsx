@@ -68,9 +68,14 @@ export default function TelemetrySettingsPage() {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         if (res.ok) {
-          const json = await res.json();
-          if (json.telemetry) {
-            setTelemetry(json.telemetry);
+          try {
+            const text = await res.text();
+            const json = JSON.parse(text);
+            if (json.telemetry) {
+              setTelemetry(json.telemetry);
+            }
+          } catch {
+            console.warn('[Telemetry Config] Non-JSON payload received, using default baseline values.');
           }
         }
 

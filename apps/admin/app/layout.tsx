@@ -20,8 +20,13 @@ export const metadata: Metadata = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const headersList = await headers();
-  const nonce = headersList.get('x-nonce') || undefined;
+  let nonce: string | undefined = undefined;
+  try {
+    const headersList = await headers();
+    nonce = headersList.get('x-nonce') || undefined;
+  } catch (err) {
+    console.warn('[RootLayout] headers() resolution warning:', err);
+  }
 
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>

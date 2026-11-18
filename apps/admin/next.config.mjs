@@ -1,9 +1,16 @@
 export const PRODUCTION_SUPABASE_PROJECT_ID = 'ptvfidufwlswbjgsjvzl';
 export const AUTHORIZED_SUPABASE_HOST = `${PRODUCTION_SUPABASE_PROJECT_ID}.supabase.co`;
 
-const configuredSupabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL
-  ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).host
-  : AUTHORIZED_SUPABASE_HOST;
+let configuredSupabaseHost = AUTHORIZED_SUPABASE_HOST;
+if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
+  try {
+    const raw = process.env.NEXT_PUBLIC_SUPABASE_URL.trim();
+    const parsed = new URL(raw.startsWith('http') ? raw : `https://${raw}`);
+    configuredSupabaseHost = parsed.host;
+  } catch {
+    configuredSupabaseHost = AUTHORIZED_SUPABASE_HOST;
+  }
+}
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {

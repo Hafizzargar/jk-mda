@@ -246,7 +246,13 @@ export default function ArticleViewPage({ params }: { params?: Promise<{ id: str
       });
 
       if (!response.ok) {
-        const { error: errorMsg } = await response.json();
+        let errorMsg = `Failed to ${action} article`;
+        try {
+          const resJson = await response.json();
+          if (resJson?.error) errorMsg = resJson.error;
+        } catch {
+          errorMsg = `Server returned ${response.status} (${response.statusText || 'Error'})`;
+        }
         // If MFA required, redirect to challenge flow
         if (errorMsg === 'Multi-factor authentication is required.') {
           toast.warning('Multi-factor authentication (MFA) required.', { id: toastId });
@@ -291,7 +297,13 @@ export default function ArticleViewPage({ params }: { params?: Promise<{ id: str
       });
 
       if (!response.ok) {
-        const { error: errorMsg } = await response.json();
+        let errorMsg = 'Failed to delete article';
+        try {
+          const resJson = await response.json();
+          if (resJson?.error) errorMsg = resJson.error;
+        } catch {
+          errorMsg = `Server returned ${response.status} (${response.statusText || 'Error'})`;
+        }
         if (errorMsg === 'Multi-factor authentication is required.') {
           toast.warning('Multi-factor authentication (MFA) required.', { id: toastId });
           setError('Recent multi-factor authentication (MFA) is required to complete this action.');
