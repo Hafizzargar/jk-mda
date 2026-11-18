@@ -25,7 +25,7 @@ import { getCurationSettings } from '@/lib/curation';
 import { getRegionalWeather } from '@/lib/weather';
 import { getCachedSiteSetting } from '@/lib/site-settings-cache';
 import { getEditorialDeskSettings } from '@/lib/editorial-desk';
-import { getWarAndConflictNews, getDiscoverNews } from '@/lib/external-news';
+import { getWarAndConflictNews, getDiscoverNews, getTopStoriesTickerNews } from '@/lib/external-news';
 import { getHomepageLayout } from '@/lib/homepage-layout';
 
 export const revalidate = 10; // Rapid 10s revalidation for instant sync with newsroom and ad settings
@@ -118,6 +118,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     dossierResult,
     conflictNews,
     discoverNews,
+    tickerNews,
     layoutConfig,
   ] = await Promise.all([
     getCachedSiteSetting<{ template_id?: string }>(supabase, 'active_template').catch(() => null),
@@ -197,6 +198,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     ).catch(() => ({ data: [], error: null })),
     getWarAndConflictNews(6).catch(() => []),
     getDiscoverNews(4).catch(() => []),
+    getTopStoriesTickerNews(8).catch(() => []),
     getHomepageLayout(supabase).catch(() => null),
   ]);
 
@@ -461,6 +463,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     streamArticles,
     conflictNews,
     discoverNews,
+    tickerItems: tickerNews,
     problemArticle,
     problemArticles,
     internationalArticle,

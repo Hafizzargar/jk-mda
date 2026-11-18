@@ -456,9 +456,9 @@ async function refreshDiscoverNewsInBackground(limit: number): Promise<void> {
 }
 
 /**
- * Fetch real-time War, Defense, and Conflict Radar News
- * Prioritizes verified published KJCPL database articles in our own journalistic words,
- * ensuring readers stay 100% on KJCPL without bouncing to external news portals.
+ * Fetch real-time War, Defense, and International Conflict Radar News
+ * Exclusively queries verified international dispatches and foreign security affairs,
+ * strictly filtering out domestic regional/national civil and infrastructure stories.
  */
 export async function getWarAndConflictNews(limit = 6): Promise<ExternalNewsItem[]> {
   const now = Date.now();
@@ -468,14 +468,14 @@ export async function getWarAndConflictNews(limit = 6): Promise<ExternalNewsItem
     return cachedWarNews.slice(0, limit);
   }
 
-  // 2. Query our verified published database articles first (100% internal in our own words)
+  // 2. Query verified published international conflict articles (never mislabel domestic news)
   try {
     const supabase = createServerAnonClient();
     const { data: dbArticles } = await supabase
       .from('articles')
       .select('id, title, slug, excerpt, category, district, published_at')
       .eq('status', 'published')
-      .or('category.ilike.international,category.ilike.national,category.ilike.investigation,category.ilike.politics')
+      .ilike('category', 'international')
       .order('published_at', { ascending: false, nullsFirst: false })
       .limit(limit);
 
@@ -487,10 +487,10 @@ export async function getWarAndConflictNews(limit = 6): Promise<ExternalNewsItem
           title: cleanXmlText(a.title),
           url: `/en/${getCategorySlug(a.category)}/${a.slug}`,
           publishedAt: a.published_at || new Date().toISOString(),
-          source: 'KJCPL Crisis Wire',
+          source: 'KJCPL World Desk',
           category: detected.category,
-          badge: a.district ? a.district.toUpperCase() : detected.badge,
-          location: a.district ? a.district.toUpperCase() : detected.location,
+          badge: detected.badge,
+          location: detected.location,
           summary: a.excerpt ? truncateTeaser(cleanXmlText(a.excerpt), 160) : undefined,
         };
       });
@@ -501,7 +501,6 @@ export async function getWarAndConflictNews(limit = 6): Promise<ExternalNewsItem
         return dynamicItems.slice(0, limit);
       }
 
-      // If fewer than limit, supplement with internal curated seed items
       const needed = limit - dynamicItems.length;
       const combined = [...dynamicItems, ...FALLBACK_WAR_NEWS.slice(0, needed)];
       cachedWarNews = combined;
@@ -512,7 +511,57 @@ export async function getWarAndConflictNews(limit = 6): Promise<ExternalNewsItem
     // Proceed to fallback
   }
 
-  // 3. Fallback to curated internal dispatches (never external links)
+  // 3. Authoritative international defense & UN dispatches
+  return FALLBACK_WAR_NEWS.slice(0, limit);
+}
+
+let cachedTickerNews: ExternalNewsItem[] | null = null;
+let lastTickerFetchTime = 0;
+
+/**
+ * Fetch real-time Top Stories for the Global Header Marquee Ticker.
+ * Covers all verified news desks (Tech, Science, Economy, Governance, Regional & Global)
+ * with accurate non-sensational topic badges (never tagging domestic stories as War Wire).
+ */
+export async function getTopStoriesTickerNews(limit = 8): Promise<ExternalNewsItem[]> {
+  const now = Date.now();
+  if (cachedTickerNews && now - lastTickerFetchTime < 60 * 1000) {
+    return cachedTickerNews.slice(0, limit);
+  }
+
+  try {
+    const supabase = createServerAnonClient();
+    const { data: dbArticles } = await supabase
+      .from('articles')
+      .select('id, title, slug, excerpt, category, district, published_at')
+      .eq('status', 'published')
+      .order('published_at', { ascending: false, nullsFirst: false })
+      .limit(limit);
+
+    if (dbArticles && dbArticles.length > 0) {
+      const dynamicItems: ExternalNewsItem[] = dbArticles.map((a) => {
+        const detected = detectLocationAndBadge(a.title, a.excerpt || undefined);
+        return {
+          id: `db-ticker-${a.id}`,
+          title: cleanXmlText(a.title),
+          url: `/en/${getCategorySlug(a.category)}/${a.slug}`,
+          publishedAt: a.published_at || new Date().toISOString(),
+          source: a.district ? `KJCPL ${a.district.toUpperCase()}` : 'KJCPL Newsdesk',
+          category: detected.category,
+          badge: detected.badge,
+          location: detected.location,
+          summary: a.excerpt ? truncateTeaser(cleanXmlText(a.excerpt), 160) : undefined,
+        };
+      });
+
+      cachedTickerNews = dynamicItems;
+      lastTickerFetchTime = now;
+      return dynamicItems.slice(0, limit);
+    }
+  } catch {
+    // Fallback to verified seed items
+  }
+
   return FALLBACK_WAR_NEWS.slice(0, limit);
 }
 

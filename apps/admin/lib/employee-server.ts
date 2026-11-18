@@ -46,6 +46,30 @@ export async function authenticateEmployeeRequest(
   }
 
   if (!token) {
+    try {
+      const { cookies } = await import('next/headers');
+      const cookieStore = await cookies();
+      const allCookies = cookieStore.getAll();
+      if (allCookies && allCookies.length > 0) {
+        const ssrClient = createServerClient(supabaseUrl, anonKey, {
+          cookies: {
+            getAll() {
+              return allCookies;
+            },
+            setAll() {},
+          },
+        });
+        const { data: sessionData } = await ssrClient.auth.getSession();
+        if (sessionData?.session?.access_token) {
+          token = sessionData.session.access_token;
+        }
+      }
+    } catch {
+      // Non-Next context or headers not available
+    }
+  }
+
+  if (!token) {
     const cookieHeader = request.headers.get('cookie') || '';
     if (cookieHeader) {
       try {

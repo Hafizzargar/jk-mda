@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getWarAndConflictNews } from '@/lib/external-news';
+import { getTopStoriesTickerNews } from '@/lib/external-news';
 
 export const revalidate = 60;
 
 export async function GET() {
   try {
-    const items = await getWarAndConflictNews(8);
+    const items = await getTopStoriesTickerNews(8);
     return NextResponse.json({ items }, {
       headers: {
         'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=120',

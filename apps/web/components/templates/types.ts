@@ -59,6 +59,7 @@ export interface TemplateProps {
   streamArticles?: ArticleItem[];
   conflictNews?: ExternalNewsItem[];
   discoverNews?: ExternalNewsItem[];
+  tickerItems?: ExternalNewsItem[];
   problemArticle?: ArticleItem | null;
   problemArticles?: ArticleItem[];
   internationalArticle?: ArticleItem | null;

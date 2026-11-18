@@ -106,6 +106,7 @@ export function ClassicEditorialTemplate({
   streamArticles: propStreamArticles,
   conflictNews: propConflictNews,
   discoverNews: propDiscoverNews,
+  tickerItems,
   problemArticle,
   problemArticles,
   internationalArticle,
@@ -389,7 +390,7 @@ export function ClassicEditorialTemplate({
           navbarSettings={navbarSettings}
           activeRegion={scope?.regionSlug}
           activeCategory={scope?.activeCategory}
-          tickerItems={conflictNews}
+          tickerItems={tickerItems || conflictNews}
         />
 
         {/* ========================================================================= */}
