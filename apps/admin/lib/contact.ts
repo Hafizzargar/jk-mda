@@ -97,18 +97,18 @@ export function sanitizeContactSettings(input: Partial<FooterContactSettings>): 
     phone_primary_label: cleanMojibake(String(input.phone_primary_label || DEFAULT_FOOTER_CONTACT.phone_primary_label)).slice(0, 100),
     phone_secondary: String(input.phone_secondary || DEFAULT_FOOTER_CONTACT.phone_secondary).trim().slice(0, 50),
     phone_secondary_label: cleanMojibake(String(input.phone_secondary_label || DEFAULT_FOOTER_CONTACT.phone_secondary_label)).slice(0, 100),
-    email_editorial: typeof input.email_editorial === 'string' && input.email_editorial.trim() && !input.email_editorial.includes('kjin.org')
+    email_editorial: typeof input.email_editorial === 'string' && input.email_editorial.trim()
       ? input.email_editorial.trim().slice(0, 100)
-      : 'h26412301@gmail.com',
-    email_careers: typeof input.email_careers === 'string' && input.email_careers.trim() && !input.email_careers.includes('kjin.org')
+      : DEFAULT_FOOTER_CONTACT.email_editorial,
+    email_careers: typeof input.email_careers === 'string' && input.email_careers.trim()
       ? input.email_careers.trim().slice(0, 100)
-      : 'h26412301@gmail.com',
-    email_grievance: typeof input.email_grievance === 'string' && input.email_grievance.trim() && !input.email_grievance.includes('kjin.org')
+      : DEFAULT_FOOTER_CONTACT.email_careers,
+    email_grievance: typeof input.email_grievance === 'string' && input.email_grievance.trim()
       ? input.email_grievance.trim().slice(0, 100)
-      : 'h26412301@gmail.com',
-    email_press: typeof input.email_press === 'string' && input.email_press.trim() && !input.email_press.includes('kjin.org')
+      : DEFAULT_FOOTER_CONTACT.email_grievance,
+    email_press: typeof input.email_press === 'string' && input.email_press.trim()
       ? input.email_press.trim().slice(0, 100)
-      : 'h26412301@gmail.com',
+      : DEFAULT_FOOTER_CONTACT.email_press,
     grievance_officer_name: cleanMojibake(String(input.grievance_officer_name || DEFAULT_FOOTER_CONTACT.grievance_officer_name)).slice(0, 150),
     registration_number: cleanMojibake(String(input.registration_number || DEFAULT_FOOTER_CONTACT.registration_number)).slice(0, 200),
     social_twitter: sanitizeSocialHandle(input.social_twitter, DEFAULT_FOOTER_CONTACT.social_twitter, ['kjin_live', 'kjin_wire', 'kjinnews'], 'kjcpl_news'),
