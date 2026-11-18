@@ -344,19 +344,8 @@ function ArticlesPageContent() {
       key: 'title',
       header: 'Article',
       render: (article) => (
-        <div className="flex items-start gap-3">
-          {article.featured_image_url ? (
-            <img
-              src={article.featured_image_url}
-              alt=""
-              className="w-11 h-11 rounded-lg object-cover shrink-0 border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900"
-            />
-          ) : (
-            <div className="w-11 h-11 rounded-lg bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 flex items-center justify-center shrink-0 text-slate-400 text-xs font-serif">
-              📰
-            </div>
-          )}
-          <div className="min-w-0">
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0 flex-1">
             <Link
               href={`/articles/${article.id}`}
               className="font-bold text-slate-900 hover:text-cyan-700 text-sm leading-snug dark:text-white dark:hover:text-cyan-300 transition-colors"
@@ -379,6 +368,20 @@ function ArticlesPageContent() {
               ) : null}
             </div>
           </div>
+          {article.featured_image_url ? (
+            <Link
+              href={`/articles/${article.id}`}
+              className="relative shrink-0 w-20 h-14 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800 shadow-xs block group hover:opacity-90 transition"
+              title="View Article"
+            >
+              <img
+                src={article.featured_image_url}
+                alt=""
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                loading="lazy"
+              />
+            </Link>
+          ) : null}
         </div>
       ),
     },
@@ -443,15 +446,18 @@ function ArticlesPageContent() {
     {
       key: 'updated_at',
       header: 'Last Updated',
-      width: '140px',
-      render: (article) => (
-        <div className="whitespace-nowrap text-slate-700 font-semibold text-xs dark:text-slate-300">
-          <div>{new Date(article.updated_at).toLocaleDateString()}</div>
-          <div className="text-[10px] text-slate-500 font-mono mt-0.5">
-            {new Date(article.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+      width: '150px',
+      render: (article) => {
+        const d = new Date(article.updated_at);
+        return (
+          <div className="whitespace-nowrap text-slate-700 font-semibold text-xs dark:text-slate-300">
+            <div>{d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}</div>
+            <div className="text-[11px] text-cyan-600 dark:text-cyan-400 font-mono font-medium mt-0.5">
+              {d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}
+            </div>
           </div>
-        </div>
-      ),
+        );
+      },
     },
     {
       key: 'actions',
