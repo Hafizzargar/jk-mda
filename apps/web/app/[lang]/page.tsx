@@ -330,14 +330,18 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     ? uniqueStream
     : safeRemaining.filter((a) => !subArticleIds.has(a.id));
 
+  const usedHomeIds = new Set<string>([heroArticle.id, ...subArticleIds, ...wireArticleIds]);
+  const streamArticleIds = new Set(uniqueStream.map((a) => a.id));
+  const candidateDossier = translatedDossier.filter((a) => !usedHomeIds.has(a.id));
+
   const dossierArticles: ArticleItem[] =
     safeCuration.dossier_ids && safeCuration.dossier_ids.length > 0
       ? (safeCuration.dossier_ids.map((id) => curatedArticlesMap.get(id)).filter(Boolean) as ArticleItem[])
-      : translatedDossier.length > 0
-      ? translatedDossier.filter((a) => a.id !== heroArticle.id)
+      : candidateDossier.length > 0
+      ? candidateDossier.slice(0, 6)
       : latestArticles.filter((a) => {
           const c = (a.category || '').toLowerCase();
-          return a.id !== heroArticle.id && (c === 'investigation' || c === 'culture' || c === 'environment' || c === 'economy');
+          return !usedHomeIds.has(a.id) && !streamArticleIds.has(a.id) && (c === 'investigation' || c === 'culture' || c === 'environment' || c === 'economy');
         }).slice(0, 6);
 
   const editorialArticle: ArticleItem | null =

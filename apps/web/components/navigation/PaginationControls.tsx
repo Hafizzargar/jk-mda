@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { ALLOWED_PAGE_SIZES, type PaginationMeta } from '@/lib/pagination';
@@ -21,6 +22,30 @@ export function PaginationControls({
 
   const { totalPages, currentPage, totalCount, startItem, endItem, limit, hasPrevPage, hasNextPage } = meta;
 
+  const scrollToDispatches = () => {
+    if (typeof window !== 'undefined') {
+      const target =
+        document.getElementById('dispatches-archive-mobile') ||
+        document.getElementById('dispatches-archive') ||
+        document.getElementById('dispatches-mobile') ||
+        document.getElementById('dispatches') ||
+        document.getElementById('dispatches-full');
+      if (target) {
+        const navHeight = 72;
+        const rect = target.getBoundingClientRect();
+        const targetTop = rect.top + window.scrollY - navHeight;
+        window.scrollTo({ top: Math.max(0, targetTop), behavior: 'smooth' });
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && currentPage > 1) {
+      const timer = setTimeout(scrollToDispatches, 60);
+      return () => clearTimeout(timer);
+    }
+  }, [currentPage]);
+
   const createPageUrl = (pageNumber: number, newLimit?: number) => {
     const params = new URLSearchParams(searchParams?.toString() || '');
     if (pageNumber > 1) {
@@ -40,14 +65,7 @@ export function PaginationControls({
   };
 
   const handlePageClick = () => {
-    if (typeof window !== 'undefined') {
-      const el = document.getElementById('dispatches') || document.getElementById('dispatches-mobile');
-      if (el && el.offsetParent !== null) {
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      } else {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }
-    }
+    setTimeout(scrollToDispatches, 80);
   };
 
   const isDark = theme?.isDark ?? false;
@@ -103,6 +121,7 @@ export function PaginationControls({
           <Link
             href={createPageUrl(currentPage - 1)}
             onClick={handlePageClick}
+            scroll={false}
             className={`min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-semibold border ${cardBorder} hover:bg-slate-100 dark:hover:bg-slate-800 transition ${textPrimary} flex items-center gap-1 active:scale-95`}
             aria-label="Previous Page"
           >
@@ -138,6 +157,7 @@ export function PaginationControls({
                 key={pageNum}
                 href={createPageUrl(pageNum)}
                 onClick={handlePageClick}
+                scroll={false}
                 aria-current={isCurrent ? 'page' : undefined}
                 className={`min-w-[36px] h-9 sm:min-w-[34px] sm:h-8.5 flex items-center justify-center rounded-lg text-xs font-bold transition active:scale-95 ${
                   isCurrent
@@ -156,6 +176,7 @@ export function PaginationControls({
           <Link
             href={createPageUrl(currentPage + 1)}
             onClick={handlePageClick}
+            scroll={false}
             className={`min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-semibold border ${cardBorder} hover:bg-slate-100 dark:hover:bg-slate-800 transition ${textPrimary} flex items-center gap-1 active:scale-95`}
             aria-label="Next Page"
           >
@@ -183,6 +204,7 @@ export function PaginationControls({
                 key={size}
                 href={createPageUrl(1, size)}
                 onClick={handlePageClick}
+                scroll={false}
                 className={`min-h-[28px] px-2 py-0.5 rounded text-[11px] font-mono font-bold transition border active:scale-95 ${
                   limit === size
                     ? `${accentBg} border-transparent`

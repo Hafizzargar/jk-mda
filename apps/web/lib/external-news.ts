@@ -23,7 +23,7 @@ export interface ExternalNewsItem {
 const FETCH_TIMEOUT_MS = 3500;
 
 // Curated seed fallbacks for zero-downtime broadsheet rendering (100% internal routes - never leak SEO to external outlets)
-const FALLBACK_WAR_NEWS: ExternalNewsItem[] = [
+export const FALLBACK_WAR_NEWS: ExternalNewsItem[] = [
   {
     id: 'war-ukraine-1',
     title: 'Ukraine Front: Heavy Drone & Ballistic Salvo Strikes Power Infrastructure in Kyiv & Kharkiv; Air Defense Scrambled',
@@ -199,9 +199,13 @@ export function detectLocationAndBadge(title: string, summary?: string): {
   category: 'war' | 'disaster' | 'geopolitics';
 } {
   const text = `${title} ${summary || ''}`.toLowerCase();
+
+  // Natural Disasters & Alerts
   if (text.includes('earthquake') || text.includes('quake') || text.includes('seismic') || text.includes('richter') || text.includes('tremor') || text.includes('tsunami')) {
     return { location: 'EARTHQUAKE ALERT', badge: 'SEISMIC SHOCK', category: 'disaster' };
   }
+
+  // Active International Conflict Zones (Only when genuine armed conflict is involved)
   if (text.includes('ukrain') || text.includes('kyiv') || text.includes('kharkiv') || text.includes('donbas') || text.includes('kursk')) {
     return { location: 'UKRAINE', badge: 'AIR STRIKES', category: 'war' };
   }
@@ -221,30 +225,62 @@ export function detectLocationAndBadge(title: string, summary?: string): {
     return { location: 'SUDAN', badge: 'WAR ZONE', category: 'war' };
   }
   if (text.includes('ceasefire') || text.includes('truce')) {
-    return { location: 'MIDDLE EAST', badge: 'CEASEFIRE WATCH', category: 'war' };
+    return { location: 'DIPLOMACY', badge: 'CEASEFIRE WATCH', category: 'geopolitics' };
   }
-  return { location: 'GLOBAL WIRE', badge: assignConflictBadge(title), category: 'war' };
+
+  // Domestic & Sectoral News (Must NOT be tagged with WAR RADAR or CRISIS labels)
+  if (text.includes('isro') || text.includes('space') || text.includes('satellite') || text.includes('rocket') || text.includes('payload')) {
+    return { location: 'TECH & SPACE', badge: 'AEROSPACE', category: 'geopolitics' };
+  }
+  if (text.includes('imo') || text.includes('maritime') || text.includes('shipping') || text.includes('cargo') || text.includes('vessel')) {
+    return { location: 'MARITIME & TRADE', badge: 'SHIPPING WIRE', category: 'geopolitics' };
+  }
+  if (text.includes('bridge') || text.includes('tunnel') || text.includes('railway') || text.includes('highway') || text.includes('nh-44') || text.includes('viaduct')) {
+    return { location: 'INFRASTRUCTURE', badge: 'TRANSIT LINK', category: 'geopolitics' };
+  }
+  if (text.includes('trout') || text.includes('hatchery') || text.includes('fisheries') || text.includes('aquaculture')) {
+    return { location: 'AQUACULTURE', badge: 'ECOLOGY & SPECIES', category: 'geopolitics' };
+  }
+  if (text.includes('kani') || text.includes('shawl') || text.includes('pashmina') || text.includes('artisan') || text.includes('carpet') || text.includes('handicraft')) {
+    return { location: 'CULTURE & CRAFT', badge: 'HERITAGE GUILD', category: 'geopolitics' };
+  }
+  if (text.includes('apple') || text.includes('mandi') || text.includes('basmati') || text.includes('saffron') || text.includes('grower')) {
+    return { location: 'AGRI & COMMERCE', badge: 'MANDI TRADE', category: 'geopolitics' };
+  }
+  if (text.includes('hospital') || text.includes('medical') || text.includes('doctor') || text.includes('health') || text.includes('patient')) {
+    return { location: 'PUBLIC HEALTH', badge: 'CIVIC HEALTHCARE', category: 'geopolitics' };
+  }
+  if (text.includes('minister') || text.includes('cabinet') || text.includes('parliament') || text.includes('assembly') || text.includes('election') || text.includes('governor')) {
+    return { location: 'GOVERNANCE', badge: 'REGIONAL POLICY', category: 'geopolitics' };
+  }
+
+  return { location: 'TOP STORY', badge: assignConflictBadge(title), category: 'geopolitics' };
 }
 
 function assignConflictBadge(title: string): string {
   const lower = title.toLowerCase();
   if (lower.includes('ceasefire') || lower.includes('truce')) return 'CEASEFIRE';
-  if (lower.includes('un') || lower.includes('security council') || lower.includes('guterres')) return 'UN MANDATE';
+  if (lower.includes('un ') || lower.includes('security council') || lower.includes('guterres')) return 'MULTILATERAL';
   if (lower.includes('defense') || lower.includes('missile') || lower.includes('drone') || lower.includes('strike')) return 'DEFENSE STRIKE';
-  if (lower.includes('air') || lower.includes('jet') || lower.includes('aviation')) return 'AIR DEFENSE';
+  if (lower.includes('air') || lower.includes('aviation')) return 'AIR DEFENSE';
   if (lower.includes('aid') || lower.includes('famine') || lower.includes('relief') || lower.includes('hospital')) return 'HUMANITARIAN';
   if (lower.includes('treaty') || lower.includes('talks') || lower.includes('diploma') || lower.includes('summit')) return 'DIPLOMACY';
-  return 'WAR RADAR';
+  if (lower.includes('trade') || lower.includes('economy') || lower.includes('market') || lower.includes('budget')) return 'COMMERCE';
+  return 'TOP STORY';
 }
 
 function assignDiscoverBadge(title: string): string {
   const lower = title.toLowerCase();
-  if (lower.includes('climate') || lower.includes('carbon') || lower.includes('emission')) return 'CLIMATE TECH';
-  if (lower.includes('glacier') || lower.includes('water') || lower.includes('mountain') || lower.includes('himalaya')) return 'CRYO RADAR';
+  if (lower.includes('kani') || lower.includes('shawl') || lower.includes('craft') || lower.includes('pashmina') || lower.includes('artisan') || lower.includes('heritage')) return 'HERITAGE CRAFT';
+  if (lower.includes('trout') || lower.includes('hatchery') || lower.includes('fisheries') || lower.includes('lake') || lower.includes('river')) return 'AQUACULTURE & ECOLOGY';
+  if (lower.includes('bridge') || lower.includes('rail') || lower.includes('chenab') || lower.includes('tunnel') || lower.includes('viaduct')) return 'CIVIL ENGINEERING';
+  if (lower.includes('isro') || lower.includes('space') || lower.includes('satellite') || lower.includes('nasa')) return 'AEROSPACE & TECH';
+  if (lower.includes('climate') || lower.includes('carbon') || lower.includes('emission') || lower.includes('glacier')) return 'CLIMATE & ENVIRONMENT';
   if (lower.includes('battery') || lower.includes('solar') || lower.includes('energy') || lower.includes('fusion')) return 'CLEAN ENERGY';
   if (lower.includes('ai') || lower.includes('quantum') || lower.includes('algorithm') || lower.includes('computing')) return 'QUANTUM & AI';
-  if (lower.includes('space') || lower.includes('satellite') || lower.includes('orbit') || lower.includes('nasa')) return 'AEROSPACE';
-  return 'FRONTIER SCIENCE';
+  if (lower.includes('apple') || lower.includes('saffron') || lower.includes('mandi') || lower.includes('agriculture')) return 'AGRI INNOVATION';
+  if (lower.includes('health') || lower.includes('hospital') || lower.includes('medical') || lower.includes('vaccine')) return 'LIFE SCIENCES';
+  return 'SPECIAL REPORT';
 }
 
 function parseRssToItems(
@@ -266,6 +302,17 @@ function parseRssToItems(
     if (titleMatch && titleMatch[1]) {
       const title = cleanXmlText(titleMatch[1]);
       if (!title || title.length < 10) continue;
+
+      const lowerTitle = title.toLowerCase();
+      if (
+        lowerTitle.includes('markle') ||
+        lowerTitle.includes('celebrity') ||
+        lowerTitle.includes('showbiz') ||
+        lowerTitle.includes('hollywood') ||
+        lowerTitle.includes('abuse')
+      ) {
+        continue;
+      }
 
       // Always route internally so readers never leave KJCPL
       const url = category === 'war' ? '/en/international' : '/en/category/science';
@@ -324,16 +371,8 @@ const EXTERNAL_NEWS_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes in-memory cache
 
 const WAR_RSS_FEEDS = [
   {
-    url: 'https://feeds.bbci.co.uk/news/world/rss.xml',
-    source: 'BBC World Wire',
-  },
-  {
-    url: 'https://www.aljazeera.com/xml/rss/all.xml',
-    source: 'Al Jazeera World Desk',
-  },
-  {
     url: 'https://news.un.org/feed/subscribe/en/news/topic/peace-and-security/feed/rss.xml',
-    source: 'UN Peace & Security',
+    source: 'UN Peace & Security Wire',
   },
 ];
 

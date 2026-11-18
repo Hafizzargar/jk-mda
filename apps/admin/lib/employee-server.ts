@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
 import { env } from '@kjin/config';
 import { requiresMfa } from './mfa.ts';
 import { extractClientIp } from './ip.ts';
@@ -30,6 +31,14 @@ type EmployeeAuthorization = {
 export async function authenticateEmployeeRequest(
   request: Request
 ): Promise<EmployeeAuthorization | Response> {
+  const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !anonKey || !serviceKey) {
+    return Response.json({ error: 'Employee management is not configured on this server.' }, { status: 503 });
+  }
+
   const authorization = request.headers.get('authorization');
   let token = authorization?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
   if (token === 'undefined' || token === 'null' || !token) {
@@ -38,69 +47,89 @@ export async function authenticateEmployeeRequest(
 
   if (!token) {
     const cookieHeader = request.headers.get('cookie') || '';
-    const cookieParts: Record<string, string> = {};
-    cookieHeader.split(';').forEach((c) => {
-      const [k, ...v] = c.trim().split('=');
-      if (k && v.length > 0) cookieParts[k.trim()] = v.join('=').trim();
-    });
-
-    let authCookieVal = '';
-    const baseKey = Object.keys(cookieParts).find(
-      (k) => k.startsWith('sb-') && k.endsWith('-auth-token')
-    );
-    if (baseKey) {
-      authCookieVal = cookieParts[baseKey];
-    } else {
-      const chunkKeys = Object.keys(cookieParts)
-        .filter((k) => k.startsWith('sb-') && k.includes('-auth-token.'))
-        .sort((a, b) => {
-          const numA = parseInt(a.split('.').pop() || '0', 10);
-          const numB = parseInt(b.split('.').pop() || '0', 10);
-          return numA - numB;
-        });
-      if (chunkKeys.length > 0) {
-        authCookieVal = chunkKeys.map((k) => cookieParts[k]).join('');
-      }
-    }
-
-    if (authCookieVal) {
+    if (cookieHeader) {
       try {
-        let cleanVal = decodeURIComponent(authCookieVal).trim();
-        cleanVal = cleanVal.replace(/^"(.*)"$/, '$1');
-        if (cleanVal.startsWith('base64-')) {
-          cleanVal = cleanVal.slice(7);
+        const cookiePairs: Array<{ name: string; value: string }> = [];
+        cookieHeader.split(';').forEach((c) => {
+          const [k, ...v] = c.trim().split('=');
+          if (k && v.length > 0) cookiePairs.push({ name: k.trim(), value: v.join('=').trim() });
+        });
+
+        const ssrClient = createServerClient(supabaseUrl, anonKey, {
+          cookies: {
+            getAll() {
+              return cookiePairs;
+            },
+            setAll() {},
+          },
+        });
+
+        const { data: sessionData } = await ssrClient.auth.getSession();
+        if (sessionData?.session?.access_token) {
+          token = sessionData.session.access_token;
         }
-        let parsed: any;
-        try {
-          parsed = JSON.parse(cleanVal);
-        } catch {
+      } catch {
+        // Fallback to manual parsing below
+      }
+
+      if (!token) {
+        const cookieParts: Record<string, string> = {};
+        cookieHeader.split(';').forEach((c) => {
+          const [k, ...v] = c.trim().split('=');
+          if (k && v.length > 0) cookieParts[k.trim()] = v.join('=').trim();
+        });
+
+        const matchingKeys = Object.keys(cookieParts).filter(
+          (k) => (k.startsWith('sb-') || k.includes('supabase')) && k.includes('auth-token')
+        );
+
+        let authCookieVal = '';
+        const chunkKeys = matchingKeys
+          .filter((k) => k.includes('-auth-token.'))
+          .sort((a, b) => {
+            const numA = parseInt(a.split('.').pop() || '0', 10);
+            const numB = parseInt(b.split('.').pop() || '0', 10);
+            return numA - numB;
+          });
+
+        if (chunkKeys.length > 0) {
+          authCookieVal = chunkKeys.map((k) => cookieParts[k]).join('');
+        } else if (matchingKeys.length > 0) {
+          authCookieVal = cookieParts[matchingKeys[0]];
+        }
+
+        if (authCookieVal) {
           try {
-            const jsonStr = Buffer.from(cleanVal, 'base64url').toString('utf-8');
-            parsed = JSON.parse(jsonStr);
+            let cleanVal = decodeURIComponent(authCookieVal).trim();
+            cleanVal = cleanVal.replace(/^"(.*)"$/, '$1');
+            if (cleanVal.startsWith('base64-')) {
+              cleanVal = cleanVal.slice(7);
+            }
+            let parsed: any;
+            try {
+              parsed = JSON.parse(cleanVal);
+            } catch {
+              try {
+                const jsonStr = Buffer.from(cleanVal, 'base64url').toString('utf-8');
+                parsed = JSON.parse(jsonStr);
+              } catch {
+                const jsonStr = Buffer.from(cleanVal, 'base64').toString('utf-8');
+                parsed = JSON.parse(jsonStr);
+              }
+            }
+            if (typeof parsed === 'string') token = parsed;
+            else if (Array.isArray(parsed) && parsed[0]) token = parsed[0];
+            else if (parsed?.access_token) token = parsed.access_token;
           } catch {
-            const jsonStr = Buffer.from(cleanVal, 'base64').toString('utf-8');
-            parsed = JSON.parse(jsonStr);
+            // Ignored if cookie format is non-JSON
           }
         }
-        if (typeof parsed === 'string') token = parsed;
-        else if (Array.isArray(parsed) && parsed[0]) token = parsed[0];
-        else if (parsed?.access_token) token = parsed.access_token;
-      } catch {
-        // Ignored if cookie format is non-JSON
       }
     }
   }
 
   if (!token) {
     return Response.json({ error: 'Sign-in required.' }, { status: 401 });
-  }
-
-  const supabaseUrl = env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !anonKey || !serviceKey) {
-    return Response.json({ error: 'Employee management is not configured on this server.' }, { status: 503 });
   }
 
   const userClient = createClient(supabaseUrl, anonKey, {

@@ -29,8 +29,10 @@ export function TodayCenterDispatches({
   }
 
   const cleanAuthor = (author?: string | null, art?: ArticleItem): string => {
-    const raw = (author || '').trim();
-    if (!raw || raw === 'Hafeez Zargar' || raw === 'Hafiz Zargar' || raw === 'KCPJLN' || raw.startsWith('KCPJLN') || raw === 'KJIN' || raw.startsWith('KJIN') || raw.includes('Bureau') || raw.includes('Team')) {
+    let raw = (author || '').trim();
+    if (raw.includes('KJIN')) raw = raw.replace(/\bKJIN\b/g, 'KJCPL');
+    if (raw.startsWith('KCPJLN')) raw = raw.replace(/\bKCPJLN\b/g, 'KJCPL');
+    if (!raw || raw === 'Hafeez Zargar' || raw === 'Hafiz Zargar' || raw === 'KCPJLN' || raw === 'KJIN' || raw === 'KJCPL Team' || raw === 'Team') {
       if (art) return getCorrespondentByBeat(art);
       return brandName;
     }

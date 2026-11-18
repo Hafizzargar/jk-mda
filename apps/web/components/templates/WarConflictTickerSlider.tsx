@@ -1,12 +1,12 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import type { ExternalNewsItem } from '@/lib/external-news';
+import { FALLBACK_WAR_NEWS, type ExternalNewsItem } from '@/lib/external-news';
 
 interface WarConflictTickerSliderProps {
-  items: ExternalNewsItem[];
-  langPrefix: string;
+  items?: ExternalNewsItem[];
+  langPrefix?: string;
 }
 
 interface ConflictZoneStyle {
@@ -15,8 +15,36 @@ interface ConflictZoneStyle {
   pulseColor: string;
 }
 
-export function WarConflictTickerSlider({ items, langPrefix }: WarConflictTickerSliderProps) {
-  const newsList = useMemo(() => (Array.isArray(items) && items.length > 0 ? items : []), [items]);
+export function WarConflictTickerSlider({
+  items: initialItems,
+  langPrefix = '/en',
+}: WarConflictTickerSliderProps) {
+  const [items, setItems] = useState<ExternalNewsItem[]>(
+    Array.isArray(initialItems) && initialItems.length > 0 ? initialItems : FALLBACK_WAR_NEWS
+  );
+
+  useEffect(() => {
+    if (Array.isArray(initialItems) && initialItems.length > 0) {
+      setItems(initialItems);
+      return;
+    }
+
+    let isMounted = true;
+    fetch('/api/ticker')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (isMounted && data?.items && Array.isArray(data.items) && data.items.length > 0) {
+          setItems(data.items);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, [initialItems]);
+
+  const newsList = useMemo(() => (Array.isArray(items) && items.length > 0 ? items : FALLBACK_WAR_NEWS), [items]);
   const total = newsList.length;
 
   if (total === 0) return null;
@@ -74,12 +102,61 @@ export function WarConflictTickerSlider({ items, langPrefix }: WarConflictTicker
         pulseColor: 'bg-red-600',
       };
     }
+    if (raw.includes('tech & space') || raw.includes('aerospace') || raw.includes('isro')) {
+      return {
+        label: '🚀 TECH & SPACE',
+        badgeClass: 'bg-sky-600 text-white border-sky-400 font-bold',
+        pulseColor: 'bg-sky-500',
+      };
+    }
+    if (raw.includes('maritime') || raw.includes('shipping') || raw.includes('imo')) {
+      return {
+        label: '⚓ MARITIME & TRADE',
+        badgeClass: 'bg-blue-600 text-white border-blue-400 font-bold',
+        pulseColor: 'bg-blue-500',
+      };
+    }
+    if (raw.includes('infrastructure') || raw.includes('transit') || raw.includes('bridge') || raw.includes('rail')) {
+      return {
+        label: '🚆 INFRASTRUCTURE',
+        badgeClass: 'bg-teal-600 text-white border-teal-400 font-bold',
+        pulseColor: 'bg-teal-500',
+      };
+    }
+    if (raw.includes('aquaculture') || raw.includes('fisheries') || raw.includes('trout')) {
+      return {
+        label: '🐟 AQUACULTURE',
+        badgeClass: 'bg-emerald-600 text-white border-emerald-400 font-bold',
+        pulseColor: 'bg-emerald-500',
+      };
+    }
+    if (raw.includes('culture') || raw.includes('craft') || raw.includes('shawl') || raw.includes('pashmina')) {
+      return {
+        label: '🧵 HERITAGE & CRAFT',
+        badgeClass: 'bg-purple-600 text-white border-purple-400 font-bold',
+        pulseColor: 'bg-purple-500',
+      };
+    }
+    if (raw.includes('agri') || raw.includes('mandi') || raw.includes('apple') || raw.includes('saffron')) {
+      return {
+        label: '🌾 AGRI & COMMERCE',
+        badgeClass: 'bg-amber-600 text-white border-amber-400 font-bold',
+        pulseColor: 'bg-amber-500',
+      };
+    }
+    if (raw.includes('governance') || raw.includes('cabinet') || raw.includes('parliament')) {
+      return {
+        label: '🏛️ GOVERNANCE',
+        badgeClass: 'bg-slate-700 text-white border-slate-500 font-bold',
+        pulseColor: 'bg-slate-400',
+      };
+    }
 
-    const fallbackLoc = item.location ? `🔴 ${item.location.toUpperCase()}` : `🔴 ${item.badge || 'CRISIS RADAR'}`;
+    const fallbackLoc = item.badge || item.location || 'TOP STORY';
     return {
-      label: fallbackLoc,
-      badgeClass: 'bg-red-600 text-white border-red-500 font-bold',
-      pulseColor: 'bg-red-500',
+      label: `🔵 ${fallbackLoc.toUpperCase()}`,
+      badgeClass: 'bg-slate-800 text-slate-100 border-slate-600 font-bold',
+      pulseColor: 'bg-cyan-500',
     };
   };
 
@@ -100,8 +177,8 @@ export function WarConflictTickerSlider({ items, langPrefix }: WarConflictTicker
 
   return (
     <div
-      className="w-full bg-[#080C16] border-y border-red-600/40 text-slate-100 font-sans shadow-sm select-none relative overflow-hidden"
-      data-purpose="war-crisis-ticker"
+      className="w-full bg-[#080C16] border-y border-slate-800 text-slate-100 font-sans shadow-sm select-none relative overflow-hidden"
+      data-purpose="top-stories-ticker"
     >
       <style>{`
         @keyframes warMarqueeScroll {
@@ -121,15 +198,15 @@ export function WarConflictTickerSlider({ items, langPrefix }: WarConflictTicker
       `}</style>
 
       <div className="w-full max-w-7xl xl:max-w-[1536px] 2xl:max-w-[1780px] mx-auto px-2 sm:px-4 md:px-8 py-1.5 sm:py-2 flex items-center justify-between gap-2 overflow-hidden">
-        {/* Pinned Left Pill: Crisis Beacon Label */}
+        {/* Pinned Left Pill: Live Beacon Label */}
         <div className="flex items-center gap-1.5 shrink-0 z-10 bg-[#080C16] pr-2 shadow-[4px_0_12px_#080C16]">
-          <span className="flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded bg-red-950/90 border border-red-500/50 text-red-300 font-mono font-extrabold text-[9px] sm:text-[10.5px] tracking-wider uppercase whitespace-nowrap">
+          <span className="flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded bg-slate-900 border border-cyan-500/40 text-cyan-300 font-mono font-extrabold text-[9px] sm:text-[10.5px] tracking-wider uppercase whitespace-nowrap">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-red-500" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-cyan-400" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500" />
             </span>
-            <span className="hidden xs:inline">WAR &amp; CRISIS WIRE</span>
-            <span className="xs:hidden">WAR WIRE</span>
+            <span className="hidden xs:inline">TOP STORIES WIRE</span>
+            <span className="xs:hidden">TOP WIRE</span>
           </span>
         </div>
 
@@ -175,13 +252,13 @@ export function WarConflictTickerSlider({ items, langPrefix }: WarConflictTicker
           </div>
         </div>
 
-        {/* Pinned Right Link to World Desk */}
+        {/* Pinned Right Link to Live Dispatches */}
         <div className="shrink-0 z-10 bg-[#080C16] pl-2 shadow-[-4px_0_12px_#080C16] hidden md:flex items-center">
           <Link
-            href={`${langPrefix}/international`}
-            className="text-[10.5px] text-red-400 hover:text-red-300 font-semibold tracking-wide hover:underline whitespace-nowrap"
+            href={`${langPrefix}/latest`}
+            className="text-[10.5px] text-cyan-400 hover:text-cyan-300 font-semibold tracking-wide hover:underline whitespace-nowrap"
           >
-            World Desk →
+            All Dispatches →
           </Link>
         </div>
       </div>

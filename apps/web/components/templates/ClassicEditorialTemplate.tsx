@@ -18,7 +18,7 @@ import { SafeEditorialImage } from '@/components/common/SafeEditorialImage';
 import { TodayCenterDispatches } from './TodayCenterDispatches';
 import { CivicProblemsSlider } from './CivicProblemsSlider';
 import { WarConflictTickerSlider } from './WarConflictTickerSlider';
-import { formatArticleTime } from '@/lib/date';
+import { formatArticleTime, formatTimeAgo } from '@/lib/date';
 import { getCorrespondentByBeat } from '@/lib/i18n';
 
 function decodeHtmlEntities(str?: string | null): string {
@@ -118,13 +118,13 @@ export function ClassicEditorialTemplate({
   const lang = langPrefix ? langPrefix.replace('/', '') : 'en';
   const brandName = navbarSettings?.brand?.name || 'KJCPL';
   const cleanAuthor = (author?: string | null, art?: { district?: string | null; category?: string | null; title?: string | null } | null): string => {
-    const raw = (author || '').trim();
-    if (!raw || raw === 'Hafeez Zargar' || raw === 'Hafiz Zargar' || raw === 'KJCPL Team' || raw === 'Team' || raw.startsWith('KJIN') || raw.includes('Bureau')) {
+    let raw = (author || '').trim();
+    if (raw.includes('KJIN')) raw = raw.replace(/\bKJIN\b/g, 'KJCPL');
+    if (raw.startsWith('KCPJLN')) raw = raw.replace(/\bKCPJLN\b/g, 'KJCPL');
+    if (!raw || raw === 'Hafeez Zargar' || raw === 'Hafiz Zargar' || raw === 'KJCPL Team' || raw === 'Team') {
       if (art) return getCorrespondentByBeat(art);
       return 'KJCPL Ground Bureau';
     }
-    if (raw.includes('KJIN')) return raw.replace(/\bKJIN\b/g, 'KJCPL');
-    if (raw.startsWith('KCPJLN')) return raw.replace(/\bKCPJLN\b/g, 'KJCPL');
     return raw;
   };
 
@@ -168,64 +168,68 @@ export function ClassicEditorialTemplate({
   const leftRailAd = findAdForSlot('left_rail_sponsor');
   const sidebarAd = findAdForSlot('sidebar_banner');
 
-  // Lead Story resolution (used to guarantee 0 duplication across other slots)
+  // Global Set of claimed article IDs to guarantee ZERO duplicate stories across the entire page
+  const claimedArticleIds = new Set<string>();
+  const getCoreId = (id?: string | null) => (id || '').replace(/^db-(conflict|discover)-/, '');
+
+  // 1. Lead Story resolution (used to guarantee 0 duplication across other slots)
   const leadArticle = heroArticle || recentArticles[0] || allArticles[0] || FALLBACK_BROADSHEET_ARTICLES[0];
   const leadId = leadArticle?.id;
+  if (leadId) claimedArticleIds.add(leadId);
 
-  // Curated vs Fallback story splitting for broadsheet columns with strict cross-slot deduplication
-  const candidateSub = propSubArticles && propSubArticles.length > 0 ? propSubArticles : recentArticles.slice(0, 2);
-  const subArticles = candidateSub.filter((art) => art.id !== leadId);
+  // 2. Curated vs Fallback story splitting for broadsheet columns with strict cross-slot deduplication
+  const candidateSub = propSubArticles && propSubArticles.length > 0
+    ? propSubArticles
+    : recentArticles.filter((art) => !claimedArticleIds.has(art.id));
+  const subArticles = candidateSub.filter((art) => !claimedArticleIds.has(art.id)).slice(0, 2);
   const subIds = new Set(subArticles.map((art) => art.id));
+  subArticles.forEach((art) => claimedArticleIds.add(art.id));
 
-  const candidateWire = propWireArticles && propWireArticles.length > 0 ? propWireArticles : recentArticles.slice(2, 7);
-  const cleanWire = candidateWire.filter((art) => art.id !== leadId && !subIds.has(art.id));
-  const wireArticles =
-    cleanWire.length > 0
-      ? cleanWire
-      : recentArticles.filter((art) => art.id !== leadId && !subIds.has(art.id)).slice(0, 5);
+  // 3. Bureau Wire (strictly exclude lead and sub-leads)
+  const candidateWire = propWireArticles && propWireArticles.length > 0
+    ? propWireArticles
+    : recentArticles.filter((art) => !claimedArticleIds.has(art.id));
+  const wireArticles = candidateWire.filter((art) => !claimedArticleIds.has(art.id)).slice(0, 5);
+  wireArticles.forEach((art) => claimedArticleIds.add(art.id));
 
   const isPageTwoOrHigher = Boolean(paginationMeta && paginationMeta.currentPage > 1);
 
-  const candidateStream = propStreamArticles && propStreamArticles.length > 0 ? propStreamArticles : recentArticles.slice(2);
+  // 4. Center Broadsheet Stream
+  const candidateStream = propStreamArticles && propStreamArticles.length > 0
+    ? propStreamArticles
+    : isPageTwoOrHigher
+    ? allArticles
+    : recentArticles.filter((art) => !claimedArticleIds.has(art.id));
   const streamArticles = isPageTwoOrHigher
-    ? (propStreamArticles && propStreamArticles.length > 0 ? propStreamArticles : allArticles)
-    : candidateStream.filter((art) => art.id !== leadId && !subIds.has(art.id));
+    ? candidateStream
+    : candidateStream.filter((art) => !claimedArticleIds.has(art.id));
+  if (!isPageTwoOrHigher) {
+    streamArticles.forEach((art) => claimedArticleIds.add(art.id));
+  }
 
-  const candidateDossier = propDossierArticles && propDossierArticles.length > 0 ? propDossierArticles : recentArticles.slice(7, 13);
-  const dossierArticles = candidateDossier.filter((art) => art.id !== leadId);
+  // 5. Corridor Dossiers / Features Claim (strictly exclude articles already displayed above)
+  const candidateDossier = propDossierArticles && propDossierArticles.length > 0
+    ? propDossierArticles
+    : allArticles.filter((art) => !claimedArticleIds.has(art.id));
+  const dossierArticles = candidateDossier.filter((art) => !claimedArticleIds.has(art.id)).slice(0, 6);
+  dossierArticles.forEach((art) => claimedArticleIds.add(art.id));
 
-  // Deduplicated pool of current stories for center column with Show More support
+  // 6. Deduplicated pool of current stories for center column with Show More support
   const centerArticlesPool = (() => {
-    const seenIds = new Set<string>();
-    if (leadId) seenIds.add(leadId);
-    subIds.forEach((id) => seenIds.add(id));
-
-    const list: typeof recentArticles = [];
-
-    for (const art of [...streamArticles, ...recentArticles, ...allArticles]) {
-      if (art && art.id && !seenIds.has(art.id)) {
-        seenIds.add(art.id);
+    const list: typeof recentArticles = [...streamArticles];
+    for (const art of [...recentArticles, ...allArticles]) {
+      if (art && art.id && !claimedArticleIds.has(art.id)) {
+        claimedArticleIds.add(art.id);
         list.push(art);
       }
     }
-
-    // Only backfill if the database returned 0 articles (cold boot / unseeded database)
-    if (list.length < 6 && allArticles.length === 0 && recentArticles.length === 0) {
-      for (const art of FALLBACK_BROADSHEET_ARTICLES) {
-        if (art && art.id && !seenIds.has(art.id)) {
-          seenIds.add(art.id);
-          list.push(art);
-          if (list.length >= 6) break;
-        }
-      }
-    }
-
     return list;
   })();
 
-  const conflictNews = propConflictNews || [];
-  const discoverNews = propDiscoverNews || [];
-  const editorialArticle = propEditorialArticle?.id === leadId ? null : propEditorialArticle || null;
+  // 7. Deduplicate wire sliders against articles already shown on the page
+  const conflictNews = (propConflictNews || []).filter((item) => !claimedArticleIds.has(getCoreId(item.id)));
+  const discoverNews = (propDiscoverNews || []).filter((item) => !claimedArticleIds.has(getCoreId(item.id)));
+  const editorialArticle = propEditorialArticle && !claimedArticleIds.has(propEditorialArticle.id) ? propEditorialArticle : null;
   const civicProblemItems = (problemArticles && problemArticles.length > 0)
     ? problemArticles
     : (problemArticle ? [problemArticle] : []);
@@ -385,12 +389,8 @@ export function ClassicEditorialTemplate({
           navbarSettings={navbarSettings}
           activeRegion={scope?.regionSlug}
           activeCategory={scope?.activeCategory}
+          tickerItems={conflictNews}
         />
-
-        {/* Global War & Crisis Wire (Continuous Smooth Marquee on Mobile, Tablet & Desktop) */}
-        {!isNational && !isInternational && conflictNews && conflictNews.length > 0 && (
-          <WarConflictTickerSlider items={conflictNews} langPrefix={langPrefix} />
-        )}
 
         {/* ========================================================================= */}
         {/* Dispatches Anchor for Direct Navigation (Always visible on all screen sizes) */}
@@ -405,7 +405,7 @@ export function ClassicEditorialTemplate({
             {isPageTwoOrHigher ? (
               <>
                 {/* Archive Page Header Badge */}
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 shadow-xs font-sans">
+                <div id="dispatches-archive-mobile" className="bg-amber-50 border border-amber-200 rounded-xl p-3 shadow-xs font-sans scroll-mt-20">
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <span className="px-2 py-0.5 rounded font-bold uppercase text-[9.5px] bg-amber-100 text-amber-900 border border-amber-200">
                       Archive Edition &bull; Page {paginationMeta?.currentPage} of {paginationMeta?.totalPages}
@@ -648,12 +648,14 @@ export function ClassicEditorialTemplate({
             >
               <div className="p-2.5 sm:p-3.5 pb-2">
                 <div className="flex items-center justify-between mb-1.5 font-sans gap-1">
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8.5px] sm:text-[10px] font-bold tracking-wider uppercase bg-cyan-100/70 text-cyan-900 border border-cyan-200 truncate max-w-[190px]">
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[8.5px] sm:text-[10px] font-bold tracking-wider uppercase bg-cyan-100/70 text-cyan-900 border border-cyan-200 truncate max-w-[220px]">
                     {heroArticle?.category
-                      ? `${heroArticle.category.toUpperCase()} • INVESTIGATION`
-                      : 'CULTURE • INVESTIGATION'}
+                      ? (heroArticle.district ? `${heroArticle.category.toUpperCase()} • ${getDistrictDisplayName(heroArticle.district).toUpperCase()}` : heroArticle.category.toUpperCase())
+                      : 'LEAD STORY'}
                   </span>
-                  <span className="text-[8.5px] sm:text-[10px] text-stone-500 font-medium shrink-0">7 Min Read</span>
+                  <span className="text-[8.5px] sm:text-[10px] text-stone-500 font-mono shrink-0" suppressHydrationWarning>
+                    {heroArticle?.published_at ? formatArticleDate(heroArticle.published_at) : 'Front Page'}
+                  </span>
                 </div>
                 <h2 className="font-headline text-[17px] sm:text-[22px] text-stone-950 font-bold leading-snug sm:leading-tight">
                   <Link
@@ -1048,7 +1050,7 @@ export function ClassicEditorialTemplate({
                       category: art.district
                         ? getDistrictDisplayName(art.district).toUpperCase()
                         : art.category.toUpperCase(),
-                      time: `${(idx + 1) * 3}h ago`,
+                      time: formatTimeAgo(art.published_at),
                       title: art.title,
                       href: getArtHref(art),
                     }))
@@ -1143,17 +1145,17 @@ export function ClassicEditorialTemplate({
               </section>
             )}
 
-            {/* Discover & Frontier Sciences (Mobile Wire) */}
+            {/* Top Stories & Feature Reports (Mobile Wire) */}
             {discoverNews && discoverNews.length > 0 && (
               <section className="bg-[#0F172A] text-white p-3.5 rounded-xl shadow-xs font-sans" data-purpose="discover-wire-mobile">
                 <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-800">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-cyan-400 text-xs">🔭</span>
+                    <span className="text-cyan-400 text-xs">📰</span>
                     <h3 className="text-xs font-bold uppercase tracking-wider text-white">
-                      Discover &amp; Frontier Wire
+                      Top Stories &amp; Special Features
                     </h3>
                   </div>
-                  <span className="text-[8.5px] font-mono text-cyan-300">Global Labs</span>
+                  <span className="text-[8.5px] font-mono text-cyan-300">Special Reports</span>
                 </div>
                 <div className="space-y-2 divide-y divide-slate-800">
                   {discoverNews.slice(0, 2).map((item) => (
@@ -1308,7 +1310,7 @@ export function ClassicEditorialTemplate({
                     </span>
                   )}
                   <span className="text-slate-600">|</span>
-                  <span>Synced: {activeTelemetry.live_wire?.synced_time || 'LIVE'}</span>
+                  <span>{activeTelemetry.live_wire?.synced_time ? `${activeTelemetry.live_wire.synced_time}` : 'LIVE'}</span>
                 </div>
               </div>
             </section>
@@ -1544,8 +1546,8 @@ export function ClassicEditorialTemplate({
                           </span>
                         )}
                       </div>
-                      <span className="text-slate-400 font-mono text-[11px]">
-                        7 Min In-Depth Read
+                      <span className="text-slate-400 font-mono text-[11px]" suppressHydrationWarning>
+                        {leadArticle?.published_at ? formatArticleDate(leadArticle.published_at) : 'Front Page'}
                       </span>
                     </div>
 
@@ -1995,15 +1997,15 @@ export function ClassicEditorialTemplate({
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                           <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                            DISCOVER &amp; FRONTIER SCIENCES WIRE
+                            TOP STORIES &amp; SPECIAL FEATURES WIRE
                           </span>
-                          <span className="text-xs text-slate-400 font-mono">Open Global Research &amp; Planetary Systems</span>
+                          <span className="text-xs text-slate-400 font-mono">Special Coverage, Regional Heritage &amp; Field Analyses</span>
                         </div>
                         <h3 className="font-serif text-xl sm:text-2xl font-bold text-white">
-                          Scientific Discoveries, Climate Models &amp; Clean Energy
+                          Featured Reports, Regional Heritage &amp; Ground Analyses
                         </h3>
                       </div>
-                      <span className="text-[11px] text-slate-400 font-mono">Synced: KJCPL Science Desk &amp; Frontier Labs</span>
+                      <span className="text-[11px] text-slate-400 font-mono">KJCPL Special Reports Desk</span>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -2341,7 +2343,7 @@ export function ClassicEditorialTemplate({
             if (isPageTwoOrHigher) {
               return (
                 <>
-                  <div className="max-w-7xl xl:max-w-[1536px] 2xl:max-w-[1780px] mx-auto px-4 md:px-8 mt-6">
+                  <div id="dispatches-archive" className="max-w-7xl xl:max-w-[1536px] 2xl:max-w-[1780px] mx-auto px-4 md:px-8 mt-6 scroll-mt-20">
                     <div className="bg-white rounded-2xl border border-stone-200 p-5 shadow-sm font-sans flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div>
                         <span className="px-2.5 py-1 rounded font-bold uppercase text-[10.5px] bg-amber-100 text-amber-900 border border-amber-200 inline-block mb-1">

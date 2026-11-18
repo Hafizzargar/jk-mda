@@ -7,46 +7,52 @@ export interface CorrespondentConfig {
 
 export const TRUSTED_CORRESPONDENTS: CorrespondentConfig[] = [
   {
-    name: 'Dr. Tariq Ahmad Lone',
-    role: 'Senior Environmental & Field Editor',
-    beat: 'Ecology, Lakes, High-Altitude Infrastructure',
+    name: 'KJCPL Srinagar Bureau',
+    role: 'Central Valley Editorial Bureau',
+    beat: 'Governance, Valley Affairs, Lake Ecology & Public Interest',
     region: 'Kashmir Valley',
   },
   {
-    name: 'Pooja Jamwal',
-    role: 'Bureau Chief (Jammu)',
+    name: 'KJCPL Jammu Bureau',
+    role: 'Jammu Plains Bureau',
     beat: 'Commerce, Union Economy, Agriculture & Industry',
     region: 'Jammu Plains',
   },
   {
-    name: 'Showkat Ahmad Mir',
-    role: 'Senior Ground Correspondent',
+    name: 'KJCPL Pir Panjal Bureau',
+    role: 'Frontier Corridors Desk',
     beat: 'Frontier Dispatches, Border Infrastructure, Tourism',
     region: 'Pir Panjal',
   },
   {
-    name: 'Tariq Ahmad Mir',
-    role: 'Correspondent & Transit Analyst',
-    beat: 'Mountain Passes, Civic Works, Telemetry & Hydro',
+    name: 'KJCPL Chenab Valley Bureau',
+    role: 'Chenab Corridors Desk',
+    beat: 'Mountain Passes, Civic Works, Telemetry & Hydro Projects',
     region: 'Chenab Valley',
   },
   {
-    name: 'Stanzin Dorje',
-    role: 'Trans-Himalayan Field Analyst',
+    name: 'KJCPL Leh & Ladakh Desk',
+    role: 'Trans-Himalayan Desk',
     beat: 'High Passes, Glaciology & Strategic Transit',
     region: 'Leh & Ladakh',
   },
   {
-    name: 'Dr. Sunita Pandita',
-    role: 'Science & National Affairs Correspondent',
+    name: 'KJCPL National Bureau',
+    role: 'Union & Constitutional Affairs',
     beat: 'Union Governance, Science, Space & Public Health',
     region: 'National / All Regions',
   },
   {
-    name: 'Prof. Ramesh Koul',
-    role: 'Heritage & Cultural Desk Lead',
+    name: 'KJCPL Special Reports Desk',
+    role: 'Heritage & In-Depth Investigations',
     beat: 'Crafts, Architecture, Archeology & Oral Traditions',
     region: 'Cultural Corridors',
+  },
+  {
+    name: 'KJCPL World News Desk',
+    role: 'Foreign & Diplomatic Affairs',
+    beat: 'Multilateral Treaties, Maritime, Trade & International Wire',
+    region: 'Global Desk',
   },
   {
     name: 'KJCPL Ground Bureau',
@@ -76,7 +82,7 @@ export function getCorrespondentForArticle(article: {
     title.includes('marwah') ||
     title.includes('warwan')
   ) {
-    return 'Tariq Ahmad Mir';
+    return 'KJCPL Chenab Valley Bureau';
   }
 
   // Pir Panjal
@@ -89,7 +95,7 @@ export function getCorrespondentForArticle(article: {
     title.includes('surankote') ||
     title.includes('mandi-lorha')
   ) {
-    return 'Showkat Ahmad Mir';
+    return 'KJCPL Pir Panjal Bureau';
   }
 
   // Ladakh
@@ -101,7 +107,7 @@ export function getCorrespondentForArticle(article: {
     title.includes('zojila') ||
     title.includes('drass')
   ) {
-    return 'Stanzin Dorje';
+    return 'KJCPL Leh & Ladakh Desk';
   }
 
   // Jammu Plains / Economy
@@ -116,36 +122,46 @@ export function getCorrespondentForArticle(article: {
     title.includes('r.s. pura') ||
     title.includes('mandi')
   ) {
-    return 'Pooja Jamwal';
+    return 'KJCPL Jammu Bureau';
   }
 
-  // Culture & Heritage
+  // Culture, Heritage & Special Features
   if (
     cat.includes('culture') ||
     cat.includes('heritage') ||
+    cat.includes('environment') ||
     title.includes('saffron') ||
     title.includes('craft') ||
     title.includes('heritage') ||
-    title.includes('shawl')
+    title.includes('shawl') ||
+    title.includes('trout')
   ) {
-    return 'Prof. Ramesh Koul';
+    return 'KJCPL Special Reports Desk';
   }
 
-  // National & Science
+  // National & Space / Constitutional
   if (
     cat.includes('national') ||
-    cat.includes('science') ||
-    cat.includes('health') ||
     cat.includes('space') ||
-    cat.includes('international') ||
     title.includes('supreme court') ||
     title.includes('isro') ||
-    title.includes('rbi') ||
-    title.includes('un ')
+    title.includes('parliament') ||
+    title.includes('rbi')
   ) {
-    return 'Dr. Sunita Pandita';
+    return 'KJCPL National Bureau';
+  }
+
+  // International / Maritime / Diplomatic
+  if (
+    cat.includes('international') ||
+    title.includes('imo') ||
+    title.includes('un ') ||
+    title.includes('diploma') ||
+    title.includes('treaty')
+  ) {
+    return 'KJCPL World News Desk';
   }
 
   // Kashmir Valley default
-  return 'Dr. Tariq Ahmad Lone';
+  return 'KJCPL Srinagar Bureau';
 }

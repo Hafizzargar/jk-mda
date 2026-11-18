@@ -130,31 +130,50 @@ export function SiteFooter({
                 Newsdesk Dispatch
               </div>
               <div className="space-y-1">
+                {(contact.show_phone_numbers ?? true) && (contact.phone_primary || DEFAULT_FOOTER_CONTACT.phone_primary) ? (
+                  <div>
+                    <span className={`text-[10px] ${textMuted} block`}>
+                      {contact.phone_primary_label || 'Editorial Newsdesk Hotlines'}:
+                    </span>
+                    <a
+                      href={`tel:${(contact.phone_primary || DEFAULT_FOOTER_CONTACT.phone_primary).replace(/[^0-9+]/g, '')}`}
+                      className={`font-mono text-[11px] font-bold ${accentText} hover:underline`}
+                    >
+                      {contact.phone_primary || DEFAULT_FOOTER_CONTACT.phone_primary}
+                    </a>
+                  </div>
+                ) : null}
+                <div>
+                  <span className={`text-[10px] ${textMuted} block`}>Editorial Newsdesk:</span>
+                  <a
+                    href={`mailto:${contact.email_editorial || 'news@kjcpl.site'}`}
+                    className={`font-mono text-[11px] ${textPrimary} hover:underline break-all`}
+                  >
+                    {contact.email_editorial || 'news@kjcpl.site'}
+                  </a>
+                </div>
                 <div>
                   <span className={`text-[10px] ${textMuted} block`}>Careers &amp; Resumes:</span>
                   <a
-                    href={`mailto:${contact.email_careers || 'h26412301@gmail.com'}`}
+                    href={`mailto:${contact.email_careers || 'careers@kjcpl.site'}`}
                     className={`font-mono text-[11px] ${textPrimary} hover:underline break-all`}
                   >
-                    {contact.email_careers || 'h26412301@gmail.com'}
+                    {contact.email_careers || 'careers@kjcpl.site'}
                   </a>
                 </div>
-                <div>
-                  <span className={`text-[10px] ${textMuted} block`}>Editorial:</span>
+                <div className="pt-1.5 border-t border-slate-200/60 dark:border-slate-800/80">
+                  <div className="flex items-center justify-between">
+                    <span className={`text-[10px] ${textMuted} block font-bold uppercase`}>Public Grievance Redressal:</span>
+                    <span className="text-[9px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">IT Rules 2021</span>
+                  </div>
+                  <span className={`text-[10px] ${textSecondary} block font-medium`}>
+                    {contact.grievance_officer_name || 'Adv. Bashir Ahmad (Public Grievance Redressal Officer)'}
+                  </span>
                   <a
-                    href={`mailto:${contact.email_editorial || 'h26412301@gmail.com'}`}
-                    className={`font-mono text-[11px] ${textPrimary} hover:underline break-all`}
+                    href={`mailto:${contact.email_grievance || 'grievance@kjcpl.site'}`}
+                    className={`font-mono text-[11px] ${isDark ? 'text-amber-400' : 'text-amber-700'} hover:underline break-all block`}
                   >
-                    {contact.email_editorial || 'h26412301@gmail.com'}
-                  </a>
-                </div>
-                <div>
-                  <span className={`text-[10px] ${textMuted} block`}>Grievances:</span>
-                  <a
-                    href={`mailto:${contact.email_grievance || 'h26412301@gmail.com'}`}
-                    className={`font-mono text-[11px] ${isDark ? 'text-amber-400' : 'text-amber-700'} hover:underline break-all`}
-                  >
-                    {contact.email_grievance || 'h26412301@gmail.com'}
+                    {contact.email_grievance || 'grievance@kjcpl.site'}
                   </a>
                 </div>
               </div>
@@ -320,10 +339,10 @@ export function SiteFooter({
                   Careers &amp; Resume Submissions
                 </span>
                 <a
-                  href="mailto:h26412301@gmail.com"
+                  href={`mailto:${contact.email_careers || 'careers@kjcpl.site'}`}
                   className={`font-mono font-bold ${accentText} hover:underline break-all`}
                 >
-                  h26412301@gmail.com
+                  {contact.email_careers || 'careers@kjcpl.site'}
                 </a>
               </div>
 
@@ -332,10 +351,10 @@ export function SiteFooter({
                   Editorial Newsdesk
                 </span>
                 <a
-                  href={`mailto:${contact.email_editorial || 'h26412301@gmail.com'}`}
+                  href={`mailto:${contact.email_editorial || 'news@kjcpl.site'}`}
                   className={`font-mono ${textPrimary} hover:underline break-all`}
                 >
-                  {contact.email_editorial || 'h26412301@gmail.com'}
+                  {contact.email_editorial || 'news@kjcpl.site'}
                 </a>
               </div>
 
@@ -344,26 +363,34 @@ export function SiteFooter({
                   Press Releases &amp; Dispatches
                 </span>
                 <a
-                  href={`mailto:${contact.email_press}`}
+                  href={`mailto:${contact.email_press || 'press@kjcpl.site'}`}
                   className={`font-mono ${textSecondary} hover:underline break-all`}
                 >
-                  {contact.email_press}
+                  {contact.email_press || 'press@kjcpl.site'}
                 </a>
               </div>
 
-              <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800/80">
-                <span className={`text-[10px] font-bold uppercase tracking-wider ${textMuted} block`}>
-                  Public Grievance Redressal
-                </span>
+              <div className="pt-2.5 border-t border-slate-200/60 dark:border-slate-800/80 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${textMuted} block`}>
+                    Public Grievance Redressal
+                  </span>
+                  <span className="text-[9px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                    IT Rules 2021
+                  </span>
+                </div>
                 <span className={`text-[11px] ${textSecondary} block font-medium`}>
-                  {contact.grievance_officer_name}
+                  {contact.grievance_officer_name || 'Adv. Bashir Ahmad (Public Grievance Redressal Officer)'}
                 </span>
                 <a
-                  href={`mailto:${contact.email_grievance}`}
-                  className={`font-mono text-[11px] ${isDark ? 'text-amber-400' : 'text-amber-700'} hover:underline break-all`}
+                  href={`mailto:${contact.email_grievance || 'grievance@kjcpl.site'}`}
+                  className={`font-mono text-[11px] ${isDark ? 'text-amber-400' : 'text-amber-700'} hover:underline break-all block`}
                 >
-                  {contact.email_grievance}
+                  {contact.email_grievance || 'grievance@kjcpl.site'}
                 </a>
+                <span className={`text-[10px] ${textMuted} block pt-0.5`}>
+                  Physical Office: Press Enclave, Residency Road, Srinagar, Jammu &amp; Kashmir 190001
+                </span>
               </div>
             </div>
           </div>

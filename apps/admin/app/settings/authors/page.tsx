@@ -272,14 +272,14 @@ export default function AuthorsSettingsPage() {
               <span>Intelligent Regional Rebalance</span>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-              Instantly redistributes all stories attributed to <strong>Hafeez Zargar</strong> across the 5 regional correspondents based on their designated beat, corridor, and district.
+              Instantly redistributes all stories attributed to personal names across the 5 regional bureaus based on their designated beat, corridor, and district.
             </p>
             <ul className="text-[11px] text-slate-600 dark:text-slate-400 space-y-1 list-disc list-inside">
-              <li>Kashmir districts &rarr; <strong>Dr. Tariq Ahmad Lone</strong></li>
-              <li>Jammu &amp; Economy &rarr; <strong>Pooja Jamwal</strong></li>
-              <li>Pir Panjal &rarr; <strong>Showkat Ahmad Mir</strong></li>
-              <li>Chenab &amp; Passes &rarr; <strong>Tariq Ahmad Mir</strong></li>
-              <li>National &amp; Science &rarr; <strong>Dr. Sunita Pandita</strong></li>
+              <li>Kashmir districts &rarr; <strong>KJCPL Srinagar Bureau</strong></li>
+              <li>Jammu &amp; Economy &rarr; <strong>KJCPL Jammu Bureau</strong></li>
+              <li>Pir Panjal &rarr; <strong>KJCPL Pir Panjal Bureau</strong></li>
+              <li>Chenab &amp; Passes &rarr; <strong>KJCPL Chenab Valley Bureau</strong></li>
+              <li>National &amp; Science &rarr; <strong>KJCPL National Bureau</strong></li>
             </ul>
           </div>
 
@@ -327,7 +327,7 @@ export default function AuthorsSettingsPage() {
             <input
               value={renameReplacement}
               onChange={(e) => setRenameReplacement(e.target.value)}
-              placeholder="e.g. Dr. Tariq Ahmad Lone"
+              placeholder="e.g. KJCPL Srinagar Bureau"
               className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-white font-semibold"
             />
           </div>

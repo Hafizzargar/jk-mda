@@ -185,7 +185,7 @@ export async function POST(request: Request) {
       road_surface_temp: surfaceTemp,
       snow_depth: snowDepth,
       avalanche_hazard: avalancheHazard,
-      clearanceAgency: clearanceAgency,
+      clearance_agency: clearanceAgency,
       projected_opening_or_slot: projectedSlot,
     };
   });
@@ -198,28 +198,30 @@ export async function POST(request: Request) {
     let statLeft = item.stat_left;
     let statRight = item.stat_right;
 
-    if (item.id === 'mandi-shopian' || item.market_name.toLowerCase().includes('shopian')) {
-      if (articlesText.includes('shopian') && articlesText.includes('apple')) {
-        price = '₹1,450 – ₹1,850';
-        changePct = '+6.5%';
-        trend = 'up';
-        statLeft = 'Daily Arrival: 1.5 Lakh Boxes';
-        statRight = 'Prime Grade A Delicious';
-      }
-    } else if (item.id === 'mandi-pampore' || item.commodity_name.toLowerCase().includes('saffron')) {
-      if (articlesText.includes('saffron') || articlesText.includes('pampore')) {
-        price = '₹280 – ₹310';
-        changePct = '+4.2%';
-        trend = 'up';
-        statLeft = 'GI-Tag Traceability: 100%';
-        statRight = 'High-Altitude Mongra';
-      }
-    } else if (item.id === 'mandi-narwal' || item.market_name.toLowerCase().includes('narwal')) {
-      price = '₹2,650 – ₹2,900';
-      changePct = '+2.1%';
+    if (item.id === 'apple' || item.id === 'mandi-shopian' || item.market_name.toLowerCase().includes('sopore') || item.market_name.toLowerCase().includes('shopian') || item.commodity_name.toLowerCase().includes('apple')) {
+      price = '₹1,240';
+      changePct = '+2.8%';
       trend = 'up';
-      statLeft = 'Interstate Truck Inflow: 420';
-      statRight = 'Basmati & Winter Produce';
+      statLeft = 'Daily Arrival: 240 MT';
+      statRight = 'Strong Winter Demand';
+    } else if (item.id === 'saffron' || item.id === 'mandi-pampore' || item.commodity_name.toLowerCase().includes('saffron')) {
+      price = '₹290';
+      changePct = '+1.5%';
+      trend = 'up';
+      statLeft = 'Tested Moisture: 7.0%';
+      statRight = 'GI Certified';
+    } else if (item.id === 'basmati' || item.id === 'mandi-narwal' || item.market_name.toLowerCase().includes('narwal') || item.commodity_name.toLowerCase().includes('basmati')) {
+      price = '₹4,320';
+      changePct = '+1.1%';
+      trend = 'up';
+      statLeft = 'Daily Arrival: 155 MT';
+      statRight = 'Firm Export Demand';
+    } else if (item.id === 'pashmina' || item.commodity_name.toLowerCase().includes('pashmina')) {
+      price = '₹3,480';
+      changePct = '+3.4%';
+      trend = 'up';
+      statLeft = 'Fleece Grade: 13.5μm';
+      statRight = 'High Export Bid';
     }
 
     return {

@@ -70,8 +70,10 @@ export function CivicProblemsSlider({ articles, langPrefix }: CivicProblemsSlide
   };
 
   const cleanAuthor = (raw?: string | null, art?: ArticleItem) => {
-    const author = (raw || '').trim();
-    if (!author || author === 'Hafeez Zargar' || author === 'Hafiz Zargar' || author === 'KJCPL Team' || author === 'Team' || author.startsWith('KJIN') || author.includes('Bureau')) {
+    let author = (raw || '').trim();
+    if (author.includes('KJIN')) author = author.replace(/\bKJIN\b/g, 'KJCPL');
+    if (author.startsWith('KCPJLN')) author = author.replace(/\bKCPJLN\b/g, 'KJCPL');
+    if (!author || author === 'Hafeez Zargar' || author === 'Hafiz Zargar' || author === 'KJCPL Team' || author === 'Team') {
       if (art) return getCorrespondentByBeat(art);
       return 'KJCPL Ground Bureau';
     }

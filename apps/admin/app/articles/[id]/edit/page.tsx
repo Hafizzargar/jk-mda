@@ -734,7 +734,7 @@ export default function EditArticlePage({ params }: { params?: Promise<{ id: str
                       name="author_display_name"
                       value={authorDisplayName}
                       onChange={(e) => setAuthorDisplayName(e.target.value)}
-                      placeholder="e.g. Dr. Tariq Ahmad Lone"
+                      placeholder="e.g. KJCPL Srinagar Bureau"
                       className="w-full rounded-[8px] border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-cyan-500 focus:outline-none transition shadow-2xs font-semibold"
                     />
                   </div>

@@ -16,6 +16,8 @@ import {
   BASE_TERRITORIAL_CORRIDORS,
   getDailyRotatedCorridors,
 } from '@/lib/navbar';
+import { WarConflictTickerSlider } from '@/components/templates/WarConflictTickerSlider';
+import type { ExternalNewsItem } from '@/lib/external-news';
 
 interface SiteNavbarProps {
   lang?: string;
@@ -24,6 +26,9 @@ interface SiteNavbarProps {
   activeDistrict?: string;
   activeRegion?: string;
   navbarSettings?: NavbarSettings;
+  tickerItems?: ExternalNewsItem[];
+  hideTicker?: boolean;
+  [key: string]: any;
 }
 
 export function SiteNavbar({
@@ -32,6 +37,8 @@ export function SiteNavbar({
   activeCategory,
   activeRegion,
   navbarSettings,
+  tickerItems,
+  hideTicker = false,
 }: SiteNavbarProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -484,6 +491,11 @@ export function SiteNavbar({
           </div>
         </div>
       </nav>
+
+      {/* 2c. Top Stories Wire Ticker (Displays across all pages and sub-pages) */}
+      {!hideTicker && (
+        <WarConflictTickerSlider items={tickerItems} langPrefix={langPrefix} />
+      )}
       {/* 3. Mobile Navigation Dropdown Menu (Broadsheet Editorial Architecture) */}
       {mobileMenuOpen && (
         <div

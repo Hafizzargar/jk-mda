@@ -109,7 +109,12 @@ export default function TelemetrySettingsPage() {
   const handleGenerateAI = async () => {
     try {
       setIsGeneratingAI(true);
-      const token = await getAuthToken();
+      let token = await getAuthToken();
+      if (!token) {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        token = refreshed?.session?.access_token;
+      }
+
       const res = await fetch('/api/settings/telemetry/ai-generate', {
         method: 'POST',
         credentials: 'include',
@@ -118,8 +123,23 @@ export default function TelemetrySettingsPage() {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to generate AI bulletin');
+
+      let data: any = null;
+      const text = await res.text();
+      try {
+        data = JSON.parse(text);
+      } catch {
+        if (!res.ok) throw new Error(text || `Server returned ${res.status}`);
+      }
+
+      if (!res.ok) {
+        if (res.status === 401) {
+          toast.error('Session expired. Please sign in again.');
+          router.push('/login?next=/settings/telemetry');
+          return;
+        }
+        throw new Error(data?.error || 'Failed to generate AI bulletin');
+      }
 
       setTelemetry(prev => ({
         ...prev,
@@ -148,7 +168,11 @@ export default function TelemetrySettingsPage() {
       setErrorMsg(null);
       setSuccessMsg(null);
 
-      const token = await getAuthToken();
+      let token = await getAuthToken();
+      if (!token) {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        token = refreshed?.session?.access_token;
+      }
 
       const res = await fetch('/api/settings/telemetry/auto-sync', {
         method: 'POST',
@@ -159,16 +183,29 @@ export default function TelemetrySettingsPage() {
         },
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to auto-synchronize telemetry');
+      let data: any = null;
+      const text = await res.text();
+      try {
+        data = JSON.parse(text);
+      } catch {
+        if (!res.ok) throw new Error(text || `Server returned ${res.status} ${res.statusText}`);
       }
 
-      if (data.telemetry) {
+      if (!res.ok) {
+        if (res.status === 401) {
+          setErrorMsg('Sign-in required. Your staff session has expired. Redirecting to login...');
+          toast.error('Staff session expired. Please sign in again.');
+          setTimeout(() => router.push('/login?next=/settings/telemetry'), 1500);
+          return;
+        }
+        throw new Error(data?.error || text || 'Failed to auto-synchronize telemetry');
+      }
+
+      if (data?.telemetry) {
         setTelemetry(data.telemetry);
       }
-      setLastAutoSyncedTime(data.synced_time || 'Just now');
-      setSuccessMsg(data.message || 'Telemetry auto-synchronized from live sensors & newsroom dispatches!');
+      setLastAutoSyncedTime(data?.synced_time || 'Just now');
+      setSuccessMsg(data?.message || 'Telemetry auto-synchronized from live sensors & newsroom dispatches!');
       toast.success('Telemetry auto-synchronized with live sensors & traffic dispatches!');
     } catch (err: unknown) {
       console.error('Auto-sync failed:', err);
@@ -211,7 +248,11 @@ export default function TelemetrySettingsPage() {
       setErrorMsg(null);
       setSuccessMsg(null);
 
-      const token = await getAuthToken();
+      let token = await getAuthToken();
+      if (!token) {
+        const { data: refreshed } = await supabase.auth.refreshSession();
+        token = refreshed?.session?.access_token;
+      }
 
       const res = await fetch('/api/settings/telemetry', {
         method: 'POST',
@@ -223,9 +264,22 @@ export default function TelemetrySettingsPage() {
         body: JSON.stringify(telemetry),
       });
 
-      const data = await res.json();
+      let data: any = null;
+      const text = await res.text();
+      try {
+        data = JSON.parse(text);
+      } catch {
+        if (!res.ok) throw new Error(text || `Server returned ${res.status} ${res.statusText}`);
+      }
+
       if (!res.ok) {
-        throw new Error(data.error || 'Failed to save telemetry settings');
+        if (res.status === 401) {
+          setErrorMsg('Sign-in required. Your staff session has expired.');
+          toast.error('Staff session expired. Please sign in again.');
+          setTimeout(() => router.push('/login?next=/settings/telemetry'), 1500);
+          return;
+        }
+        throw new Error(data?.error || text || 'Failed to save telemetry settings');
       }
 
       setSuccessMsg('Regional telemetry, mountain passes & mandi data successfully updated!');

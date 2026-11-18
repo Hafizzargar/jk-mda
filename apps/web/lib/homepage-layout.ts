@@ -112,11 +112,11 @@ export const HOMEPAGE_SECTION_META: Record<HomepageSectionId, SectionMetadata> =
   },
   discover_wire: {
     id: 'discover_wire',
-    name: 'Discover & Frontier Sciences',
-    badge: 'Science Desk',
-    icon: '🔭',
+    name: 'Top Stories & Special Features',
+    badge: 'Special Reports',
+    icon: '📰',
     defaultColumn: 'full_width_bottom',
-    description: 'Global planetary research, climate models, astrophysics & energy (Phys.org)',
+    description: 'Featured reports, regional heritage, environmental investigations and ground analyses',
   },
   field_dispatches: {
     id: 'field_dispatches',
