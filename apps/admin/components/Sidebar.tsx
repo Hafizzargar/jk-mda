@@ -338,6 +338,7 @@ export function Sidebar({
   };
 
   const isSubItemActive = (sub: SubNavItem) => {
+    if (!pathname) return false;
     if (sub.href.includes('?status=published')) {
       return pathname === '/articles' && (currentSearch.includes('status=published') || (!currentSearch.includes('status=review') && !currentSearch.includes('status=draft') && !currentSearch.includes('status=archived')));
     }
@@ -357,6 +358,7 @@ export function Sidebar({
   };
 
   const isLinkActive = (item: NavItem) => {
+    if (!pathname) return false;
     if (item.exact) {
       return pathname === item.href;
     }

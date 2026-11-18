@@ -1426,10 +1426,10 @@ export default function TelemetrySettingsPage() {
                 <label className="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Banner Tag</label>
                 <input
                   type="text"
-                  value={telemetry.civic_initiative.badge}
+                  value={telemetry.civic_initiative?.badge || ''}
                   onChange={(e) => setTelemetry(prev => ({
                     ...prev,
-                    civic_initiative: { ...prev.civic_initiative, badge: e.target.value },
+                    civic_initiative: { ...(prev.civic_initiative || DEFAULT_TELEMETRY_SETTINGS.civic_initiative), badge: e.target.value },
                   }))}
                   className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-bold"
                 />
@@ -1439,10 +1439,10 @@ export default function TelemetrySettingsPage() {
                 <label className="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Initiative Title</label>
                 <input
                   type="text"
-                  value={telemetry.civic_initiative.title}
+                  value={telemetry.civic_initiative?.title || ''}
                   onChange={(e) => setTelemetry(prev => ({
                     ...prev,
-                    civic_initiative: { ...prev.civic_initiative, title: e.target.value },
+                    civic_initiative: { ...(prev.civic_initiative || DEFAULT_TELEMETRY_SETTINGS.civic_initiative), title: e.target.value },
                   }))}
                   className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-bold"
                 />
@@ -1453,10 +1453,10 @@ export default function TelemetrySettingsPage() {
               <label className="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Description</label>
               <textarea
                 rows={3}
-                value={telemetry.civic_initiative.description}
+                value={telemetry.civic_initiative?.description || ''}
                 onChange={(e) => setTelemetry(prev => ({
                   ...prev,
-                  civic_initiative: { ...prev.civic_initiative, description: e.target.value },
+                  civic_initiative: { ...(prev.civic_initiative || DEFAULT_TELEMETRY_SETTINGS.civic_initiative), description: e.target.value },
                 }))}
                 className="w-full px-3 py-2 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
               />
@@ -1467,10 +1467,10 @@ export default function TelemetrySettingsPage() {
                 <label className="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Button CTA Text</label>
                 <input
                   type="text"
-                  value={telemetry.civic_initiative.cta_text}
+                  value={telemetry.civic_initiative?.cta_text || ''}
                   onChange={(e) => setTelemetry(prev => ({
                     ...prev,
-                    civic_initiative: { ...prev.civic_initiative, cta_text: e.target.value },
+                    civic_initiative: { ...(prev.civic_initiative || DEFAULT_TELEMETRY_SETTINGS.civic_initiative), cta_text: e.target.value },
                   }))}
                   className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
                 />
@@ -1479,10 +1479,10 @@ export default function TelemetrySettingsPage() {
                 <label className="block text-[11px] font-semibold text-slate-500 uppercase mb-1">Button CTA Link</label>
                 <input
                   type="text"
-                  value={telemetry.civic_initiative.cta_link}
+                  value={telemetry.civic_initiative?.cta_link || ''}
                   onChange={(e) => setTelemetry(prev => ({
                     ...prev,
-                    civic_initiative: { ...prev.civic_initiative, cta_link: e.target.value },
+                    civic_initiative: { ...(prev.civic_initiative || DEFAULT_TELEMETRY_SETTINGS.civic_initiative), cta_link: e.target.value },
                   }))}
                   className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-mono"
                 />
