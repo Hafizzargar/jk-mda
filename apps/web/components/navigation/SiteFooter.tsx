@@ -638,45 +638,55 @@ function DeveloperSupportSection({
 
           {/* Right Column: Technical Support Actions */}
           {hasSupportContacts ? (
-            <div className={`flex flex-col sm:flex-row sm:items-center gap-3 pt-3 lg:pt-0 lg:pl-6 border-t lg:border-t-0 lg:border-l ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
+            <div className={`flex flex-col sm:flex-row sm:items-center gap-4 pt-3 lg:pt-0 lg:pl-6 border-t lg:border-t-0 lg:border-l ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
               <div className="space-y-0.5">
-                <span className={`text-[10px] font-bold uppercase tracking-wider ${textMuted} block`}>
+                <span className={`text-[10px] font-bold uppercase tracking-widest ${accentText} block`}>
                   Technical Support
                 </span>
                 <span className={`text-[11px] ${textSecondary} block`}>
-                  Infrastructure &amp; Bug Escalations
+                  Platform Infrastructure &amp; Technical Queries
                 </span>
               </div>
 
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-3">
                 {hasMail ? (
-                  <a
-                    href={`mailto:${dev.support_email}`}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-xs ${
-                      isDark
-                        ? 'bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/20'
-                        : 'bg-cyan-50 text-cyan-800 border border-cyan-200 hover:bg-cyan-100'
-                    }`}
-                    title={`Email Technical Support at ${dev.support_email}`}
-                  >
-                    <span>✉</span>
-                    <span>Mail Us</span>
-                  </a>
+                  <div className="space-y-1">
+                    <span className={`text-[9.5px] font-semibold uppercase tracking-wider ${textMuted} block`}>
+                      Email Support
+                    </span>
+                    <a
+                      href={`mailto:${dev.support_email}`}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-xs ${
+                        isDark
+                          ? 'bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/20'
+                          : 'bg-cyan-50 text-cyan-800 border border-cyan-200 hover:bg-cyan-100'
+                      }`}
+                      title={`Email Technical Support at ${dev.support_email}`}
+                    >
+                      <span>✉</span>
+                      <span>Mail Us</span>
+                    </a>
+                  </div>
                 ) : null}
 
                 {hasPhone ? (
-                  <a
-                    href={`tel:${dev.support_phone.replace(/[^0-9+]/g, '')}`}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-xs ${
-                      isDark
-                        ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/20'
-                        : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
-                    }`}
-                    title={`Call Technical Support at ${dev.support_phone}`}
-                  >
-                    <span>📞</span>
-                    <span>Call Us</span>
-                  </a>
+                  <div className="space-y-1">
+                    <span className={`text-[9.5px] font-semibold uppercase tracking-wider ${textMuted} block`}>
+                      Telephone Support
+                    </span>
+                    <a
+                      href={`tel:${dev.support_phone.replace(/[^0-9+]/g, '')}`}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-xs ${
+                        isDark
+                          ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/20'
+                          : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
+                      }`}
+                      title={`Call Technical Support at ${dev.support_phone}`}
+                    >
+                      <span>📞</span>
+                      <span>Call Us</span>
+                    </a>
+                  </div>
                 ) : null}
               </div>
             </div>

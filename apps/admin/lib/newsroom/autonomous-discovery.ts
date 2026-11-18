@@ -26,19 +26,19 @@
  */
 
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { generateSlug } from './gemini-drafter.ts';
-import { getCanonicalCategory } from '../taxonomy-options.ts';
-import { sendNewsApprovalAlert, sendAutoApprovedEmailAlert } from './email-notifier.ts';
+import { generateSlug } from './gemini-drafter';
+import { getCanonicalCategory } from '../taxonomy-options';
+import { sendNewsApprovalAlert, sendAutoApprovedEmailAlert } from './email-notifier';
 import {
   isGeminiInCooldown,
   tripCircuitBreaker,
   resetCircuitBreaker,
-} from './gemini-circuit-breaker.ts';
+} from './gemini-circuit-breaker';
 import {
   getRecommendedEditorialImage,
   determineDatelineForScope,
   sanitizeDatelineForScope,
-} from './ai-synthesizer.ts';
+} from './ai-synthesizer';
 
 export const MAX_NEWS_AGE_HOURS = 6;
 export const MAX_NEWS_AGE_MS = MAX_NEWS_AGE_HOURS * 60 * 60 * 1000;

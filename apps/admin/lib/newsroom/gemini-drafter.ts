@@ -7,9 +7,9 @@
 import { generateObject } from 'ai';
 import { google, createGoogleGenerativeAI } from '@ai-sdk/google';
 import { z } from 'zod';
-import type { MatchedResponseResult } from './response-matcher.ts';
-import { isGeminiInCooldown } from './gemini-circuit-breaker.ts';
-import { getOrderedKeyCascade, markKeyCooldown, markKeySuccess } from './gemini-keys.ts';
+import type { MatchedResponseResult } from './response-matcher';
+import { isGeminiInCooldown } from './gemini-circuit-breaker';
+import { getOrderedKeyCascade, markKeyCooldown, markKeySuccess } from './gemini-keys';
 
 export interface DraftEventInput {
   headline: string;

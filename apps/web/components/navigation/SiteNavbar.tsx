@@ -238,7 +238,9 @@ export function SiteNavbar({
     <header
       className={`w-full sticky top-0 z-50 transition-all duration-300 ${
         isScrolled
-          ? 'shadow-md bg-[#fbf9f4]/95 border-b border-stone-300/80 backdrop-blur-md'
+          ? isDark
+            ? 'shadow-md bg-slate-950/95 border-b border-slate-800 backdrop-blur-md'
+            : 'shadow-md bg-[#fbf9f4]/95 border-b border-stone-300/80 backdrop-blur-md'
           : `${navBg} ${navBorder}`
       }`}
     >
@@ -532,11 +534,9 @@ export function SiteNavbar({
         </div>
       </nav>
 
-      {/* 2c. Top Stories Wire Ticker (Displays across all pages and sub-pages; auto-collapses on scroll down to maximize reader space) */}
+      {/* 2c. Top Stories Wire Ticker (Displays across all pages and sub-pages at all scroll depths) */}
       {!hideTicker && (
-        <div className={`transition-all duration-300 overflow-hidden ${
-          isScrolled ? 'max-h-0 opacity-0 pointer-events-none' : 'max-h-16 opacity-100'
-        }`}>
+        <div className="w-full border-t border-slate-800/80">
           <WarConflictTickerSlider items={tickerItems} langPrefix={langPrefix} />
         </div>
       )}

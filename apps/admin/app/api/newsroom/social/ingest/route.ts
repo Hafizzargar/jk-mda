@@ -1,9 +1,9 @@
 import { authorizeEmployeeRequest, isEmployeeAuthorization } from '@/lib/employee-server';
 import { generateText } from 'ai';
 import { google } from '@ai-sdk/google';
-import { getCanonicalCategory } from '@/lib/taxonomy-options.ts';
-import { getRecommendedEditorialImage } from '@/lib/newsroom/ai-synthesizer.ts';
-import { sendNewsApprovalAlert } from '@/lib/newsroom/email-notifier.ts';
+import { getCanonicalCategory } from '@/lib/taxonomy-options';
+import { getRecommendedEditorialImage } from '@/lib/newsroom/ai-synthesizer';
+import { sendNewsApprovalAlert } from '@/lib/newsroom/email-notifier';
 
 export async function POST(request: Request) {
   try {

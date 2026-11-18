@@ -3,8 +3,8 @@ import 'server-only';
 import { createClient, type SupabaseClient, type User } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import { env } from '@kjin/config';
-import { requiresMfa } from './mfa.ts';
-import { extractClientIp } from './ip.ts';
+import { requiresMfa } from './mfa';
+import { extractClientIp } from './ip';
 
 type EmployeeProfile = {
   id: string;

@@ -201,7 +201,7 @@ export default async function RootLayout({
       </head>
       <body
         suppressHydrationWarning
-        className={`min-h-screen w-full max-w-full overflow-x-clip ${theme.pageBgClass} ${theme.textPrimaryClass} ${theme.fontFamilyClass} ${theme.selectionClass} antialiased transition-colors duration-200`}
+        className={`min-h-screen w-full max-w-full ${theme.pageBgClass} ${theme.textPrimaryClass} ${theme.fontFamilyClass} ${theme.selectionClass} antialiased transition-colors duration-200`}
       >
         <script
           type="application/ld+json"

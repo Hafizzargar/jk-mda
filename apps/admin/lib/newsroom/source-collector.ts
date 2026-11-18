@@ -4,7 +4,7 @@
  * Supports RSS 2.0, Atom feeds, official portal notices, WHO updates, and YouTube channel metadata.
  */
 
-import { validateSourceUrl } from './ssrf-guard.ts';
+import { validateSourceUrl } from './ssrf-guard';
 
 export interface CollectedItem {
   title: string;

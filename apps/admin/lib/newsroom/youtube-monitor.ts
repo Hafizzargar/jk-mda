@@ -7,11 +7,11 @@ import {
   determineAccurateNewsScope,
   determineDatelineForScope,
   sanitizeDatelineForScope,
-} from './ai-synthesizer.ts';
-import { getCanonicalCategory } from '../taxonomy-options.ts';
-import { sendNewsApprovalAlert } from './email-notifier.ts';
-import { generateSlug } from './gemini-drafter.ts';
-import { isGeminiInCooldown } from './gemini-circuit-breaker.ts';
+} from './ai-synthesizer';
+import { getCanonicalCategory } from '../taxonomy-options';
+import { sendNewsApprovalAlert } from './email-notifier';
+import { generateSlug } from './gemini-drafter';
+import { isGeminiInCooldown } from './gemini-circuit-breaker';
 
 export interface YouTubeChannelMeta {
   channelId: string;

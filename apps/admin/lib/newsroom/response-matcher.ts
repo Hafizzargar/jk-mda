@@ -4,8 +4,8 @@
  * Distinguishes confirmed relevance from possible matches, missing updates, and failed checks.
  */
 
-import type { EventCategory } from './district-classifier.ts';
-import type { CollectedItem } from './source-collector.ts';
+import type { EventCategory } from './district-classifier';
+import type { CollectedItem } from './source-collector';
 
 export type MatchStatus =
   | 'confirmed_relevant'

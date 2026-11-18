@@ -10,8 +10,8 @@
  * 3. Curated High-Resolution Editorial News Image Library (replaces ugly/cluttered YouTube thumbnails)
  */
 
-import { getCanonicalCategory } from '../taxonomy-options.ts';
-import { getOrderedKeyCascade, markKeyCooldown, markKeySuccess } from './gemini-keys.ts';
+import { getCanonicalCategory } from '../taxonomy-options';
+import { getOrderedKeyCascade, markKeyCooldown, markKeySuccess } from './gemini-keys';
 
 export interface EditorialImageOption {
   url: string;
