@@ -110,6 +110,15 @@ const COMMANDS: CommandItem[] = [
     roles: ['owner', 'superadmin', 'admin'],
   },
   {
+    id: 'developer-settings',
+    title: 'Developer Attribution & Technical Support',
+    category: 'Settings',
+    description: 'Configure website engineering attribution, developer website, and visitor tech support hotlines',
+    href: '/settings/developer',
+    icon: '💻',
+    roles: ['owner', 'superadmin', 'admin'],
+  },
+  {
     id: 'public-site',
     title: 'Open Public Reader Website',
     category: 'External',

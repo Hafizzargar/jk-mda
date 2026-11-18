@@ -259,6 +259,21 @@ export default function FooterSettingsPage() {
           </div>
         )}
 
+        {/* Quick Link to Developer & Tech Support */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-cyan-950/30 border border-cyan-500/20">
+          <div className="flex items-center gap-2.5 text-xs text-slate-300">
+            <span className="text-base">💻</span>
+            <span>Looking for <strong>Website Development &amp; Technical Support</strong> controls (Mail Us, Call Us, Dev Team attribution)?</span>
+          </div>
+          <Link
+            href="/settings/developer"
+            className="shrink-0 px-3 py-1.5 rounded-lg bg-cyan-600/80 hover:bg-cyan-500 text-white text-xs font-bold transition flex items-center gap-1.5"
+          >
+            <span>Developer Support Controls</span>
+            <span>&rarr;</span>
+          </Link>
+        </div>
+
         {/* Navigation Tabs */}
         <div className="flex items-center gap-2 border-b border-slate-800 overflow-x-auto pb-px">
           {[

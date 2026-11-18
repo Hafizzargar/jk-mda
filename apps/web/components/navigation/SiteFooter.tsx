@@ -2,6 +2,11 @@ import Link from 'next/link';
 import { SITE_SHORT_NAME } from '@/lib/config';
 import { REGIONAL_DIVISIONS } from '@/lib/taxonomy';
 import { DEFAULT_FOOTER_CONTACT, sanitizeContactSettings, type FooterContactSettings } from '@/lib/contact';
+import {
+  DEFAULT_DEVELOPER_SUPPORT,
+  sanitizeDeveloperSupportSettings,
+  type DeveloperSupportSettings,
+} from '@/lib/developer-support';
 import { type TemplateTheme } from '@/lib/templates';
 import type { NavbarBrandConfig } from '@/lib/navbar';
 
@@ -10,6 +15,7 @@ interface SiteFooterProps {
   theme?: TemplateTheme;
   contactSettings?: Partial<FooterContactSettings> | null;
   brandSettings?: Partial<NavbarBrandConfig> | null;
+  developerSettings?: Partial<DeveloperSupportSettings> | null;
   variant?: 'full' | 'compact';
 }
 
@@ -18,9 +24,13 @@ export function SiteFooter({
   theme,
   contactSettings,
   brandSettings,
+  developerSettings,
   variant = 'compact',
 }: SiteFooterProps) {
   const contact: FooterContactSettings = sanitizeContactSettings(contactSettings || DEFAULT_FOOTER_CONTACT);
+  const dev: DeveloperSupportSettings = sanitizeDeveloperSupportSettings(
+    developerSettings || contact.developer_support || DEFAULT_DEVELOPER_SUPPORT
+  );
   const langPrefix = lang === 'en' ? '' : `/${lang}`;
   const isDark = theme?.isDark ?? false;
 
@@ -183,6 +193,20 @@ export function SiteFooter({
               </div>
             </div>
           </div>
+
+          {/* Dedicated Website Development & Support Section */}
+          {dev.footer_position !== 'subfooter' && (
+            <DeveloperSupportSection
+              dev={dev}
+              isDark={isDark}
+              cardBg={cardBg}
+              cardBorder={cardBorder}
+              textPrimary={textPrimary}
+              textSecondary={textSecondary}
+              textMuted={textMuted}
+              accentText={accentText}
+            />
+          )}
         </div>
 
         {/* Sub-Footer Bar */}
@@ -191,6 +215,13 @@ export function SiteFooter({
             <div className={textMuted}>
               &copy; {new Date().getFullYear()} {brandName}{brandFullName ? ` (${brandFullName})` : ''}. All editorial rights reserved.
             </div>
+
+            <SubfooterDeveloperSnippet
+              dev={dev}
+              isDark={isDark}
+              textMuted={textMuted}
+              textSecondary={textSecondary}
+            />
 
             <div className="flex flex-wrap items-center justify-center gap-3 text-xs font-semibold">
               <Link href={`${langPrefix}/category/investigation`} className={`${textMuted} hover:${textPrimary}`}>
@@ -480,6 +511,20 @@ export function SiteFooter({
             </div>
           </div>
         </div>
+
+        {/* Dedicated Website Development & Support Section */}
+        {dev.footer_position !== 'subfooter' && (
+          <DeveloperSupportSection
+            dev={dev}
+            isDark={isDark}
+            cardBg={cardBg}
+            cardBorder={cardBorder}
+            textPrimary={textPrimary}
+            textSecondary={textSecondary}
+            textMuted={textMuted}
+            accentText={accentText}
+          />
+        )}
       </div>
 
       {/* 2. Sub-Footer Bar */}
@@ -488,6 +533,13 @@ export function SiteFooter({
           <div className={textMuted}>
             &copy; {new Date().getFullYear()} {brandName}{brandFullName ? ` (${brandFullName})` : ''}. All editorial rights reserved.
           </div>
+
+          <SubfooterDeveloperSnippet
+            dev={dev}
+            isDark={isDark}
+            textMuted={textMuted}
+            textSecondary={textSecondary}
+          />
 
           <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-semibold">
             <Link href={`${langPrefix}/category/investigation`} className={`${textMuted} hover:${textPrimary}`}>
@@ -505,5 +557,164 @@ export function SiteFooter({
         </div>
       </div>
     </footer>
+  );
+}
+
+function DeveloperSupportSection({
+  dev,
+  isDark,
+  cardBg,
+  cardBorder,
+  textPrimary,
+  textSecondary,
+  textMuted,
+  accentText,
+}: {
+  dev: DeveloperSupportSettings;
+  isDark: boolean;
+  cardBg: string;
+  cardBorder: string;
+  textPrimary: string;
+  textSecondary: string;
+  textMuted: string;
+  accentText: string;
+}) {
+  if (!dev.show_developer_section) return null;
+
+  const mobileVisibilityClass = dev.show_on_mobile ? 'block' : 'hidden md:block';
+  const hasMail = dev.show_mail_us && Boolean(dev.support_email?.trim());
+  const hasPhone = dev.show_call_us && Boolean(dev.support_phone?.trim());
+  const hasSupportContacts = hasMail || hasPhone;
+
+  return (
+    <div
+      className={`${mobileVisibilityClass} mt-8 pt-6 border-t ${isDark ? 'border-slate-800/80' : 'border-slate-200/80'}`}
+      data-purpose="developer-technical-support"
+    >
+      <div className={`p-4 sm:p-5 rounded-2xl border ${cardBorder} ${cardBg} shadow-xs`}>
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:gap-6">
+          {/* Left Column: Website Development & Support Attribution */}
+          <div className="space-y-1.5 max-w-xl">
+            <div className="flex items-center gap-2">
+              <span className={`text-[10px] font-bold uppercase tracking-widest ${accentText} flex items-center gap-1.5`}>
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-pulse" />
+                Website Development &amp; Support
+              </span>
+              <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded border ${isDark ? 'bg-slate-800/60 text-slate-400 border-slate-700' : 'bg-stone-100 text-stone-600 border-stone-200'}`}>
+                Platform Infrastructure
+              </span>
+            </div>
+
+            <div className="text-xs">
+              <span className={`text-[10px] uppercase tracking-wider ${textMuted} font-semibold block`}>
+                Developed &amp; Maintained By
+              </span>
+              {dev.developer_website ? (
+                <a
+                  href={dev.developer_website}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`text-sm font-bold ${textPrimary} hover:${accentText} hover:underline inline-flex items-center gap-1 transition`}
+                >
+                  <span>{dev.developer_name}</span>
+                  <span className="text-xs text-slate-400">&nearr;</span>
+                </a>
+              ) : (
+                <span className={`text-sm font-bold ${textPrimary}`}>
+                  {dev.developer_name}
+                </span>
+              )}
+            </div>
+
+            {dev.developer_description ? (
+              <p className={`text-[11px] ${textSecondary} leading-relaxed`}>
+                {dev.developer_description}
+              </p>
+            ) : null}
+          </div>
+
+          {/* Right Column: Technical Support Actions */}
+          {hasSupportContacts ? (
+            <div className={`flex flex-col sm:flex-row sm:items-center gap-3 pt-3 lg:pt-0 lg:pl-6 border-t lg:border-t-0 lg:border-l ${isDark ? 'border-slate-800' : 'border-slate-200'}`}>
+              <div className="space-y-0.5">
+                <span className={`text-[10px] font-bold uppercase tracking-wider ${textMuted} block`}>
+                  Technical Support
+                </span>
+                <span className={`text-[11px] ${textSecondary} block`}>
+                  Infrastructure &amp; Bug Escalations
+                </span>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {hasMail ? (
+                  <a
+                    href={`mailto:${dev.support_email}`}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-xs ${
+                      isDark
+                        ? 'bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/20'
+                        : 'bg-cyan-50 text-cyan-800 border border-cyan-200 hover:bg-cyan-100'
+                    }`}
+                    title={`Email Technical Support at ${dev.support_email}`}
+                  >
+                    <span>✉</span>
+                    <span>Mail Us</span>
+                  </a>
+                ) : null}
+
+                {hasPhone ? (
+                  <a
+                    href={`tel:${dev.support_phone.replace(/[^0-9+]/g, '')}`}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition shadow-xs ${
+                      isDark
+                        ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/20'
+                        : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
+                    }`}
+                    title={`Call Technical Support at ${dev.support_phone}`}
+                  >
+                    <span>📞</span>
+                    <span>Call Us</span>
+                  </a>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SubfooterDeveloperSnippet({
+  dev,
+  isDark,
+  textMuted,
+  textSecondary,
+}: {
+  dev: DeveloperSupportSettings;
+  isDark: boolean;
+  textMuted: string;
+  textSecondary: string;
+}) {
+  if (!dev.show_developer_section || dev.footer_position !== 'subfooter') return null;
+  const mobileVisibilityClass = dev.show_on_mobile ? 'block' : 'hidden md:block';
+  const hasMail = dev.show_mail_us && Boolean(dev.support_email?.trim());
+  const hasPhone = dev.show_call_us && Boolean(dev.support_phone?.trim());
+
+  return (
+    <div className={`${mobileVisibilityClass} text-[11px] ${textMuted} flex items-center gap-2 mt-2 sm:mt-0`}>
+      <span>Developed by {dev.developer_name}</span>
+      {(hasMail || hasPhone) && <span>•</span>}
+      {hasMail && (
+        <a href={`mailto:${dev.support_email}`} className={`${textSecondary} hover:underline font-semibold`}>
+          Mail Support
+        </a>
+      )}
+      {hasMail && hasPhone && <span>•</span>}
+      {hasPhone && (
+        <a href={`tel:${dev.support_phone.replace(/[^0-9+]/g, '')}`} className={`${textSecondary} hover:underline font-semibold`}>
+          Call Support
+        </a>
+      )}
+    </div>
   );
 }

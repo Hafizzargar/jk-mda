@@ -1,4 +1,9 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import {
+  DEFAULT_DEVELOPER_SUPPORT,
+  sanitizeDeveloperSupportSettings,
+  type DeveloperSupportSettings,
+} from './developer-support';
 
 export interface FooterContactSettings {
   organization_name: string;
@@ -6,6 +11,7 @@ export interface FooterContactSettings {
   description: string;
   editor_in_chief?: string;
   show_editor_in_chief?: boolean;
+  developer_support?: DeveloperSupportSettings;
   primary_address: string;
   primary_address_label: string;
   show_primary_address?: boolean;
@@ -37,6 +43,7 @@ export const DEFAULT_FOOTER_CONTACT: FooterContactSettings = {
   description: 'Independent, non-partisan journal of record dedicated to verified investigative reporting, regional public affairs, and civic documentation across Jammu, Kashmir, and Ladakh.',
   editor_in_chief: 'Hafiz Zargar',
   show_editor_in_chief: true,
+  developer_support: DEFAULT_DEVELOPER_SUPPORT,
   primary_address: 'Press Enclave, Residency Road, Srinagar, Jammu & Kashmir 190001',
   primary_address_label: 'Srinagar Central Bureau & Headquarters',
   show_primary_address: true,
@@ -133,6 +140,7 @@ export function sanitizeContactSettings(input: Partial<FooterContactSettings>): 
     social_whatsapp: sanitizeSocialHandle(input.social_whatsapp, DEFAULT_FOOTER_CONTACT.social_whatsapp, ['channel/kjin'], 'channel/kjcpl'),
     social_telegram: sanitizeSocialHandle(input.social_telegram, DEFAULT_FOOTER_CONTACT.social_telegram, ['kjin_wire', 'kjin_live'], 'kjcpl_news'),
     social_youtube: sanitizeSocialHandle(input.social_youtube, DEFAULT_FOOTER_CONTACT.social_youtube, ['@kjin_live', '@kjin_wire', '@kjinnews'], '@kjcpl_news'),
+    developer_support: sanitizeDeveloperSupportSettings(input.developer_support),
   };
 }
 
@@ -141,11 +149,34 @@ import { getCachedSiteSetting } from './site-settings-cache';
 export async function getFooterContactSettings(supabase: SupabaseClient): Promise<FooterContactSettings> {
   try {
     const value = await getCachedSiteSetting<Partial<FooterContactSettings>>(supabase, 'footer_contact');
-    if (value) {
-      return sanitizeContactSettings(value);
+    const devSetting = await getCachedSiteSetting<Partial<DeveloperSupportSettings>>(supabase, 'developer_support');
+
+    const result = sanitizeContactSettings(value || DEFAULT_FOOTER_CONTACT);
+    if (devSetting) {
+      result.developer_support = sanitizeDeveloperSupportSettings(devSetting);
     }
+    return result;
   } catch (err) {
     console.error('Failed to load footer contact settings from DB:', err);
   }
-  return DEFAULT_FOOTER_CONTACT;
+  return {
+    ...DEFAULT_FOOTER_CONTACT,
+    developer_support: { ...DEFAULT_DEVELOPER_SUPPORT },
+  };
+}
+
+export async function getDeveloperSupportSettings(supabase: SupabaseClient): Promise<DeveloperSupportSettings> {
+  try {
+    const devSetting = await getCachedSiteSetting<Partial<DeveloperSupportSettings>>(supabase, 'developer_support');
+    if (devSetting) {
+      return sanitizeDeveloperSupportSettings(devSetting);
+    }
+    const footerSetting = await getCachedSiteSetting<Partial<FooterContactSettings>>(supabase, 'footer_contact');
+    if (footerSetting?.developer_support) {
+      return sanitizeDeveloperSupportSettings(footerSetting.developer_support);
+    }
+  } catch (err) {
+    console.error('Failed to load developer support settings from DB:', err);
+  }
+  return DEFAULT_DEVELOPER_SUPPORT;
 }

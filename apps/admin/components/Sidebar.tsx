@@ -292,6 +292,15 @@ export function Sidebar({
                 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/40 font-bold',
             },
             {
+              name: 'Developer & Tech Support',
+              href: '/settings/developer',
+              icon: '💻',
+              roles: ['owner', 'superadmin', 'admin'],
+              badge: 'Support',
+              badgeColor:
+                'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/40 font-bold',
+            },
+            {
               name: 'Festive & Celebrations',
               href: '/settings/celebrations',
               icon: '🎆',
