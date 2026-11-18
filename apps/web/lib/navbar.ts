@@ -140,7 +140,7 @@ export interface NavbarSettings {
 
 export const DEFAULT_NAVBAR_SETTINGS: NavbarSettings = {
   brand: {
-    logo_url: '/kjin-emblem.png',
+    logo_url: '/kjcpl-emblem.png',
     show_logo_image: true,
     name: 'KJCPL',
     full_name: 'Kashmir Jammu Chenab Pir Panjal Leh Network',
@@ -183,7 +183,7 @@ export const DEFAULT_NAVBAR_SETTINGS: NavbarSettings = {
     latest_wire_label: 'Latest Wire',
     show_submit_tip: true,
     submit_tip_label: 'Submit Tip',
-    submit_tip_url: 'mailto:editorial@kjin.org?subject=News%20Tip%20Dispatch',
+    submit_tip_url: 'mailto:editorial@kjcpl.site?subject=News%20Tip%20Dispatch',
     daily_corridor_rotation: true,
   },
 };
@@ -203,10 +203,10 @@ export function sanitizeNavbarSettings(raw: unknown): NavbarSettings {
   const sanitizedBrandName = (rawBrandName === 'KCPJLN' || rawBrandName === 'KJIN') ? 'KJCPL' : rawBrandName;
 
   const rawBrandFullName = typeof rawBrand.full_name === 'string' ? rawBrand.full_name.trim().slice(0, 150) : (DEFAULT_NAVBAR_SETTINGS.brand.full_name || '');
-  const sanitizedBrandFullName = rawBrandFullName.replace(/Kashmir Chenab Panjal Jammu Ladakh Network|Kashmir & Jammu Information Network/gi, 'KJCPL News Network');
+  const sanitizedBrandFullName = rawBrandFullName.replace(/Kashmir Chenab Panjal Jammu Ladakh Network|Kashmir & Jammu Information Network|Kashmir Jammu Independent News/gi, 'Kashmir Jammu Chenab Pir Panjal Leh Network');
 
   const rawLogo = typeof rawBrand.logo_url === 'string' && rawBrand.logo_url.trim() ? rawBrand.logo_url.trim() : DEFAULT_NAVBAR_SETTINGS.brand.logo_url;
-  const sanitizedLogo = rawLogo.includes('kcpjln') ? '/kjin-emblem.png' : rawLogo;
+  const sanitizedLogo = (rawLogo.includes('kcpjln') || rawLogo.includes('kjin')) ? '/kjcpl-emblem.png' : rawLogo;
 
   const brand: NavbarBrandConfig = {
     logo_url: sanitizedLogo,

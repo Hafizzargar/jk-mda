@@ -30,6 +30,7 @@ type Article = {
   author_id: string;
   archive_reason?: string | null;
   archived_at?: string | null;
+  featured_image_url?: string | null;
 };
 
 type TopicMode = 'news' | 'civic' | 'all';
@@ -343,27 +344,40 @@ function ArticlesPageContent() {
       key: 'title',
       header: 'Article',
       render: (article) => (
-        <div>
-          <Link
-            href={`/articles/${article.id}`}
-            className="font-bold text-slate-900 hover:text-cyan-700 text-sm leading-snug dark:text-white dark:hover:text-cyan-300 transition-colors"
-          >
-            {article.title}
-          </Link>
-          <p className="mt-1 text-xs text-slate-600 font-mono font-medium truncate max-w-sm dark:text-slate-400">
-            {article.slug}
-          </p>
-          <div className="mt-2 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
-            {article.category ? (
-              <span className="rounded-[6px] bg-slate-100 border border-slate-300 px-2 py-0.5 font-bold text-slate-800 text-[11px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200">
-                {article.category}
-              </span>
-            ) : null}
-            {article.district ? (
-              <span className="capitalize font-semibold text-slate-700 dark:text-slate-300">
-                📍 {article.district}
-              </span>
-            ) : null}
+        <div className="flex items-start gap-3">
+          {article.featured_image_url ? (
+            <img
+              src={article.featured_image_url}
+              alt=""
+              className="w-11 h-11 rounded-lg object-cover shrink-0 border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-900"
+            />
+          ) : (
+            <div className="w-11 h-11 rounded-lg bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 flex items-center justify-center shrink-0 text-slate-400 text-xs font-serif">
+              📰
+            </div>
+          )}
+          <div className="min-w-0">
+            <Link
+              href={`/articles/${article.id}`}
+              className="font-bold text-slate-900 hover:text-cyan-700 text-sm leading-snug dark:text-white dark:hover:text-cyan-300 transition-colors"
+            >
+              {article.title}
+            </Link>
+            <p className="mt-0.5 text-xs text-slate-600 font-mono font-medium truncate max-w-sm dark:text-slate-400">
+              {article.slug}
+            </p>
+            <div className="mt-1.5 flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+              {article.category ? (
+                <span className="rounded-[6px] bg-slate-100 border border-slate-300 px-2 py-0.5 font-bold text-slate-800 text-[11px] dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200">
+                  {article.category}
+                </span>
+              ) : null}
+              {article.district ? (
+                <span className="capitalize font-semibold text-slate-700 dark:text-slate-300">
+                  📍 {article.district}
+                </span>
+              ) : null}
+            </div>
           </div>
         </div>
       ),
@@ -429,11 +443,14 @@ function ArticlesPageContent() {
     {
       key: 'updated_at',
       header: 'Last Updated',
-      width: '130px',
+      width: '140px',
       render: (article) => (
-        <span className="whitespace-nowrap text-slate-700 font-semibold text-xs dark:text-slate-300">
-          {new Date(article.updated_at).toLocaleDateString()}
-        </span>
+        <div className="whitespace-nowrap text-slate-700 font-semibold text-xs dark:text-slate-300">
+          <div>{new Date(article.updated_at).toLocaleDateString()}</div>
+          <div className="text-[10px] text-slate-500 font-mono mt-0.5">
+            {new Date(article.updated_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+          </div>
+        </div>
       ),
     },
     {

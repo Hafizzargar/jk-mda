@@ -281,8 +281,8 @@ export function ArticleReadingDesk({
                   </div>
                 </div>
                 <figcaption className="flex items-center justify-between text-xs font-sans text-slate-500 px-1">
-                  <span>Ground documentation photo verified by {brandName} Visual Desk.</span>
-                  <span className="font-semibold text-slate-700">Photo: {brandName} Archive</span>
+                  <span>{article.featured_image_url?.includes('unsplash.com') ? 'Representational image' : `Ground documentation photo verified by ${brandName} Visual Desk.`}</span>
+                  <span className="font-semibold text-slate-700">{article.featured_image_url?.includes('unsplash.com') ? 'Representational image / Unsplash' : `Photo: ${brandName} Archive`}</span>
                 </figcaption>
               </figure>
             )}

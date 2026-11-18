@@ -5,6 +5,9 @@
  * with 3-second timeout protection, Next.js ISR revalidation, and verified fallbacks.
  */
 
+import { createServerAnonClient } from './supabase-server';
+import { getCategorySlug } from './taxonomy';
+
 export interface ExternalNewsItem {
   id: string;
   title: string;
@@ -55,15 +58,15 @@ const FALLBACK_WAR_NEWS: ExternalNewsItem[] = [
     summary: 'Global commercial shipping reroutes around Cape of Good Hope as regional air defense units engage low-flying unmanned attack craft.',
   },
   {
-    id: 'quake-seismic-4',
-    title: 'Earthquake Alert: Magnitude 5.6 Seismic Tremor Strikes Hindu Kush Fault; Strong Shocks Felt Across Kashmir, Doda & Ladakh',
+    id: 'war-un-ai-treaty-4',
+    title: 'UN Disarmament Commission Convenes Geneva Talks on Lethal Autonomous Weapons Systems and Military AI Controls',
     url: 'https://news.un.org/en/news/topic/peace-and-security',
     publishedAt: new Date(Date.now() - 1000 * 60 * 110).toISOString(),
-    source: 'Seismic Telemetry Bureau',
-    category: 'disaster',
-    badge: 'SEISMIC FAULT',
-    location: 'EARTHQUAKE ALERT',
-    summary: 'Disaster management authorities issue immediate structural advisory across mountain corridors following 185km deep tectonic shock.',
+    source: 'UN Disarmament Desk',
+    category: 'geopolitics',
+    badge: 'UN TALKS',
+    location: 'GENEVA / NEW YORK',
+    summary: 'Intergovernmental delegates convene at Palais des Nations in Geneva for multi-day deliberations on regulatory principles for autonomous military systems.',
   },
   {
     id: 'war-lebanon-5',
@@ -132,16 +135,62 @@ const FALLBACK_DISCOVER_NEWS: ExternalNewsItem[] = [
   },
 ];
 
-function cleanXmlText(text: string): string {
-  return text
+export function truncateTeaser(text: string, maxLength = 160): string {
+  if (!text || text.length <= maxLength) return text;
+  const sub = text.slice(0, maxLength);
+  const lastSpace = sub.lastIndexOf(' ');
+  const clean = (lastSpace > 40 ? sub.slice(0, lastSpace) : sub).replace(/[,\s.;:!?—–-]+$/, '');
+  return `${clean}…`;
+}
+
+export function cleanXmlText(text: string): string {
+  if (!text) return '';
+  let res = text
     .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .trim();
+    .replace(/<[^>]+>/g, '');
+
+  const entityMap: Record<string, string> = {
+    '&apos;': "'",
+    '&quot;': '"',
+    '&lt;': '<',
+    '&gt;': '>',
+    '&nbsp;': ' ',
+    '&mdash;': '—',
+    '&ndash;': '–',
+    '&hellip;': '…',
+    '&lsquo;': '‘',
+    '&rsquo;': '’',
+    '&ldquo;': '“',
+    '&rdquo;': '”',
+    '&amp;': '&',
+  };
+
+  let prev = '';
+  let passes = 0;
+  while (res !== prev && passes < 3) {
+    prev = res;
+    passes++;
+    // Decimal entities: handles &#39;, &#039;, &#8217;, etc.
+    res = res.replace(/&#(\d+);/g, (_, dec) => {
+      const code = parseInt(dec, 10);
+      return isNaN(code) ? _ : String.fromCharCode(code);
+    });
+
+    // Hexadecimal entities: handles &#x27;, &#x2019;, etc.
+    res = res.replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => {
+      const code = parseInt(hex, 16);
+      return isNaN(code) ? _ : String.fromCharCode(code);
+    });
+
+    // Named entities
+    res = res.replace(/&(?:apos|quot|lt|gt|nbsp|mdash|ndash|hellip|lsquo|rsquo|ldquo|rdquo|amp);/gi, (m) => {
+      const lower = m.toLowerCase();
+      return entityMap[lower] || m;
+    });
+  }
+
+  // Final trim and whitespace normalization
+  return res.replace(/\s+/g, ' ').trim();
 }
 
 export function detectLocationAndBadge(title: string, summary?: string): {
@@ -228,7 +277,8 @@ function parseRssToItems(
         }
       }
 
-      const summary = descMatch ? cleanXmlText(descMatch[1]).slice(0, 160) : undefined;
+      const rawDesc = descMatch ? cleanXmlText(descMatch[1]) : undefined;
+      const summary = rawDesc ? truncateTeaser(rawDesc, 160) : undefined;
       let badge = assignDiscoverBadge(title);
       let itemLocation: string | undefined = undefined;
       let effectiveCategory: ExternalNewsItem['category'] = category;
@@ -270,35 +320,52 @@ let isFetchingDiscover = false;
 
 const EXTERNAL_NEWS_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes in-memory cache
 
+const WAR_RSS_FEEDS = [
+  {
+    url: 'https://feeds.bbci.co.uk/news/world/rss.xml',
+    source: 'BBC World Wire',
+  },
+  {
+    url: 'https://www.aljazeera.com/xml/rss/all.xml',
+    source: 'Al Jazeera World Desk',
+  },
+  {
+    url: 'https://news.un.org/feed/subscribe/en/news/topic/peace-and-security/feed/rss.xml',
+    source: 'UN Peace & Security',
+  },
+];
+
 async function refreshWarNewsInBackground(limit: number): Promise<void> {
   if (isFetchingWar) return;
   isFetchingWar = true;
   try {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+    for (const feed of WAR_RSS_FEEDS) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
 
-    const response = await fetch(
-      'https://news.un.org/feed/subscribe/en/news/topic/peace-and-security/feed/rss.xml',
-      {
-        signal: controller.signal,
-        headers: {
-          'User-Agent': 'KJCPL-Editorial-Radar/1.0 (+https://kjinnews.com)',
-          Accept: 'application/rss+xml, application/xml, text/xml',
-        },
-      }
-    );
-    clearTimeout(timeoutId);
+        const response = await fetch(feed.url, {
+          signal: controller.signal,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) KJCPL-Editorial-Radar/1.0',
+            Accept: 'application/rss+xml, application/xml, text/xml, */*',
+          },
+        });
+        clearTimeout(timeoutId);
 
-    if (response.ok) {
-      const xml = await response.text();
-      const parsed = parseRssToItems(xml, 'UN Peace & Security', 'war', limit);
-      if (parsed.length > 0) {
-        cachedWarNews = parsed;
-        lastWarFetchTime = Date.now();
+        if (response.ok) {
+          const xml = await response.text();
+          const parsed = parseRssToItems(xml, feed.source, 'war', limit);
+          if (parsed && parsed.length >= 3) {
+            cachedWarNews = parsed;
+            lastWarFetchTime = Date.now();
+            return;
+          }
+        }
+      } catch {
+        // Try next feed
       }
     }
-  } catch {
-    // Keep fallback or existing cache
   } finally {
     isFetchingWar = false;
   }
@@ -314,8 +381,8 @@ async function refreshDiscoverNewsInBackground(limit: number): Promise<void> {
     const response = await fetch('https://phys.org/rss-feed/', {
       signal: controller.signal,
       headers: {
-        'User-Agent': 'KJCPL-Editorial-Radar/1.0 (+https://kjinnews.com)',
-        Accept: 'application/rss+xml, application/xml, text/xml',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) KJCPL-Editorial-Radar/1.0',
+        Accept: 'application/rss+xml, application/xml, text/xml, */*',
       },
     });
     clearTimeout(timeoutId);
@@ -336,7 +403,7 @@ async function refreshDiscoverNewsInBackground(limit: number): Promise<void> {
 }
 
 /**
- * Fetch real-time War, Defense, and Conflict Radar News (Non-blocking Stale-While-Revalidate)
+ * Fetch real-time War, Defense, and Conflict Radar News (Non-blocking Stale-While-Revalidate with DB fallback)
  */
 export async function getWarAndConflictNews(limit = 6): Promise<ExternalNewsItem[]> {
   const now = Date.now();
@@ -352,8 +419,53 @@ export async function getWarAndConflictNews(limit = 6): Promise<ExternalNewsItem
     return cachedWarNews.slice(0, limit);
   }
 
-  // 3. Cold start: trigger background refresh, return verified curated seed immediately (0ms)
-  refreshWarNewsInBackground(limit).catch(() => {});
+  // 3. Cold start: wait up to 2500ms for live RSS feeds so cold SSR gets real live items
+  try {
+    await Promise.race([
+      refreshWarNewsInBackground(limit),
+      new Promise((res) => setTimeout(res, 2500)),
+    ]);
+  } catch {
+    // proceed to fallback
+  }
+
+  if (cachedWarNews && cachedWarNews.length > 0) {
+    return cachedWarNews.slice(0, limit);
+  }
+
+  // 4. Resilient DB fallback: If external feeds blocked, query our verified published articles
+  try {
+    const supabase = createServerAnonClient();
+    const { data: dbArticles } = await supabase
+      .from('articles')
+      .select('id, title, slug, excerpt, category, district, published_at')
+      .eq('status', 'published')
+      .or('category.ilike.international,category.ilike.national,category.ilike.investigation,category.ilike.politics')
+      .order('published_at', { ascending: false, nullsFirst: false })
+      .limit(limit);
+
+    if (dbArticles && dbArticles.length > 0) {
+      const dynamicItems: ExternalNewsItem[] = dbArticles.map((a, i) => {
+        const detected = detectLocationAndBadge(a.title, a.excerpt || undefined);
+        return {
+          id: `db-conflict-${a.id}`,
+          title: cleanXmlText(a.title),
+          url: `/en/${getCategorySlug(a.category)}/${a.slug}`,
+          publishedAt: a.published_at || new Date().toISOString(),
+          source: 'KJCPL Crisis Wire',
+          category: detected.category,
+          badge: a.district ? a.district.toUpperCase() : detected.badge,
+          location: a.district ? a.district.toUpperCase() : detected.location,
+          summary: a.excerpt ? truncateTeaser(cleanXmlText(a.excerpt), 160) : undefined,
+        };
+      });
+      return dynamicItems;
+    }
+  } catch {
+    // Proceed to static broadsheet fallback
+  }
+
+  // 5. Hard fallback
   return FALLBACK_WAR_NEWS.slice(0, limit);
 }
 

@@ -18,6 +18,71 @@ import { SafeEditorialImage } from '@/components/common/SafeEditorialImage';
 import { TodayCenterDispatches } from './TodayCenterDispatches';
 import { CivicProblemsSlider } from './CivicProblemsSlider';
 import { WarConflictTickerSlider } from './WarConflictTickerSlider';
+import { formatArticleTime } from '@/lib/date';
+
+function decodeHtmlEntities(str?: string | null): string {
+  if (!str) return '';
+  let prev = '';
+  let current = String(str);
+  let passes = 0;
+  while (current !== prev && passes < 3) {
+    prev = current;
+    passes++;
+    current = current
+      .replace(/&#(\d+);/g, (_, dec) => {
+        const c = parseInt(dec, 10);
+        return isNaN(c) ? _ : String.fromCharCode(c);
+      })
+      .replace(/&#x([0-9a-f]+);/gi, (_, hex) => {
+        const c = parseInt(hex, 16);
+        return isNaN(c) ? _ : String.fromCharCode(c);
+      })
+      .replace(/&apos;/gi, "'")
+      .replace(/&quot;/gi, '"')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&mdash;/gi, '—')
+      .replace(/&ndash;/gi, '–')
+      .replace(/&hellip;/gi, '…')
+      .replace(/&lsquo;/gi, '‘')
+      .replace(/&rsquo;/gi, '’')
+      .replace(/&ldquo;/gi, '“')
+      .replace(/&rdquo;/gi, '”')
+      .replace(/&amp;/gi, '&');
+  }
+  return current.trim();
+}
+
+function getImageAttribution(url?: string | null, customCaption?: string | null): { caption: string; credit: string } {
+  if (!url) return { caption: '', credit: '' };
+  const isUnsplash = url.includes('unsplash.com') || url.includes('images.unsplash.com');
+  const isPexels = url.includes('pexels.com');
+  const isStock = isUnsplash || isPexels || url.includes('stock') || url.includes('pixabay');
+
+  if (isUnsplash) {
+    return {
+      caption: customCaption || 'Representational image',
+      credit: 'Representational image / Unsplash',
+    };
+  }
+  if (isPexels) {
+    return {
+      caption: customCaption || 'Representational image',
+      credit: 'Representational image / Pexels',
+    };
+  }
+  if (isStock) {
+    return {
+      caption: customCaption || 'Representational image',
+      credit: 'Representational image / Stock Archive',
+    };
+  }
+  return {
+    caption: customCaption || 'Field dispatch photograph',
+    credit: 'KJCPL Visual Desk',
+  };
+}
 
 export function ClassicEditorialTemplate({
   langPrefix,
@@ -52,9 +117,10 @@ export function ClassicEditorialTemplate({
   const lang = langPrefix ? langPrefix.replace('/', '') : 'en';
   const brandName = navbarSettings?.brand?.name || 'KJCPL';
   const cleanAuthor = (author?: string | null): string => {
-    if (!author || author === 'KCPJLN' || author.startsWith('KCPJLN')) {
-      return brandName;
-    }
+    if (!author) return 'Hafiz Zargar';
+    if (author === 'KJCPL Team' || author === 'Team') return 'Hafiz Zargar';
+    if (author.includes('KJIN')) return author.replace(/\bKJIN\b/g, 'KJCPL');
+    if (author.startsWith('KCPJLN')) return author.replace(/\bKCPJLN\b/g, 'KJCPL');
     return author;
   };
 
@@ -135,11 +201,14 @@ export function ClassicEditorialTemplate({
       }
     }
 
-    // Guarantee minimum 6-8 articles for rich display by backfilling from FALLBACK_BROADSHEET_ARTICLES
-    for (const art of FALLBACK_BROADSHEET_ARTICLES) {
-      if (art && art.id && !seenIds.has(art.id)) {
-        seenIds.add(art.id);
-        list.push(art);
+    // Only backfill if the database returned 0 articles (cold boot / unseeded database)
+    if (list.length < 6 && allArticles.length === 0 && recentArticles.length === 0) {
+      for (const art of FALLBACK_BROADSHEET_ARTICLES) {
+        if (art && art.id && !seenIds.has(art.id)) {
+          seenIds.add(art.id);
+          list.push(art);
+          if (list.length >= 6) break;
+        }
       }
     }
 
@@ -209,7 +278,7 @@ export function ClassicEditorialTemplate({
     if (sentences.length === 1) {
       return [
         sentences[0],
-        `Primary field dispatch filed under ${heroArticle.category}${heroArticle.district ? ` from ${heroArticle.district}` : ''}.`,
+        `Primary field dispatch filed under ${heroArticle.category}${heroArticle.district ? ` from ${getDistrictDisplayName(heroArticle.district)}` : ''}.`,
         'Verified through resident field correspondents and editorial desk telemetry.'
       ];
     }
@@ -294,6 +363,7 @@ export function ClassicEditorialTemplate({
 
   const isHomePage = !scope || scope.type === 'home';
   const footerVariant: 'full' | 'compact' = isHomePage ? 'full' : 'compact';
+  const isPageTwoOrHigher = Boolean(paginationMeta && paginationMeta.currentPage > 1);
 
   return (
     <div className="bg-newsprint min-h-screen text-[#0F172A] selection:bg-amber-100 selection:text-amber-900 font-serif flex flex-col justify-between w-full max-w-full overflow-x-hidden">
@@ -314,6 +384,82 @@ export function ClassicEditorialTemplate({
         {/* ========================================================================= */}
         <div className="block md:hidden pb-6 w-full max-w-full overflow-x-hidden">
           <main className="px-2.5 sm:px-3.5 py-2.5 sm:py-3 space-y-3 sm:space-y-4 w-full max-w-md mx-auto" data-purpose="newspaper-stream">
+            {isPageTwoOrHigher ? (
+              <>
+                {/* Archive Page Header Badge */}
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 shadow-xs font-sans">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="px-2 py-0.5 rounded font-bold uppercase text-[9.5px] bg-amber-100 text-amber-900 border border-amber-200">
+                      Archive Edition &bull; Page {paginationMeta?.currentPage} of {paginationMeta?.totalPages}
+                    </span>
+                    <Link
+                      href={langPrefix || '/'}
+                      className="text-[11px] font-bold text-[#0891B2] hover:underline flex items-center gap-1"
+                    >
+                      <span>&larr;</span>
+                      <span>Front Page</span>
+                    </Link>
+                  </div>
+                  <h2 className="text-xs font-bold text-stone-900 font-serif">
+                    Showing Field Dispatches {paginationMeta?.startItem}&ndash;{paginationMeta?.endItem} of {paginationMeta?.totalCount}
+                  </h2>
+                </div>
+
+                {/* Mobile Paginated Stream */}
+                {streamArticles && streamArticles.length > 0 && (
+                  <section id="dispatches-mobile" className="space-y-3 font-sans" data-purpose="field-dispatches-mobile">
+                    <div className="space-y-3">
+                      {streamArticles.map((art) => (
+                        <article key={art.id} className="p-3 bg-white rounded-xl border border-stone-200 shadow-xs flex flex-col justify-between">
+                          <div>
+                            {art.featured_image_url && (
+                              <SafeEditorialImage
+                                src={getOptimizedMediaUrl(art.featured_image_url, 400)}
+                                alt=""
+                                containerClassName="relative w-full h-32 rounded-lg overflow-hidden bg-stone-100 mb-2"
+                                sizes="(max-width: 640px) 100vw, 360px"
+                              />
+                            )}
+                            <div className="flex items-center gap-1.5 mb-1.5 text-[9.5px]">
+                              <span className="px-1.5 py-0.5 rounded font-bold uppercase bg-stone-100 text-stone-800">
+                                {art.category}
+                              </span>
+                              {art.district && (
+                                <span className="font-semibold text-[#0891B2]">
+                                  {getDistrictDisplayName(art.district)}
+                                </span>
+                              )}
+                            </div>
+                            <h4 className="font-serif text-sm font-bold text-[#0F172A] leading-snug hover:text-[#0891B2] transition mb-1">
+                              <Link href={getArtHref(art)}>
+                                {art.title}
+                              </Link>
+                            </h4>
+                            {art.excerpt && (
+                              <p className="text-[11.5px] text-stone-600 line-clamp-2 leading-relaxed mb-2">
+                                {art.excerpt}
+                              </p>
+                            )}
+                          </div>
+                          <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-[10px] text-stone-400">
+                            <span>By {cleanAuthor(art.author_display_name)}</span>
+                            <span suppressHydrationWarning>{formatArticleDate(art.published_at)}</span>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+
+                    {/* Mobile Pagination Controls */}
+                    {paginationMeta && (
+                      <div className="pt-2 font-sans" data-purpose="pagination-mobile">
+                        <PaginationControls meta={paginationMeta} theme={theme} />
+                      </div>
+                    )}
+                  </section>
+                )}
+              </>
+            ) : (
+              <>
             {/* Breaking Wire Capsule */}
             {showDevelopingRibbon && (
               <section
@@ -549,8 +695,8 @@ export function ClassicEditorialTemplate({
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-stone-950/80 via-transparent to-transparent pointer-events-none"></div>
                   <div className="absolute bottom-1.5 left-2.5 right-2.5 flex items-center justify-between text-[8.5px] sm:text-[9.5px] text-stone-200 font-sans z-10 gap-1">
-                    <span className="font-medium tracking-wide truncate">Regional documentary record verified</span>
-                    <span className="font-mono text-stone-300 shrink-0">Photo: KJCPL</span>
+                    <span className="font-medium tracking-wide truncate">{getImageAttribution(heroArticle.featured_image_url).caption}</span>
+                    <span className="font-mono text-stone-300 shrink-0">{getImageAttribution(heroArticle.featured_image_url).credit}</span>
                   </div>
                 </div>
               )}
@@ -588,6 +734,14 @@ export function ClassicEditorialTemplate({
                   {subArticles.map((art) => (
                     <article key={art.id} className="p-3 bg-white rounded-xl border border-stone-200 shadow-xs flex flex-col justify-between">
                       <div>
+                        {art.featured_image_url && (
+                          <SafeEditorialImage
+                            src={getOptimizedMediaUrl(art.featured_image_url, 400)}
+                            alt={art.title}
+                            containerClassName="relative w-full h-36 rounded-lg overflow-hidden bg-stone-100 mb-2.5"
+                            sizes="(max-width: 640px) 100vw, 360px"
+                          />
+                        )}
                         <div className="flex items-center gap-1.5 mb-1 text-[9.5px]">
                           <span className="px-1.5 py-0.5 rounded font-bold uppercase bg-amber-100 text-amber-800">
                             {art.category}
@@ -731,7 +885,7 @@ export function ClassicEditorialTemplate({
                 </p>
                 <div className="flex items-center space-x-1.5 text-[9px] sm:text-[10px] text-emerald-800 font-semibold mt-1">
                   <span>●</span>
-                  <span className="truncate">Updated: Today 11:30 AM IST • APMC Official Wire</span>
+                  <span className="truncate">Reference Benchmark • Directorate of Horticulture Planning &amp; Marketing, J&amp;K</span>
                 </div>
               </div>
               <div className="space-y-1.5 sm:space-y-2 pt-1">
@@ -982,7 +1136,7 @@ export function ClassicEditorialTemplate({
                       </div>
                       <h4 className="font-serif text-xs font-bold text-slate-100 hover:text-cyan-300 leading-snug">
                         <a href={item.url} target="_blank" rel="noopener noreferrer">
-                          {item.title} <span className="text-[9px] text-slate-400">↗</span>
+                          {decodeHtmlEntities(item.title)} <span className="text-[9px] text-slate-400">↗</span>
                         </a>
                       </h4>
                     </article>
@@ -993,7 +1147,7 @@ export function ClassicEditorialTemplate({
 
             {/* Broadsheet Dispatches & Regional Reports (Mobile Stream) */}
             {streamArticles && streamArticles.length > 0 && (
-              <section className="space-y-3 font-sans" data-purpose="field-dispatches-mobile">
+              <section id="dispatches-mobile" className="space-y-3 font-sans" data-purpose="field-dispatches-mobile">
                 <div className="flex items-center justify-between pb-1.5 border-b border-stone-200">
                   <div className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-xs bg-stone-900 inline-block" />
@@ -1002,11 +1156,13 @@ export function ClassicEditorialTemplate({
                     </h3>
                   </div>
                   <span className="text-[10px] font-mono text-stone-400">
-                    {streamArticles.length} Stories
+                    {paginationMeta
+                      ? `${paginationMeta.startItem}–${paginationMeta.endItem} of ${paginationMeta.totalCount} Stories`
+                      : `${streamArticles.length} Stories`}
                   </span>
                 </div>
                 <div className="space-y-3">
-                  {streamArticles.slice(0, 8).map((art) => (
+                  {streamArticles.map((art) => (
                     <article key={art.id} className="p-3 bg-white rounded-xl border border-stone-200 shadow-xs flex flex-col justify-between">
                       <div>
                         {art.featured_image_url && (
@@ -1045,12 +1201,19 @@ export function ClassicEditorialTemplate({
                     </article>
                   ))}
                 </div>
+
+                {/* Mobile Pagination Controls - placed directly under the dispatches list */}
+                {paginationMeta && (
+                  <div className="pt-2 font-sans" data-purpose="pagination-mobile">
+                    <PaginationControls meta={paginationMeta} theme={theme} />
+                  </div>
+                )}
               </section>
             )}
 
             {/* Corridor Feature Dossiers (Mobile) */}
             {dossierArticles && dossierArticles.length > 0 && (
-              <section className="space-y-3 font-sans" data-purpose="dossiers-mobile">
+              <section className="space-y-3 font-sans pt-2" data-purpose="dossiers-mobile">
                 <div className="flex items-center justify-between pb-1.5 border-b border-stone-200">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-stone-900">
                     Feature Dossiers
@@ -1062,6 +1225,14 @@ export function ClassicEditorialTemplate({
                 <div className="space-y-2.5">
                   {dossierArticles.slice(0, 3).map((art) => (
                     <article key={art.id} className="p-3 bg-white rounded-xl border border-stone-200 shadow-xs">
+                      {art.featured_image_url && (
+                        <SafeEditorialImage
+                          src={getOptimizedMediaUrl(art.featured_image_url, 400)}
+                          alt={art.title}
+                          containerClassName="relative w-full h-32 rounded-lg overflow-hidden bg-stone-100 mb-2"
+                          sizes="(max-width: 640px) 100vw, 360px"
+                        />
+                      )}
                       <span className="px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded bg-cyan-100 text-cyan-800 inline-block mb-1">
                         {art.district ? getDistrictDisplayName(art.district) : 'Corridor'} • {art.category}
                       </span>
@@ -1080,12 +1251,7 @@ export function ClassicEditorialTemplate({
                 </div>
               </section>
             )}
-
-            {/* Mobile Pagination Controls */}
-            {paginationMeta && (
-              <div className="pt-2 font-sans" data-purpose="pagination-mobile">
-                <PaginationControls meta={paginationMeta} theme={theme} />
-              </div>
+              </>
             )}
           </main>
         </div>
@@ -1246,7 +1412,7 @@ export function ClassicEditorialTemplate({
                         <span className="font-bold text-[#0891B2] uppercase">
                           {art.district ? getDistrictDisplayName(art.district) : art.category}
                         </span>
-                        <span>{13 - idx * 2}:28 IST</span>
+                        <span>{formatArticleTime(art.published_at)}</span>
                       </div>
                       <h4 className="text-xs font-bold font-serif text-[#0F172A] leading-snug line-clamp-2 hover:text-[#0891B2] transition">
                         <Link href={getArtHref(art)}>{art.title}</Link>
@@ -1400,8 +1566,8 @@ export function ClassicEditorialTemplate({
                           className="object-cover"
                         />
                         <div className="absolute bottom-0 inset-x-0 p-2.5 bg-gradient-to-t from-[#0F172A] via-[#0F172A]/60 to-transparent text-white flex justify-between items-center text-[11px] font-sans">
-                          <span className="truncate max-w-sm">Regional documentary record verified by {brandName} Visual Desk.</span>
-                          <span className="text-slate-300">Photo: {brandName}</span>
+                          <span className="truncate max-w-sm">{getImageAttribution(leadArticle.featured_image_url).caption}</span>
+                          <span className="text-slate-300 font-mono text-[10px]">{getImageAttribution(leadArticle.featured_image_url).credit}</span>
                         </div>
                       </div>
                     )}
@@ -1429,8 +1595,19 @@ export function ClassicEditorialTemplate({
                 {/* Secondary Split Sub-Articles (2 columns) */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 font-sans">
                   {subArticles.map((art) => (
-                    <article key={art.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <article key={art.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between group">
                       <div>
+                        {art.featured_image_url && (
+                          <div className="relative w-full h-44 rounded-xl overflow-hidden bg-slate-100 mb-3.5">
+                            <Image
+                              src={getOptimizedMediaUrl(art.featured_image_url, 480)}
+                              alt={art.title}
+                              fill
+                              sizes="(max-width: 1024px) 50vw, 360px"
+                              className="object-cover group-hover:scale-[1.02] transition duration-300"
+                            />
+                          </div>
+                        )}
                         <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded bg-amber-100 text-amber-800 inline-block mb-2">
                           {art.category}
                         </span>
@@ -1468,6 +1645,12 @@ export function ClassicEditorialTemplate({
 
             const getCivicProblemTag = (title?: string | null, excerpt?: string | null) => {
               const text = `${title || ''} ${excerpt || ''}`.toLowerCase();
+              if (text.includes('grower') || text.includes('saffron') || text.includes('walnut') || text.includes('apple') || text.includes('cold chain') || text.includes('mandi') || text.includes('horticulture') || text.includes('farmer') || text.includes('harvest')) {
+                return { label: '🌾 Agriculture & Growers', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' };
+              }
+              if (text.includes('accident') || text.includes('collision') || text.includes('crash') || text.includes('fatal')) {
+                return { label: '⚠️ Road Safety', color: 'bg-rose-100 text-rose-800 border-rose-200' };
+              }
               if (text.includes('internet') || text.includes('connectivity') || text.includes('network') || text.includes('broadband') || text.includes('tower')) {
                 return { label: '📶 Connectivity', color: 'bg-purple-100 text-purple-800 border-purple-200' };
               }
@@ -1477,8 +1660,11 @@ export function ClassicEditorialTemplate({
               if (text.includes('electric') || text.includes('power') || text.includes('transformer') || text.includes('pdd') || text.includes('blackout') || text.includes('load shedding')) {
                 return { label: '⚡ Power Outage', color: 'bg-amber-100 text-amber-800 border-amber-200' };
               }
-              if (text.includes('road') || text.includes('highway') || text.includes('landslide') || text.includes('bridge') || text.includes('transit') || text.includes('pothole') || text.includes('pass')) {
+              if (text.includes('landslide') || text.includes('cutoff') || text.includes('cut off') || text.includes('blocked') || text.includes('snowbound')) {
                 return { label: '🛣️ Road Cutoff', color: 'bg-stone-100 text-stone-800 border-stone-200' };
+              }
+              if (text.includes('road') || text.includes('highway') || text.includes('bridge') || text.includes('transit') || text.includes('pothole') || text.includes('pass')) {
+                return { label: '🛣️ Transit & Roads', color: 'bg-stone-100 text-stone-800 border-stone-200' };
               }
               if (text.includes('hospital') || text.includes('doctor') || text.includes('health') || text.includes('phc') || text.includes('sdh') || text.includes('ambulance')) {
                 return { label: '🏥 Healthcare', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' };
@@ -1601,15 +1787,18 @@ export function ClassicEditorialTemplate({
               const edConfig = editorialDeskSettings?.editorial_of_record;
               if (edConfig && edConfig.enabled === false) return null;
 
+              const edTitle = edConfig?.title || (editorialArticle ? editorialArticle.title : 'The Pluralistic Pulse of the Corridors: Why Regional Federalism Matters');
               let edLink = `${langPrefix}/category/opinion`;
               if (edConfig?.link_mode === 'custom' && edConfig.custom_url) {
                 edLink = edConfig.custom_url;
+              } else if (editorialArticle && editorialArticle.title === edTitle) {
+                edLink = getArtHref(editorialArticle);
+              } else if (edTitle.toLowerCase().includes('federalism')) {
+                edLink = `${langPrefix}/opinion/the-pluralistic-pulse-of-the-corridors-regional-federalism-matters`;
               } else if (editorialArticle) {
                 edLink = getArtHref(editorialArticle);
               }
-
-              const edVolume = edConfig?.volume_badge || 'Vol. LXXIV';
-              const edTitle = edConfig?.title || (editorialArticle ? editorialArticle.title : 'The Pluralistic Pulse of the Corridors: Why Regional Federalism Matters');
+              const edVolume = edConfig?.volume_badge || 'Vol. 1, No. 1';
               const edQuote = edConfig?.quote || (editorialArticle ? (editorialArticle.excerpt || editorialArticle.title) : '“Jammu and Kashmir’s socio-cultural geography has never been a monolithic plateau, but a rich confluence of mountain rivers, linguistic nuances, and shared resilience.”');
               const edAuthor = edConfig?.author_name || editorialArticle?.author_display_name || 'Editorial Board';
               const edInitials = edConfig?.author_initials || (editorialArticle?.author_display_name && editorialArticle.author_display_name.trim().length > 0 ? editorialArticle.author_display_name.trim()[0].toUpperCase() : 'EB');
@@ -1850,16 +2039,18 @@ export function ClassicEditorialTemplate({
                 );
               }
               return (
-                <section key={key} className="max-w-7xl xl:max-w-[1536px] 2xl:max-w-[1780px] mx-auto px-4 md:px-8 py-8 w-full font-sans" data-purpose="field-dispatches-full">
+                <section id="dispatches" key={key} className="max-w-7xl xl:max-w-[1536px] 2xl:max-w-[1780px] mx-auto px-4 md:px-8 py-8 w-full font-sans" data-purpose="field-dispatches-full">
                   <div className="flex items-center justify-between pb-3 mb-6 border-b-2 border-slate-900">
                     <div className="flex items-center gap-2.5">
                       <span className="w-3 h-3 bg-slate-900 inline-block" />
                       <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#0F172A] tracking-tight">
-                        Broadsheet Dispatches &amp; Regional Investigations
+                        Broadsheet Dispatches &amp; Regional Reports
                       </h2>
                     </div>
                     <span className="text-xs text-slate-500 font-mono">
-                      Showing {streamArticles.length} Verified Field Reports
+                      {paginationMeta
+                        ? `Showing ${paginationMeta.startItem}–${paginationMeta.endItem} of ${paginationMeta.totalCount} Verified Reports`
+                        : `Showing ${streamArticles.length} Verified Field Reports`}
                     </span>
                   </div>
 
@@ -2124,31 +2315,59 @@ export function ClassicEditorialTemplate({
               }
             };
 
+            if (isPageTwoOrHigher) {
+              return (
+                <>
+                  <div className="max-w-7xl xl:max-w-[1536px] 2xl:max-w-[1780px] mx-auto px-4 md:px-8 mt-6">
+                    <div className="bg-white rounded-2xl border border-stone-200 p-5 shadow-sm font-sans flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div>
+                        <span className="px-2.5 py-1 rounded font-bold uppercase text-[10.5px] bg-amber-100 text-amber-900 border border-amber-200 inline-block mb-1">
+                          Broadsheet Archive &bull; Page {paginationMeta?.currentPage} of {paginationMeta?.totalPages}
+                        </span>
+                        <h2 className="text-xl font-serif font-bold text-slate-900">
+                          Verified Field Dispatches Archive ({paginationMeta?.startItem}&ndash;{paginationMeta?.endItem} of {paginationMeta?.totalCount} Stories)
+                        </h2>
+                      </div>
+                      <Link
+                        href={langPrefix || '/'}
+                        className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition flex items-center gap-1.5 whitespace-nowrap shadow-sm"
+                      >
+                        <span>&larr;</span>
+                        <span>Return to Front Page</span>
+                      </Link>
+                    </div>
+                  </div>
+
+                  {renderFieldDispatches('field_dispatches', 'full_width')}
+                </>
+              );
+            }
+
             return (
               <>
                 {/* 3-Column Broadsheet Trifold */}
                 <div className="max-w-7xl xl:max-w-[1536px] 2xl:max-w-[1780px] mx-auto px-4 md:px-8 py-8 w-full">
-                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                    {/* LEFT COLUMN (3 cols) */}
-                    <aside className="lg:col-span-3 space-y-6 font-sans">
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-8 items-start">
+                    {/* LEFT COLUMN (3 cols on desktop, 5 cols on tablet) */}
+                    <aside className="order-2 md:order-2 lg:order-1 md:col-span-5 lg:col-span-3 space-y-6 font-sans">
                       {leftSectionIds.map((id) => renderSection(id, 'column'))}
                       {leftRailAd && (
-                        <div className="sticky top-28 z-10 self-start">
+                        <div className="lg:sticky lg:top-28 lg:z-10 self-start">
                           <SidebarAd ad={leftRailAd} />
                         </div>
                       )}
                     </aside>
 
-                    {/* CENTER COLUMN (6 cols) */}
-                    <main className="lg:col-span-6 space-y-8 font-sans">
+                    {/* CENTER COLUMN (6 cols on desktop, 7 cols on tablet) */}
+                    <main className="order-1 md:order-1 lg:order-2 md:col-span-7 lg:col-span-6 space-y-8 font-sans">
                       {centerSectionIds.map((id) => renderSection(id, 'column'))}
                     </main>
 
-                    {/* RIGHT COLUMN (3 cols) */}
-                    <aside className="lg:col-span-3 space-y-6 font-sans">
+                    {/* RIGHT COLUMN (3 cols on desktop, 12 cols on tablet) */}
+                    <aside className="order-3 md:order-3 lg:order-3 md:col-span-12 lg:col-span-3 space-y-6 font-sans">
                       {rightSectionIds.map((id) => renderSection(id, 'column'))}
                       {sidebarAd && (
-                        <div className="sticky top-28 z-10 self-start">
+                        <div className="lg:sticky lg:top-28 lg:z-10 self-start">
                           <SidebarAd ad={sidebarAd} />
                         </div>
                       )}

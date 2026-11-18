@@ -174,6 +174,14 @@ export function Sidebar({
           roles: ['owner', 'superadmin', 'admin', 'editor'],
           exact: true,
         },
+        {
+          name: 'Correspondents & Bylines',
+          description: 'Manage newsroom correspondents roster & author attribution',
+          href: '/settings/authors',
+          icon: '✍️',
+          roles: ['owner', 'superadmin', 'admin', 'editor'],
+          exact: true,
+        },
       ],
     },
     {
@@ -407,12 +415,13 @@ export function Sidebar({
           >
             <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white border border-slate-200 p-1 shadow-xs dark:bg-slate-900 dark:border-slate-700">
               <Image
-                src={brandLogo || '/kjin-emblem.png'}
+                src={brandLogo || '/kjcpl-emblem.png'}
                 alt={`${brandName} Symbol`}
                 width={26}
                 height={26}
                 className="object-contain"
                 priority
+                unoptimized
                 suppressHydrationWarning
               />
             </div>

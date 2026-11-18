@@ -35,7 +35,19 @@ export function PaginationControls({
     }
 
     const query = params.toString();
-    return query ? `${pathname}?${query}` : pathname;
+    const base = query ? `${pathname}?${query}` : pathname;
+    return `${base}#dispatches`;
+  };
+
+  const handlePageClick = () => {
+    if (typeof window !== 'undefined') {
+      const el = document.getElementById('dispatches') || document.getElementById('dispatches-mobile');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } else {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
   };
 
   const isDark = theme?.isDark ?? false;
@@ -70,39 +82,40 @@ export function PaginationControls({
   return (
     <nav
       aria-label="Newspaper Dispatches Pagination"
-      className={`mt-12 py-5 px-6 rounded-2xl border ${cardBorder} ${cardBg} shadow-sm flex flex-col md:flex-row items-center justify-between gap-4 font-sans`}
+      className={`mt-10 py-4 px-3 sm:py-5 sm:px-6 rounded-2xl border ${cardBorder} ${cardBg} shadow-sm flex flex-col lg:flex-row items-center justify-between gap-4 font-sans`}
     >
       {/* 1. Item Count & Page Indicator */}
-      <div className="flex flex-wrap items-center gap-3 text-xs">
+      <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 sm:gap-3 text-xs text-center">
         <span className={textMuted}>
           Showing <strong className={textPrimary}>{startItem}&ndash;{endItem}</strong> of{' '}
           <strong className={textPrimary}>{totalCount}</strong> verified stories
         </span>
-        <span className="hidden sm:inline text-slate-400">&bull;</span>
+        <span className="text-slate-400">&bull;</span>
         <span className={`font-mono text-[11px] ${textMuted}`}>
           Page <strong>{currentPage}</strong> of <strong>{totalPages}</strong>
         </span>
       </div>
 
       {/* 2. Middle: Page Number Controls */}
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center justify-center flex-wrap gap-1 sm:gap-1.5">
         {/* Previous Button */}
         {hasPrevPage ? (
           <Link
             href={createPageUrl(currentPage - 1)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border ${cardBorder} hover:bg-slate-100 dark:hover:bg-slate-800 transition ${textPrimary} flex items-center gap-1`}
+            onClick={handlePageClick}
+            className={`min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-semibold border ${cardBorder} hover:bg-slate-100 dark:hover:bg-slate-800 transition ${textPrimary} flex items-center gap-1 active:scale-95`}
             aria-label="Previous Page"
           >
             <span>&larr;</span>
-            <span className="hidden sm:inline">Prev</span>
+            <span className="text-[11px] sm:text-xs">Prev</span>
           </Link>
         ) : (
           <span
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border ${cardBorder} opacity-40 cursor-not-allowed text-slate-400 flex items-center gap-1`}
+            className={`min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-semibold border ${cardBorder} opacity-40 cursor-not-allowed text-slate-400 flex items-center gap-1`}
             aria-disabled="true"
           >
             <span>&larr;</span>
-            <span className="hidden sm:inline">Prev</span>
+            <span className="text-[11px] sm:text-xs">Prev</span>
           </span>
         )}
 
@@ -111,7 +124,7 @@ export function PaginationControls({
           {getPageNumbers().map((p, idx) => {
             if (p === '...') {
               return (
-                <span key={`ellipsis-${idx}`} className={`px-2 py-1 text-xs ${textMuted}`}>
+                <span key={`ellipsis-${idx}`} className={`px-1.5 py-1 text-xs ${textMuted}`}>
                   &hellip;
                 </span>
               );
@@ -124,8 +137,9 @@ export function PaginationControls({
               <Link
                 key={pageNum}
                 href={createPageUrl(pageNum)}
+                onClick={handlePageClick}
                 aria-current={isCurrent ? 'page' : undefined}
-                className={`min-w-[32px] h-8 flex items-center justify-center rounded-lg text-xs font-bold transition ${
+                className={`min-w-[36px] h-9 sm:min-w-[34px] sm:h-8.5 flex items-center justify-center rounded-lg text-xs font-bold transition active:scale-95 ${
                   isCurrent
                     ? `${accentBg} ${accentBorder} shadow-sm`
                     : `border ${cardBorder} ${textPrimary} hover:bg-slate-100 dark:hover:bg-slate-800`
@@ -141,33 +155,35 @@ export function PaginationControls({
         {hasNextPage ? (
           <Link
             href={createPageUrl(currentPage + 1)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border ${cardBorder} hover:bg-slate-100 dark:hover:bg-slate-800 transition ${textPrimary} flex items-center gap-1`}
+            onClick={handlePageClick}
+            className={`min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-semibold border ${cardBorder} hover:bg-slate-100 dark:hover:bg-slate-800 transition ${textPrimary} flex items-center gap-1 active:scale-95`}
             aria-label="Next Page"
           >
-            <span className="hidden sm:inline">Next</span>
+            <span className="text-[11px] sm:text-xs">Next</span>
             <span>&rarr;</span>
           </Link>
         ) : (
           <span
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold border ${cardBorder} opacity-40 cursor-not-allowed text-slate-400 flex items-center gap-1`}
+            className={`min-h-[36px] px-3 py-1.5 rounded-lg text-xs font-semibold border ${cardBorder} opacity-40 cursor-not-allowed text-slate-400 flex items-center gap-1`}
             aria-disabled="true"
           >
-            <span className="hidden sm:inline">Next</span>
+            <span className="text-[11px] sm:text-xs">Next</span>
             <span>&rarr;</span>
           </span>
         )}
       </div>
 
-      {/* 3. Per Page Size Switcher (10 | 15 | 20) */}
+      {/* 3. Per Page Size Switcher (6 | 9 | 12 | 18) */}
       {showPageSizeSelector && (
-        <div className="flex items-center gap-2 text-xs">
+        <div className="flex items-center justify-center gap-2 text-xs">
           <span className={`text-[11px] font-medium ${textMuted}`}>Per page:</span>
           <div className="flex items-center gap-1">
             {ALLOWED_PAGE_SIZES.map((size) => (
               <Link
                 key={size}
                 href={createPageUrl(1, size)}
-                className={`px-2 py-0.5 rounded text-[11px] font-mono font-bold transition border ${
+                onClick={handlePageClick}
+                className={`min-h-[28px] px-2 py-0.5 rounded text-[11px] font-mono font-bold transition border active:scale-95 ${
                   limit === size
                     ? `${accentBg} border-transparent`
                     : `border ${cardBorder} ${textMuted} hover:${textPrimary} hover:bg-slate-100 dark:hover:bg-slate-800`

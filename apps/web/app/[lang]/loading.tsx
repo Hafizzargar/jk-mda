@@ -28,6 +28,7 @@ export default function Loading() {
     return DEFAULT_NAVBAR_SETTINGS.brand;
   });
   const [festive, setFestive] = useState<FestiveCelebrationSettings | null>(null);
+  const [logoFailed, setLogoFailed] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -66,7 +67,7 @@ export default function Loading() {
   const primaryColor = festive?.colors?.[0] || '#F59E0B';
   const secondaryColor = festive?.colors?.[1] || festive?.colors?.[0] || '#EF4444';
 
-  const logoSrc = brand.logo_url || '/kjin-emblem.png';
+  const logoSrc = logoFailed ? '/kjcpl-emblem.png' : (brand.logo_url?.trim() || '/kjcpl-emblem.png');
   const brandName = brand.name || 'KJCPL';
   const subtitle = brand.loader_text || brand.tagline || 'ONE REGION, MANY VOICES, TRUSTED NEWS';
 
@@ -146,7 +147,7 @@ export default function Loading() {
         />
 
         {/* Company Emblem Center Badge */}
-        {brand.show_logo_image !== false && (
+        {(brand.show_loader_emblem ?? brand.show_logo_image ?? true) !== false && (
           <div
             className="relative w-20 h-20 rounded-full overflow-hidden bg-white shadow-xl ring-4 ring-white flex items-center justify-center shrink-0 transition-all duration-300"
             style={{
@@ -159,6 +160,8 @@ export default function Loading() {
               width={80}
               height={80}
               priority
+              unoptimized
+              onError={() => setLogoFailed(true)}
               className="w-full h-full object-contain p-0.5"
             />
           </div>

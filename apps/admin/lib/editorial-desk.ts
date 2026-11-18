@@ -30,12 +30,12 @@ export interface EditorialDeskSettings {
 
 export const DEFAULT_EDITORIAL_OF_RECORD: EditorialOfRecordSetting = {
   enabled: true,
-  volume_badge: 'Vol. LXXIV',
+  volume_badge: 'Vol. 1, No. 1',
   title: 'The Pluralistic Pulse of the Corridors: Why Regional Federalism Matters',
   quote: 'Jammu and Kashmir’s socio-cultural geography has never been a monolithic plateau, but a rich confluence of mountain rivers, linguistic nuances, and shared resilience.',
-  author_name: 'Editorial Board',
+  author_name: 'KJCPL Editorial Board',
   author_initials: 'EB',
-  institution_subtext: 'Srinagar & Jammu Joint Chancellery',
+  institution_subtext: 'Srinagar & Jammu Editorial Bureau',
   link_mode: 'opinion_category',
   article_id: null,
   custom_url: '/category/opinion',
@@ -87,28 +87,43 @@ export function sanitizeEditorialDeskSettings(
 
   // 1. Sanitize Editorial of Record
   const edRaw = (obj.editorial_of_record || {}) as Record<string, unknown>;
+  const rawVolume = typeof edRaw.volume_badge === 'string' && edRaw.volume_badge.trim()
+    ? edRaw.volume_badge.trim().slice(0, 50)
+    : DEFAULT_EDITORIAL_OF_RECORD.volume_badge;
+  const sanitizedVolume = /Vol\.\s*(CXXVII|LXXIV|LXXV|[IVXLCDM]{2,})/i.test(rawVolume)
+    ? 'Vol. 1, No. 1'
+    : rawVolume;
+
+  const rawAuthorName = typeof edRaw.author_name === 'string' && edRaw.author_name.trim()
+    ? edRaw.author_name.trim().slice(0, 100)
+    : DEFAULT_EDITORIAL_OF_RECORD.author_name;
+  const sanitizedAuthorName = rawAuthorName
+    .replace(/\bKJIN\b/gi, 'KJCPL')
+    .replace(/Kashmir Jammu Independent News/gi, 'KJCPL News Network');
+
+  const rawSubtext = typeof edRaw.institution_subtext === 'string' && edRaw.institution_subtext.trim()
+    ? edRaw.institution_subtext.trim().slice(0, 150)
+    : DEFAULT_EDITORIAL_OF_RECORD.institution_subtext;
+  const sanitizedSubtext = rawSubtext
+    .replace(/\bKJIN\b/gi, 'KJCPL')
+    .replace(/Kashmir Jammu Independent News/gi, 'KJCPL News Network');
+
   const editorial_of_record: EditorialOfRecordSetting = {
     enabled: edRaw.enabled !== false,
-    volume_badge: typeof edRaw.volume_badge === 'string' && edRaw.volume_badge.trim()
-      ? edRaw.volume_badge.trim().slice(0, 50)
-      : DEFAULT_EDITORIAL_OF_RECORD.volume_badge,
+    volume_badge: sanitizedVolume,
     title: typeof edRaw.title === 'string' && edRaw.title.trim()
       ? edRaw.title.trim().slice(0, 300)
       : DEFAULT_EDITORIAL_OF_RECORD.title,
     quote: typeof edRaw.quote === 'string' && edRaw.quote.trim()
       ? edRaw.quote.trim().slice(0, 1000)
       : DEFAULT_EDITORIAL_OF_RECORD.quote,
-    author_name: typeof edRaw.author_name === 'string' && edRaw.author_name.trim()
-      ? edRaw.author_name.trim().slice(0, 100)
-      : DEFAULT_EDITORIAL_OF_RECORD.author_name,
+    author_name: sanitizedAuthorName,
     author_initials: typeof edRaw.author_initials === 'string' && edRaw.author_initials.trim()
       ? edRaw.author_initials.trim().slice(0, 6)
-      : (typeof edRaw.author_name === 'string' && edRaw.author_name.trim()
-          ? edRaw.author_name.split(' ').map(s => s[0]).join('').slice(0, 3).toUpperCase()
+      : (sanitizedAuthorName
+          ? sanitizedAuthorName.split(' ').map(s => s[0]).join('').slice(0, 3).toUpperCase()
           : DEFAULT_EDITORIAL_OF_RECORD.author_initials),
-    institution_subtext: typeof edRaw.institution_subtext === 'string' && edRaw.institution_subtext.trim()
-      ? edRaw.institution_subtext.trim().slice(0, 150)
-      : DEFAULT_EDITORIAL_OF_RECORD.institution_subtext,
+    institution_subtext: sanitizedSubtext,
     link_mode: edRaw.link_mode === 'article' || edRaw.link_mode === 'custom'
       ? edRaw.link_mode
       : 'opinion_category',

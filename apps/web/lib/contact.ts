@@ -44,54 +44,80 @@ export const DEFAULT_FOOTER_CONTACT: FooterContactSettings = {
   email_grievance: 'h26412301@gmail.com',
   email_press: 'h26412301@gmail.com',
   grievance_officer_name: 'Adv. Bashir Ahmad (Public Grievance Redressal Officer)',
-  registration_number: 'JK/REG/2026/0842 • Compliant with Information Technology (Intermediary Guidelines & Digital Media Ethics Code) Rules, 2021',
-  social_twitter: 'https://twitter.com/kjin_live',
-  social_facebook: 'https://facebook.com/kjinnews',
-  social_whatsapp: 'https://whatsapp.com/channel/kjin',
-  social_telegram: 'https://t.me/kjin_wire',
-  social_youtube: 'https://youtube.com/@kjin_live',
+  registration_number: 'Compliant with Information Technology (Intermediary Guidelines and Digital Media Ethics Code) Rules, 2021',
+  social_twitter: 'https://twitter.com/kjcpl_news',
+  social_facebook: 'https://facebook.com/kjcplnews',
+  social_whatsapp: 'https://whatsapp.com/channel/kjcpl',
+  social_telegram: 'https://t.me/kjcpl_news',
+  social_youtube: 'https://youtube.com/@kjcpl_news',
 };
 
+export function cleanMojibake(str: string): string {
+  if (!str) return '';
+  return str
+    .replace(/(?:â€¢|\u00e2\u0080\u00a2|\u00e2\u20ac\u00a2|\u00c3\u00a2\u00c2\u0080\u00c2\u00a2|\u00c3\u00a2\u20ac\u00c2\u00a2|â\u0080\u00a2|Ã¢â‚¬Â¢)/g, '•')
+    .replace(/(?:â€“|\u00e2\u0080\u0093|\u00e2\u20ac\u201c|\u00c3\u00a2\u00c2\u0080\u00c2\u0093)/g, '–')
+    .replace(/(?:â€”|\u00e2\u0080\u0094|\u00e2\u20ac\u201d|\u00c3\u00a2\u00c2\u0080\u00c2\u0094)/g, '—')
+    .replace(/(?:â€˜|\u00e2\u0080\u0098|\u00e2\u20ac\u02dc|\u00c3\u00a2\u00c2\u0080\u00c2\u0098)/g, '‘')
+    .replace(/(?:â€™|\u00e2\u0080\u0099|\u00e2\u20ac\u2122|\u00c3\u00a2\u00c2\u0080\u00c2\u0099)/g, '’')
+    .replace(/(?:â€œ|\u00e2\u0080\u009c|\u00e2\u20ac\u0153|\u00c3\u00a2\u00c2\u0080\u00c2\u009c)/g, '“')
+    .replace(/(?:â€\?|â€|\u00e2\u0080\u009d|\u00c3\u00a2\u00c2\u0080\u00c2\u009d)/g, '”')
+    .replace(/JK\/REG\/2026\/0842\s*[^•\w\s]*\s*/gi, '')
+    .replace(/[Â\u00c2]/g, '')
+    .trim();
+}
+
+function sanitizeSocialHandle(raw: string | undefined, defaultUrl: string, searchHandles: string[], replaceHandle: string): string {
+  let val = String(raw || defaultUrl).trim();
+  for (const h of searchHandles) {
+    if (val.includes(h)) {
+      val = val.replace(h, replaceHandle);
+    }
+  }
+  return val || defaultUrl;
+}
+
 export function sanitizeContactSettings(input: Partial<FooterContactSettings>): FooterContactSettings {
-  const rawOrg = String(input.organization_name || DEFAULT_FOOTER_CONTACT.organization_name).trim();
+  const rawOrg = cleanMojibake(String(input.organization_name || DEFAULT_FOOTER_CONTACT.organization_name));
   const orgName = rawOrg
     .replace(/\b(KCPJLN|KJIN)\b/g, 'KJCPL')
     .replace(/Kashmir Chenab Panjal Jammu Ladakh Network/gi, 'KJCPL News Network')
     .replace(/Kashmir & Jammu Information Network/gi, 'KJCPL News Network')
+    .replace(/Kashmir Jammu Independent News/gi, 'KJCPL News Network')
     .slice(0, 150);
 
   return {
     organization_name: orgName || 'KJCPL News Network',
-    tagline: String(input.tagline || DEFAULT_FOOTER_CONTACT.tagline).trim().slice(0, 200),
-    description: String(input.description || DEFAULT_FOOTER_CONTACT.description).trim().slice(0, 500),
-    primary_address: String(input.primary_address || DEFAULT_FOOTER_CONTACT.primary_address).trim().slice(0, 300),
-    primary_address_label: String(input.primary_address_label || DEFAULT_FOOTER_CONTACT.primary_address_label).trim().slice(0, 100),
-    bureau_address: String(input.bureau_address || DEFAULT_FOOTER_CONTACT.bureau_address).trim().slice(0, 300),
-    bureau_address_label: String(input.bureau_address_label || DEFAULT_FOOTER_CONTACT.bureau_address_label).trim().slice(0, 100),
-    operating_hours: String(input.operating_hours || DEFAULT_FOOTER_CONTACT.operating_hours).trim().slice(0, 200),
+    tagline: cleanMojibake(String(input.tagline || DEFAULT_FOOTER_CONTACT.tagline)).slice(0, 200),
+    description: cleanMojibake(String(input.description || DEFAULT_FOOTER_CONTACT.description)).slice(0, 500),
+    primary_address: cleanMojibake(String(input.primary_address || DEFAULT_FOOTER_CONTACT.primary_address)).slice(0, 300),
+    primary_address_label: cleanMojibake(String(input.primary_address_label || DEFAULT_FOOTER_CONTACT.primary_address_label)).slice(0, 100),
+    bureau_address: cleanMojibake(String(input.bureau_address || DEFAULT_FOOTER_CONTACT.bureau_address)).slice(0, 300),
+    bureau_address_label: cleanMojibake(String(input.bureau_address_label || DEFAULT_FOOTER_CONTACT.bureau_address_label)).slice(0, 100),
+    operating_hours: cleanMojibake(String(input.operating_hours || DEFAULT_FOOTER_CONTACT.operating_hours)).slice(0, 200),
     phone_primary: String(input.phone_primary || DEFAULT_FOOTER_CONTACT.phone_primary).trim().slice(0, 50),
-    phone_primary_label: String(input.phone_primary_label || DEFAULT_FOOTER_CONTACT.phone_primary_label).trim().slice(0, 100),
+    phone_primary_label: cleanMojibake(String(input.phone_primary_label || DEFAULT_FOOTER_CONTACT.phone_primary_label)).slice(0, 100),
     phone_secondary: String(input.phone_secondary || DEFAULT_FOOTER_CONTACT.phone_secondary).trim().slice(0, 50),
-    phone_secondary_label: String(input.phone_secondary_label || DEFAULT_FOOTER_CONTACT.phone_secondary_label).trim().slice(0, 100),
-    email_editorial: typeof input.email_editorial === 'string' && input.email_editorial.trim() && input.email_editorial.trim() !== 'editorial@kjin.org'
+    phone_secondary_label: cleanMojibake(String(input.phone_secondary_label || DEFAULT_FOOTER_CONTACT.phone_secondary_label)).slice(0, 100),
+    email_editorial: typeof input.email_editorial === 'string' && input.email_editorial.trim() && !input.email_editorial.includes('kjin.org')
       ? input.email_editorial.trim().slice(0, 100)
       : 'h26412301@gmail.com',
-    email_careers: typeof input.email_careers === 'string' && input.email_careers.trim() && input.email_careers.trim() !== 'careers@kjin.org'
+    email_careers: typeof input.email_careers === 'string' && input.email_careers.trim() && !input.email_careers.includes('kjin.org')
       ? input.email_careers.trim().slice(0, 100)
       : 'h26412301@gmail.com',
-    email_grievance: typeof input.email_grievance === 'string' && input.email_grievance.trim() && input.email_grievance.trim() !== 'grievance@kjin.org'
+    email_grievance: typeof input.email_grievance === 'string' && input.email_grievance.trim() && !input.email_grievance.includes('kjin.org')
       ? input.email_grievance.trim().slice(0, 100)
       : 'h26412301@gmail.com',
-    email_press: typeof input.email_press === 'string' && input.email_press.trim() && input.email_press.trim() !== 'press@kjin.org'
+    email_press: typeof input.email_press === 'string' && input.email_press.trim() && !input.email_press.includes('kjin.org')
       ? input.email_press.trim().slice(0, 100)
       : 'h26412301@gmail.com',
-    grievance_officer_name: String(input.grievance_officer_name || DEFAULT_FOOTER_CONTACT.grievance_officer_name).trim().slice(0, 150),
-    registration_number: String(input.registration_number || DEFAULT_FOOTER_CONTACT.registration_number).trim().slice(0, 200),
-    social_twitter: String(input.social_twitter || DEFAULT_FOOTER_CONTACT.social_twitter).trim().slice(0, 200),
-    social_facebook: String(input.social_facebook || DEFAULT_FOOTER_CONTACT.social_facebook).trim().slice(0, 200),
-    social_whatsapp: String(input.social_whatsapp || DEFAULT_FOOTER_CONTACT.social_whatsapp).trim().slice(0, 200),
-    social_telegram: String(input.social_telegram || DEFAULT_FOOTER_CONTACT.social_telegram).trim().slice(0, 200),
-    social_youtube: String(input.social_youtube || DEFAULT_FOOTER_CONTACT.social_youtube).trim().slice(0, 200),
+    grievance_officer_name: cleanMojibake(String(input.grievance_officer_name || DEFAULT_FOOTER_CONTACT.grievance_officer_name)).slice(0, 150),
+    registration_number: cleanMojibake(String(input.registration_number || DEFAULT_FOOTER_CONTACT.registration_number)).slice(0, 200),
+    social_twitter: sanitizeSocialHandle(input.social_twitter, DEFAULT_FOOTER_CONTACT.social_twitter, ['kjin_live', 'kjin_wire', 'kjinnews'], 'kjcpl_news'),
+    social_facebook: sanitizeSocialHandle(input.social_facebook, DEFAULT_FOOTER_CONTACT.social_facebook, ['kjinnews', 'kjin_live'], 'kjcplnews'),
+    social_whatsapp: sanitizeSocialHandle(input.social_whatsapp, DEFAULT_FOOTER_CONTACT.social_whatsapp, ['channel/kjin'], 'channel/kjcpl'),
+    social_telegram: sanitizeSocialHandle(input.social_telegram, DEFAULT_FOOTER_CONTACT.social_telegram, ['kjin_wire', 'kjin_live'], 'kjcpl_news'),
+    social_youtube: sanitizeSocialHandle(input.social_youtube, DEFAULT_FOOTER_CONTACT.social_youtube, ['@kjin_live', '@kjin_wire', '@kjinnews'], '@kjcpl_news'),
   };
 }
 

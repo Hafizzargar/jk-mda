@@ -41,6 +41,12 @@ export function CivicProblemsSlider({ articles, langPrefix }: CivicProblemsSlide
 
   const getCivicProblemTag = (title?: string | null, excerpt?: string | null) => {
     const text = `${title || ''} ${excerpt || ''}`.toLowerCase();
+    if (text.includes('grower') || text.includes('saffron') || text.includes('walnut') || text.includes('apple') || text.includes('cold chain') || text.includes('mandi') || text.includes('horticulture') || text.includes('farmer') || text.includes('harvest')) {
+      return { label: '🌾 Agriculture & Growers', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' };
+    }
+    if (text.includes('accident') || text.includes('collision') || text.includes('crash') || text.includes('fatal')) {
+      return { label: '⚠️ Road Safety', color: 'bg-rose-100 text-rose-800 border-rose-200' };
+    }
     if (text.includes('internet') || text.includes('connectivity') || text.includes('network') || text.includes('broadband') || text.includes('tower')) {
       return { label: '📶 Connectivity', color: 'bg-purple-100 text-purple-800 border-purple-200' };
     }
@@ -50,8 +56,11 @@ export function CivicProblemsSlider({ articles, langPrefix }: CivicProblemsSlide
     if (text.includes('electric') || text.includes('power') || text.includes('transformer') || text.includes('pdd') || text.includes('blackout') || text.includes('load shedding')) {
       return { label: '⚡ Power Outage', color: 'bg-amber-100 text-amber-800 border-amber-200' };
     }
-    if (text.includes('road') || text.includes('highway') || text.includes('landslide') || text.includes('bridge') || text.includes('transit') || text.includes('pothole') || text.includes('pass')) {
+    if (text.includes('landslide') || text.includes('cutoff') || text.includes('cut off') || text.includes('blocked') || text.includes('snowbound')) {
       return { label: '🛣️ Road Cutoff', color: 'bg-stone-100 text-stone-800 border-stone-200' };
+    }
+    if (text.includes('road') || text.includes('highway') || text.includes('bridge') || text.includes('transit') || text.includes('pothole') || text.includes('pass')) {
+      return { label: '🛣️ Transit & Roads', color: 'bg-stone-100 text-stone-800 border-stone-200' };
     }
     if (text.includes('hospital') || text.includes('doctor') || text.includes('health') || text.includes('phc') || text.includes('sdh') || text.includes('ambulance')) {
       return { label: '🏥 Healthcare', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' };

@@ -87,8 +87,14 @@ export async function POST(request: Request) {
       });
     }
 
-    // Synchronize category_id to public.categories table
+    // Synchronize category_id and custom author_display_name
     if (data?.id) {
+      const updates: Record<string, unknown> = {};
+      if (validation.data.author_display_name) {
+        updates.author_display_name = validation.data.author_display_name;
+        data.author_display_name = validation.data.author_display_name;
+      }
+
       const canonical = getCanonicalCategory(category);
       const { data: catRecord } = await authorization.service
         .from('categories')
@@ -97,12 +103,17 @@ export async function POST(request: Request) {
         .maybeSingle();
 
       if (catRecord?.id) {
-        await authorization.service
-          .from('articles')
-          .update({ category_id: catRecord.id, category: canonical.name })
-          .eq('id', data.id);
+        updates.category_id = catRecord.id;
+        updates.category = canonical.name;
         data.category_id = catRecord.id;
         data.category = canonical.name;
+      }
+
+      if (Object.keys(updates).length > 0) {
+        await authorization.service
+          .from('articles')
+          .update(updates)
+          .eq('id', data.id);
       }
     }
 

@@ -39,6 +39,7 @@ export function SiteNavbar({
   const [mobileSearchQuery, setMobileSearchQuery] = useState('');
   const [mounted, setMounted] = useState(false);
   const [loadingRegion, setLoadingRegion] = useState<string | null>(null);
+  const [logoFailed, setLogoFailed] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -241,15 +242,18 @@ export function SiteNavbar({
         {/* Brand Crest & Name */}
         <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
           <Link href={`${langPrefix}/`} className="flex items-center space-x-2 sm:space-x-3 group transition-all min-w-0">
-            {navSettings.brand.show_logo_image && (
+            {(navSettings.brand.show_logo_image ?? true) && (
               <div className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-full p-0.5 bg-gradient-to-tr from-amber-600 via-amber-200 to-amber-700 shadow-sm flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                <div className="w-full h-full bg-stone-900 rounded-full flex flex-col items-center justify-center p-0.5 sm:p-1 text-center border border-amber-300/40 relative overflow-hidden">
+                <div className="w-full h-full bg-white rounded-full flex items-center justify-center p-0.5 border border-amber-300/40 relative overflow-hidden shadow-inner">
                   <Image
-                    src={navSettings.brand.logo_url || '/kjin-emblem.png'}
+                    src={logoFailed ? '/kjcpl-emblem.png' : (navSettings.brand.logo_url?.trim() || '/kjcpl-emblem.png')}
                     alt={navSettings.brand.name || 'KJCPL'}
-                    fill
-                    className="object-contain p-0.5 rounded-full"
-                    decoding="async"
+                    width={44}
+                    height={44}
+                    unoptimized
+                    priority
+                    onError={() => setLogoFailed(true)}
+                    className="w-full h-full object-contain rounded-full"
                     sizes="44px"
                   />
                 </div>

@@ -56,12 +56,16 @@ export async function generateMetadata(): Promise<Metadata> {
     title: `${brandFullName} (${brandName}) | ${tagline}`,
     description: `Independent, verified reporting, investigations, and ground dispatches from ${brandFullName}.`,
     alternates: {
-      canonical: SITE_URL,
+      canonical: `${SITE_URL}/en`,
+      languages: {
+        en: `${SITE_URL}/en`,
+        'x-default': `${SITE_URL}/en`,
+      },
     },
     openGraph: {
       title: `${brandFullName} | ${brandName}`,
       description: tagline,
-      url: SITE_URL,
+      url: `${SITE_URL}/en`,
       siteName: `${brandFullName} (${brandName})`,
       locale: DEFAULT_LOCALE,
       type: 'website',
@@ -317,8 +321,14 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
   const wireArticleIds = new Set(wireArticles.map((a) => a.id));
 
   // Center column broadsheet stream: remaining articles not used in hero, sub-leads, or wire
+  // When page > 1, streamArticles must contain ALL latestArticles so all paginated stories are rendered in the stream
+  const isPageGreaterThanOne = page > 1;
   const uniqueStream = safeRemaining.filter((a) => !subArticleIds.has(a.id) && !wireArticleIds.has(a.id));
-  const streamArticles = uniqueStream.length > 0 ? uniqueStream : safeRemaining.filter((a) => !subArticleIds.has(a.id));
+  const streamArticles = isPageGreaterThanOne
+    ? latestArticles
+    : uniqueStream.length > 0
+    ? uniqueStream
+    : safeRemaining.filter((a) => !subArticleIds.has(a.id));
 
   const dossierArticles: ArticleItem[] =
     safeCuration.dossier_ids && safeCuration.dossier_ids.length > 0

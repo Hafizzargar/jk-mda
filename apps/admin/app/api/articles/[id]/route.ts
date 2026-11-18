@@ -135,20 +135,25 @@ export async function PATCH(
           ? existingArticle.slug
           : slug;
 
+        const updateFields: Record<string, unknown> = {
+          title,
+          excerpt,
+          content,
+          slug: finalSlug,
+          district,
+          category,
+          source_name,
+          source_url,
+          featured_image_url,
+          updated_at: new Date().toISOString(),
+        };
+        if (validation.data.author_display_name) {
+          updateFields.author_display_name = validation.data.author_display_name;
+        }
+
         const { data: updatedArticle, error: updateErr } = await authorization.service
           .from('articles')
-          .update({
-            title,
-            excerpt,
-            content,
-            slug: finalSlug,
-            district,
-            category,
-            source_name,
-            source_url,
-            featured_image_url,
-            updated_at: new Date().toISOString(),
-          })
+          .update(updateFields)
           .eq('id', id)
           .select()
           .single();
@@ -200,6 +205,11 @@ export async function PATCH(
       });
     }
 
+    const extraUpdates: Record<string, unknown> = {};
+    if (validation.data.author_display_name) {
+      extraUpdates.author_display_name = validation.data.author_display_name;
+    }
+
     if (category) {
       const canonical = getCanonicalCategory(category);
       const { data: catRecord } = await authorization.service
@@ -209,14 +219,22 @@ export async function PATCH(
         .maybeSingle();
 
       if (catRecord?.id) {
-        await authorization.service
-          .from('articles')
-          .update({ category_id: catRecord.id, category: canonical.name })
-          .eq('id', id);
+        extraUpdates.category_id = catRecord.id;
+        extraUpdates.category = canonical.name;
         if (data) {
           data.category_id = catRecord.id;
           data.category = canonical.name;
         }
+      }
+    }
+
+    if (Object.keys(extraUpdates).length > 0) {
+      await authorization.service
+        .from('articles')
+        .update(extraUpdates)
+        .eq('id', id);
+      if (data && validation.data.author_display_name) {
+        data.author_display_name = validation.data.author_display_name;
       }
     }
 

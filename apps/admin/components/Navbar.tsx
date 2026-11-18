@@ -55,6 +55,7 @@ export function Navbar({
                 src={brandLogo}
                 alt={brandName}
                 fill
+                unoptimized
                 className="object-contain"
                 sizes="28px"
               />

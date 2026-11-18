@@ -12,6 +12,7 @@ import {
   type DynamicCategoryItem,
 } from '@/lib/taxonomy-options';
 import { ImageUploader } from '@/components/ImageUploader';
+import { TRUSTED_CORRESPONDENTS } from '@/lib/correspondents';
 import { RichTextEditor } from '@/components/RichTextEditor';
 import { Button } from '@/components/Button';
 import { toast } from '@/components/Toast';
@@ -38,6 +39,7 @@ export default function NewArticlePage() {
   const [categories, setCategories] = useState<DynamicCategoryItem[]>(() => formatCategoryOptions([]));
   const [selectedCategory, setSelectedCategory] = useState('Local News');
   const [selectedDistrict, setSelectedDistrict] = useState('');
+  const [authorDisplayName, setAuthorDisplayName] = useState(TRUSTED_CORRESPONDENTS[0].name);
 
   useEffect(() => {
     async function checkAuth() {
@@ -127,6 +129,7 @@ export default function NewArticlePage() {
       excerpt: form.get('excerpt') ? String(form.get('excerpt')) : null,
       category: form.get('category') ? String(form.get('category')) : 'General',
       district: districtValue,
+      author_display_name: authorDisplayName.trim() || null,
       source_name: form.get('source_name') ? String(form.get('source_name')) : null,
       source_url: form.get('source_url') ? String(form.get('source_url')) : null,
       featured_image_url: finalImageUrl,
@@ -596,6 +599,54 @@ export default function NewArticlePage() {
                   </p>
                 </label>
               )}
+
+              {/* Author / Correspondent Byline Selector */}
+              <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/60 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                    <span>✍️ Author / Correspondent Byline</span>
+                    <span className="text-[10px] text-cyan-600 dark:text-cyan-400 font-mono font-bold">Public Byline</span>
+                  </span>
+                  <span className="text-[11px] text-slate-400 hidden sm:inline">Controls who appears as author on the public site</span>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400 block mb-1">
+                      Select Trusted Correspondent:
+                    </label>
+                    <select
+                      value={TRUSTED_CORRESPONDENTS.some(c => c.name === authorDisplayName) ? authorDisplayName : 'custom'}
+                      onChange={(e) => {
+                        if (e.target.value !== 'custom') {
+                          setAuthorDisplayName(e.target.value);
+                        }
+                      }}
+                      className="w-full rounded-[8px] border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white focus:border-cyan-500 focus:outline-none transition shadow-2xs"
+                    >
+                      {TRUSTED_CORRESPONDENTS.map((c) => (
+                        <option key={c.name} value={c.name}>
+                          {c.name} ({c.region})
+                        </option>
+                      ))}
+                      <option value="custom">✏️ Custom Correspondent Name...</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[11px] font-medium text-slate-500 dark:text-slate-400 block mb-1">
+                      Byline Display Name (Shown to Readers):
+                    </label>
+                    <input
+                      name="author_display_name"
+                      value={authorDisplayName}
+                      onChange={(e) => setAuthorDisplayName(e.target.value)}
+                      placeholder="e.g. Dr. Tariq Ahmad Lone"
+                      className="w-full rounded-[8px] border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:border-cyan-500 focus:outline-none transition shadow-2xs font-semibold"
+                    />
+                  </div>
+                </div>
+              </div>
 
               <label className="block">
                 <span className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">

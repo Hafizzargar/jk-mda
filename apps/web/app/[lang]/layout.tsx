@@ -22,7 +22,7 @@ import { getCachedSiteSetting } from '@/lib/site-settings-cache';
 export async function generateMetadata(): Promise<Metadata> {
   let brandName = SITE_SHORT_NAME;
   let brandFullName = SITE_NAME;
-  let logo = '/kcpjln-symbol.webp';
+  let logo = '/kjcpl-emblem.png';
   let tagline = 'Independent, verified news, ground dispatches, and mountain transit telemetry for Jammu, Kashmir, and Ladakh.';
 
   try {
@@ -36,24 +36,6 @@ export async function generateMetadata(): Promise<Metadata> {
     console.warn('[RootLayout:generateMetadata] Fallback metadata:', err);
   }
 
-  const keywords = [
-    'KJCPL',
-    'KJCPL News',
-    'KJCPL Truth',
-    'Jammu and Kashmir News',
-    'Kashmir News Today',
-    'Srinagar News',
-    'Chenab Valley News',
-    'Doda News',
-    'Kishtwar News',
-    'Pir Panjal News',
-    'Poonch Rajouri News',
-    'Ladakh News',
-    'Mughal Road Status',
-    'Zojila Pass Status',
-    'Breaking News Jammu and Kashmir',
-  ];
-
   return {
     metadataBase: new URL(SITE_URL),
     title: {
@@ -61,10 +43,18 @@ export async function generateMetadata(): Promise<Metadata> {
       template: `%s | ${brandName}`,
     },
     description: tagline,
-    keywords,
-    authors: [{ name: 'KJCPL Editorial Bureau', url: `${SITE_URL}/en` }],
+    authors: [
+      { name: 'Hafiz Zargar (Editor-in-Chief)', url: `${SITE_URL}/en` },
+      { name: 'KJCPL Editorial Bureau', url: `${SITE_URL}/en` },
+    ],
     creator: 'KJCPL News Network',
     publisher: brandFullName,
+    alternates: {
+      languages: {
+        en: `${SITE_URL}/en`,
+        'x-default': `${SITE_URL}/en`,
+      },
+    },
     robots: {
       index: true,
       follow: true,
@@ -190,6 +180,7 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <head>
+        <meta charSet="utf-8" />
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){try{window.__KJIN_BRAND__=${JSON.stringify(brandSettings)};localStorage.setItem('kjin_brand_config',JSON.stringify(${JSON.stringify(brandSettings)}));}catch(e){}})();`,

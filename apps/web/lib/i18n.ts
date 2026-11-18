@@ -8,8 +8,12 @@ export function applyTranslations<
 >(articles: T[], _lang?: string): T[] {
   return articles.map((article) => {
     let author = article.author_display_name;
-    if (author === 'KCPJLN' || (author && author.startsWith('KCPJLN')) || author === 'KJIN' || (author && author.startsWith('KJIN'))) {
-      author = 'KJCPL';
+    if (!author || author === 'KJCPL Team' || author === 'Team') {
+      author = 'Hafiz Zargar';
+    } else if (author.includes('KJIN')) {
+      author = author.replace(/\bKJIN\b/g, 'KJCPL');
+    } else if (author.startsWith('KCPJLN')) {
+      author = author.replace(/\bKCPJLN\b/g, 'KJCPL');
     }
 
     return {

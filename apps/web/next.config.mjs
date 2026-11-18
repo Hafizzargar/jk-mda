@@ -184,7 +184,13 @@ const isProd = process.env.NODE_ENV === 'production';
 /** @type {import('next').NextConfig} */
 export const nextConfig = {
   reactStrictMode: true,
-  serverExternalPackages: ['@supabase/supabase-js', '@supabase/ssr'],
+  serverExternalPackages: [
+    '@supabase/supabase-js',
+    '@supabase/ssr',
+    '@sentry/nextjs',
+    '@sentry/node',
+    '@sentry/core',
+  ],
   eslint: {
     ignoreDuringBuilds: true,
   },

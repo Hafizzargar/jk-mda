@@ -12,12 +12,12 @@ import {
 const EDIT_ROLES = ['owner', 'superadmin', 'admin', 'editor'];
 
 const EditorialSchema = z.object({
-  volume_badge: z.string().describe('Formal Roman numeral and edition badge, e.g. "Vol. LXXV" or "Vol. LXXV • Autumn Edition"'),
+  volume_badge: z.string().describe('Formal edition badge, e.g. "Vol. 1, No. 1 • Inaugural Edition" or "Vol. 1, No. 1 • Autumn 2026"'),
   title: z.string().describe('Deep, dignified, intellectual headline representing the newsroom collective editorial stance'),
   quote: z.string().describe('A profound 2-3 sentence institutional stance and analysis of regional federalism, public welfare, economy, or civic governance'),
-  author_name: z.string().default('Editorial Board'),
+  author_name: z.string().default('KJCPL Editorial Board'),
   author_initials: z.string().default('EB'),
-  institution_subtext: z.string().default('Srinagar & Jammu Joint Chancellery'),
+  institution_subtext: z.string().default('Srinagar & Jammu Editorial Bureau'),
   article_id: z.string().nullable().optional(),
 });
 
@@ -74,7 +74,7 @@ export async function POST(request: Request) {
     const topArticle = recentArticles?.[0];
     const fallbackEditorial: EditorialOfRecordSetting = {
       ...DEFAULT_EDITORIAL_OF_RECORD,
-      volume_badge: `Vol. LXXV • ${new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`,
+      volume_badge: `Vol. 1, No. 1 • ${new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`,
       title: topArticle ? `Regional Stance: ${topArticle.title}` : DEFAULT_EDITORIAL_OF_RECORD.title,
       article_id: topArticle?.id || null,
     };
@@ -111,12 +111,12 @@ Generate structured content for the editorial desk:
 
     const formattedEditorial: EditorialOfRecordSetting = {
       enabled: true,
-      volume_badge: generated.editorial.volume_badge || 'Vol. LXXV',
+      volume_badge: generated.editorial.volume_badge || 'Vol. 1, No. 1',
       title: generated.editorial.title,
       quote: generated.editorial.quote,
-      author_name: generated.editorial.author_name || 'Editorial Board',
+      author_name: generated.editorial.author_name || 'KJCPL Editorial Board',
       author_initials: generated.editorial.author_initials || 'EB',
-      institution_subtext: generated.editorial.institution_subtext || 'Srinagar & Jammu Joint Chancellery',
+      institution_subtext: generated.editorial.institution_subtext || 'Srinagar & Jammu Editorial Bureau',
       link_mode: generated.editorial.article_id ? 'article' : (topStoryId ? 'article' : 'opinion_category'),
       article_id: generated.editorial.article_id || topStoryId,
       custom_url: '/category/opinion',

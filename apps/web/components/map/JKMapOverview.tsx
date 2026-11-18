@@ -654,9 +654,9 @@ export function JKMapOverview({
             title="KJCPL Homepage"
           >
             <div className="relative w-8 h-8 sm:w-9 sm:h-9 rounded-full p-0.5 bg-gradient-to-tr from-amber-600 via-amber-200 to-amber-700 shadow-xs flex items-center justify-center shrink-0">
-              <div className="w-full h-full bg-stone-900 rounded-full flex items-center justify-center overflow-hidden relative">
+              <div className="w-full h-full bg-white rounded-full flex items-center justify-center overflow-hidden relative shadow-inner">
                 <Image
-                  src={brand?.logo_url || '/kjin-emblem.png'}
+                  src={brand?.logo_url?.trim() || '/kjcpl-emblem.png'}
                   alt={brand?.name || 'KJCPL'}
                   fill
                   unoptimized

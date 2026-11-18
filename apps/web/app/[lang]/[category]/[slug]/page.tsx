@@ -56,24 +56,10 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
   const canonicalUrl = `${SITE_URL}${canonicalRoutePrefix}/${categorySlug}/${resolvedParams.slug}`;
   const authorCleanName = (article.author_display_name || `${brandSettings.name} Bureau`).replace(/\bKJIN\b/gi, 'KJCPL');
 
-  const keywords = [
-    article.category,
-    article.district ? getDistrictDisplayName(article.district) : null,
-    'Jammu and Kashmir',
-    'Kashmir News',
-    'Breaking News',
-    'KJCPL',
-    'KJCPL News Network',
-    'Chenab Valley',
-    'Pir Panjal',
-    'India News',
-  ].filter(Boolean) as string[];
-
   return {
     metadataBase: new URL(SITE_URL),
     title: `${title} | ${brandSettings.name}`,
     description: excerpt,
-    keywords,
     authors: [{ name: authorCleanName, url: `${SITE_URL}/en` }],
     creator: `${brandSettings.name} Newsroom`,
     publisher: brandSettings.full_name,
@@ -105,7 +91,7 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
       modifiedTime: article.updated_at || undefined,
       authors: [authorCleanName],
       section: article.category,
-      tags: keywords,
+      tags: [article.category, article.district || 'Jammu & Kashmir'],
       images: article.featured_image_url
         ? [
             {

@@ -34,8 +34,8 @@ export function SiteFooter({
     (contact.organization_name?.includes('(')
       ? contact.organization_name.match(/\((.*?)\)/)?.[1]?.trim()
       : '');
-  const brandFullName = (rawBrandFullName || 'Kashmir & Jammu Information Network')
-    .replace(/Kashmir Chenab Panjal Jammu Ladakh Network/gi, 'Kashmir & Jammu Information Network');
+  const brandFullName = (rawBrandFullName || 'Kashmir Jammu Chenab Pir Panjal Leh Network')
+    .replace(/Kashmir Chenab Panjal Jammu Ladakh Network|Kashmir & Jammu Information Network|Kashmir Jammu Independent News/gi, 'Kashmir Jammu Chenab Pir Panjal Leh Network');
 
   // Tagline logic: respect "if empty then empty"
   const activeTagline = brandSettings?.tagline !== undefined
@@ -86,6 +86,10 @@ export function SiteFooter({
                 <span className={textMuted}>•</span>
                 <span className="text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1">
                   <span>✓</span> Independent Journal of Record
+                </span>
+                <span className={textMuted}>•</span>
+                <span className={`font-semibold ${textSecondary}`}>
+                  Editor-in-Chief: Hafiz Zargar
                 </span>
               </div>
             </div>
@@ -228,6 +232,9 @@ export function SiteFooter({
                 <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold flex items-center gap-1 mt-1">
                   <span>&#10003;</span>
                   <span>Independent Non-Partisan Journal of Record</span>
+                </div>
+                <div className={`text-[10px] ${textSecondary} font-semibold pt-1 border-t border-slate-200/50 dark:border-slate-800/50`}>
+                  Editor-in-Chief: Hafiz Zargar
                 </div>
               </div>
             </div>

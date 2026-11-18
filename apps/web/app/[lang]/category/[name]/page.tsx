@@ -166,8 +166,12 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
 
   if (isProblemsCategory) {
     query = query.or('category.ilike.%problem%,category.ilike.%grievance%');
+  } else if (categorySlug === 'local' || categorySlug === 'local-news') {
+    query = query.or('category.ilike.%local%,category.ilike.local');
+  } else if (categorySlug === 'national' || categorySlug === 'india') {
+    query = query.or('category.ilike.national,category.ilike.%national%');
   } else {
-    query = query.ilike('category', categorySlug);
+    query = query.or(`category.ilike.${categorySlug},category.ilike.%${categorySlug}%`);
   }
 
   const { data: articlesRaw, count } = await query

@@ -93,7 +93,15 @@ export default async function RegionPage({ params, searchParams }: RegionPagePro
     getCustomAdsSettings(supabase),
   ]);
 
-  // 2. Query articles matching any district within this territorial region
+  // 2. Query articles matching any district within this territorial region (case-insensitive variants)
+  const districtVariants = Array.from(
+    new Set([
+      ...region.districts.map((d) => d.toLowerCase().trim()),
+      ...region.districts.map((d) => d.charAt(0).toUpperCase() + d.slice(1).toLowerCase()),
+      ...region.districts.map((d) => d.toUpperCase()),
+    ])
+  );
+
   const { data: articlesRaw, count } = await supabase
     .from('articles')
     .select(
@@ -101,7 +109,7 @@ export default async function RegionPage({ params, searchParams }: RegionPagePro
       { count: 'exact' }
     )
     .eq('status', 'published')
-    .in('district', region.districts)
+    .in('district', districtVariants)
     .order('published_at', { ascending: false, nullsFirst: false })
     .range(from, to);
 
@@ -114,7 +122,7 @@ export default async function RegionPage({ params, searchParams }: RegionPagePro
     .from('articles')
     .select('id, slug, title, category, district, published_at, view_count, article_translations(title, language_code)')
     .eq('status', 'published')
-    .in('district', region.districts)
+    .in('district', districtVariants)
     .order('view_count', { ascending: false })
     .limit(5);
 

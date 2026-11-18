@@ -23,6 +23,7 @@ export interface ValidatedArticleInput {
   source_name: string | null;
   source_url: string | null;
   featured_image_url: string | null;
+  author_display_name: string | null;
 }
 
 export type ArticleValidationResult =
@@ -131,6 +132,7 @@ export function validateArticleInput(body: unknown): ArticleValidationResult {
   let p_source_name: string | null;
   let p_source_url: string | null;
   let p_featured_image_url: string | null;
+  let p_author_display_name: string | null;
 
   try {
     p_excerpt = parseOptionalString(excerpt, 'excerpt');
@@ -139,6 +141,7 @@ export function validateArticleInput(body: unknown): ArticleValidationResult {
     p_source_name = parseOptionalString(source_name, 'source_name');
     p_source_url = parseOptionalString(source_url, 'source_url');
     p_featured_image_url = parseOptionalString(featured_image_url, 'featured_image_url');
+    p_author_display_name = parseOptionalString(payload.author_display_name, 'author_display_name');
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : 'Invalid optional string field';
     return { success: false, error: msg, status: 400 };
@@ -216,6 +219,7 @@ export function validateArticleInput(body: unknown): ArticleValidationResult {
       source_name: p_source_name,
       source_url: p_source_url,
       featured_image_url: p_featured_image_url,
+      author_display_name: p_author_display_name,
     },
   };
 }

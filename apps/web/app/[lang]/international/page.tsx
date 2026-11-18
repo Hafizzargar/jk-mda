@@ -12,6 +12,7 @@ import { getCurationSettings } from '@/lib/curation';
 import { getRegionalWeather } from '@/lib/weather';
 import { getCustomAdsSettings } from '@/lib/ads';
 import { getCachedSiteSetting } from '@/lib/site-settings-cache';
+import { getWarAndConflictNews, getDiscoverNews } from '@/lib/external-news';
 import { ClassicEditorialTemplate } from '@/components/templates/ClassicEditorialTemplate';
 import type { ArticleItem, TemplateScope } from '@/components/templates/types';
 
@@ -74,6 +75,8 @@ export default async function InternationalDeskPage({ params, searchParams }: In
     articlesResult,
     trendingResult,
     settingRow,
+    conflictNews,
+    discoverNews,
   ] = await Promise.all([
     getBrandSettings(supabase),
     getFooterContactSettings(supabase),
@@ -100,6 +103,8 @@ export default async function InternationalDeskPage({ params, searchParams }: In
       .order('view_count', { ascending: false })
       .limit(5),
     getCachedSiteSetting<{ template_id?: string }>(supabase, 'active_template'),
+    getWarAndConflictNews(6).catch(() => []),
+    getDiscoverNews(4).catch(() => []),
   ]);
 
   const articles = (applyTranslations(articlesResult.data || [], lang) as unknown) as ArticleItem[];
@@ -148,6 +153,8 @@ export default async function InternationalDeskPage({ params, searchParams }: In
     editorialArticle,
     subArticles,
     wireArticles,
+    conflictNews,
+    discoverNews,
     scope,
   };
 
