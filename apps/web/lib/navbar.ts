@@ -183,7 +183,7 @@ export const DEFAULT_NAVBAR_SETTINGS: NavbarSettings = {
     latest_wire_label: 'Latest Wire',
     show_submit_tip: true,
     submit_tip_label: 'Submit Tip',
-    submit_tip_url: 'mailto:editorial@kjcpl.site?subject=News%20Tip%20Dispatch',
+    submit_tip_url: 'mailto:h26412301@gmail.com?subject=News%20Tip%20Dispatch',
     daily_corridor_rotation: true,
   },
 };

@@ -119,7 +119,7 @@ export default function DeveloperSettingsPage() {
 
     // Frontend validation
     if (form.support_email && !validateEmail(form.support_email)) {
-      setErrorMsg('Please enter a valid support email address (e.g. dev@kjcpl.site).');
+      setErrorMsg('Please enter a valid support email address (e.g. h26412301@gmail.com).');
       return;
     }
 
@@ -380,7 +380,7 @@ export default function DeveloperSettingsPage() {
                     value={form.support_email}
                     onChange={(e) => handleChange('support_email', e.target.value)}
                     className="w-full rounded-xl border border-slate-800 bg-slate-900 px-4 py-2 text-sm text-white placeholder-slate-600 focus:border-cyan-500 focus:outline-none font-mono"
-                    placeholder="dev@kjcpl.site"
+                    placeholder="h26412301@gmail.com"
                   />
                   <p className="text-[11px] text-slate-500">
                     Clicking &quot;Mail Us&quot; opens visitor&apos;s email client with a <code className="text-slate-400">mailto:</code> link.

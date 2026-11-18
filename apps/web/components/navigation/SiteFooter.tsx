@@ -171,19 +171,19 @@ export function SiteFooter({
                 <div>
                   <span className={`text-[10px] ${textMuted} block`}>Editorial Newsdesk:</span>
                   <a
-                    href={`mailto:${contact.email_editorial || 'news@kjcpl.site'}`}
+                    href={`mailto:${editorialEmail}`}
                     className={`font-mono text-[11px] ${textPrimary} hover:underline break-all`}
                   >
-                    {contact.email_editorial || 'news@kjcpl.site'}
+                    {editorialEmail}
                   </a>
                 </div>
                 <div>
                   <span className={`text-[10px] ${textMuted} block`}>Careers &amp; Resumes:</span>
                   <a
-                    href={`mailto:${contact.email_careers || 'careers@kjcpl.site'}`}
+                    href={`mailto:${careersEmail}`}
                     className={`font-mono text-[11px] ${textPrimary} hover:underline break-all`}
                   >
-                    {contact.email_careers || 'careers@kjcpl.site'}
+                    {careersEmail}
                   </a>
                 </div>
                 <div className="pt-1.5 border-t border-slate-200/60 dark:border-slate-800/80">
@@ -195,10 +195,10 @@ export function SiteFooter({
                     {contact.grievance_officer_name || 'Adv. Bashir Ahmad (Public Grievance Redressal Officer)'}
                   </span>
                   <a
-                    href={`mailto:${contact.email_grievance || 'grievance@kjcpl.site'}`}
+                    href={`mailto:${grievanceEmail}`}
                     className={`font-mono text-[11px] ${isDark ? 'text-amber-400' : 'text-amber-700'} hover:underline break-all block`}
                   >
-                    {contact.email_grievance || 'grievance@kjcpl.site'}
+                    {grievanceEmail}
                   </a>
                 </div>
               </div>

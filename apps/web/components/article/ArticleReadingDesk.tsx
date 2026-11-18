@@ -343,7 +343,7 @@ export function ArticleReadingDesk({
                     </p>
                   </div>
                   <a
-                    href="mailto:editorial@kjcpl.site"
+                    href="mailto:h26412301@gmail.com"
                     className="text-xs uppercase font-bold text-white bg-[#0F172A] px-3 py-1.5 rounded-xl hover:bg-slate-800 transition"
                   >
                     Direct Wire Tips
@@ -380,7 +380,7 @@ export function ArticleReadingDesk({
                 </div>
               </div>
               <a
-                href="mailto:grievance@kjcpl.site"
+                href="mailto:h26412301@gmail.com"
                 className="whitespace-nowrap px-4 py-2 bg-white hover:bg-slate-100 text-slate-900 font-bold rounded-xl uppercase tracking-wider transition shadow-sm border border-slate-300"
               >
                 File Revision Notice

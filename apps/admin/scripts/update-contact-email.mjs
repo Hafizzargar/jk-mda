@@ -48,3 +48,38 @@ const { error: devErr } = await supabase.from('site_settings').upsert({
 });
 
 console.log('Update developer_support result:', devErr ? `Error: ${devErr.message}` : 'SUCCESS');
+
+// 3. Update careers_settings
+const { data: careersCurrent } = await supabase.from('site_settings').select('value').eq('key', 'careers_settings').maybeSingle();
+if (careersCurrent?.value) {
+  const updatedCareers = {
+    ...careersCurrent.value,
+    contact_email: userMail,
+  };
+  const { error: careersErr } = await supabase.from('site_settings').upsert({
+    key: 'careers_settings',
+    value: updatedCareers,
+    description: 'Careers portal configuration and job openings',
+    updated_at: new Date().toISOString(),
+  });
+  console.log('Update careers_settings result:', careersErr ? `Error: ${careersErr.message}` : 'SUCCESS');
+}
+
+// 4. Update navbar_settings submit_tip_url
+const { data: navbarCurrent } = await supabase.from('site_settings').select('value').eq('key', 'navbar_settings').maybeSingle();
+if (navbarCurrent?.value) {
+  const updatedNavbar = {
+    ...navbarCurrent.value,
+    actions: {
+      ...(navbarCurrent.value.actions || {}),
+      submit_tip_url: `mailto:${userMail}?subject=News%20Tip%20Dispatch`,
+    },
+  };
+  const { error: navErr } = await supabase.from('site_settings').upsert({
+    key: 'navbar_settings',
+    value: updatedNavbar,
+    description: 'Header masthead navigation, brand, and actions configuration',
+    updated_at: new Date().toISOString(),
+  });
+  console.log('Update navbar_settings result:', navErr ? `Error: ${navErr.message}` : 'SUCCESS');
+}

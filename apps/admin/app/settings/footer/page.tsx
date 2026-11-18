@@ -543,7 +543,7 @@ export default function FooterSettingsPage() {
                       <span>⚡</span> Primary Newsdesk Mailbox Preset
                     </span>
                     <p className="text-[11px] text-slate-400">
-                      Reset all public contact inboxes to official domain emails (<strong>news@kjcpl.site</strong>, <strong>careers@kjcpl.site</strong>, <strong>grievance@kjcpl.site</strong>, <strong>press@kjcpl.site</strong>).
+                      Reset all public contact inboxes to the official newsdesk email (<strong>h26412301@gmail.com</strong>).
                     </p>
                   </div>
                   <button
@@ -551,17 +551,17 @@ export default function FooterSettingsPage() {
                     onClick={() => {
                       setForm((prev) => ({
                         ...prev,
-                        email_editorial: 'news@kjcpl.site',
-                        email_careers: 'careers@kjcpl.site',
-                        email_grievance: 'grievance@kjcpl.site',
-                        email_press: 'press@kjcpl.site',
+                        email_editorial: 'h26412301@gmail.com',
+                        email_careers: 'h26412301@gmail.com',
+                        email_grievance: 'h26412301@gmail.com',
+                        email_press: 'h26412301@gmail.com',
                       }));
-                      setSuccessMsg('Set official @kjcpl.site addresses to all email fields. Click "Save & Publish Footer Info" to broadcast.');
+                      setSuccessMsg('Set official h26412301@gmail.com address to all email fields. Click "Save & Publish Footer Info" to broadcast.');
                     }}
                     className="shrink-0 px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm"
                   >
                     <span>⚡</span>
-                    <span>Set All to @kjcpl.site</span>
+                    <span>Set All to h26412301@gmail.com</span>
                   </button>
                 </div>
 
@@ -575,7 +575,7 @@ export default function FooterSettingsPage() {
                       value={form.email_editorial}
                       onChange={(e) => handleChange('email_editorial', e.target.value)}
                       className="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:border-cyan-500 focus:outline-none font-mono"
-                      placeholder="e.g. news@kjcpl.site"
+                      placeholder="e.g. h26412301@gmail.com"
                     />
                     <p className="text-[11px] text-slate-500 mt-1">Displayed in website footer under &quot;Editorial&quot;.</p>
                   </div>
@@ -589,7 +589,7 @@ export default function FooterSettingsPage() {
                       value={form.email_careers}
                       onChange={(e) => handleChange('email_careers', e.target.value)}
                       className="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:border-cyan-500 focus:outline-none font-mono"
-                      placeholder="e.g. careers@kjcpl.site"
+                      placeholder="e.g. h26412301@gmail.com"
                     />
                     <p className="text-[11px] text-slate-500 mt-1">Displayed in website footer and Careers portal for candidate submissions.</p>
                   </div>
@@ -603,7 +603,7 @@ export default function FooterSettingsPage() {
                       value={form.email_grievance}
                       onChange={(e) => handleChange('email_grievance', e.target.value)}
                       className="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:border-cyan-500 focus:outline-none font-mono"
-                      placeholder="e.g. grievance@kjcpl.site"
+                      placeholder="e.g. h26412301@gmail.com"
                     />
                     <p className="text-[11px] text-slate-500 mt-1">Displayed in website footer under &quot;Grievances&quot; for reader complaints.</p>
                   </div>
@@ -617,7 +617,7 @@ export default function FooterSettingsPage() {
                       value={form.email_press}
                       onChange={(e) => handleChange('email_press', e.target.value)}
                       className="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:border-cyan-500 focus:outline-none font-mono"
-                      placeholder="e.g. press@kjcpl.site"
+                      placeholder="e.g. h26412301@gmail.com"
                     />
                   </div>
 
@@ -888,15 +888,15 @@ export default function FooterSettingsPage() {
 
                 <div className="flex items-center justify-between">
                   <span className="text-slate-400">Careers &amp; Resumes:</span>
-                  <span className="font-mono text-cyan-300">{form.email_careers || 'careers@kjcpl.site'}</span>
+                  <span className="font-mono text-cyan-300">{form.email_careers || 'h26412301@gmail.com'}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-slate-400">Editorial:</span>
-                  <span className="font-mono text-slate-200">{form.email_editorial || 'news@kjcpl.site'}</span>
+                  <span className="font-mono text-slate-200">{form.email_editorial || 'h26412301@gmail.com'}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-slate-400">Grievances:</span>
-                  <span className="font-mono text-amber-300">{form.email_grievance || 'grievance@kjcpl.site'}</span>
+                  <span className="font-mono text-amber-300">{form.email_grievance || 'h26412301@gmail.com'}</span>
                 </div>
               </div>
 
