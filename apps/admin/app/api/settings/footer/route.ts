@@ -79,6 +79,7 @@ export async function POST(request: Request) {
       primary_address: sanitized.primary_address,
       phone_primary: sanitized.phone_primary,
       email_editorial: sanitized.email_editorial,
+      editor_in_chief: sanitized.editor_in_chief,
     },
     ...authorization.auditContext,
   });

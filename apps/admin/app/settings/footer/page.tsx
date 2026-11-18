@@ -661,6 +661,44 @@ export default function FooterSettingsPage() {
                       placeholder="Summary of newsroom principles, non-partisanship, and verification standards."
                     />
                   </div>
+
+                  <div className="border-t border-slate-800 pt-4 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-300">
+                        Editor-in-Chief Name
+                      </label>
+                      <span className="text-[10px] font-mono text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/30">
+                        Editorial Accreditation
+                      </span>
+                    </div>
+                    <input
+                      type="text"
+                      value={form.editor_in_chief || ''}
+                      onChange={(e) => handleChange('editor_in_chief', e.target.value)}
+                      className="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:border-cyan-500 focus:outline-none"
+                      placeholder="e.g. Hafiz Zargar"
+                    />
+                    <p className="text-[11px] text-slate-500">
+                      Accredited Editor-in-Chief published across website footer colophons and statutory accreditation badges.
+                    </p>
+
+                    <label className="flex items-center gap-3 p-3 rounded-xl bg-slate-950 border border-slate-800 cursor-pointer hover:border-slate-700 transition">
+                      <input
+                        type="checkbox"
+                        checked={form.show_editor_in_chief !== false}
+                        onChange={(e) => handleChange('show_editor_in_chief', e.target.checked)}
+                        className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-cyan-500 focus:ring-cyan-500"
+                      />
+                      <div>
+                        <span className="text-xs text-slate-200 font-semibold block">
+                          Display Editor-in-Chief in Website Footer
+                        </span>
+                        <span className="text-[11px] text-slate-500 block">
+                          When checked, the Editor-in-Chief accreditation is published live in the statutory colophon.
+                        </span>
+                      </div>
+                    </label>
+                  </div>
                 </div>
               </div>
             )}
@@ -850,6 +888,16 @@ export default function FooterSettingsPage() {
               <div className="border-t border-slate-800 pt-4 text-[10px] text-slate-500 space-y-1">
                 <div><strong>Hours:</strong> {form.operating_hours}</div>
                 <div><strong>Registration:</strong> {form.registration_number}</div>
+                {form.show_editor_in_chief !== false && form.editor_in_chief ? (
+                  <div className="text-slate-200 font-semibold pt-1 border-t border-slate-800/60 mt-1 flex items-center justify-between">
+                    <span>Editor-in-Chief:</span>
+                    <span className="text-cyan-300 font-mono">{form.editor_in_chief}</span>
+                  </div>
+                ) : (
+                  <div className="text-slate-500 italic pt-1 border-t border-slate-800/60 mt-1">
+                    Editor-in-Chief accreditation hidden
+                  </div>
+                )}
               </div>
             </div>
           </div>

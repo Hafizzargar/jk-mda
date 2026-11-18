@@ -2,6 +2,8 @@ export interface FooterContactSettings {
   organization_name: string;
   tagline: string;
   description: string;
+  editor_in_chief?: string;
+  show_editor_in_chief?: boolean;
   primary_address: string;
   primary_address_label: string;
   show_primary_address?: boolean;
@@ -31,6 +33,8 @@ export const DEFAULT_FOOTER_CONTACT: FooterContactSettings = {
   organization_name: 'KJCPL News Network',
   tagline: 'Verified Journalism & Public Affairs across Jammu & Kashmir',
   description: 'Independent, non-partisan journal of record dedicated to verified investigative reporting, regional public affairs, and civic documentation across Jammu, Kashmir, and Ladakh.',
+  editor_in_chief: 'Hafiz Zargar',
+  show_editor_in_chief: true,
   primary_address: 'Press Enclave, Residency Road, Srinagar, Jammu & Kashmir 190001',
   primary_address_label: 'Srinagar Central Bureau & Headquarters',
   show_primary_address: true,
@@ -94,6 +98,8 @@ export function sanitizeContactSettings(input: Partial<FooterContactSettings>): 
     organization_name: orgName || 'KJCPL News Network',
     tagline: cleanMojibake(String(input.tagline || DEFAULT_FOOTER_CONTACT.tagline)).slice(0, 200),
     description: cleanMojibake(String(input.description || DEFAULT_FOOTER_CONTACT.description)).slice(0, 500),
+    editor_in_chief: cleanMojibake(String(input.editor_in_chief || DEFAULT_FOOTER_CONTACT.editor_in_chief || 'Hafiz Zargar')).slice(0, 150),
+    show_editor_in_chief: input.show_editor_in_chief !== false,
     primary_address: cleanMojibake(String(input.primary_address || DEFAULT_FOOTER_CONTACT.primary_address)).slice(0, 300),
     primary_address_label: cleanMojibake(String(input.primary_address_label || DEFAULT_FOOTER_CONTACT.primary_address_label)).slice(0, 100),
     show_primary_address: input.show_primary_address !== false,

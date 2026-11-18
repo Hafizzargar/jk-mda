@@ -87,10 +87,14 @@ export function SiteFooter({
                 <span className="text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1">
                   <span>✓</span> Independent Journal of Record
                 </span>
-                <span className={textMuted}>•</span>
-                <span className={`font-semibold ${textSecondary}`}>
-                  Editor-in-Chief: Hafiz Zargar
-                </span>
+                {contact.show_editor_in_chief !== false && contact.editor_in_chief ? (
+                  <>
+                    <span className={textMuted}>•</span>
+                    <span className={`font-semibold ${textSecondary}`}>
+                      Editor-in-Chief: {contact.editor_in_chief}
+                    </span>
+                  </>
+                ) : null}
               </div>
             </div>
 
@@ -252,9 +256,11 @@ export function SiteFooter({
                   <span>&#10003;</span>
                   <span>Independent Non-Partisan Journal of Record</span>
                 </div>
-                <div className={`text-[10px] ${textSecondary} font-semibold pt-1 border-t border-slate-200/50 dark:border-slate-800/50`}>
-                  Editor-in-Chief: Hafiz Zargar
-                </div>
+                {contact.show_editor_in_chief !== false && contact.editor_in_chief ? (
+                  <div className={`text-[10px] ${textSecondary} font-semibold pt-1 border-t border-slate-200/50 dark:border-slate-800/50`}>
+                    Editor-in-Chief: {contact.editor_in_chief}
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
@@ -388,9 +394,11 @@ export function SiteFooter({
                 >
                   {contact.email_grievance || 'grievance@kjcpl.site'}
                 </a>
-                <span className={`text-[10px] ${textMuted} block pt-0.5`}>
-                  Physical Office: Press Enclave, Residency Road, Srinagar, Jammu &amp; Kashmir 190001
-                </span>
+                {contact.show_primary_address !== false && contact.primary_address ? (
+                  <span className={`text-[10px] ${textMuted} block pt-0.5`}>
+                    Physical Office: {contact.primary_address}
+                  </span>
+                ) : null}
               </div>
             </div>
           </div>
