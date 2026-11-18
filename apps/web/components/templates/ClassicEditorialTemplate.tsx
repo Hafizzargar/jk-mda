@@ -380,6 +380,11 @@ export function ClassicEditorialTemplate({
           activeCategory={scope?.activeCategory}
         />
 
+        {/* Global War & Crisis Wire (Continuous Smooth Marquee on Mobile, Tablet & Desktop) */}
+        {!isNational && !isInternational && conflictNews && conflictNews.length > 0 && (
+          <WarConflictTickerSlider items={conflictNews} langPrefix={langPrefix} />
+        )}
+
 
 
         {/* ========================================================================= */}
@@ -1374,9 +1379,7 @@ export function ClassicEditorialTemplate({
                 </div>
               </div>
             </section>
-          ) : (
-            <WarConflictTickerSlider items={conflictNews} langPrefix={langPrefix} />
-          )}
+          ) : null}
 
           {/* Front Page Top Header Leaderboard Ad */}
           {leaderboardAd && (

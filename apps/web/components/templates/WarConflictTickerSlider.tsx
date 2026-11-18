@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useMemo } from 'react';
 import Link from 'next/link';
 import type { ExternalNewsItem } from '@/lib/external-news';
 
@@ -16,34 +16,10 @@ interface ConflictZoneStyle {
 }
 
 export function WarConflictTickerSlider({ items, langPrefix }: WarConflictTickerSliderProps) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
-
   const newsList = useMemo(() => (Array.isArray(items) && items.length > 0 ? items : []), [items]);
   const total = newsList.length;
 
-  const nextSlide = useCallback(() => {
-    if (total <= 1) return;
-    setCurrentIndex((prev) => (prev + 1) % total);
-  }, [total]);
-
-  const prevSlide = useCallback(() => {
-    if (total <= 1) return;
-    setCurrentIndex((prev) => (prev - 1 + total) % total);
-  }, [total]);
-
-  // Rotate every 4.5 seconds (4 to 5 sec user requirement)
-  useEffect(() => {
-    if (total <= 1 || isPaused) return;
-    const timer = setInterval(() => {
-      nextSlide();
-    }, 4500);
-    return () => clearInterval(timer);
-  }, [total, isPaused, nextSlide]);
-
   if (total === 0) return null;
-
-  const currentItem = newsList[currentIndex] || newsList[0];
 
   // Resolve distinctive location highlight badge with high-visibility colors
   const resolveZoneStyle = (item: ExternalNewsItem): ConflictZoneStyle => {
@@ -107,9 +83,6 @@ export function WarConflictTickerSlider({ items, langPrefix }: WarConflictTicker
     };
   };
 
-  const zoneStyle = resolveZoneStyle(currentItem);
-
-  // Time elapsed formatter
   const getTimeAgo = (dateStr?: string) => {
     if (!dateStr) return 'Just now';
     const diffMs = Date.now() - new Date(dateStr).getTime();
@@ -122,126 +95,85 @@ export function WarConflictTickerSlider({ items, langPrefix }: WarConflictTicker
     return 'Today';
   };
 
-  const isExternalUrl = Boolean(currentItem.url && currentItem.url.startsWith('http'));
-  const targetHref = isExternalUrl ? currentItem.url : `${langPrefix}/international`;
+  // Duplicate items for continuous seamless 50% translation infinite loop
+  const marqueeItems = [...newsList, ...newsList];
 
   return (
     <div
-      className="w-full bg-[#080C16] border-y border-red-600/40 text-slate-100 font-sans shadow-sm select-none"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
+      className="w-full bg-[#080C16] border-y border-red-600/40 text-slate-100 font-sans shadow-sm select-none relative overflow-hidden"
       data-purpose="war-crisis-ticker"
     >
-      <div className="max-w-7xl xl:max-w-[1536px] 2xl:max-w-[1780px] mx-auto px-3 sm:px-4 md:px-8 py-2">
-        {/* DESKTOP / LAPTOP SINGLE-LINE FIXED TICKER */}
-        <div className="hidden sm:flex items-center justify-between gap-3 text-xs leading-none">
-          {/* Left: Crisis Beacon Label */}
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-red-950/80 border border-red-500/40 text-red-300 font-mono font-bold text-[10.5px] tracking-wider uppercase">
-              <span className="relative flex h-2 w-2">
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${zoneStyle.pulseColor}`} />
-                <span className={`relative inline-flex rounded-full h-2 w-2 ${zoneStyle.pulseColor}`} />
-              </span>
-              <span>WAR &amp; CRISIS WIRE</span>
+      <style>{`
+        @keyframes warMarqueeScroll {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .war-marquee-track {
+          display: flex;
+          width: max-content;
+          animation: warMarqueeScroll 40s linear infinite;
+          will-change: transform;
+        }
+        .war-marquee-track:hover,
+        .war-marquee-track:active {
+          animation-play-state: paused;
+        }
+      `}</style>
+
+      <div className="w-full max-w-7xl xl:max-w-[1536px] 2xl:max-w-[1780px] mx-auto px-2 sm:px-4 md:px-8 py-1.5 sm:py-2 flex items-center justify-between gap-2 overflow-hidden">
+        {/* Pinned Left Pill: Crisis Beacon Label */}
+        <div className="flex items-center gap-1.5 shrink-0 z-10 bg-[#080C16] pr-2 shadow-[4px_0_12px_#080C16]">
+          <span className="flex items-center gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded bg-red-950/90 border border-red-500/50 text-red-300 font-mono font-extrabold text-[9px] sm:text-[10.5px] tracking-wider uppercase whitespace-nowrap">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-red-500" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
             </span>
-          </div>
+            <span className="hidden xs:inline">WAR &amp; CRISIS WIRE</span>
+            <span className="xs:hidden">WAR WIRE</span>
+          </span>
+        </div>
 
-          {/* Center: Highlighted Conflict Zone + Single Line Headline */}
-          <div className="flex-1 min-w-0 flex items-center gap-2.5 overflow-hidden">
-            {/* Vivid Location Pill */}
-            <span
-              className={`shrink-0 px-2 py-0.5 rounded text-[10.5px] uppercase tracking-wide border shadow-xs transition-colors duration-300 ${zoneStyle.badgeClass}`}
-            >
-              {zoneStyle.label}
-            </span>
+        {/* Continuous Smooth Scrolling Marquee Area */}
+        <div className="flex-1 min-w-0 overflow-hidden relative">
+          <div className="war-marquee-track flex items-center gap-6 sm:gap-8">
+            {marqueeItems.map((item, idx) => {
+              const zone = resolveZoneStyle(item);
+              const isExternal = Boolean(item.url && item.url.startsWith('http'));
+              const href = isExternal ? item.url : `${langPrefix}/international`;
 
-            {/* Single Linear Headline */}
-            <a
-              href={targetHref}
-              target={isExternalUrl ? '_blank' : undefined}
-              rel={isExternalUrl ? 'noopener noreferrer' : undefined}
-              className="text-[12.5px] text-slate-100 hover:text-white font-medium hover:underline truncate transition-colors duration-200"
-              title={currentItem.title}
-            >
-              {currentItem.title}
-            </a>
-
-            {/* Freshness Badge */}
-            <span className="shrink-0 text-[10.5px] text-slate-400 font-mono hidden md:inline-block">
-              &bull; {getTimeAgo(currentItem.publishedAt)}
-            </span>
-          </div>
-
-          {/* Right: Counter, Nav Arrows, Link to World Desk */}
-          <div className="flex items-center gap-2.5 shrink-0 pl-2 text-slate-400">
-            <span className="text-[10px] font-mono font-semibold text-slate-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
-              {currentIndex + 1} / {total}
-            </span>
-
-            <div className="flex items-center gap-0.5">
-              <button
-                type="button"
-                onClick={prevSlide}
-                className="w-5 h-5 rounded flex items-center justify-center bg-slate-900 hover:bg-slate-800 hover:text-white text-slate-300 transition text-[11px] border border-slate-800"
-                aria-label="Previous War Alert"
-              >
-                ‹
-              </button>
-              <button
-                type="button"
-                onClick={nextSlide}
-                className="w-5 h-5 rounded flex items-center justify-center bg-slate-900 hover:bg-slate-800 hover:text-white text-slate-300 transition text-[11px] border border-slate-800"
-                aria-label="Next War Alert"
-              >
-                ›
-              </button>
-            </div>
-
-            <Link
-              href={`${langPrefix}/international`}
-              className="text-[10.5px] text-red-400 hover:text-red-300 font-semibold tracking-wide hover:underline hidden lg:inline-block ml-1"
-            >
-              World Desk →
-            </Link>
+              return (
+                <div key={`${item.id}-${idx}`} className="flex items-center gap-2 shrink-0">
+                  <span
+                    className={`shrink-0 px-1.5 sm:px-2 py-0.5 rounded text-[9.5px] sm:text-[10.5px] uppercase tracking-wide border shadow-xs ${zone.badgeClass}`}
+                  >
+                    {zone.label}
+                  </span>
+                  <a
+                    href={href}
+                    target={isExternal ? '_blank' : undefined}
+                    rel={isExternal ? 'noopener noreferrer' : undefined}
+                    className="text-[11.5px] sm:text-[12.5px] text-slate-100 hover:text-white hover:underline font-medium whitespace-nowrap transition-colors"
+                  >
+                    {item.title}
+                  </a>
+                  <span className="text-[10px] text-slate-400 font-mono whitespace-nowrap">
+                    &bull; {getTimeAgo(item.publishedAt)}
+                  </span>
+                  <span className="text-red-500/60 font-bold select-none ml-2">&bull;</span>
+                </div>
+              );
+            })}
           </div>
         </div>
 
-        {/* MOBILE SINGLE LINE MARQUEE / SLIDER */}
-        <div className="sm:hidden flex items-center gap-2 text-[11px] leading-tight">
-          {/* Fixed Urgent Pill */}
-          <span className="shrink-0 flex items-center gap-1 px-1.5 py-0.5 rounded bg-red-950 border border-red-500/50 text-red-300 font-mono font-extrabold text-[9px] uppercase tracking-wider">
-            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-            <span>WAR</span>
-          </span>
-
-          {/* Dynamic Conflict Zone Pill */}
-          <span
-            className={`shrink-0 px-1.5 py-0.2 rounded text-[9.5px] uppercase font-bold border ${zoneStyle.badgeClass}`}
+        {/* Pinned Right Link to World Desk */}
+        <div className="shrink-0 z-10 bg-[#080C16] pl-2 shadow-[-4px_0_12px_#080C16] hidden md:flex items-center">
+          <Link
+            href={`${langPrefix}/international`}
+            className="text-[10.5px] text-red-400 hover:text-red-300 font-semibold tracking-wide hover:underline whitespace-nowrap"
           >
-            {zoneStyle.label.replace('🔴 ', '').replace('⚠️ ', '').replace('🟠 ', '')}
-          </span>
-
-          {/* Marquee / Single Line Headline */}
-          <div className="flex-1 min-w-0 overflow-hidden relative">
-            <a
-              href={targetHref}
-              target={isExternalUrl ? '_blank' : undefined}
-              rel={isExternalUrl ? 'noopener noreferrer' : undefined}
-              className="block truncate text-[11px] text-slate-200 active:text-white font-medium"
-            >
-              {currentItem.title}
-            </a>
-          </div>
-
-          {/* Mobile Slide Next Control */}
-          <button
-            type="button"
-            onClick={nextSlide}
-            className="shrink-0 w-5 h-5 rounded flex items-center justify-center bg-slate-900 text-slate-300 text-xs border border-slate-800"
-            aria-label="Next Alert"
-          >
-            ›
-          </button>
+            World Desk →
+          </Link>
         </div>
       </div>
     </div>
