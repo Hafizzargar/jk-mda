@@ -31,14 +31,17 @@ export async function authenticateEmployeeRequest(
   request: Request
 ): Promise<EmployeeAuthorization | Response> {
   const authorization = request.headers.get('authorization');
-  let token = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
+  let token = authorization?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
+  if (token === 'undefined' || token === 'null' || !token) {
+    token = undefined;
+  }
 
   if (!token) {
     const cookieHeader = request.headers.get('cookie') || '';
     const cookieParts: Record<string, string> = {};
     cookieHeader.split(';').forEach((c) => {
       const [k, ...v] = c.trim().split('=');
-      if (k && v.length > 0) cookieParts[k] = v.join('=');
+      if (k && v.length > 0) cookieParts[k.trim()] = v.join('=').trim();
     });
 
     let authCookieVal = '';
@@ -50,7 +53,11 @@ export async function authenticateEmployeeRequest(
     } else {
       const chunkKeys = Object.keys(cookieParts)
         .filter((k) => k.startsWith('sb-') && k.includes('-auth-token.'))
-        .sort();
+        .sort((a, b) => {
+          const numA = parseInt(a.split('.').pop() || '0', 10);
+          const numB = parseInt(b.split('.').pop() || '0', 10);
+          return numA - numB;
+        });
       if (chunkKeys.length > 0) {
         authCookieVal = chunkKeys.map((k) => cookieParts[k]).join('');
       }
@@ -58,12 +65,22 @@ export async function authenticateEmployeeRequest(
 
     if (authCookieVal) {
       try {
-        const decoded = decodeURIComponent(authCookieVal);
+        let cleanVal = decodeURIComponent(authCookieVal).trim();
+        cleanVal = cleanVal.replace(/^"(.*)"$/, '$1');
+        if (cleanVal.startsWith('base64-')) {
+          cleanVal = cleanVal.slice(7);
+        }
         let parsed: any;
         try {
-          parsed = JSON.parse(decoded);
+          parsed = JSON.parse(cleanVal);
         } catch {
-          parsed = JSON.parse(Buffer.from(decoded, 'base64').toString('utf-8'));
+          try {
+            const jsonStr = Buffer.from(cleanVal, 'base64url').toString('utf-8');
+            parsed = JSON.parse(jsonStr);
+          } catch {
+            const jsonStr = Buffer.from(cleanVal, 'base64').toString('utf-8');
+            parsed = JSON.parse(jsonStr);
+          }
         }
         if (typeof parsed === 'string') token = parsed;
         else if (Array.isArray(parsed) && parsed[0]) token = parsed[0];

@@ -64,6 +64,7 @@ export default function TelemetrySettingsPage() {
 
         const token = sessionData.session.access_token;
         const res = await fetch('/api/settings/telemetry', {
+          credentials: 'include',
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         if (res.ok) {
@@ -92,13 +93,26 @@ export default function TelemetrySettingsPage() {
     loadConfig();
   }, [router]);
 
+  const getAuthToken = async (): Promise<string | undefined> => {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData?.session?.access_token) {
+        return sessionData.session.access_token;
+      }
+      const { data: refreshed } = await supabase.auth.refreshSession();
+      return refreshed?.session?.access_token;
+    } catch {
+      return undefined;
+    }
+  };
+
   const handleGenerateAI = async () => {
     try {
       setIsGeneratingAI(true);
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
+      const token = await getAuthToken();
       const res = await fetch('/api/settings/telemetry/ai-generate', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -134,11 +148,11 @@ export default function TelemetrySettingsPage() {
       setErrorMsg(null);
       setSuccessMsg(null);
 
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
+      const token = await getAuthToken();
 
       const res = await fetch('/api/settings/telemetry/auto-sync', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -197,11 +211,11 @@ export default function TelemetrySettingsPage() {
       setErrorMsg(null);
       setSuccessMsg(null);
 
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
+      const token = await getAuthToken();
 
       const res = await fetch('/api/settings/telemetry', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
