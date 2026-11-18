@@ -71,7 +71,7 @@ export function CivicProblemsSlider({ articles, langPrefix }: CivicProblemsSlide
 
   const cleanAuthor = (raw?: string | null, art?: ArticleItem) => {
     const author = (raw || '').trim();
-    if (!author || author === 'Hafeez Zargar' || author === 'Hafiz Zargar' || author === 'KJCPL Team' || author === 'Team' || author.startsWith('KJIN')) {
+    if (!author || author === 'Hafeez Zargar' || author === 'Hafiz Zargar' || author === 'KJCPL Team' || author === 'Team' || author.startsWith('KJIN') || author.includes('Bureau')) {
       if (art) return getCorrespondentByBeat(art);
       return 'KJCPL Ground Bureau';
     }

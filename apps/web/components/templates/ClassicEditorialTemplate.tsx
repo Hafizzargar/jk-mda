@@ -119,7 +119,7 @@ export function ClassicEditorialTemplate({
   const brandName = navbarSettings?.brand?.name || 'KJCPL';
   const cleanAuthor = (author?: string | null, art?: { district?: string | null; category?: string | null; title?: string | null } | null): string => {
     const raw = (author || '').trim();
-    if (!raw || raw === 'Hafeez Zargar' || raw === 'Hafiz Zargar' || raw === 'KJCPL Team' || raw === 'Team' || raw.startsWith('KJIN')) {
+    if (!raw || raw === 'Hafeez Zargar' || raw === 'Hafiz Zargar' || raw === 'KJCPL Team' || raw === 'Team' || raw.startsWith('KJIN') || raw.includes('Bureau')) {
       if (art) return getCorrespondentByBeat(art);
       return 'KJCPL Ground Bureau';
     }

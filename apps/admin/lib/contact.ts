@@ -4,13 +4,16 @@ export interface FooterContactSettings {
   description: string;
   primary_address: string;
   primary_address_label: string;
+  show_primary_address?: boolean;
   bureau_address: string;
   bureau_address_label: string;
+  show_bureau_address?: boolean;
   operating_hours: string;
   phone_primary: string;
   phone_primary_label: string;
   phone_secondary: string;
   phone_secondary_label: string;
+  show_phone_numbers?: boolean;
   email_editorial: string;
   email_careers: string;
   email_grievance: string;
@@ -30,13 +33,16 @@ export const DEFAULT_FOOTER_CONTACT: FooterContactSettings = {
   description: 'Independent, non-partisan journal of record dedicated to verified investigative reporting, regional public affairs, and civic documentation across Jammu, Kashmir, and Ladakh.',
   primary_address: 'Press Enclave, Residency Road, Srinagar, Jammu & Kashmir 190001',
   primary_address_label: 'Srinagar Central Bureau & Headquarters',
+  show_primary_address: true,
   bureau_address: 'Bahu Plaza Commercial Complex, Rail Head, Jammu, J&K 180012',
   bureau_address_label: 'Jammu Regional Bureau',
+  show_bureau_address: true,
   operating_hours: 'Newsroom Desk: 24/7 Wire Operations • Administrative: Mon–Sat 9:30 AM – 6:00 PM IST',
   phone_primary: '+91 194 245 7800',
   phone_primary_label: 'Editorial Newsdesk Hotline',
   phone_secondary: '+91 94190 12345',
   phone_secondary_label: 'WhatsApp Secure Tip Line',
+  show_phone_numbers: false,
   email_editorial: 'h26412301@gmail.com',
   email_careers: 'h26412301@gmail.com',
   email_grievance: 'h26412301@gmail.com',
@@ -90,13 +96,16 @@ export function sanitizeContactSettings(input: Partial<FooterContactSettings>): 
     description: cleanMojibake(String(input.description || DEFAULT_FOOTER_CONTACT.description)).slice(0, 500),
     primary_address: cleanMojibake(String(input.primary_address || DEFAULT_FOOTER_CONTACT.primary_address)).slice(0, 300),
     primary_address_label: cleanMojibake(String(input.primary_address_label || DEFAULT_FOOTER_CONTACT.primary_address_label)).slice(0, 100),
+    show_primary_address: input.show_primary_address !== false,
     bureau_address: cleanMojibake(String(input.bureau_address || DEFAULT_FOOTER_CONTACT.bureau_address)).slice(0, 300),
     bureau_address_label: cleanMojibake(String(input.bureau_address_label || DEFAULT_FOOTER_CONTACT.bureau_address_label)).slice(0, 100),
+    show_bureau_address: input.show_bureau_address !== false,
     operating_hours: cleanMojibake(String(input.operating_hours || DEFAULT_FOOTER_CONTACT.operating_hours)).slice(0, 200),
     phone_primary: String(input.phone_primary || DEFAULT_FOOTER_CONTACT.phone_primary).trim().slice(0, 50),
     phone_primary_label: cleanMojibake(String(input.phone_primary_label || DEFAULT_FOOTER_CONTACT.phone_primary_label)).slice(0, 100),
     phone_secondary: String(input.phone_secondary || DEFAULT_FOOTER_CONTACT.phone_secondary).trim().slice(0, 50),
     phone_secondary_label: cleanMojibake(String(input.phone_secondary_label || DEFAULT_FOOTER_CONTACT.phone_secondary_label)).slice(0, 100),
+    show_phone_numbers: input.show_phone_numbers === true,
     email_editorial: typeof input.email_editorial === 'string' && input.email_editorial.trim()
       ? input.email_editorial.trim().slice(0, 100)
       : DEFAULT_FOOTER_CONTACT.email_editorial,

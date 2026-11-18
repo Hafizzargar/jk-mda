@@ -247,23 +247,27 @@ export function SiteFooter({
             </h3>
 
             <div className="space-y-3 text-xs">
-              <div>
-                <span className={`font-bold ${textPrimary} block text-[11px]`}>
-                  {contact.primary_address_label}
-                </span>
-                <p className={`${textSecondary} mt-0.5 leading-relaxed break-words`}>
-                  {contact.primary_address}
-                </p>
-              </div>
+              {contact.show_primary_address !== false && contact.primary_address ? (
+                <div>
+                  <span className={`font-bold ${textPrimary} block text-[11px]`}>
+                    {contact.primary_address_label}
+                  </span>
+                  <p className={`${textSecondary} mt-0.5 leading-relaxed break-words`}>
+                    {contact.primary_address}
+                  </p>
+                </div>
+              ) : null}
 
-              <div>
-                <span className={`font-bold ${textPrimary} block text-[11px]`}>
-                  {contact.bureau_address_label}
-                </span>
-                <p className={`${textSecondary} mt-0.5 leading-relaxed break-words`}>
-                  {contact.bureau_address}
-                </p>
-              </div>
+              {contact.show_bureau_address !== false && contact.bureau_address ? (
+                <div>
+                  <span className={`font-bold ${textPrimary} block text-[11px]`}>
+                    {contact.bureau_address_label}
+                  </span>
+                  <p className={`${textSecondary} mt-0.5 leading-relaxed break-words`}>
+                    {contact.bureau_address}
+                  </p>
+                </div>
+              ) : null}
 
               <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800/80">
                 <span className={`font-bold ${textPrimary} block text-[10px] uppercase tracking-wider`}>
@@ -283,29 +287,33 @@ export function SiteFooter({
             </h3>
 
             <div className="space-y-2.5 text-xs">
-              <div>
-                <span className={`text-[10px] font-bold uppercase tracking-wider ${textMuted} block`}>
-                  {contact.phone_primary_label}
-                </span>
-                <a
-                  href={`tel:${contact.phone_primary.replace(/[^0-9+]/g, '')}`}
-                  className={`font-mono font-bold ${accentText} hover:underline`}
-                >
-                  {contact.phone_primary}
-                </a>
-              </div>
+              {contact.show_phone_numbers && contact.phone_primary ? (
+                <div>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${textMuted} block`}>
+                    {contact.phone_primary_label}
+                  </span>
+                  <a
+                    href={`tel:${contact.phone_primary.replace(/[^0-9+]/g, '')}`}
+                    className={`font-mono font-bold ${accentText} hover:underline`}
+                  >
+                    {contact.phone_primary}
+                  </a>
+                </div>
+              ) : null}
 
-              <div>
-                <span className={`text-[10px] font-bold uppercase tracking-wider ${textMuted} block`}>
-                  {contact.phone_secondary_label}
-                </span>
-                <a
-                  href={`tel:${contact.phone_secondary.replace(/[^0-9+]/g, '')}`}
-                  className={`font-mono font-bold ${isDark ? 'text-emerald-400' : 'text-emerald-700'} hover:underline`}
-                >
-                  {contact.phone_secondary}
-                </a>
-              </div>
+              {contact.show_phone_numbers && contact.phone_secondary ? (
+                <div>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${textMuted} block`}>
+                    {contact.phone_secondary_label}
+                  </span>
+                  <a
+                    href={`tel:${contact.phone_secondary.replace(/[^0-9+]/g, '')}`}
+                    className={`font-mono font-bold ${isDark ? 'text-emerald-400' : 'text-emerald-700'} hover:underline`}
+                  >
+                    {contact.phone_secondary}
+                  </a>
+                </div>
+              ) : null}
 
               <div>
                 <span className={`text-[10px] font-bold uppercase tracking-wider ${textMuted} block`}>

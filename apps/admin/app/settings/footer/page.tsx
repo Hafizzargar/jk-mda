@@ -117,7 +117,7 @@ export default function FooterSettingsPage() {
     loadSettings();
   }, [router]);
 
-  const handleChange = (field: keyof FooterContactSettings, value: string) => {
+  const handleChange = <K extends keyof FooterContactSettings>(field: K, value: FooterContactSettings[K]) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     setSuccessMsg(null);
     setErrorMsg(null);
@@ -345,9 +345,20 @@ export default function FooterSettingsPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-                      Primary Bureau Address (Srinagar HQ)
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-300">
+                        Primary Bureau Address (Srinagar HQ)
+                      </label>
+                      <label className="flex items-center gap-1.5 text-xs text-slate-400 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={form.show_primary_address !== false}
+                          onChange={(e) => handleChange('show_primary_address', e.target.checked)}
+                          className="rounded border-slate-700 text-cyan-600 focus:ring-0 bg-slate-900 h-3.5 w-3.5"
+                        />
+                        <span>Show on public site</span>
+                      </label>
+                    </div>
                     <textarea
                       rows={2}
                       value={form.primary_address}
@@ -358,9 +369,20 @@ export default function FooterSettingsPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-                      Regional Bureau Address (Jammu)
-                    </label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-300">
+                        Regional Bureau Address (Jammu)
+                      </label>
+                      <label className="flex items-center gap-1.5 text-xs text-slate-400 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={form.show_bureau_address !== false}
+                          onChange={(e) => handleChange('show_bureau_address', e.target.checked)}
+                          className="rounded border-slate-700 text-cyan-600 focus:ring-0 bg-slate-900 h-3.5 w-3.5"
+                        />
+                        <span>Show on public site</span>
+                      </label>
+                    </div>
                     <textarea
                       rows={2}
                       value={form.bureau_address}
@@ -391,6 +413,30 @@ export default function FooterSettingsPage() {
                 <div>
                   <h2 className="text-lg font-bold text-white mb-1">Newsdesk & Tip Hotlines</h2>
                   <p className="text-xs text-slate-400">Direct phone numbers and encrypted WhatsApp lines for whistleblowers and readers.</p>
+                </div>
+
+                {/* Show / Hide Phone Numbers Checkbox Toggle */}
+                <div className="p-4 rounded-xl border border-slate-800 bg-slate-950/80 flex items-start justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-white">Display Phone Numbers on Public Website</span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold ${form.show_phone_numbers ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/10 text-amber-400 border border-amber-500/30'}`}>
+                        {form.show_phone_numbers ? 'Visible' : 'Hidden (Email Inquiries Only)'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400">
+                      When unchecked, phone numbers are hidden from the public footer and reader inquiries are directed exclusively to verified newsdesk emails.
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-0.5">
+                    <input
+                      type="checkbox"
+                      checked={form.show_phone_numbers === true}
+                      onChange={(e) => handleChange('show_phone_numbers', e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
+                  </label>
                 </div>
 
                 <div className="space-y-4">
@@ -725,29 +771,51 @@ export default function FooterSettingsPage() {
                   Bureau Locations
                 </div>
                 <div className="space-y-2">
-                  <div className="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800">
-                    <span className="font-bold text-slate-200 block text-[11px]">{form.primary_address_label}</span>
-                    <span className="text-slate-400 text-[11px]">{form.primary_address}</span>
-                  </div>
-                  <div className="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800">
-                    <span className="font-bold text-slate-200 block text-[11px]">{form.bureau_address_label}</span>
-                    <span className="text-slate-400 text-[11px]">{form.bureau_address}</span>
-                  </div>
+                  {form.show_primary_address !== false && (
+                    <div className="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800">
+                      <span className="font-bold text-slate-200 block text-[11px]">{form.primary_address_label}</span>
+                      <span className="text-slate-400 text-[11px]">{form.primary_address}</span>
+                    </div>
+                  )}
+                  {form.show_bureau_address !== false && (
+                    <div className="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800">
+                      <span className="font-bold text-slate-200 block text-[11px]">{form.bureau_address_label}</span>
+                      <span className="text-slate-400 text-[11px]">{form.bureau_address}</span>
+                    </div>
+                  )}
+                  {form.show_primary_address === false && form.show_bureau_address === false && (
+                    <div className="text-slate-500 italic text-[11px] p-2 rounded bg-slate-900/40">
+                      All physical bureau addresses hidden on public website
+                    </div>
+                  )}
                 </div>
               </div>
 
               <div className="border-t border-slate-800 pt-4 space-y-2">
-                <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                  Direct Communications
-                </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400">{form.phone_primary_label}:</span>
-                  <span className="font-mono text-cyan-300 font-semibold">{form.phone_primary}</span>
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                    Direct Communications
+                  </div>
+                  {!form.show_phone_numbers && (
+                    <span className="text-[9px] font-mono text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                      Phones Hidden (Email Mode)
+                    </span>
+                  )}
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-400">{form.phone_secondary_label}:</span>
-                  <span className="font-mono text-emerald-400 font-semibold">{form.phone_secondary}</span>
-                </div>
+
+                {form.show_phone_numbers && (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">{form.phone_primary_label}:</span>
+                      <span className="font-mono text-cyan-300 font-semibold">{form.phone_primary}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">{form.phone_secondary_label}:</span>
+                      <span className="font-mono text-emerald-400 font-semibold">{form.phone_secondary}</span>
+                    </div>
+                  </>
+                )}
+
                 <div className="flex items-center justify-between">
                   <span className="text-slate-400">Careers &amp; Resumes:</span>
                   <span className="font-mono text-cyan-300">{form.email_careers || 'h26412301@gmail.com'}</span>

@@ -43,7 +43,7 @@ export function applyTranslations<
 >(articles: T[], _lang?: string): T[] {
   return articles.map((article) => {
     let author = article.author_display_name?.trim();
-    if (!author || author === 'Hafeez Zargar' || author === 'Hafiz Zargar' || author === 'KJCPL Team' || author === 'Team' || author.startsWith('KJIN')) {
+    if (!author || author === 'Hafeez Zargar' || author === 'Hafiz Zargar' || author === 'KJCPL Team' || author === 'Team' || author.startsWith('KJIN') || author.includes('Bureau')) {
       author = getCorrespondentByBeat(article);
     } else if (author.includes('KJIN')) {
       author = author.replace(/\bKJIN\b/g, 'KJCPL');
