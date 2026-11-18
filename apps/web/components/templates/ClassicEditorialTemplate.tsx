@@ -218,6 +218,9 @@ export function ClassicEditorialTemplate({
   const conflictNews = propConflictNews || [];
   const discoverNews = propDiscoverNews || [];
   const editorialArticle = propEditorialArticle?.id === leadId ? null : propEditorialArticle || null;
+  const civicProblemItems = (problemArticles && problemArticles.length > 0)
+    ? problemArticles
+    : (problemArticle ? [problemArticle] : []);
 
   // Scoped Developing Alert Text
   const isCurationActive = Boolean(curation?.developing_is_active && curation?.developing_headline?.trim());
@@ -770,6 +773,16 @@ export function ClassicEditorialTemplate({
                     </article>
                   ))}
                 </div>
+              </section>
+            )}
+
+            {/* Ground Grievances & Civic Problems Slider (Mobile) */}
+            {civicProblemItems && civicProblemItems.length > 0 && (
+              <section className="font-sans" data-purpose="civic-problems-mobile">
+                <CivicProblemsSlider
+                  articles={civicProblemItems}
+                  langPrefix={langPrefix}
+                />
               </section>
             )}
 
@@ -2348,9 +2361,11 @@ export function ClassicEditorialTemplate({
                 {/* 3-Column Broadsheet Trifold */}
                 <div className="max-w-7xl xl:max-w-[1536px] 2xl:max-w-[1780px] mx-auto px-4 md:px-8 py-8 w-full">
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-6 lg:gap-8 items-start">
-                    {/* LEFT COLUMN (3 cols on desktop, 5 cols on tablet) */}
-                    <aside className="order-2 md:order-2 lg:order-1 md:col-span-5 lg:col-span-3 space-y-6 font-sans">
-                      {leftSectionIds.map((id) => renderSection(id, 'column'))}
+                    {/* LEFT COLUMN (3 cols on desktop, 12 cols 2-grid on tablet) */}
+                    <aside className="order-3 md:order-3 lg:order-1 md:col-span-12 lg:col-span-3 space-y-6 font-sans">
+                      <div className="space-y-6 md:grid md:grid-cols-2 md:gap-6 md:space-y-0 lg:block lg:space-y-6">
+                        {leftSectionIds.map((id) => renderSection(id, 'column'))}
+                      </div>
                       {leftRailAd && (
                         <div className="lg:sticky lg:top-28 lg:z-10 self-start">
                           <SidebarAd ad={leftRailAd} />
@@ -2363,8 +2378,8 @@ export function ClassicEditorialTemplate({
                       {centerSectionIds.map((id) => renderSection(id, 'column'))}
                     </main>
 
-                    {/* RIGHT COLUMN (3 cols on desktop, 12 cols on tablet) */}
-                    <aside className="order-3 md:order-3 lg:order-3 md:col-span-12 lg:col-span-3 space-y-6 font-sans">
+                    {/* RIGHT COLUMN (3 cols on desktop, 5 cols on tablet alongside Center!) */}
+                    <aside className="order-2 md:order-2 lg:order-3 md:col-span-5 lg:col-span-3 space-y-6 font-sans">
                       {rightSectionIds.map((id) => renderSection(id, 'column'))}
                       {sidebarAd && (
                         <div className="lg:sticky lg:top-28 lg:z-10 self-start">
