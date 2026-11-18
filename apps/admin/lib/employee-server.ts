@@ -31,7 +31,48 @@ export async function authenticateEmployeeRequest(
   request: Request
 ): Promise<EmployeeAuthorization | Response> {
   const authorization = request.headers.get('authorization');
-  const token = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
+  let token = authorization?.match(/^Bearer\s+(.+)$/i)?.[1];
+
+  if (!token) {
+    const cookieHeader = request.headers.get('cookie') || '';
+    const cookieParts: Record<string, string> = {};
+    cookieHeader.split(';').forEach((c) => {
+      const [k, ...v] = c.trim().split('=');
+      if (k && v.length > 0) cookieParts[k] = v.join('=');
+    });
+
+    let authCookieVal = '';
+    const baseKey = Object.keys(cookieParts).find(
+      (k) => k.startsWith('sb-') && k.endsWith('-auth-token')
+    );
+    if (baseKey) {
+      authCookieVal = cookieParts[baseKey];
+    } else {
+      const chunkKeys = Object.keys(cookieParts)
+        .filter((k) => k.startsWith('sb-') && k.includes('-auth-token.'))
+        .sort();
+      if (chunkKeys.length > 0) {
+        authCookieVal = chunkKeys.map((k) => cookieParts[k]).join('');
+      }
+    }
+
+    if (authCookieVal) {
+      try {
+        const decoded = decodeURIComponent(authCookieVal);
+        let parsed: any;
+        try {
+          parsed = JSON.parse(decoded);
+        } catch {
+          parsed = JSON.parse(Buffer.from(decoded, 'base64').toString('utf-8'));
+        }
+        if (typeof parsed === 'string') token = parsed;
+        else if (Array.isArray(parsed) && parsed[0]) token = parsed[0];
+        else if (parsed?.access_token) token = parsed.access_token;
+      } catch {
+        // Ignored if cookie format is non-JSON
+      }
+    }
+  }
 
   if (!token) {
     return Response.json({ error: 'Sign-in required.' }, { status: 401 });

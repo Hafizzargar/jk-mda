@@ -62,7 +62,10 @@ export default function TelemetrySettingsPage() {
         }
         setCanManage(true);
 
-        const res = await fetch('/api/settings/telemetry');
+        const token = sessionData.session.access_token;
+        const res = await fetch('/api/settings/telemetry', {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
         if (res.ok) {
           const json = await res.json();
           if (json.telemetry) {
@@ -92,7 +95,15 @@ export default function TelemetrySettingsPage() {
   const handleGenerateAI = async () => {
     try {
       setIsGeneratingAI(true);
-      const res = await fetch('/api/settings/telemetry/ai-generate', { method: 'POST' });
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      const res = await fetch('/api/settings/telemetry/ai-generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to generate AI bulletin');
 
@@ -123,8 +134,15 @@ export default function TelemetrySettingsPage() {
       setErrorMsg(null);
       setSuccessMsg(null);
 
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
       const res = await fetch('/api/settings/telemetry/auto-sync', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
 
       const data = await res.json();
@@ -179,9 +197,15 @@ export default function TelemetrySettingsPage() {
       setErrorMsg(null);
       setSuccessMsg(null);
 
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
       const res = await fetch('/api/settings/telemetry', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify(telemetry),
       });
 
