@@ -16,6 +16,7 @@ import { ConfirmModal } from '@/components/ConfirmModal';
 import { Button } from '@/components/Button';
 import { toast } from '@/components/Toast';
 import { DataTable, Column } from '@/components/DataTable';
+import { getCorrespondentForArticle } from '@/lib/correspondents';
 
 type Article = {
   id: string;
@@ -437,11 +438,17 @@ function ArticlesPageContent() {
       key: 'author_display_name',
       header: 'Author',
       width: '140px',
-      render: (article) => (
-        <span className="font-bold text-slate-900 text-xs dark:text-slate-200">
-          {article.author_display_name}
-        </span>
-      ),
+      render: (article) => {
+        const author = article.author_display_name;
+        const displayAuthor = (!author || author === 'Hafeez Zargar' || author === 'Hafiz Zargar' || author.startsWith('KJIN'))
+          ? getCorrespondentForArticle(article)
+          : author;
+        return (
+          <span className="font-bold text-slate-900 text-xs dark:text-slate-200">
+            {displayAuthor}
+          </span>
+        );
+      },
     },
     {
       key: 'updated_at',
@@ -622,7 +629,7 @@ function ArticlesPageContent() {
 
         {/* Author & Timestamp */}
         <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-0.5 font-medium">
-          <span className="truncate max-w-[170px]">✍️ {article.author_display_name || 'Staff'}</span>
+          <span className="truncate max-w-[170px]">✍️ {(!article.author_display_name || article.author_display_name === 'Hafeez Zargar' || article.author_display_name === 'Hafiz Zargar' || article.author_display_name.startsWith('KJIN')) ? getCorrespondentForArticle(article) : article.author_display_name}</span>
           <span className="font-mono text-[10px]">{new Date(article.updated_at).toLocaleDateString()}</span>
         </div>
 

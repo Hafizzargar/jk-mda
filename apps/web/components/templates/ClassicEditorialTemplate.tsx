@@ -19,6 +19,7 @@ import { TodayCenterDispatches } from './TodayCenterDispatches';
 import { CivicProblemsSlider } from './CivicProblemsSlider';
 import { WarConflictTickerSlider } from './WarConflictTickerSlider';
 import { formatArticleTime } from '@/lib/date';
+import { getCorrespondentByBeat } from '@/lib/i18n';
 
 function decodeHtmlEntities(str?: string | null): string {
   if (!str) return '';
@@ -116,12 +117,15 @@ export function ClassicEditorialTemplate({
   const activeTelemetry = telemetry || DEFAULT_TELEMETRY_SETTINGS;
   const lang = langPrefix ? langPrefix.replace('/', '') : 'en';
   const brandName = navbarSettings?.brand?.name || 'KJCPL';
-  const cleanAuthor = (author?: string | null): string => {
-    if (!author) return 'Hafiz Zargar';
-    if (author === 'KJCPL Team' || author === 'Team') return 'Hafiz Zargar';
-    if (author.includes('KJIN')) return author.replace(/\bKJIN\b/g, 'KJCPL');
-    if (author.startsWith('KCPJLN')) return author.replace(/\bKCPJLN\b/g, 'KJCPL');
-    return author;
+  const cleanAuthor = (author?: string | null, art?: { district?: string | null; category?: string | null; title?: string | null } | null): string => {
+    const raw = (author || '').trim();
+    if (!raw || raw === 'Hafeez Zargar' || raw === 'Hafiz Zargar' || raw === 'KJCPL Team' || raw === 'Team' || raw.startsWith('KJIN')) {
+      if (art) return getCorrespondentByBeat(art);
+      return 'KJCPL Ground Bureau';
+    }
+    if (raw.includes('KJIN')) return raw.replace(/\bKJIN\b/g, 'KJCPL');
+    if (raw.startsWith('KCPJLN')) return raw.replace(/\bKCPJLN\b/g, 'KJCPL');
+    return raw;
   };
 
   const isNational = scope?.type === 'national';
@@ -450,7 +454,7 @@ export function ClassicEditorialTemplate({
                             )}
                           </div>
                           <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-[10px] text-stone-400">
-                            <span>By {cleanAuthor(art.author_display_name)}</span>
+                            <span>By {cleanAuthor(art.author_display_name, art)}</span>
                             <span suppressHydrationWarning>{formatArticleDate(art.published_at)}</span>
                           </div>
                         </article>
@@ -671,7 +675,7 @@ export function ClassicEditorialTemplate({
                     </div>
                     <div className="min-w-0 truncate">
                       <span className="font-bold text-stone-800 truncate">
-                        {cleanAuthor(heroArticle?.author_display_name)}
+                        {cleanAuthor(heroArticle?.author_display_name, heroArticle)}
                       </span>
                       <span className="text-stone-400 font-normal">
                         {' '}• {heroArticle?.district ? getDistrictDisplayName(heroArticle.district) : 'Srinagar'}
@@ -772,7 +776,7 @@ export function ClassicEditorialTemplate({
                         )}
                       </div>
                       <div className="pt-2 mt-2 border-t border-stone-100 flex items-center justify-between text-[10px] text-stone-400">
-                        <span>By {cleanAuthor(art.author_display_name)}</span>
+                        <span>By {cleanAuthor(art.author_display_name, art)}</span>
                         <span suppressHydrationWarning>{formatArticleDate(art.published_at)}</span>
                       </div>
                     </article>
@@ -1213,7 +1217,7 @@ export function ClassicEditorialTemplate({
                         )}
                       </div>
                       <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-[10px] text-stone-400">
-                        <span>By {cleanAuthor(art.author_display_name)}</span>
+                        <span>By {cleanAuthor(art.author_display_name, art)}</span>
                         <span suppressHydrationWarning>{formatArticleDate(art.published_at)}</span>
                       </div>
                     </article>
@@ -1434,7 +1438,7 @@ export function ClassicEditorialTemplate({
                         <Link href={getArtHref(art)}>{art.title}</Link>
                       </h4>
                       <div className="mt-1.5 flex items-center justify-between text-[10px] text-slate-400">
-                        <span>By {cleanAuthor(art.author_display_name)}</span>
+                        <span>By {cleanAuthor(art.author_display_name, art)}</span>
                         <span className="text-emerald-600 font-bold">✓ Vetted</span>
                       </div>
                     </article>
@@ -1560,7 +1564,7 @@ export function ClassicEditorialTemplate({
                           {leadArticle.author_display_name ? leadArticle.author_display_name[0]?.toUpperCase() : 'K'}
                         </div>
                         <div>
-                          <span className="font-bold text-[#0F172A] block">{cleanAuthor(leadArticle.author_display_name)}</span>
+                          <span className="font-bold text-[#0F172A] block">{cleanAuthor(leadArticle.author_display_name, leadArticle)}</span>
                           <span className="text-[10px]">{leadArticle.district ? getDistrictDisplayName(leadArticle.district) : 'Newsdesk'}</span>
                         </div>
                       </div>
@@ -1639,7 +1643,7 @@ export function ClassicEditorialTemplate({
                         )}
                       </div>
                       <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-                        <span>By {cleanAuthor(art.author_display_name)}</span>
+                        <span>By {cleanAuthor(art.author_display_name, art)}</span>
                         <span>4 min read</span>
                       </div>
                     </article>
@@ -1739,7 +1743,7 @@ export function ClassicEditorialTemplate({
                           International
                         </span>
                         <span className="text-[10px] text-slate-400">
-                          {cleanAuthor(internationalArticle.author_display_name)}
+                          {cleanAuthor(internationalArticle.author_display_name, internationalArticle)}
                         </span>
                       </div>
 
@@ -2106,7 +2110,7 @@ export function ClassicEditorialTemplate({
                           )}
                         </div>
                         <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-                          <span>By {cleanAuthor(art.author_display_name)}</span>
+                          <span>By {cleanAuthor(art.author_display_name, art)}</span>
                           <span suppressHydrationWarning>{formatArticleDate(art.published_at)}</span>
                         </div>
                       </article>
@@ -2284,7 +2288,7 @@ export function ClassicEditorialTemplate({
                           </div>
                         </div>
                         <div className="px-5 py-3 bg-[#f5f3f0] border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-                          <span>By {cleanAuthor(art.author_display_name)}</span>
+                          <span>By {cleanAuthor(art.author_display_name, art)}</span>
                           <span suppressHydrationWarning>{formatArticleDate(art.published_at)}</span>
                         </div>
                       </article>

@@ -7,6 +7,7 @@ import type { ArticleItem } from './types';
 import { getDistrictDisplayName } from '@/lib/taxonomy';
 import { formatArticleDate } from '@/lib/date';
 import { getOptimizedMediaUrl } from '@/lib/media';
+import { getCorrespondentByBeat } from '@/lib/i18n';
 
 interface TodayCenterDispatchesProps {
   articles: ArticleItem[];
@@ -27,11 +28,13 @@ export function TodayCenterDispatches({
     return null;
   }
 
-  const cleanAuthor = (author?: string | null): string => {
-    if (!author || author === 'KCPJLN' || author.startsWith('KCPJLN') || author === 'KJIN' || author.startsWith('KJIN')) {
+  const cleanAuthor = (author?: string | null, art?: ArticleItem): string => {
+    const raw = (author || '').trim();
+    if (!raw || raw === 'Hafeez Zargar' || raw === 'Hafiz Zargar' || raw === 'KCPJLN' || raw.startsWith('KCPJLN') || raw === 'KJIN' || raw.startsWith('KJIN')) {
+      if (art) return getCorrespondentByBeat(art);
       return brandName;
     }
-    return author;
+    return raw;
   };
 
   const getCatSlug = (cat?: string | null) => (cat || 'news').toLowerCase().replace(/\s+/g, '-');
@@ -114,7 +117,7 @@ export function TodayCenterDispatches({
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-                <span className="truncate max-w-[130px]">By {cleanAuthor(art.author_display_name)}</span>
+                <span className="truncate max-w-[130px]">By {cleanAuthor(art.author_display_name, art)}</span>
                 <span suppressHydrationWarning>{formatArticleDate(art.published_at)}</span>
               </div>
             </article>

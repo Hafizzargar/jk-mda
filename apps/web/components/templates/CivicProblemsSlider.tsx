@@ -7,6 +7,7 @@ import type { ArticleItem } from './types';
 import { getDistrictDisplayName } from '@/lib/taxonomy';
 import { formatArticleDate } from '@/lib/date';
 import { getOptimizedMediaUrl } from '@/lib/media';
+import { getCorrespondentByBeat } from '@/lib/i18n';
 
 interface CivicProblemsSliderProps {
   articles: ArticleItem[];
@@ -68,10 +69,14 @@ export function CivicProblemsSlider({ articles, langPrefix }: CivicProblemsSlide
     return { label: '⚠️ Civic Issue', color: 'bg-orange-100 text-orange-800 border-orange-200' };
   };
 
-  const cleanAuthor = (raw?: string | null) => {
-    if (!raw) return 'KJCPL Team';
-    const cleaned = raw.replace(/\b(Bureau|Desk|Team)\s+(Bureau|Desk|Team)\b/gi, '$1').trim();
-    return cleaned || 'KJCPL Team';
+  const cleanAuthor = (raw?: string | null, art?: ArticleItem) => {
+    const author = (raw || '').trim();
+    if (!author || author === 'Hafeez Zargar' || author === 'Hafiz Zargar' || author === 'KJCPL Team' || author === 'Team' || author.startsWith('KJIN')) {
+      if (art) return getCorrespondentByBeat(art);
+      return 'KJCPL Ground Bureau';
+    }
+    const cleaned = author.replace(/\b(Bureau|Desk|Team)\s+(Bureau|Desk|Team)\b/gi, '$1').trim();
+    return cleaned || 'KJCPL Ground Bureau';
   };
 
   const getArtHref = (art: ArticleItem) => {
@@ -178,7 +183,7 @@ export function CivicProblemsSlider({ articles, langPrefix }: CivicProblemsSlide
 
         <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
           <span suppressHydrationWarning>{formatArticleDate(activeArticle.published_at)}</span>
-          <span className="text-slate-500 font-medium">By {cleanAuthor(activeArticle.author_display_name)}</span>
+          <span className="text-slate-500 font-medium">By {cleanAuthor(activeArticle.author_display_name, activeArticle)}</span>
         </div>
       </div>
 

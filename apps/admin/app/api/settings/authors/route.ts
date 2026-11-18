@@ -1,5 +1,5 @@
 import { authenticateEmployeeRequest, isEmployeeAuthorization, requireRecentAuthentication } from '@/lib/employee-server';
-import { TRUSTED_CORRESPONDENTS, type CorrespondentConfig } from '@/lib/correspondents';
+import { TRUSTED_CORRESPONDENTS, getCorrespondentForArticle, type CorrespondentConfig } from '@/lib/correspondents';
 
 const ALLOWED_ROLES = ['owner', 'superadmin', 'admin', 'editor'];
 
@@ -21,7 +21,7 @@ export async function GET(request: Request) {
   // 2. Query live author counts from articles table
   const { data: articles, error: artErr } = await authorization.service
     .from('articles')
-    .select('author_display_name');
+    .select('district, category, title, author_display_name');
 
   const counts: Record<string, number> = {};
   let totalArticles = 0;
@@ -29,7 +29,10 @@ export async function GET(request: Request) {
   if (!artErr && articles) {
     totalArticles = articles.length;
     for (const a of articles) {
-      const name = a.author_display_name || 'Unattributed';
+      let name = a.author_display_name || 'Unattributed';
+      if (name === 'Hafeez Zargar' || name === 'Hafiz Zargar' || name.includes('Zargar') || name.startsWith('KJIN')) {
+        name = getCorrespondentForArticle(a);
+      }
       counts[name] = (counts[name] || 0) + 1;
     }
   }
@@ -113,7 +116,7 @@ export async function POST(request: Request) {
   if (body.action === 'rebalance') {
     const { data: articles, error: fetchErr } = await authorization.service
       .from('articles')
-      .select('id, category, district, author_display_name');
+      .select('id, title, category, district, author_display_name');
 
     if (fetchErr || !articles) {
       return Response.json({ error: 'Failed to fetch articles for rebalancing.' }, { status: 500 });
@@ -121,47 +124,14 @@ export async function POST(request: Request) {
 
     let reassignedCount = 0;
 
-    const KASHMIR_DISTRICTS = new Set([
-      'srinagar', 'baramulla', 'anantnag', 'budgam', 'pulwama',
-      'shopian', 'kulgam', 'bandipora', 'kupwara', 'ganderbal'
-    ]);
-    const JAMMU_DISTRICTS = new Set(['jammu', 'samba', 'kathua', 'udhampur', 'reasi']);
-    const PIR_PANJAL_DISTRICTS = new Set(['rajouri', 'poonch']);
-    const CHENAB_DISTRICTS = new Set(['doda', 'kishtwar', 'ramban']);
-    const LADAKH_DISTRICTS = new Set(['leh', 'kargil']);
-
     for (const art of articles) {
       // Reassign articles attributed to Hafeez Zargar or generic desks
       const currentAuthor = art.author_display_name || '';
-      const isTarget = currentAuthor === 'Hafeez Zargar' || currentAuthor === 'Unattributed' || currentAuthor.startsWith('KJIN');
+      const isTarget = currentAuthor === 'Hafeez Zargar' || currentAuthor === 'Hafiz Zargar' || currentAuthor.includes('Zargar') || currentAuthor === 'Unattributed' || currentAuthor.startsWith('KJIN');
 
       if (!isTarget) continue;
 
-      const catLower = (art.category || '').toLowerCase();
-      const distLower = (art.district || '').toLowerCase();
-
-      let assignedAuthor = 'KJCPL Ground Bureau';
-
-      if (KASHMIR_DISTRICTS.has(distLower)) {
-        assignedAuthor = 'Dr. Tariq Ahmad Lone';
-      } else if (JAMMU_DISTRICTS.has(distLower) || catLower === 'economy' || catLower === 'business') {
-        assignedAuthor = 'Pooja Jamwal';
-      } else if (PIR_PANJAL_DISTRICTS.has(distLower)) {
-        assignedAuthor = 'Showkat Ahmad Mir';
-      } else if (CHENAB_DISTRICTS.has(distLower) || catLower === 'transit') {
-        assignedAuthor = 'Tariq Ahmad Mir';
-      } else if (LADAKH_DISTRICTS.has(distLower)) {
-        assignedAuthor = 'Stanzin Dorje';
-      } else if (catLower === 'national' || catLower === 'science' || catLower === 'health' || catLower === 'space') {
-        assignedAuthor = 'Dr. Sunita Pandita';
-      } else if (catLower === 'environment' || catLower === 'ecology') {
-        assignedAuthor = 'Dr. Tariq Ahmad Lone';
-      } else if (catLower === 'culture' || catLower === 'heritage') {
-        assignedAuthor = 'Prof. Ramesh Koul';
-      } else {
-        // Round-robin or bureau
-        assignedAuthor = 'KJCPL National Bureau';
-      }
+      const assignedAuthor = getCorrespondentForArticle(art);
 
       await authorization.service
         .from('articles')
