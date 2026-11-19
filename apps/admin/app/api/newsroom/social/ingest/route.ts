@@ -135,7 +135,7 @@ Output strictly valid JSON with keys:
 `;
 
     const response = await generateText({
-      model: google('gemini-2.0-flash'),
+      model: google('gemini-2.5-flash'),
       prompt,
       temperature: 0.2,
     });

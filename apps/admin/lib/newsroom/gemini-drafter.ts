@@ -116,7 +116,7 @@ STRICT EDITORIAL RULES:
     return generateFallbackDraft(input);
   }
 
-  const selectedModel = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
+  const selectedModel = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 
   // Multi-key failover cascade: try each healthy key in the pool
   for (const apiKey of keyCascade) {

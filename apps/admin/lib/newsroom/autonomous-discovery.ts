@@ -1730,8 +1730,8 @@ Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with k
 }`;
 
   // 4. Call Gemini API with Google Search Grounding tool & resilient multi-key / multi-model rotation
-  // Prefer gemini-2.0-flash (1,500 req/day free tier) -> gemini-1.5-flash (1,500 req/day) -> gemini-2.5-flash
-  const candidateModels = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash'];
+  // Prefer gemini-2.5-flash -> gemini-2.0-flash -> gemini-1.5-flash
+  const candidateModels = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
   let json: any = null;
   let candidate: any = null;
   let rawText: string | null = null;
