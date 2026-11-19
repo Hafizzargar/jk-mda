@@ -680,14 +680,14 @@ export default function EmployeesPage() {
         </header>
 
         {status.includes('Employee directory access is required') || status.includes('Two-Factor Authentication') ? (
-          <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-5 text-sm text-amber-200 shadow-lg">
+          <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50 dark:border-amber-500/40 dark:bg-amber-500/10 p-5 text-sm text-amber-900 dark:text-amber-200 shadow-md">
             <div className="flex items-center gap-3.5">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-xl">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 dark:bg-amber-500/20 text-xl">
                 🔐
               </span>
               <div>
-                <p className="font-bold text-amber-100 text-base">Two-Factor Authentication (2FA) Required</p>
-                <p className="text-xs text-amber-300/80 mt-0.5">
+                <p className="font-bold text-amber-950 dark:text-amber-100 text-base">Two-Factor Authentication (2FA) Required</p>
+                <p className="text-xs text-amber-800 dark:text-amber-300/80 mt-0.5">
                   Your account role as <strong>{role || 'Owner'}</strong> requires TOTP Two-Factor verification (AAL2) to view and manage the employee directory.
                 </p>
               </div>
@@ -715,8 +715,8 @@ export default function EmployeesPage() {
               aria-current={activeTab === tab.id ? 'page' : undefined}
               className={`shrink-0 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs sm:text-sm font-semibold transition ${
                 activeTab === tab.id
-                  ? 'bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/40'
-                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white border border-transparent'
+                  ? 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border border-cyan-500/40 font-bold'
+                  : 'text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white border border-transparent'
               }`}
             >
               {tab.label}{tabCount(tab.id) !== null ? ` (${tabCount(tab.id)})` : ''}
@@ -724,20 +724,20 @@ export default function EmployeesPage() {
           ))}
         </nav>
 
-        {isLoading ? <p className="py-12 text-center text-slate-400">Loading employee records...</p> : null}
+        {isLoading ? <p className="py-12 text-center text-slate-500 dark:text-slate-400">Loading employee records...</p> : null}
 
         {!isLoading && can('employee.contact.update') && showContactNotice ? (
-          <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-xs text-amber-200 shadow-xs animate-in fade-in duration-200">
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-amber-300/80 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/10 px-4 py-2.5 text-xs text-amber-900 dark:text-amber-200 shadow-2xs animate-in fade-in duration-200">
             <div className="flex items-center gap-2">
-              <span className="text-amber-400 font-bold">🔒</span>
+              <span className="text-amber-600 dark:text-amber-400 font-bold">🔒</span>
               <span>
-                <strong className="text-amber-100 font-semibold">Security Policy:</strong> Login email and phone changes are paused until target verification and recent reauthentication are available.
+                <strong className="text-amber-950 dark:text-amber-100 font-semibold">Security Policy:</strong> Login email and phone changes are paused until target verification and recent reauthentication are available.
               </span>
             </div>
             <button
               type="button"
               onClick={() => setShowContactNotice(false)}
-              className="rounded p-1 text-amber-400/80 hover:bg-amber-500/20 hover:text-amber-100 text-xs font-semibold transition"
+              className="rounded p-1 text-amber-700 hover:bg-amber-100 hover:text-amber-950 dark:text-amber-400/80 dark:hover:bg-amber-500/20 dark:hover:text-amber-100 text-xs font-semibold transition cursor-pointer"
               title="Dismiss notice"
             >
               ✕
@@ -748,19 +748,19 @@ export default function EmployeesPage() {
         {!isLoading && activeTab === 'add' ? (
           <section className="grid gap-8 lg:grid-cols-2">
             {can('employee.invite') ? (
-              <form onSubmit={sendInvite} className="space-y-5 border-b border-slate-800 pb-8 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-8">
+              <form onSubmit={sendInvite} className="space-y-5 border-b border-slate-200 dark:border-slate-800 pb-8 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-8">
                 <div>
-                  <h2 className="text-xl font-semibold">Invite employee</h2>
-                  <p className="mt-1 text-sm text-slate-400">Invites are limited to roles below your own.</p>
+                  <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Invite employee</h2>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Invites are limited to roles below your own.</p>
                 </div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Name
-                  <input name="display_name" required maxLength={120} className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-white" />
+                  <input name="display_name" required maxLength={120} className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-white focus:border-cyan-500 focus:outline-none" />
                 </label>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Work email
-                  <input name="email" type="email" required className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-white" />
+                  <input name="email" type="email" required className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-white focus:border-cyan-500 focus:outline-none" />
                 </label>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Role
-                  <select name="role_key" required className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-white">
+                  <select name="role_key" required className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-white focus:border-cyan-500 focus:outline-none">
                     {assignableRoles.map((assignableRole) => <option key={assignableRole} value={assignableRole}>{assignableRole}</option>)}
                   </select>
                 </label>
@@ -799,13 +799,13 @@ export default function EmployeesPage() {
                       </button>
                     )}
                   </div>
-                  <p className="mt-1 text-[11px] text-slate-500">
+                  <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
                     This password will be assigned to the account and emailed directly to the employee.
                   </p>
                 </div>
 
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Reason for invitation
-                  <textarea name="reason" required rows={3} className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-white" />
+                  <textarea name="reason" required rows={3} className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-white focus:border-cyan-500 focus:outline-none" />
                 </label>
                 <Button
                   type="submit"
@@ -818,24 +818,24 @@ export default function EmployeesPage() {
                 </Button>
               </form>
             ) : (
-              <form onSubmit={submitInviteRequest} className="space-y-5 border-b border-slate-800 pb-8 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-8">
+              <form onSubmit={submitInviteRequest} className="space-y-5 border-b border-slate-200 dark:border-slate-800 pb-8 lg:border-b-0 lg:border-r lg:pb-0 lg:pr-8">
                 <div>
-                  <h2 className="text-xl font-semibold">Request an employee invitation</h2>
-                  <p className="mt-1 text-sm text-slate-400">An administrator must review and send the invitation.</p>
+                  <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Request an employee invitation</h2>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">An administrator must review and send the invitation.</p>
                 </div>
-                <label className="block text-sm text-slate-300">Name
-                  <input name="display_name" required maxLength={120} className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2.5 text-white" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Name
+                  <input name="display_name" required maxLength={120} className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-white focus:border-cyan-500 focus:outline-none" />
                 </label>
-                <label className="block text-sm text-slate-300">Work email
-                  <input name="email" type="email" required className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2.5 text-white" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Work email
+                  <input name="email" type="email" required className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-white focus:border-cyan-500 focus:outline-none" />
                 </label>
-                <label className="block text-sm text-slate-300">Requested role
-                  <select name="role_key" required className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2.5 text-white">
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Requested role
+                  <select name="role_key" required className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-white focus:border-cyan-500 focus:outline-none">
                     {authRoles.filter((item) => item !== 'owner' && role !== null && roleRank[item] <= roleRank[role]).map((item) => <option key={item} value={item}>{item}</option>)}
                   </select>
                 </label>
-                <label className="block text-sm text-slate-300">Reason
-                  <textarea name="reason" required rows={3} className="mt-2 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2.5 text-white" />
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Reason
+                  <textarea name="reason" required rows={3} className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900 px-3 py-2 text-slate-900 dark:text-white focus:border-cyan-500 focus:outline-none" />
                 </label>
                 <Button
                   type="submit"
@@ -851,14 +851,14 @@ export default function EmployeesPage() {
 
             {can('employee.invite.review') ? (
               <div>
-                <h2 className="text-xl font-semibold">Invitation requests</h2>
-                {inviteRequests.length === 0 ? <p className="mt-4 text-sm text-slate-400">No pending requests.</p> : (
-                  <ul className="mt-4 divide-y divide-slate-800">
+                <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Invitation requests</h2>
+                {inviteRequests.length === 0 ? <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">No pending requests.</p> : (
+                  <ul className="mt-4 divide-y divide-slate-200 dark:divide-slate-800">
                     {inviteRequests.map((request) => (
                       <li key={request.id} className="py-4">
-                        <p className="font-medium">{request.display_name} <span className="text-slate-400">({request.requested_role})</span></p>
-                        <p className="mt-1 text-sm text-slate-300">{request.email}</p>
-                        <p className="mt-1 text-sm text-slate-400">Requested by {request.requester_name ?? 'Former employee'}: {request.reason}</p>
+                        <p className="font-medium text-slate-900 dark:text-white">{request.display_name} <span className="text-slate-500 dark:text-slate-400">({request.requested_role})</span></p>
+                        <p className="mt-1 text-sm text-slate-700 dark:text-slate-300">{request.email}</p>
+                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Requested by {request.requester_name ?? 'Former employee'}: {request.reason}</p>
                         <div className="mt-3 flex gap-2">
                           <Button
                             size="sm"
@@ -1200,21 +1200,21 @@ export default function EmployeesPage() {
                         <div className="flex items-center gap-2.5">
                           {/* Status Badge */}
                           <span
-                            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium capitalize ${
+                            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold capitalize ${
                               employee.status === 'active'
-                                ? 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-300'
+                                ? 'border border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300'
                                 : employee.status === 'disabled'
-                                ? 'border border-red-500/30 bg-red-500/10 text-red-300'
-                                : 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-300'
+                                ? 'border border-red-300 bg-red-50 text-red-800 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300'
+                                : 'border border-cyan-300 bg-cyan-50 text-cyan-800 dark:border-cyan-500/30 dark:bg-cyan-500/10 dark:text-cyan-300'
                             }`}
                           >
                             <span
                               className={`h-1.5 w-1.5 rounded-full ${
                                 employee.status === 'active'
-                                  ? 'bg-emerald-400'
+                                  ? 'bg-emerald-500 dark:bg-emerald-400'
                                   : employee.status === 'disabled'
-                                  ? 'bg-red-400'
-                                  : 'bg-cyan-400'
+                                  ? 'bg-red-500 dark:bg-red-400'
+                                  : 'bg-cyan-500 dark:bg-cyan-400'
                               }`}
                             />
                             {employee.status === 'active'
@@ -1246,8 +1246,8 @@ export default function EmployeesPage() {
                                   ? `Disable ${employee.display_name || employee.email} (blocks login)`
                                   : `Enable ${employee.display_name || employee.email} (allows login)`
                               }
-                              className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:cursor-not-allowed disabled:opacity-50 ${
-                                employee.status === 'active' ? 'bg-emerald-500 hover:bg-emerald-400' : 'bg-slate-700 hover:bg-slate-600'
+                              className={`relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-slate-900 disabled:cursor-not-allowed disabled:opacity-50 ${
+                                employee.status === 'active' ? 'bg-emerald-500 hover:bg-emerald-400' : 'bg-slate-300 hover:bg-slate-400 dark:bg-slate-700 dark:hover:bg-slate-600'
                               }`}
                             >
                               <span
@@ -1259,11 +1259,11 @@ export default function EmployeesPage() {
                             </button>
                           ) : null}
                         </div>
-                        <p className="mt-1 text-[11px] text-slate-400">
+                        <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
                           {employee.status === 'active' ? 'Can log in' : employee.status === 'disabled' ? 'Login blocked' : 'Pending activation'}
                         </p>
                       </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-slate-400">{new Date(employee.created_at).toLocaleDateString()}</td>
+                      <td className="whitespace-nowrap px-4 py-4 text-xs text-slate-600 dark:text-slate-400">{new Date(employee.created_at).toLocaleDateString()}</td>
                       <td className="px-3 py-4">
                         <div className="flex flex-wrap items-center gap-2">
                           {/* Dedicated Enable/Disable Login Action Button */}
@@ -1334,7 +1334,7 @@ export default function EmployeesPage() {
                                   });
                                 }
                               }}
-                              className="rounded-md border border-slate-700 bg-slate-900 px-2 py-1.5 capitalize cursor-pointer hover:border-cyan-400 focus:border-cyan-400"
+                              className="rounded-md border border-slate-300 bg-white text-slate-800 hover:border-cyan-500 focus:border-cyan-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-cyan-400 dark:focus:border-cyan-400 px-2 py-1.5 capitalize cursor-pointer text-xs"
                             >
                               {[...new Set([employee.role_key, ...assignableRoles])].map((item) => (
                                 <option key={item} value={item}>{item}</option>
@@ -1371,7 +1371,7 @@ export default function EmployeesPage() {
                                       Purge from DB
                                     </Button>
                                   ) : (
-                                    <span className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2.5 py-1.5 text-xs font-semibold text-amber-300">
+                                    <span className="rounded-md border border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-300 px-2.5 py-1.5 text-xs font-semibold">
                                       Pending deletion
                                     </span>
                                   )}
@@ -1640,7 +1640,7 @@ export default function EmployeesPage() {
               </label>
 
               {modalError && (
-                <div className="rounded-lg border border-red-500/50 bg-red-500/10 p-3 text-sm text-red-300">
+                <div className="rounded-lg border border-red-300 bg-red-50 text-red-800 dark:border-red-500/50 dark:bg-red-500/10 dark:text-red-300 p-3 text-sm">
                   <p>{modalError}</p>
                   {modalError.toLowerCase().includes('already pending') ? (
                     <button
@@ -1649,7 +1649,7 @@ export default function EmployeesPage() {
                         closeModal();
                         setActiveTab('deletion');
                       }}
-                      className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-cyan-300 underline hover:text-cyan-200"
+                      className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-cyan-700 dark:text-cyan-300 underline hover:text-cyan-800 dark:hover:text-cyan-200"
                     >
                       View in Pending deletion tab →
                     </button>
