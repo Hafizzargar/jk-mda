@@ -8,7 +8,8 @@ import { SidebarAd } from '@/components/ads/SidebarAd';
 import { DEFAULT_ADS_SETTINGS, type CustomAdPlacement, type AdSlotType } from '@/lib/ads';
 import { DEFAULT_HOMEPAGE_LAYOUT, type HomepageSectionId } from '@/lib/homepage-layout';
 import { TemplateProps } from './types';
-import { getDistrictDisplayName } from '@/lib/taxonomy';
+import { getDistrictDisplayName, getCategorySlug } from '@/lib/taxonomy';
+import { getCleanSlug } from '@/lib/slug-aliases';
 import { DEFAULT_TELEMETRY_SETTINGS } from '@/lib/telemetry';
 import { formatArticleDate } from '@/lib/date';
 import { getOptimizedMediaUrl } from '@/lib/media';
@@ -117,13 +118,24 @@ export function ClassicEditorialTemplate({
   scope,
 }: TemplateProps) {
   const activeTelemetry = telemetry || DEFAULT_TELEMETRY_SETTINGS;
-  const lang = langPrefix ? langPrefix.replace('/', '') : 'en';
+  const normalizedLangPrefix = '/en';
+  const lang = 'en';
   const brandName = navbarSettings?.brand?.name || 'KJCPL';
   const cleanAuthor = (author?: string | null, art?: { district?: string | null; category?: string | null; title?: string | null } | null): string => {
     let raw = (author || '').trim();
     if (raw.includes('KJIN')) raw = raw.replace(/\bKJIN\b/g, 'KJCPL');
     if (raw.startsWith('KCPJLN')) raw = raw.replace(/\bKCPJLN\b/g, 'KJCPL');
-    if (!raw || raw.includes('Bureau') || raw.includes('Desk') || raw.includes('Team') || raw.includes('Discovery') || raw === 'Hafeez Zargar' || raw === 'Hafiz Zargar') {
+    if (
+      !raw ||
+      raw.includes('Bureau') ||
+      raw.includes('Desk') ||
+      raw.includes('Team') ||
+      raw.includes('Discovery') ||
+      raw === 'Hafeez Zargar' ||
+      raw === 'Hafiz Zargar' ||
+      raw === 'KJCPL' ||
+      raw === 'KJCPL Ground Bureau'
+    ) {
       if (art) return getCorrespondentByBeat(art);
       return 'Tariq Lone';
     }
@@ -134,10 +146,16 @@ export function ClassicEditorialTemplate({
   const isInternational = scope?.type === 'international';
   const isRegion = scope?.type === 'region';
 
-  const getCatSlug = (cat?: string | null) => (cat || 'news').toLowerCase().replace(/\s+/g, '-');
-  const getArtHref = (art?: { category?: string | null; slug?: string | null } | null) => {
-    if (!art?.slug) return langPrefix || '/';
-    return `${langPrefix}/${getCatSlug(art.category)}/${art.slug}`;
+  const getCatSlug = (cat?: string | null) => getCategorySlug(cat);
+  const getArtHref = (art?: { category?: string | null; slug?: string | null; district?: string | null; title?: string | null } | null) => {
+    if (!art?.slug) return normalizedLangPrefix;
+    const cleanSlug = getCleanSlug(art.slug);
+    const catSlug = getCategorySlug(art.category);
+    const dist = (art.district || '').toLowerCase().trim();
+    if (dist === 'doda' && cleanSlug.includes('mehraj-malik')) {
+      return `${normalizedLangPrefix}/doda/${cleanSlug}`;
+    }
+    return `${normalizedLangPrefix}/${catSlug}/${cleanSlug}`;
   };
 
   const isMonetizationActive = adsSettings?.monetization_enabled === true;
@@ -918,16 +936,16 @@ export function ClassicEditorialTemplate({
               <div>
                 <div className="flex items-center justify-between gap-1">
                   <h3 className="font-headline text-base sm:text-lg font-bold text-stone-950 leading-tight truncate">
-                    Agricultural &amp; Commodity Mandi
+                    Agricultural &amp; Commodity Mandi Telemetry
                   </h3>
                   <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
                 </div>
                 <p className="text-[11px] sm:text-[11.5px] text-stone-600 mt-0.5 leading-snug font-serif">
-                  Direct spot pricing from terminal markets across Jammu, Srinagar, Sopore &amp; Kishtwar.
+                  Representative seasonal reference benchmarks compiled from wholesale market surveys across Jammu, Srinagar, Sopore &amp; Kishtwar.
                 </p>
                 <div className="flex items-center space-x-1.5 text-[9px] sm:text-[10px] text-emerald-800 font-semibold mt-1">
                   <span>●</span>
-                  <span className="truncate">Reference Benchmark • Directorate of Horticulture Planning &amp; Marketing, J&amp;K</span>
+                  <span className="truncate">Market Telemetry • Indicative Seasonal Wholesale Reference Bands</span>
                 </div>
               </div>
               <div className="space-y-1.5 sm:space-y-2 pt-1">

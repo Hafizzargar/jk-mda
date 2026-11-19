@@ -1,5 +1,6 @@
 import '../globals.css';
 import type { Metadata, Viewport } from 'next';
+import { permanentRedirect } from 'next/navigation';
 import { SITE_URL, SITE_NAME, SITE_SHORT_NAME } from '@/lib/config';
 import { safeJsonLd } from '@/lib/sanitize';
 
@@ -23,7 +24,7 @@ export async function generateMetadata(): Promise<Metadata> {
   let brandName = SITE_SHORT_NAME;
   let brandFullName = SITE_NAME;
   let logo = '/kjcpl-emblem.png';
-  let tagline = 'Independent, verified news, ground dispatches, and mountain transit telemetry for Jammu, Kashmir, and Ladakh.';
+  let tagline = 'Independent verified journalism, breaking news, daily ground reporting, civic dispatches, and public affairs from Doda, Kishtwar, Poonch, Ramban, Bhaderwah, Leh, and across Jammu & Kashmir.';
 
   try {
     const supabase = createServerAnonClient();
@@ -31,7 +32,6 @@ export async function generateMetadata(): Promise<Metadata> {
     if (brand.name) brandName = brand.name;
     if (brand.full_name) brandFullName = brand.full_name;
     if (brand.logo_url) logo = brand.logo_url;
-    if (brand.tagline) tagline = brand.tagline;
   } catch (err) {
     console.warn('[RootLayout:generateMetadata] Fallback metadata:', err);
   }
@@ -39,17 +39,18 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     metadataBase: new URL(SITE_URL),
     title: {
-      default: `J&K News: Doda, Kishtwar, Poonch, Ramban, Bhaderwah, Leh | ${brandName}`,
+      default: `J&K News: Doda, Kishtwar, Ramban, Poonch, Leh | ${brandName}`,
       template: `%s | ${brandName}`,
     },
     description: tagline,
     authors: [
-      { name: 'Hafiz Zargar (Editor-in-Chief)', url: `${SITE_URL}/en` },
+      { name: 'Hafez Zargar (Editor-in-Chief)', url: `${SITE_URL}/en` },
       { name: 'KJCPL Editorial Bureau', url: `${SITE_URL}/en` },
     ],
     creator: 'KJCPL News Network',
     publisher: brandFullName,
     alternates: {
+      canonical: `${SITE_URL}/en`,
       languages: {
         en: `${SITE_URL}/en`,
         'x-default': `${SITE_URL}/en`,
@@ -67,7 +68,7 @@ export async function generateMetadata(): Promise<Metadata> {
       },
     },
     openGraph: {
-      title: `${brandFullName} | ${brandName}`,
+      title: `J&K News: Doda, Kishtwar, Ramban, Poonch, Leh | ${brandName}`,
       description: tagline,
       url: `${SITE_URL}/en`,
       siteName: brandFullName,
@@ -84,7 +85,7 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     twitter: {
       card: 'summary_large_image',
-      title: `${brandFullName} | ${brandName}`,
+      title: `J&K News: Doda, Kishtwar, Ramban, Poonch, Leh | ${brandName}`,
       description: tagline,
       images: [`${SITE_URL}/kcpjln-wide-banner.webp`],
       site: '@kjcpl_news',
@@ -110,6 +111,10 @@ export default async function RootLayout({
   children: React.ReactNode;
   params: Promise<{ lang: string }>;
 }) {
+  const { lang: paramLang } = await params;
+  if (paramLang && paramLang !== 'en') {
+    permanentRedirect(`/en/${paramLang}`);
+  }
   const lang = 'en';
   const dir = 'ltr';
 

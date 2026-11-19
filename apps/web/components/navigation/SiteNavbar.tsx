@@ -143,7 +143,7 @@ export function SiteNavbar({
     }
   }, [navSettings?.brand]);
 
-  const langPrefix = lang === 'en' ? '' : `/${lang}`;
+  const langPrefix = '/en';
   const currentDate = new Date().toLocaleDateString('en-US', {
     weekday: 'short',
     month: 'short',

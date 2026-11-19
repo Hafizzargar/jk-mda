@@ -67,7 +67,7 @@ export default async function RegionPage({ params, searchParams }: RegionPagePro
   const { lang, slug } = await params;
   const resolvedSearchParams = await searchParams;
   const regionSlug = slug.toLowerCase().trim();
-  const langPrefix = lang === 'en' ? '' : `/${lang}`;
+  const langPrefix = '/en';
 
   if (!isValidRegion(regionSlug)) {
     notFound();

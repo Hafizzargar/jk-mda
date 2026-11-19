@@ -55,7 +55,7 @@ export async function generateMetadata({ params, searchParams }: InternationalPa
 export default async function InternationalDeskPage({ params, searchParams }: InternationalPageProps) {
   const { lang } = await params;
   const resolvedSearchParams = await searchParams;
-  const langPrefix = lang === 'en' ? '' : `/${lang}`;
+  const langPrefix = '/en';
   const page = parsePageParam(resolvedSearchParams.page);
   const limit = parseLimitParam(resolvedSearchParams.limit, 12);
   const { from, to } = getPaginationRange(page, limit);

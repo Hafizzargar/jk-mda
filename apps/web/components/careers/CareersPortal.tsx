@@ -220,8 +220,8 @@ export function CareersPortal({
 
       <div className="max-w-2xl mx-auto relative z-10 space-y-5 sm:space-y-6">
         {/* Header Bar */}
-        <div className="text-center space-y-2.5">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.12)]">
+        <div className="text-center space-y-2 sm:space-y-2.5">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full text-[9.5px] sm:text-[11px] font-semibold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.12)]">
             <span className="relative flex h-1.5 w-1.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500" />
@@ -229,14 +229,14 @@ export function CareersPortal({
             <span>2026 Newsroom Application Desk</span>
           </div>
 
-          <h1 className="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-white leading-snug">
+          <h1 className="font-serif text-xl sm:text-3xl font-bold tracking-tight text-white leading-tight">
             Apply to Join{' '}
             <span className="bg-gradient-to-r from-amber-400 via-orange-300 to-amber-500 bg-clip-text text-transparent">
               {brandName}
             </span>
           </h1>
 
-          <p className="text-xs sm:text-[13px] text-slate-300/90 max-w-lg mx-auto leading-relaxed">
+          <p className="text-[11px] sm:text-[13px] text-slate-300/85 max-w-lg mx-auto leading-normal px-2">
             {brandFullName} invites ground correspondents, investigative journalists, editors, and photographers across Jammu &amp; Kashmir to submit their application dossier.
           </p>
         </div>

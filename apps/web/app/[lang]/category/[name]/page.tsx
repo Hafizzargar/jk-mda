@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { Metadata } from 'next';
 import { createServerAnonClient } from '@/lib/supabase-server';
 import { isValidCategory, getCategoryDisplayName, NEWS_CATEGORIES, getCategorySlug } from '@/lib/taxonomy';
+import { getCleanSlug } from '@/lib/slug-aliases';
 import { parsePageParam, parseLimitParam, getPaginationRange, calculatePaginationMeta } from '@/lib/pagination';
 import { applyTranslations } from '@/lib/i18n';
 import { SITE_URL, SITE_SHORT_NAME } from '@/lib/config';
@@ -109,10 +110,13 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
   const { lang, name } = await params;
   const resolvedSearchParams = await searchParams;
   const categorySlug = name.toLowerCase().trim();
-  const langPrefix = lang === 'en' ? '' : `/${lang}`;
+  const langPrefix = '/en';
 
-  // Dedicated section routing for International and National desks
+  // Dedicated section routing for International, National, and Science desks
   const pageQuery = resolvedSearchParams.page ? `?page=${resolvedSearchParams.page}` : '';
+  if (categorySlug.includes('&') || categorySlug === 'science-&-technology' || categorySlug === 'science-technology') {
+    redirect(`${langPrefix}/category/science${pageQuery}`);
+  }
   if (categorySlug === 'international') {
     redirect(`${langPrefix}/international${pageQuery}`);
   }
@@ -324,7 +328,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
               {heroArticle && (
                 <div className="border border-slate-200/90 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-900/90 overflow-hidden shadow-sm hover:shadow-md transition">
                   <Link
-                    href={`${langPrefix}/${getCategorySlug(heroArticle.category)}/${heroArticle.slug}`}
+                    href={`${langPrefix}/${getCategorySlug(heroArticle.category)}/${getCleanSlug(heroArticle.slug)}`}
                     className="group grid grid-cols-1 lg:grid-cols-12 gap-0 items-stretch"
                   >
                     {/* Media Container (5 cols) */}
@@ -417,7 +421,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
                     {gridArticles.map((article) => (
                       <Link
                         key={article.id}
-                        href={`${langPrefix}/${getCategorySlug(article.category)}/${article.slug}`}
+                        href={`${langPrefix}/${getCategorySlug(article.category)}/${getCleanSlug(article.slug)}`}
                         className="group flex flex-col h-full bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/90 dark:border-slate-800 p-5 shadow-xs hover:shadow-md hover:-translate-y-0.5 transition-all"
                       >
                         {/* Thumbnail Container */}

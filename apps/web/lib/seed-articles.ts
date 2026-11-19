@@ -380,4 +380,61 @@ The laboratory's primary mandates include tracking seasonal snow water equivalen
 
 "Empowering our graduate scholars with high-resolution geospatial diagnostics bridges the gap between theoretical environmental research and actionable civil defense policies," stated Vice-Chancellor Prof. Nilofer Khan during the inaugural symposium.`,
   },
+  {
+    id: 'a6a068c8-d2d9-44f3-8d72-9ca462657d13',
+    slug: 'mla-mehraj-malik-power-water-crisis',
+    title: 'Doda MLA Mehraj Malik Demands Accountability for Crippling Power, Water Crisis',
+    excerpt: 'SRINAGAR / DODA — Speaking on the floor during zero hour in the Jammu and Kashmir Legislative Assembly in Srinagar, MLA Mehraj Malik demanded immediate restoration of power feeders and Jal Jeevan water schemes.',
+    category: 'Local News',
+    district: 'doda',
+    author_display_name: 'Tariq Lone',
+    published_at: new Date(Date.now() - 3600 * 1000 * 2).toISOString(),
+    featured_image_url: 'https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&w=1200&q=80',
+    view_count: 2480,
+    content: `## Doda MLA Mehraj Malik Demands Immediate Restoration of Power Feeders and Jal Jeevan Water Schemes
+
+SRINAGAR — In a heated intervention during the Autumn Session of the Jammu and Kashmir Legislative Assembly in Srinagar on Tuesday, Doda MLA Mehraj Malik confronted the administration over escalating power outages and non-functional Jal Jeevan Mission water schemes across remote Chenab Valley habitations.
+
+Speaking during Zero Hour, MLA Mehraj Malik stated: "Over 45 villages across Marmat, Kastigarh, and higher reaches of Doda are subjected to unscheduled 14-hour load shedding daily, while gravity water supply pipelines sanctioned three years ago remain bone dry on paper. The public cannot be made to endure freezing Himalayan winter conditions without basic civil amenities."
+
+In response, Chief Engineer Power Development Department (PDD) Er. Sandeep Sharma confirmed that specialized transformer repair workshops and emergency buffer inventory have been deployed to Doda and Bhaderwah, pledging 24-hour rapid restoration of damaged feeder lines. Furthermore, Jal Shakti Chief Engineer Er. Sanjeev Malhotra directed executive engineers to inspect all pending village lift water stations within 72 hours.`,
+  },
+  {
+    id: 'ca6178f9-4e8d-4e4f-8593-a12538c769d8',
+    slug: 'two-spos-found-dead-investigation',
+    title: 'Kishtwar Rocked: Bullet-Riddled Bodies of Two Special Police Officers Found, Six Detained in Rapid Investigation',
+    excerpt: 'KISHTWAR — J&K Police have recovered the bodies of two Special Police Officers in upper Chhatroo and constituted a Special Investigation Team headed by SDPO Vishal Sharma under Section 194 BNSS.',
+    category: 'Local News',
+    district: 'kishtwar',
+    author_display_name: 'Farooq Mir',
+    published_at: new Date(Date.now() - 3600 * 1000 * 4).toISOString(),
+    featured_image_url: 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&w=1200&q=80',
+    view_count: 3120,
+    content: `## Special Investigation Team Formed as Police Recover Bodies of Two SPOs in Highland Chhatroo
+
+KISHTWAR — The district administration and security apparatus in Kishtwar have initiated high-level forensic investigations following the recovery of the bodies of two Special Police Officers (SPOs) from the high-altitude forested ridges of Chhatroo subdivision early Wednesday morning.
+
+Addressing a press conference at District Police Headquarters, Senior Superintendent of Police (SSP) Kishtwar, Abdul Qayoom (IPS), confirmed: "The deceased personnel have been identified, and their service weapons were secured from the scene. A multi-agency Special Investigation Team (SIT) headed by SDPO Chhatroo Vishal Sharma has been formally constituted to establish the sequence of events."
+
+SSP Qayoom added that six individuals with proximate knowledge of the highland corridor have been detained for questioning under Section 194 of the Bharatiya Nagarik Suraksha Sanhita (BNSS). Additional Central Reserve Police Force (CRPF) and Special Operations Group (SOG) detachments have cordoned off the ridge lines connecting Kishtwar to Anantnag via Sinthan Pass to maintain strict territorial security.`,
+  },
+  {
+    id: 'c0cedd3f-befc-4871-b00a-c08f2d6ac218',
+    slug: 'pampore-saffron-plateau-autumn-harvest-exceptional-crocin-purity-2026',
+    title: 'Pampore Saffron Plateau Completes Autumn Harvest with Exceptional 98.4% Crocin Purity Index',
+    excerpt: 'PAMPORE — NABL-accredited laboratory testing at the India International Kashmir Saffron Trading Centre (IIKSTC) in Dusoo confirms a record 98.4% Crocin coloring strength for the 2026 harvest.',
+    category: 'Economy',
+    district: 'pulwama',
+    author_display_name: 'Irfan Ahmad Dar',
+    published_at: new Date(Date.now() - 3600 * 1000 * 5).toISOString(),
+    featured_image_url: 'https://images.unsplash.com/photo-1608686207856-001b95cf60ca?auto=format&fit=crop&w=1200&q=80',
+    view_count: 2150,
+    content: `## Scientific Validation Confirms Record 98.4% Crocin Index for Autumn Saffron Harvest
+
+PULWAMA — The autumn harvesting cycle across the famed karewa terraces of Pampore has concluded with rigorous chemical diagnostics establishing an unprecedented crocin coloring strength index of 98.4 percent, significantly exceeding national and international export standards.
+
+Official laboratory testing conducted under ISO 3632-1 protocols at the NABL-accredited India International Kashmir Saffron Trading Centre (IIKSTC) in Dusoo confirmed that high soil aeration, managed micro-sprinkler irrigation, and timely morning plucking contributed to the highest chemical concentration of crocin, safranal, and picrocrocin recorded in recent years.
+
+Lead Quality Assessor Dr. Manzoor Ahmad Mir stated: "Every single commercial lot processed through the e-auction terminal underwent automated spectrometry. Over 92 percent of plucker consignments qualified for Grade-1 GI certification, providing guaranteed anti-counterfeiting security for international buyers." Director Agriculture Chowdhury Mohammad Iqbal confirmed that over 1,400 registered growers in Pampore, Dusoo, and Lethpora have received direct digital payments into their bank accounts.`,
+  },
 ];

@@ -34,6 +34,34 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl, 301);
   }
 
+  // Instant 301 redirect for known messy slugs and malformed categories
+  if (pathname.includes('2-31-1j47-ca84')) {
+    const redirectUrl = new URL('/en/international/india-calls-for-equitable-second-global-stocktake-cop31', request.url);
+    return NextResponse.redirect(redirectUrl, 301);
+  }
+  if (pathname.includes('doda-mla-mehraj-malik-demands-accountability-for-crippling-power-water-crisis-pxid')) {
+    const redirectUrl = new URL('/en/doda/mla-mehraj-malik-power-water-crisis', request.url);
+    return NextResponse.redirect(redirectUrl, 301);
+  }
+  if (pathname.includes('kishtwar-rocked-bullet-riddled-bodies-of-two-special-police-5wdd-rbxr')) {
+    const redirectUrl = new URL('/en/kishtwar/two-spos-found-dead-investigation', request.url);
+    return NextResponse.redirect(redirectUrl, 301);
+  }
+  if (pathname.includes('gmc-doda-advanced-trauma-dialysis-wing-commissioned-chenab-relief-1qkn')) {
+    const redirectUrl = new URL('/en/doda/gmc-doda-advanced-trauma-dialysis-wing-commissioned', request.url);
+    return NextResponse.redirect(redirectUrl, 301);
+  }
+  if (pathname.includes('bhaderwah-under-simulated-lockdown-police-crpf-test-emergenc-nzpz-k7z4')) {
+    const redirectUrl = new URL('/en/bhaderwah/bhaderwah-emergency-response-drill', request.url);
+    return NextResponse.redirect(redirectUrl, 301);
+  }
+  if (pathname.includes('science-&-technology') || pathname.includes('science-technology')) {
+    const cleaned = pathname.replace('science-&-technology', 'science').replace('science-technology', 'science');
+    const target = cleaned.startsWith('/en') ? cleaned : `/en${cleaned}`;
+    const redirectUrl = new URL(target, request.url);
+    return NextResponse.redirect(redirectUrl, 301);
+  }
+
   // Generate a nonce for the Strict CSP
   const nonce = crypto.randomUUID();
   const cspHeader = buildCspHeader({ nonce });

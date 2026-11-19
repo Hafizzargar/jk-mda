@@ -44,7 +44,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function CareersPage({ params }: CareersPageProps) {
   const { lang } = await params;
-  const langPrefix = lang === 'en' ? '' : `/${lang}`;
+  const langPrefix = '/en';
 
   const supabase = createServerAnonClient();
   const [brand, footerContact, careersSettings, activeTemplateRow] = await Promise.all([

@@ -640,7 +640,7 @@ export function JKMapOverview({
     }
   };
 
-  const langPrefix = lang === 'en' ? '' : `/${lang}`;
+  const langPrefix = '/en';
 
   return (
     <div className="relative w-full h-full bg-stone-50 text-stone-900 flex flex-col overflow-hidden font-sans select-none border-t border-stone-200">

@@ -31,7 +31,7 @@ export function SiteFooter({
   const dev: DeveloperSupportSettings = sanitizeDeveloperSupportSettings(
     developerSettings || contact.developer_support || DEFAULT_DEVELOPER_SUPPORT
   );
-  const langPrefix = lang === 'en' ? '' : `/${lang}`;
+  const langPrefix = '/en';
   const isDark = theme?.isDark ?? false;
 
   // Unified brand resolution: Brand name (e.g. KJIN), full form (e.g. Kashmir & Jammu Information Network)
@@ -307,7 +307,7 @@ export function SiteFooter({
             <div className="pt-2">
               <div className={`p-3 rounded-xl border ${cardBorder} ${cardBg} text-[11px] space-y-1.5`}>
                 <div className={`font-bold uppercase tracking-wider text-[10px] ${textMuted}`}>
-                  Publisher &amp; Statutory Accreditation
+                  Publication Details &amp; Statutory Disclosures
                 </div>
                 <div className={`${textSecondary} font-mono text-[10px] leading-tight break-all`}>
                   {contact.registration_number}

@@ -37,38 +37,48 @@ import { DEFAULT_HOMEPAGE_LAYOUT } from '@/lib/homepage-layout';
 import { FALLBACK_BROADSHEET_ARTICLES } from '@/lib/seed-articles';
 
 export async function generateMetadata(): Promise<Metadata> {
-  let brandName = SITE_SHORT_NAME;
-  let brandFullName = SITE_NAME;
-  let tagline = 'Verified Journalism from Jammu & Kashmir';
-
-  try {
-    const supabase = createServerAnonClient();
-    const brand = await getBrandSettings(supabase);
-    if (brand.name) brandName = brand.name;
-    if (brand.full_name) brandFullName = brand.full_name;
-    if (brand.tagline) tagline = brand.tagline;
-  } catch (err) {
-    console.warn('[HomePage:generateMetadata] Fallback metadata:', err);
-  }
+  const brandName = SITE_SHORT_NAME || 'KJCPL';
+  const brandFullName = SITE_NAME || 'KJCPL News Network';
+  const title = `J&K News: Doda, Kishtwar, Ramban, Poonch, Leh | ${brandName}`;
+  const description = `Independent verified journalism, breaking news, daily ground reporting, civic dispatches, and public affairs from Doda, Kishtwar, Poonch, Ramban, Bhaderwah, Leh, and across Jammu & Kashmir.`;
+  const canonical = `${SITE_URL}/en`;
 
   return {
     metadataBase: new URL(SITE_URL),
-    title: `J&K News: Doda, Kishtwar, Poonch, Ramban, Bhaderwah, Leh | ${brandName || 'KJCPL'}`,
-    description: `Verified grassroots journalism, daily ground reporting, civic dispatches, and public affairs from Doda, Kishtwar, Poonch, Ramban, Bhaderwah, Leh, and across Jammu & Kashmir.`,
+    title: {
+      absolute: title,
+    },
+    description,
     alternates: {
-      canonical: `${SITE_URL}/en`,
+      canonical,
       languages: {
-        en: `${SITE_URL}/en`,
-        'x-default': `${SITE_URL}/en`,
+        en: canonical,
+        'x-default': canonical,
       },
     },
     openGraph: {
-      title: `J&K News: Doda, Kishtwar, Poonch, Ramban, Bhaderwah, Leh | ${brandName || 'KJCPL'}`,
-      description: `Verified daily ground reporting, civic dispatches, and public affairs across Jammu & Kashmir.`,
-      url: `${SITE_URL}/en`,
-      siteName: `${brandFullName || 'Kashmir Jammu Coalition Press Ltd'} (${brandName || 'KJCPL'})`,
+      title,
+      description,
+      url: canonical,
+      siteName: brandFullName,
       locale: DEFAULT_LOCALE,
       type: 'website',
+      images: [
+        {
+          url: `${SITE_URL}/kcpjln-wide-banner.webp`,
+          width: 1200,
+          height: 630,
+          alt: brandFullName,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [`${SITE_URL}/kcpjln-wide-banner.webp`],
+      site: '@kjcpl_news',
+      creator: '@kjcpl_news',
     },
     robots: {
       index: true,
@@ -84,10 +94,10 @@ interface HomePageProps {
 
 export default async function HomePage({ params, searchParams }: HomePageProps) {
   const resolvedParams = (await params) || {};
-  const lang = resolvedParams.lang || 'en';
+  const lang = 'en';
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const supabase = createServerAnonClient();
-  const langPrefix = lang === 'en' ? '' : `/${lang}`;
+  const langPrefix = '/en';
 
   // 1. Pagination parameters (Expanded to 18 per page to maintain an authoritative, full broadsheet)
   const page = parsePageParam(resolvedSearchParams.page);

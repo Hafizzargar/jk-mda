@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { Metadata } from 'next';
 import { createServerAnonClient } from '@/lib/supabase-server';
 import { isValidDistrict, getDistrictDisplayName, JK_DISTRICTS, getCategorySlug } from '@/lib/taxonomy';
+import { getCleanSlug } from '@/lib/slug-aliases';
 import { parsePageParam, parseLimitParam, getPaginationRange, calculatePaginationMeta } from '@/lib/pagination';
 import { applyTranslations } from '@/lib/i18n';
 import { SITE_URL, SITE_SHORT_NAME } from '@/lib/config';
@@ -71,7 +72,7 @@ export default async function DistrictPage({ params, searchParams }: DistrictPag
   const { lang, name } = await params;
   const resolvedSearchParams = await searchParams;
   const districtSlug = name.toLowerCase().trim();
-  const langPrefix = lang === 'en' ? '' : `/${lang}`;
+  const langPrefix = '/en';
 
   // 1. Strict district validation against controlled J&K taxonomy
   if (!isValidDistrict(districtSlug)) {
@@ -89,12 +90,23 @@ export default async function DistrictPage({ params, searchParams }: DistrictPag
 
   const supabase = createServerAnonClient();
 
-  // 3. Query articles for this district
-  const { data: articlesRaw, count } = await supabase
+  // 3. Query articles for this district or town hub
+  let query = supabase
     .from('articles')
     .select('id, slug, title, excerpt, category, district, author_display_name, published_at, featured_image_url, article_translations(title, excerpt, language_code)', { count: 'exact' })
-    .eq('status', 'published')
-    .ilike('district', districtSlug)
+    .eq('status', 'published');
+
+  if (districtSlug === 'bhaderwah') {
+    query = query.or('district.ilike.bhaderwah,district.ilike.doda,title.ilike.%bhaderwah%');
+  } else if (districtSlug === 'doda') {
+    query = query.or('district.ilike.doda,district.ilike.bhaderwah,title.ilike.%doda%');
+  } else if (districtSlug === 'kishtwar') {
+    query = query.or('district.ilike.kishtwar,title.ilike.%kishtwar%');
+  } else {
+    query = query.or(`district.ilike.${districtSlug},title.ilike.%${districtSlug}%`);
+  }
+
+  const { data: articlesRaw, count } = await query
     .order('published_at', { ascending: false, nullsFirst: false })
     .range(from, to);
 
@@ -181,7 +193,7 @@ export default async function DistrictPage({ params, searchParams }: DistrictPag
               {articles.map((article) => (
                 <Link
                   key={article.id}
-                  href={`${langPrefix}/${getCategorySlug(article.category)}/${article.slug}`}
+                  href={`${langPrefix}/${getCategorySlug(article.category)}/${getCleanSlug(article.slug)}`}
                   className={`group flex flex-col h-full ${theme.cardBgClass} rounded-xl ${theme.cardBorderClass} ${theme.cardHoverClass} p-5 transition`}
                 >
                   {article.featured_image_url ? (

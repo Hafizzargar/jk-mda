@@ -31,12 +31,20 @@ export function applyTranslations<
 >(articles: T[], lang: string = 'en'): T[] {
   return articles.map((article) => {
     let author = article.author_display_name?.trim();
-    if (!author || author === 'Hafeez Zargar' || author === 'Hafiz Zargar' || author === 'KJCPL Team' || author === 'Team' || author.startsWith('KJIN ') || author === 'KJIN') {
+    if (
+      !author ||
+      author.includes('Bureau') ||
+      author.includes('Desk') ||
+      author.includes('Team') ||
+      author.includes('Discovery') ||
+      author === 'Hafeez Zargar' ||
+      author === 'Hafiz Zargar' ||
+      author.startsWith('KJIN') ||
+      author === 'KJIN' ||
+      author === 'KJCPL' ||
+      author.startsWith('KCPJLN')
+    ) {
       author = getCorrespondentByBeat(article);
-    } else if (author.includes('KJIN')) {
-      author = author.replace(/\bKJIN\b/g, 'KJCPL');
-    } else if (author.startsWith('KCPJLN')) {
-      author = author.replace(/\bKCPJLN\b/g, 'KJCPL');
     }
 
     let title = article.title;

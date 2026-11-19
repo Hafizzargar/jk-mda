@@ -21,7 +21,7 @@ export function Breadcrumbs({
   theme,
   className = '',
 }: BreadcrumbsProps) {
-  const langPrefix = lang === 'en' ? '' : `/${lang}`;
+  const langPrefix = '/en';
   const allItems: BreadcrumbItem[] = [
     { label: 'Home', href: `${langPrefix}/` },
     ...items,
