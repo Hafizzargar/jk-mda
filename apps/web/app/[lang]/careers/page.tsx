@@ -30,12 +30,12 @@ export async function generateMetadata(): Promise<Metadata> {
     title: `${pageTitle} | ${brandFullName}`,
     description: careersSettings.page_subtitle || `Join the editorial, investigative, and reporting newsroom at ${brandFullName}.`,
     alternates: {
-      canonical: `${SITE_URL}/careers`,
+      canonical: `${SITE_URL}/en/careers`,
     },
     openGraph: {
       title: `${pageTitle} | ${brandName}`,
       description: careersSettings.page_subtitle,
-      url: `${SITE_URL}/careers`,
+      url: `${SITE_URL}/en/careers`,
       siteName: `${brandFullName} (${brandName})`,
       type: 'website',
     },

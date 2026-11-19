@@ -89,3 +89,74 @@ export async function POST(request: Request) {
     careers_settings: sanitized,
   });
 }
+
+export async function DELETE(request: Request) {
+  const authorization = await authenticateEmployeeRequest(request);
+  if (!isEmployeeAuthorization(authorization)) return authorization;
+
+  if (!ALLOWED_ROLES.includes(authorization.profile.role_key)) {
+    return Response.json(
+      { error: 'You do not have permission to delete candidate applications.' },
+      { status: 403 }
+    );
+  }
+
+  const { searchParams } = new URL(request.url);
+  const applicationId = searchParams.get('id');
+  if (!applicationId) {
+    return Response.json({ error: 'Application ID is required.' }, { status: 400 });
+  }
+
+  const { data: settingRow, error: fetchError } = await authorization.service
+    .from('site_settings')
+    .select('value')
+    .eq('key', 'careers_settings')
+    .maybeSingle();
+
+  if (fetchError) {
+    return Response.json({ error: 'Failed to retrieve careers settings.' }, { status: 500 });
+  }
+
+  const rawValue = settingRow?.value as Partial<CareersSettings> | null;
+  const currentSettings = sanitizeCareersSettings(rawValue || DEFAULT_CAREERS_SETTINGS);
+
+  const updatedApplications = currentSettings.applications.filter((a) => a.id !== applicationId);
+  const updatedSettings: CareersSettings = {
+    ...currentSettings,
+    applications: updatedApplications,
+  };
+
+  const { error: updateError } = await authorization.service
+    .from('site_settings')
+    .upsert({
+      key: 'careers_settings',
+      value: updatedSettings,
+      description: 'Public newspaper careers page, newsroom job openings, and candidate applications',
+      updated_at: new Date().toISOString(),
+      updated_by: authorization.user.id,
+    });
+
+  if (updateError) {
+    return Response.json({ error: 'Failed to delete application from database.' }, { status: 500 });
+  }
+
+  await authorization.service.from('audit_logs').insert({
+    actor_profile_id: authorization.user.id,
+    action: 'careers.application_deleted',
+    target_type: 'site_settings',
+    target_id: 'careers_settings',
+    result: 'success',
+    reason: `Deleted candidate application ${applicationId}`,
+    details: {
+      deleted_application_id: applicationId,
+      remaining_applications: updatedApplications.length,
+    },
+    ...authorization.auditContext,
+  });
+
+  return Response.json({
+    success: true,
+    message: 'Candidate application deleted successfully.',
+    careers_settings: updatedSettings,
+  });
+}

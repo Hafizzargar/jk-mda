@@ -117,7 +117,7 @@ export async function POST(request: Request) {
       generatedObject = await customSummarizeGenerator({ content: parsed.data.content });
     } else {
       const result = await generateObject({
-        model: google('gemini-2.5-flash'),
+        model: google('gemini-2.0-flash'),
         system:
           'You are an expert news editor for KJCPL. Summarize the article into an attractive, compelling, and accurate 1–2 sentence excerpt that hooks reader excitement and clearly conveys the central stakes.',
         prompt: `Summarize this article:\n\n${parsed.data.content}`,

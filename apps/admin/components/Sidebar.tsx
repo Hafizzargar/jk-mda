@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 
 interface SidebarProps {
@@ -18,26 +17,15 @@ interface SidebarProps {
   brandLogo?: string;
 }
 
-interface SubNavItem {
-  name: string;
-  href: string;
-  icon?: string;
-  badge?: string;
-  badgeColor?: string;
-  exact?: boolean;
-  roles?: string[];
-}
-
 interface NavItem {
   name: string;
-  description: string;
   href: string;
-  icon: string;
+  icon: React.ReactNode;
   badge?: string;
+  badgeDot?: boolean;
   badgeColor?: string;
   roles?: string[];
   exact?: boolean;
-  children?: SubNavItem[];
 }
 
 interface NavSection {
@@ -54,316 +42,13 @@ export function Sidebar({
   userEmail,
   onSignOut,
   brandName = 'KJCPL',
-  brandLogo = '/kjin-emblem.png',
 }: SidebarProps) {
   const pathname = usePathname();
   const [loggingOut, setLoggingOut] = useState(false);
-  const [currentSearch, setCurrentSearch] = useState('');
-  // Single active accordion section: only one dropdown open at any time
-  const [openMenu, setOpenMenu] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      setCurrentSearch(window.location.search);
-      const handleLocation = () => setCurrentSearch(window.location.search);
-      window.addEventListener('popstate', handleLocation);
-      return () => window.removeEventListener('popstate', handleLocation);
-    }
-  }, [pathname]);
-
-  const navSections: NavSection[] = [
-    {
-      title: 'Editorial Operations',
-      items: [
-        {
-          name: 'Dashboard',
-          description: 'Live metrics, drafts & review queue',
-          href: '/',
-          icon: '📊',
-          exact: true,
-        },
-        {
-          name: 'Audience & Views',
-          description: 'Real-time reader view counts & regional analytics',
-          href: '/analytics',
-          icon: '📈',
-          roles: ['owner', 'superadmin', 'admin'],
-        },
-        {
-          name: 'Articles & Stories',
-          description: 'Live news publications & story management',
-          href: '/articles',
-          icon: '📰',
-          exact: false,
-          children: [
-            {
-              name: 'Live News',
-              href: '/articles?status=published',
-              icon: '📡',
-              badge: 'Live',
-              badgeColor:
-                'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40 font-bold',
-              roles: ['owner', 'superadmin', 'admin', 'editor', 'author'],
-            },
-            {
-              name: 'Pending Approval',
-              href: '/articles?status=review',
-              icon: '⏳',
-              badge: 'Need Approval',
-              badgeColor:
-                'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40 font-bold',
-              roles: ['owner', 'superadmin', 'admin'],
-            },
-          ],
-        },
-        {
-          name: 'Autonomous News Intelligence',
-          description: 'Independent multi-source web discovery & editorial verification',
-          href: '/newsroom/youtube',
-          icon: '🌐',
-          badge: 'Autonomous',
-          badgeColor:
-            'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-500/20 dark:text-purple-300 font-bold',
-          roles: ['owner', 'superadmin', 'admin'],
-          children: [
-            {
-              name: 'Discovery Radar & Queue',
-              href: '/newsroom/youtube',
-              icon: '🛰️',
-              badge: 'Live',
-              badgeColor: 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 font-bold',
-            },
-            {
-              name: 'Live Monitor',
-              href: '/newsroom',
-              icon: '📡',
-              exact: true,
-            },
-            {
-              name: 'Public Figures & Leaders',
-              href: '/newsroom/public-figures',
-              icon: '🎙️',
-              badge: 'Gemini AI',
-              badgeColor: 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-500/20 dark:text-purple-300 font-bold',
-            },
-            {
-              name: 'Source Registry',
-              href: '/newsroom/sources',
-              icon: '🔗',
-            },
-            {
-              name: 'Drafts & Fact-Check',
-              href: '/newsroom/drafts',
-              icon: '📋',
-            },
-            {
-              name: 'AI Quota & Usage',
-              href: '/newsroom/usage',
-              icon: '⚡',
-            },
-          ],
-        },
-        {
-          name: 'Voices & Editorial Desk',
-          description: 'Autonomous AI & manual Op-Eds and citizen corridor testimonies',
-          href: '/settings/editorial-records',
-          icon: '🗣️',
-          badge: 'Live',
-          badgeColor:
-            'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40 font-bold',
-          roles: ['owner', 'superadmin', 'admin', 'editor'],
-          exact: true,
-        },
-        {
-          name: 'Correspondents & Bylines',
-          description: 'Manage newsroom correspondents roster & author attribution',
-          href: '/settings/authors',
-          icon: '✍️',
-          roles: ['owner', 'superadmin', 'admin', 'editor'],
-          exact: true,
-        },
-        {
-          name: 'Regional Telemetry & Passes',
-          description: 'Live mountain passes, road transit telemetry, mandi spot rates & sensors',
-          href: '/settings/telemetry',
-          icon: '🏔️',
-          badge: 'Live Radar',
-          badgeColor:
-            'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40 font-bold',
-          roles: ['owner', 'superadmin', 'admin', 'editor'],
-          exact: true,
-        },
-      ],
-    },
-    {
-      title: 'Workspace & Management',
-      items: [
-        {
-          name: 'Team & Workspace',
-          description: 'Staff directory, hiring & author profile',
-          href: '/employees',
-          icon: '👥',
-          children: [
-            {
-              name: 'Employees & Access',
-              href: '/employees',
-              icon: '👥',
-              roles: ['owner', 'superadmin'],
-            },
-            {
-              name: 'Careers & Hiring',
-              href: '/careers',
-              icon: '💼',
-              roles: ['owner', 'superadmin', 'admin'],
-              badge: 'Jobs',
-              badgeColor:
-                'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40 font-bold',
-            },
-            {
-              name: 'My Profile & Author',
-              href: '/profile',
-              icon: '👤',
-            },
-          ],
-        },
-        {
-          name: 'Audit & Records',
-          description: 'Live surveillance of editor & author edits, deletes and activity',
-          href: '/audit',
-          icon: '🛡️',
-          roles: ['owner', 'superadmin'],
-          badge: 'Surveillance',
-          badgeColor:
-            'bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/40 font-bold',
-        },
-        {
-          name: 'Site Design & Navigation',
-          description: 'Visual broadsheet curator, branding, navbar, footer & passes',
-          href: '/settings/curation',
-          icon: '🎨',
-          badge: 'Design',
-          badgeColor:
-            'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/40 font-bold',
-          roles: ['owner', 'superadmin', 'admin'],
-          children: [
-            {
-              name: 'Section Drag & Drop Builder',
-              href: '/settings/layout',
-              icon: '🔀',
-              roles: ['owner', 'superadmin', 'admin'],
-              badge: 'Drag & Drop',
-              badgeColor:
-                'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/40 font-bold',
-            },
-            {
-              name: 'Homepage Curator',
-              href: '/settings/curation',
-              icon: '📰',
-              roles: ['owner', 'superadmin', 'admin'],
-              badge: 'Curator',
-              badgeColor:
-                'bg-indigo-100 text-indigo-800 border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/40 font-bold',
-            },
-            {
-              name: 'Brand & Identity',
-              href: '/settings/brand',
-              icon: '🎨',
-              roles: ['owner', 'superadmin'],
-              badge: 'Core',
-              badgeColor:
-                'bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40 font-bold',
-            },
-            {
-              name: 'Header & Navigation',
-              href: '/settings/navbar',
-              icon: '🧭',
-              roles: ['owner', 'superadmin'],
-              badge: 'Live',
-              badgeColor:
-                'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/40 font-bold',
-            },
-            {
-              name: 'Contact & Emails',
-              href: '/settings/footer',
-              icon: '✉️',
-              roles: ['owner', 'superadmin', 'admin'],
-              badge: 'Emails',
-              badgeColor:
-                'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-500/20 dark:text-blue-300 dark:border-blue-500/40 font-bold',
-            },
-            {
-              name: 'Developer & Tech Support',
-              href: '/settings/developer',
-              icon: '💻',
-              roles: ['owner', 'superadmin', 'admin'],
-              badge: 'Support',
-              badgeColor:
-                'bg-cyan-100 text-cyan-800 border-cyan-200 dark:bg-cyan-500/20 dark:text-cyan-300 dark:border-cyan-500/40 font-bold',
-            },
-            {
-              name: 'Festive & Celebrations',
-              href: '/settings/celebrations',
-              icon: '🎆',
-              roles: ['owner', 'superadmin', 'admin'],
-              badge: 'Festive',
-              badgeColor:
-                'bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/40 font-bold',
-            },
-            {
-              name: 'Website Templates',
-              href: '/templates',
-              icon: '🎨',
-              roles: ['owner', 'superadmin'],
-            },
-          ],
-        },
-        {
-          name: 'Revenue & Monetization',
-          description: 'Sponsors, native ad slots & earnings',
-          href: '/settings/ads',
-          icon: '💰',
-          roles: ['owner', 'superadmin'],
-          badge: '✨ Earn',
-          badgeColor:
-            'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-500/25 dark:text-amber-200 dark:border-amber-400/50 font-bold',
-          children: [
-            {
-              name: 'Custom Ads & Monetization',
-              href: '/settings/ads',
-              icon: '💰',
-              badge: '✨ Earn',
-              badgeColor:
-                'bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-500/25 dark:text-amber-200 dark:border-amber-400/50 font-bold',
-            },
-          ],
-        },
-      ],
-    },
-  ];
 
   const handleSignOutClick = async () => {
     setLoggingOut(true);
     await onSignOut();
-  };
-
-  const isSubItemActive = (sub: SubNavItem) => {
-    if (!pathname) return false;
-    if (sub.href.includes('?status=published')) {
-      return pathname === '/articles' && (currentSearch.includes('status=published') || (!currentSearch.includes('status=review') && !currentSearch.includes('status=draft') && !currentSearch.includes('status=archived')));
-    }
-    if (sub.href.includes('?status=review')) {
-      return pathname === '/articles' && (currentSearch.includes('status=review') || currentSearch.includes('status=draft'));
-    }
-    if (sub.href.includes('?category=Local')) {
-      return pathname === '/articles' && currentSearch.includes('category=Local');
-    }
-    if (sub.href === '/articles') {
-      return pathname === '/articles' && !currentSearch.includes('status=');
-    }
-    if (sub.exact) {
-      return pathname === sub.href;
-    }
-    return pathname === sub.href || (sub.href !== '/' && pathname.startsWith(sub.href) && !sub.href.includes('?'));
   };
 
   const isLinkActive = (item: NavItem) => {
@@ -371,132 +56,234 @@ export function Sidebar({
     if (item.exact) {
       return pathname === item.href;
     }
-    if (item.children && item.children.length > 0) {
-      return item.children.some((child) => isSubItemActive(child));
-    }
-    if (item.href === '/articles?category=Local') {
-      return pathname === '/articles' && currentSearch.includes('category=Local');
+    if (item.href === '/articles') {
+      return pathname.startsWith('/articles');
     }
     return pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href) && !item.href.includes('?'));
   };
 
-  // Synchronize open accordion with active route whenever pathname changes
-  useEffect(() => {
-    const activeParent = navSections
-      .flatMap((s) => s.items)
-      .find((item) => item.children && item.children.length > 0 && isLinkActive(item));
-
-    if (activeParent) {
-      setOpenMenu(activeParent.name);
-    }
-  }, [pathname, currentSearch]);
-
-  // Single-accordion toggle: opening one closes all other dropdowns
-  const toggleMenu = (name: string, e?: React.MouseEvent) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    setOpenMenu((current) => (current === name ? null : name));
-  };
+  const navSections: NavSection[] = [
+    {
+      title: 'Overview',
+      items: [
+        {
+          name: 'Dashboard',
+          href: '/',
+          exact: true,
+          icon: (
+            <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+            </svg>
+          ),
+        },
+        {
+          name: 'Audience & Views',
+          href: '/analytics',
+          roles: ['owner', 'superadmin', 'admin', 'editor'],
+          icon: (
+            <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+          ),
+        },
+      ],
+    },
+    {
+      title: 'Newsroom',
+      items: [
+        {
+          name: 'Articles & Stories',
+          href: '/articles',
+          icon: (
+            <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+            </svg>
+          ),
+        },
+        {
+          name: 'Pending AI Drafts',
+          href: '/newsroom/ai-drafts',
+          badge: '$0 Free',
+          badgeColor: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30',
+          roles: ['owner', 'superadmin', 'admin', 'editor'],
+          icon: (
+            <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          ),
+        },
+        {
+          name: 'Autonomous News',
+          href: '/newsroom/youtube',
+          roles: ['owner', 'superadmin', 'admin', 'editor'],
+          icon: (
+            <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          ),
+        },
+        {
+          name: 'Voices & Editorial Desk',
+          href: '/settings/editorial-records',
+          roles: ['owner', 'superadmin', 'admin', 'editor'],
+          icon: (
+            <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 100-6 3 3 0 000 6z" />
+            </svg>
+          ),
+        },
+        {
+          name: 'Correspondents & Bylines',
+          href: '/settings/authors',
+          roles: ['owner', 'superadmin', 'admin', 'editor'],
+          icon: (
+            <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+          ),
+        },
+        {
+          name: 'Careers & Applications',
+          href: '/careers',
+          badge: 'Hiring',
+          badgeColor: 'bg-amber-500/20 text-amber-300 border border-amber-500/30',
+          roles: ['owner', 'superadmin', 'admin'],
+          icon: (
+            <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          ),
+        },
+      ],
+    },
+    {
+      title: 'Live data',
+      items: [
+        {
+          name: 'Regional telemetry',
+          href: '/settings/telemetry',
+          badge: 'Live',
+          badgeDot: true,
+          badgeColor: 'text-emerald-400 font-semibold',
+          roles: ['owner', 'superadmin', 'admin', 'editor'],
+          icon: (
+            <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          ),
+        },
+      ],
+    },
+    {
+      title: 'Site',
+      items: [
+        {
+          name: 'Footer and legal',
+          href: '/settings/footer',
+          roles: ['owner', 'superadmin', 'admin'],
+          icon: (
+            <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          ),
+        },
+        {
+          name: 'Design & Curation',
+          href: '/settings/curation',
+          roles: ['owner', 'superadmin', 'admin'],
+          icon: (
+            <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+            </svg>
+          ),
+        },
+        {
+          name: 'Team & Workspace',
+          href: '/employees',
+          roles: ['owner', 'superadmin'],
+          icon: (
+            <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+          ),
+        },
+      ],
+    },
+  ];
 
   const userInitials = userEmail
     ? userEmail.slice(0, 2).toUpperCase()
     : userRole
       ? userRole.slice(0, 2).toUpperCase()
-      : brandName
-        ? brandName.slice(0, 2).toUpperCase()
-        : 'KJ';
+      : 'KJ';
 
   const sidebarContent = (
-    <div className="flex h-full flex-col bg-white border-r border-slate-200 text-slate-800 overflow-hidden shadow-xs dark:bg-slate-950 dark:border-slate-800 dark:text-slate-200">
-      {/* Top Branding Section (Fixed) */}
-      <div className="shrink-0">
-        <div
-          className={`border-b border-slate-200 bg-slate-50/80 dark:border-slate-800 dark:bg-slate-900/60 transition-all ${
-            isCollapsed
-              ? 'py-3.5 px-2 flex items-center justify-center'
-              : 'px-4 py-3.5 flex items-center justify-between'
-          }`}
-        >
-          <Link
-            href="/"
-            onClick={onCloseMobile}
-            title={`${brandName} Newsroom Admin`}
-            suppressHydrationWarning
-            className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-2.5'} transition-opacity hover:opacity-90`}
-          >
-            <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white border border-slate-200 p-1 shadow-xs dark:bg-slate-900 dark:border-slate-700">
-              <Image
-                src={brandLogo || '/kjcpl-emblem.png'}
-                alt={`${brandName} Symbol`}
-                width={26}
-                height={26}
-                className="object-contain"
-                priority
-                unoptimized
-                suppressHydrationWarning
-              />
-            </div>
-            {!isCollapsed && (
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span
-                    suppressHydrationWarning
-                    className="font-extrabold text-base tracking-wider text-slate-900 dark:text-white uppercase"
-                  >
-                    {brandName}
-                  </span>
-                  <span className="rounded bg-cyan-100 text-cyan-900 border border-cyan-300 dark:bg-cyan-900/50 dark:text-cyan-200 dark:border-cyan-700 px-1.5 py-0.2 text-[9px] font-mono font-bold uppercase tracking-widest">
-                    OS
-                  </span>
-                </div>
-                <p className="text-[10px] font-bold tracking-widest text-slate-600 uppercase dark:text-slate-400">
-                  Newsroom Admin
-                </p>
-              </div>
-            )}
-          </Link>
-
-          {/* Desktop collapse toggle (when expanded) */}
-          {!isCollapsed && (
-            <button
-              type="button"
-              onClick={onToggleCollapse}
-              title="Collapse sidebar"
-              aria-label="Collapse sidebar"
-              className="hidden lg:flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] border border-slate-300 bg-white text-slate-700 shadow-2xs hover:border-cyan-500 hover:bg-cyan-50 hover:text-cyan-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-cyan-500/50 dark:hover:bg-cyan-950/40 dark:hover:text-cyan-300 transition-all active:scale-95"
+    <div className="flex h-full flex-col bg-[#080e1a] text-slate-300 border-r border-slate-800/80 shadow-xl overflow-hidden select-none">
+      {/* Top Header */}
+      <div className="shrink-0 border-b border-slate-800/80">
+        {isCollapsed ? (
+          <div className="py-3 px-2 flex flex-col items-center gap-2">
+            <Link
+              href="/"
+              onClick={onCloseMobile}
+              title={`${brandName} Newsroom Admin`}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-cyan-400 text-slate-950 font-black text-lg shadow-sm hover:scale-105 transition-transform"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-          )}
-
-          {/* Mobile drawer close button (only visible on mobile drawer) */}
-          <button
-            type="button"
-            onClick={onCloseMobile}
-            aria-label="Close sidebar"
-            className="lg:hidden flex h-7 w-7 items-center justify-center rounded-[8px] border border-slate-200 bg-white text-slate-600 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
-          >
-            <span className="text-xs">✕</span>
-          </button>
-        </div>
-
-        {/* Collapsed state: Dedicated expand button centered right below header */}
-        {isCollapsed && (
-          <div className="px-2 pt-2.5 pb-0.5 flex justify-center">
+              K
+            </Link>
             <button
               type="button"
               onClick={onToggleCollapse}
               title="Expand sidebar"
               aria-label="Expand sidebar"
-              className="hidden lg:flex h-8 w-8 items-center justify-center rounded-[8px] border border-slate-300 bg-white text-slate-700 shadow-2xs hover:border-cyan-500 hover:bg-cyan-50 hover:text-cyan-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-cyan-500/50 dark:hover:bg-cyan-950/40 dark:hover:text-cyan-300 transition-all active:scale-95"
+              className="hidden lg:flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors cursor-pointer"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
               </svg>
+            </button>
+          </div>
+        ) : (
+          <div className="px-4 py-3.5 flex items-center justify-between">
+            <Link
+              href="/"
+              onClick={onCloseMobile}
+              title={`${brandName} Newsroom Admin`}
+              className="flex items-center gap-3 group"
+            >
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-cyan-400 text-slate-950 font-black text-base shadow-sm group-hover:scale-105 transition-transform">
+                K
+              </div>
+              <div className="min-w-0">
+                <div className="font-serif font-black text-sm tracking-wide text-white leading-tight">
+                  {brandName}
+                </div>
+                <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                  Newsroom admin
+                </p>
+              </div>
+            </Link>
+
+            <button
+              type="button"
+              onClick={onToggleCollapse}
+              title="Collapse sidebar"
+              aria-label="Collapse sidebar"
+              className="hidden lg:flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors cursor-pointer"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+              </svg>
+            </button>
+
+            {/* Mobile drawer close button */}
+            <button
+              type="button"
+              onClick={onCloseMobile}
+              aria-label="Close sidebar"
+              className="lg:hidden flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors"
+            >
+              <span className="text-xs">✕</span>
             </button>
           </div>
         )}
@@ -505,7 +292,7 @@ export function Sidebar({
       {/* Navigation Sections */}
       <nav
         data-sidebar-nav
-        className="flex-1 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden no-scrollbar px-3 py-2 space-y-3"
+        className="flex-1 overflow-y-auto no-scrollbar px-3 py-3 space-y-4"
       >
         {navSections.map((section) => {
           const filteredItems = section.items.filter((item) => {
@@ -519,132 +306,15 @@ export function Sidebar({
           return (
             <div key={section.title} className="space-y-1">
               {!isCollapsed && (
-                <p className="px-3 pt-1 pb-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 font-mono">
+                <p className="px-3 pb-1 text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
                   {section.title}
                 </p>
               )}
 
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 {filteredItems.map((item) => {
                   const active = isLinkActive(item);
-                  const hasChildren = item.children && item.children.length > 0;
-                  const isOpen = openMenu === item.name;
 
-                  // Render Dropdown Accordion Item
-                  if (hasChildren) {
-                    if (isCollapsed) {
-                      return (
-                        <Link
-                          key={item.name}
-                          href={item.href}
-                          onClick={onCloseMobile}
-                          title={item.name}
-                          className={`group flex items-center justify-center rounded-xl p-2.5 text-xs font-semibold transition-all ${
-                            active
-                              ? 'bg-cyan-50 text-cyan-950 font-bold shadow-2xs dark:bg-cyan-950/50 dark:text-cyan-200'
-                              : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white'
-                          }`}
-                        >
-                          <span className="text-lg shrink-0 transition-transform group-hover:scale-110">
-                            {item.icon}
-                          </span>
-                        </Link>
-                      );
-                    }
-
-                    return (
-                      <div key={item.name} className="space-y-0.5">
-                        {/* Parent Dropdown Button */}
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          onClick={(e) => toggleMenu(item.name, e)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              e.preventDefault();
-                              toggleMenu(item.name);
-                            }
-                          }}
-                          title={item.description || item.name}
-                          className={`group flex items-center justify-between rounded-xl px-3 py-2 text-xs font-semibold cursor-pointer select-none transition-all ${
-                            active
-                              ? 'bg-cyan-50/90 text-cyan-950 font-bold border-l-4 border-cyan-600 shadow-2xs dark:bg-cyan-950/60 dark:text-cyan-200 dark:border-cyan-400'
-                              : isOpen
-                                ? 'bg-slate-100 text-slate-900 font-bold border-l-4 border-slate-300 dark:bg-slate-900 dark:text-slate-100 dark:border-slate-700'
-                                : 'text-slate-700 hover:bg-slate-100/70 hover:text-slate-900 border-l-4 border-transparent dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                            <span className="text-base shrink-0 transition-transform group-hover:scale-110">
-                              {item.icon}
-                            </span>
-                            <span className="truncate flex-1">{item.name}</span>
-                          </div>
-
-                          <div className="flex items-center gap-1.5 shrink-0 ml-1">
-                            {item.badge && (
-                              <span
-                                className={`rounded-full border px-1.5 py-0.2 text-[9px] font-bold tracking-wide ${item.badgeColor || 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'}`}
-                              >
-                                {item.badge}
-                              </span>
-                            )}
-                            <span
-                              className={`inline-block text-[9px] text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-transform duration-200 ${
-                                isOpen ? 'rotate-180' : ''
-                              }`}
-                            >
-                              ▼
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Dropdown Children */}
-                        {isOpen && (
-                          <div className="ml-4 mt-0.5 space-y-0.5 border-l-2 border-slate-200 dark:border-slate-800 pl-2.5 py-0.5">
-                            {item.children!
-                              .filter((sub) => {
-                                if (!sub.roles) return true;
-                                if (!userRole) return false;
-                                return sub.roles.includes(userRole);
-                              })
-                              .map((sub) => {
-                                const subActive = isSubItemActive(sub);
-                                return (
-                                  <Link
-                                    key={sub.name}
-                                    href={sub.href}
-                                    onClick={onCloseMobile}
-                                    title={sub.name}
-                                    className={`group flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${
-                                      subActive
-                                        ? 'bg-cyan-100/90 text-cyan-950 font-bold dark:bg-cyan-900/50 dark:text-cyan-200 shadow-2xs'
-                                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-white'
-                                    }`}
-                                  >
-                                    {sub.icon && (
-                                      <span className="text-xs shrink-0 transition-transform group-hover:scale-110">
-                                        {sub.icon}
-                                      </span>
-                                    )}
-                                    <span className="truncate flex-1">{sub.name}</span>
-                                    {sub.badge && (
-                                      <span
-                                        className={`ml-auto shrink-0 rounded-full border px-1.5 py-0.2 text-[9px] font-bold tracking-wide ${sub.badgeColor || 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'}`}
-                                      >
-                                        {sub.badge}
-                                      </span>
-                                    )}
-                                  </Link>
-                                );
-                              })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  }
-
-                  // Render Single Link Item (e.g. Dashboard)
                   if (isCollapsed) {
                     return (
                       <Link
@@ -652,15 +322,22 @@ export function Sidebar({
                         href={item.href}
                         onClick={onCloseMobile}
                         title={item.name}
-                        className={`group flex items-center justify-center rounded-xl p-2.5 text-xs font-semibold transition-all ${
+                        className={`group relative flex h-10 w-10 items-center justify-center rounded-xl mx-auto transition-all ${
                           active
-                            ? 'bg-cyan-50 text-cyan-950 font-bold shadow-2xs dark:bg-cyan-950/50 dark:text-cyan-200'
-                            : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white'
+                            ? 'bg-slate-800/90 text-cyan-400 shadow-2xs'
+                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
                         }`}
                       >
-                        <span className="text-lg shrink-0 transition-transform group-hover:scale-110">
+                        {active && (
+                          <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-cyan-400 rounded-r" />
+                        )}
+                        <span className="transition-transform group-hover:scale-110">
                           {item.icon}
                         </span>
+                        {/* Hover Tooltip */}
+                        <div className="pointer-events-none absolute left-full ml-2.5 z-50 hidden rounded-md bg-slate-900 px-2 py-1 text-[11px] font-semibold text-white shadow-xl whitespace-nowrap group-hover:block border border-slate-800">
+                          {item.name}
+                        </div>
                       </Link>
                     );
                   }
@@ -670,22 +347,32 @@ export function Sidebar({
                       key={item.name}
                       href={item.href}
                       onClick={onCloseMobile}
-                      title={item.description || item.name}
-                      className={`group flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold transition-all ${
+                      className={`group relative flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-medium transition-all ${
                         active
-                          ? 'bg-cyan-50/90 text-cyan-950 font-bold border-l-4 border-cyan-600 shadow-2xs dark:bg-cyan-950/60 dark:text-cyan-200 dark:border-cyan-400'
-                          : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900 border-l-4 border-transparent dark:text-slate-300 dark:hover:bg-slate-900 dark:hover:text-white'
+                          ? 'bg-slate-800/80 text-white font-semibold shadow-2xs'
+                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
                       }`}
                     >
-                      <span className="text-base shrink-0 transition-transform group-hover:scale-110">
+                      {active && (
+                        <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-cyan-400 rounded-r" />
+                      )}
+
+                      <span
+                        className={`shrink-0 transition-colors ${
+                          active ? 'text-cyan-400' : 'text-slate-400 group-hover:text-slate-200'
+                        }`}
+                      >
                         {item.icon}
                       </span>
+
                       <span className="truncate flex-1">{item.name}</span>
+
                       {item.badge && (
-                        <span
-                          className={`ml-auto shrink-0 rounded-full border px-1.5 py-0.2 text-[9px] font-bold tracking-wide ${item.badgeColor || 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'}`}
-                        >
-                          {item.badge}
+                        <span className={`shrink-0 flex items-center gap-1 text-[10px] ${item.badgeColor || 'text-slate-400'}`}>
+                          {item.badgeDot && (
+                            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                          )}
+                          <span>{item.badge}</span>
                         </span>
                       )}
                     </Link>
@@ -697,54 +384,68 @@ export function Sidebar({
         })}
       </nav>
 
-      {/* Bottom User Profile Section */}
-      <div className={`shrink-0 border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60 ${isCollapsed ? 'p-1.5' : 'p-2.5'}`}>
-        <div
-          className={`flex items-center rounded-xl border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-slate-900 transition-all ${
-            isCollapsed ? 'flex-col gap-2 p-1.5 justify-center' : 'gap-2 p-2'
-          }`}
-        >
-          {/* Avatar - Clickable Link to Profile */}
-          <Link
-            href="/profile"
-            onClick={onCloseMobile}
-            title={`Signed in as ${userEmail || 'Editor'} (${userRole || 'Role'})`}
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-600 to-blue-700 text-xs font-black text-white shadow-xs hover:scale-105 transition-transform"
-          >
-            {userInitials}
-          </Link>
-
-          {!isCollapsed && (
+      {/* User Footer Section */}
+      <div className={`shrink-0 border-t border-slate-800/80 bg-slate-950/60 ${isCollapsed ? 'p-2' : 'p-3'}`}>
+        {isCollapsed ? (
+          <div className="flex flex-col items-center gap-2">
             <Link
               href="/profile"
               onClick={onCloseMobile}
-              title="My Profile & Author Settings"
-              className="flex-1 min-w-0 group"
+              title={`Signed in as ${userEmail || 'Editor'}`}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-xs font-bold text-white shadow-2xs hover:scale-105 transition-transform"
             >
-              <p className="truncate text-xs font-bold text-slate-900 dark:text-white group-hover:text-cyan-700 dark:group-hover:text-cyan-300 transition-colors">
-                {userEmail || 'Editor Session'}
-              </p>
-              <div className="flex items-center gap-1.5 mt-0.5">
-                <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-emerald-200 dark:ring-emerald-900" />
-                <span className="truncate text-[11px] font-mono font-bold text-cyan-800 dark:text-cyan-300 capitalize group-hover:underline">
-                  {userRole || 'Editor'} • Edit
-                </span>
+              {userInitials}
+            </Link>
+            <button
+              type="button"
+              onClick={handleSignOutClick}
+              disabled={loggingOut}
+              title="Sign out"
+              aria-label="Sign out"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-950/30 transition-colors cursor-pointer"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+            </button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between gap-2.5 rounded-xl bg-slate-900/80 border border-slate-800/80 p-2">
+            <Link
+              href="/profile"
+              onClick={onCloseMobile}
+              title="My Profile"
+              className="flex items-center gap-2.5 min-w-0 flex-1 group"
+            >
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 text-xs font-bold text-white shadow-2xs">
+                {userInitials}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs font-semibold text-slate-200 group-hover:text-white transition-colors">
+                  {userEmail ? userEmail.split('@')[0] : 'Editor'}
+                </p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="truncate text-[10px] font-mono font-medium text-cyan-400 capitalize">
+                    {userRole || 'Editor'}
+                  </span>
+                </div>
               </div>
             </Link>
-          )}
-
-          {/* Sign Out Button */}
-          <button
-            type="button"
-            onClick={handleSignOutClick}
-            disabled={loggingOut}
-            title="Sign out of newsroom"
-            aria-label="Sign out"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] border border-slate-300 bg-slate-50 text-slate-700 hover:border-red-400 hover:bg-red-50 hover:text-red-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-red-500/50 dark:hover:bg-red-500/10 dark:hover:text-red-400 transition-colors"
-          >
-            <span className="text-sm">{loggingOut ? '⏳' : '🚪'}</span>
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={handleSignOutClick}
+              disabled={loggingOut}
+              title="Sign out"
+              aria-label="Sign out"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-950/30 transition-colors cursor-pointer"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -763,13 +464,11 @@ export function Sidebar({
       {/* Mobile Sliding Drawer & Backdrop */}
       {mobileOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          {/* Backdrop */}
           <div
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
             onClick={onCloseMobile}
           />
-          {/* Sliding drawer */}
-          <div className="fixed inset-y-0 left-0 w-76 max-w-[85vw] shadow-2xl animate-in slide-in-from-left duration-200">
+          <div className="fixed inset-y-0 left-0 w-72 max-w-[85vw] shadow-2xl animate-in slide-in-from-left duration-200">
             {sidebarContent}
           </div>
         </div>

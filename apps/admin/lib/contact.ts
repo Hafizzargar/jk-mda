@@ -50,11 +50,11 @@ export const DEFAULT_FOOTER_CONTACT: FooterContactSettings = {
   bureau_address_label: 'Jammu Regional Bureau',
   show_bureau_address: true,
   operating_hours: 'Newsroom Desk: 24/7 Wire Operations • Administrative: Mon–Sat 9:30 AM – 6:00 PM IST',
-  phone_primary: '+91 6005950197',
+  phone_primary: '',
   phone_primary_label: 'Editorial Newsdesk Hotlines',
-  phone_secondary: '+91 6005950197',
+  phone_secondary: '',
   phone_secondary_label: 'WhatsApp Secure Tip Line',
-  show_phone_numbers: true,
+  show_phone_numbers: false,
   email_editorial: 'h26412301@gmail.com',
   email_careers: 'h26412301@gmail.com',
   email_grievance: 'h26412301@gmail.com',
@@ -93,6 +93,30 @@ function sanitizeSocialHandle(raw: string | undefined, defaultUrl: string, searc
   return val || defaultUrl;
 }
 
+function cleanPhoneNumber(raw: unknown): string {
+  if (typeof raw !== 'string') return '';
+  const val = raw.trim();
+  if (!val || val.includes('6005950197')) return '';
+  return val.slice(0, 50);
+}
+
+function sanitizeContactEmail(raw: unknown, fallback: string): string {
+  if (typeof raw !== 'string') return fallback;
+  const val = raw.trim().toLowerCase();
+  if (
+    !val ||
+    val === 'grievance@kjcpl.site' ||
+    val === 'news@kjcpl.site' ||
+    val === 'careers@kjcpl.site' ||
+    val === 'grievance@kjin.org' ||
+    val === 'news@kjin.org' ||
+    val === 'careers@kjin.org'
+  ) {
+    return 'h26412301@gmail.com';
+  }
+  return raw.trim().slice(0, 100);
+}
+
 export function sanitizeContactSettings(input: Partial<FooterContactSettings>): FooterContactSettings {
   const rawOrg = cleanMojibake(String(input.organization_name || DEFAULT_FOOTER_CONTACT.organization_name));
   const orgName = rawOrg
@@ -115,23 +139,15 @@ export function sanitizeContactSettings(input: Partial<FooterContactSettings>): 
     bureau_address_label: cleanMojibake(String(input.bureau_address_label || DEFAULT_FOOTER_CONTACT.bureau_address_label)).slice(0, 100),
     show_bureau_address: input.show_bureau_address !== false,
     operating_hours: cleanMojibake(String(input.operating_hours || DEFAULT_FOOTER_CONTACT.operating_hours)).slice(0, 200),
-    phone_primary: String(input.phone_primary || DEFAULT_FOOTER_CONTACT.phone_primary).trim().slice(0, 50),
+    phone_primary: cleanPhoneNumber(input.phone_primary ?? DEFAULT_FOOTER_CONTACT.phone_primary),
     phone_primary_label: cleanMojibake(String(input.phone_primary_label || DEFAULT_FOOTER_CONTACT.phone_primary_label)).slice(0, 100),
-    phone_secondary: String(input.phone_secondary || DEFAULT_FOOTER_CONTACT.phone_secondary).trim().slice(0, 50),
+    phone_secondary: cleanPhoneNumber(input.phone_secondary ?? DEFAULT_FOOTER_CONTACT.phone_secondary),
     phone_secondary_label: cleanMojibake(String(input.phone_secondary_label || DEFAULT_FOOTER_CONTACT.phone_secondary_label)).slice(0, 100),
-    show_phone_numbers: input.show_phone_numbers === true,
-    email_editorial: typeof input.email_editorial === 'string' && input.email_editorial.trim()
-      ? input.email_editorial.trim().slice(0, 100)
-      : DEFAULT_FOOTER_CONTACT.email_editorial,
-    email_careers: typeof input.email_careers === 'string' && input.email_careers.trim()
-      ? input.email_careers.trim().slice(0, 100)
-      : DEFAULT_FOOTER_CONTACT.email_careers,
-    email_grievance: typeof input.email_grievance === 'string' && input.email_grievance.trim()
-      ? input.email_grievance.trim().slice(0, 100)
-      : DEFAULT_FOOTER_CONTACT.email_grievance,
-    email_press: typeof input.email_press === 'string' && input.email_press.trim()
-      ? input.email_press.trim().slice(0, 100)
-      : DEFAULT_FOOTER_CONTACT.email_press,
+    show_phone_numbers: Boolean(input.show_phone_numbers && cleanPhoneNumber(input.phone_primary ?? DEFAULT_FOOTER_CONTACT.phone_primary)),
+    email_editorial: sanitizeContactEmail(input.email_editorial, DEFAULT_FOOTER_CONTACT.email_editorial),
+    email_careers: sanitizeContactEmail(input.email_careers, DEFAULT_FOOTER_CONTACT.email_careers),
+    email_grievance: sanitizeContactEmail(input.email_grievance, DEFAULT_FOOTER_CONTACT.email_grievance),
+    email_press: sanitizeContactEmail(input.email_press, DEFAULT_FOOTER_CONTACT.email_press),
     grievance_officer_name: cleanMojibake(String(input.grievance_officer_name || DEFAULT_FOOTER_CONTACT.grievance_officer_name)).slice(0, 150),
     registration_number: cleanMojibake(String(input.registration_number || DEFAULT_FOOTER_CONTACT.registration_number)).slice(0, 200),
     social_twitter: sanitizeSocialHandle(input.social_twitter, DEFAULT_FOOTER_CONTACT.social_twitter, ['kjin_live', 'kjin_wire', 'kjinnews'], 'kjcpl_news'),

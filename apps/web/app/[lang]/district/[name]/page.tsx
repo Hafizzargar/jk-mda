@@ -16,6 +16,7 @@ import { Breadcrumbs } from '@/components/navigation/Breadcrumbs';
 import { PaginationControls } from '@/components/navigation/PaginationControls';
 import { getFooterContactSettings } from '@/lib/contact';
 import { formatArticleDate } from '@/lib/date';
+import { getDistrictDossier } from '@/lib/district-dossiers';
 
 interface DistrictPageProps {
   params: Promise<{
@@ -41,15 +42,15 @@ export async function generateMetadata({ params, searchParams }: DistrictPagePro
 
   const districtName = getDistrictDisplayName(districtSlug);
   const districtInfo = JK_DISTRICTS[districtSlug];
+  const dossier = getDistrictDossier(districtSlug);
   const page = parsePageParam(resolvedSearchParams.page);
   const pageSuffix = page > 1 ? ` - Page ${page}` : '';
-  const langPrefix = lang === 'en' ? '' : `/${lang}`;
-  const canonicalUrl = `${SITE_URL}${langPrefix}/district/${districtSlug}${page > 1 ? `?page=${page}` : ''}`;
+  const canonicalUrl = `${SITE_URL}/en/district/${districtSlug}${page > 1 ? `?page=${page}` : ''}`;
 
   return {
     metadataBase: new URL(SITE_URL),
-    title: `${districtName} District News${pageSuffix} | ${brandSettings.name}`,
-    description: `Latest ground reporting, public affairs, and verified news from ${districtName} district (${districtInfo?.region || 'J&K'}).`,
+    title: `${districtName} News: Ground Reporting & Civic Updates${pageSuffix} | ${brandSettings.name}`,
+    description: `${dossier.intro.slice(0, 155)} Verified local reporting from ${districtName}, ${districtInfo?.region || 'J&K'}.`,
     alternates: {
       canonical: canonicalUrl,
     },
@@ -58,8 +59,8 @@ export async function generateMetadata({ params, searchParams }: DistrictPagePro
       follow: true,
     },
     openGraph: {
-      title: `${districtName} District News | ${brandSettings.name}`,
-      description: `Reporting from ${districtName} district, ${districtInfo?.region || 'Jammu & Kashmir'}.`,
+      title: `${districtName} News & Ground Dispatches | ${brandSettings.name}`,
+      description: dossier.intro,
       url: canonicalUrl,
       type: 'website',
     },
@@ -79,6 +80,7 @@ export default async function DistrictPage({ params, searchParams }: DistrictPag
 
   const districtName = getDistrictDisplayName(districtSlug);
   const districtInfo = JK_DISTRICTS[districtSlug];
+  const dossier = getDistrictDossier(districtSlug);
 
   // 2. Safe pagination parsing
   const page = parsePageParam(resolvedSearchParams.page);
@@ -138,14 +140,40 @@ export default async function DistrictPage({ params, searchParams }: DistrictPag
         </div>
 
         <div className="max-w-7xl mx-auto px-4 md:px-8 py-6">
-        <div className={`mb-4 border-b-4 ${theme.accentBorderClass} inline-block pb-2`}>
-          <h1 className={`text-4xl md:text-5xl font-extrabold tracking-tight ${theme.textPrimaryClass}`}>
-            {districtName}
-          </h1>
-        </div>
-        <p className={`${theme.textSecondaryClass} mb-10 text-lg`}>
-          Dispatches and grassroots reporting from {districtName} district, {districtInfo?.region} division.
-        </p>
+          {/* District Dossier Header Card */}
+          <div className="bg-white border border-stone-200/90 rounded-2xl p-6 md:p-8 shadow-xs mb-8 font-sans">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-2">
+              <div className="flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-cyan-600 animate-pulse" />
+                <span className="text-xs font-bold uppercase tracking-wider text-cyan-800">
+                  {districtInfo?.region} Division • Official Territorial Bureau
+                </span>
+              </div>
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-stone-100 text-stone-700 border border-stone-200">
+                {dossier.specialStatus}
+              </span>
+            </div>
+            <h1 className="text-3xl md:text-4xl font-extrabold text-stone-900 tracking-tight font-serif mb-2">
+              {districtName} News &amp; Ground Dispatches
+            </h1>
+            <p className="text-stone-700 text-sm md:text-base leading-relaxed mb-6 max-w-4xl">
+              {dossier.intro}
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-stone-100 text-xs">
+              <div className="border-l-2 border-cyan-600 pl-3">
+                <span className="block font-bold text-stone-900 uppercase text-[10px]">Administrative HQ</span>
+                <span className="text-stone-600">{dossier.headquarters}</span>
+              </div>
+              <div className="border-l-2 border-emerald-600 pl-3">
+                <span className="block font-bold text-stone-900 uppercase text-[10px]">Key Transport Corridors</span>
+                <span className="text-stone-600">{dossier.keyArteries}</span>
+              </div>
+              <div className="border-l-2 border-amber-600 pl-3">
+                <span className="block font-bold text-stone-900 uppercase text-[10px]">Primary Regional Economy</span>
+                <span className="text-stone-600">{dossier.primaryEconomy}</span>
+              </div>
+            </div>
+          </div>
 
         {articles && articles.length > 0 ? (
           <>

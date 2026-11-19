@@ -20,7 +20,7 @@ export default function AiUsagePage() {
     recentCalls: 0,
     maxCallsPerWindow: 30,
     windowMinutes: 15,
-    model: 'gemini-2.5-flash',
+    model: 'gemini-2.0-flash',
     freeTierStatus: 'Active & Protected',
   });
   const [loading, setLoading] = useState(true);

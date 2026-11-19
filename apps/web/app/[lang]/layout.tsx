@@ -39,7 +39,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     metadataBase: new URL(SITE_URL),
     title: {
-      default: `${brandFullName} | ${brandName}`,
+      default: `J&K News: Doda, Kishtwar, Poonch, Ramban, Bhaderwah, Leh | ${brandName}`,
       template: `%s | ${brandName}`,
     },
     description: tagline,

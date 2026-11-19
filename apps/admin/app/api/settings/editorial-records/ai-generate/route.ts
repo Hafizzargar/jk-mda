@@ -101,7 +101,7 @@ Generate structured content for the editorial desk:
 - Authentic "Voices of the Corridors" citizen testimonies reflecting genuine grassroots feedback from districts like Kishtwar, Poonch, Doda, Baramulla, Kupwara, Kargil, or Jammu.`;
 
     const result = await generateObject({
-      model: google('gemini-2.5-flash'),
+      model: google('gemini-2.0-flash'),
       prompt: systemPrompt,
       schema: FullDeskSchema,
     });

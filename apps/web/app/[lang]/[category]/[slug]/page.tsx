@@ -1,8 +1,17 @@
 import { notFound, redirect } from 'next/navigation';
 import { Metadata } from 'next';
-import { createServerAnonClient } from '@/lib/supabase-server';
+import { createServerAnonClient, createServerServiceClient } from '@/lib/supabase-server';
 import { ViewTracker } from '@/components/ViewTracker';
-import { sanitizeArticleHtml, safeJsonLd, markdownToHtml, sanitizeDatelineByScope, extractCleanArticleText } from '@/lib/sanitize';
+import {
+  sanitizeArticleHtml,
+  safeJsonLd,
+  markdownToHtml,
+  sanitizeDatelineByScope,
+  extractCleanArticleText,
+  hasNonLatinScript,
+  ensureEnglishTitle,
+  ensureEnglishText,
+} from '@/lib/sanitize';
 import { SITE_URL, SITE_NAME, SITE_SHORT_NAME, DEFAULT_LOCALE } from '@/lib/config';
 import { getTemplateTheme, type TemplateId } from '@/lib/templates';
 import { SiteNavbar } from '@/components/navigation/SiteNavbar';
@@ -13,6 +22,8 @@ import { getBrandSettings } from '@/lib/brand';
 import { getNavbarSettings } from '@/lib/navbar';
 import { getTelemetrySettings } from '@/lib/telemetry';
 import { ArticleReadingDesk } from '@/components/article/ArticleReadingDesk';
+import { FALLBACK_BROADSHEET_ARTICLES } from '@/lib/seed-articles';
+import { resolveAuthorForArticle, getJournalistByName } from '@/lib/journalists';
 
 interface ArticlePageProps {
   params: Promise<{
@@ -22,16 +33,52 @@ interface ArticlePageProps {
   }>;
 }
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function generateMetadata({ params }: ArticlePageProps): Promise<Metadata> {
   const resolvedParams = await params;
   const supabase = createServerAnonClient();
   const brandSettings = await getBrandSettings(supabase);
 
-  const { data: article } = await supabase
+  let { data: article } = await supabase
     .from('articles')
     .select('title, excerpt, featured_image_url, category, district, published_at, updated_at, author_display_name, article_translations(title, excerpt, language_code)')
     .eq('slug', resolvedParams.slug)
     .maybeSingle();
+
+  if (!article) {
+    try {
+      const serviceClient = createServerServiceClient();
+      if (serviceClient) {
+        const { data: serviceArticle } = await serviceClient
+          .from('articles')
+          .select('*, article_translations(title, excerpt, content, language_code)')
+          .eq('slug', resolvedParams.slug)
+          .maybeSingle();
+        if (serviceArticle) {
+          article = serviceArticle;
+        }
+      }
+    } catch {}
+  }
+
+  if (!article) {
+    const fallback = FALLBACK_BROADSHEET_ARTICLES.find((a) => a.slug === resolvedParams.slug);
+    if (fallback) {
+      article = {
+        title: fallback.title,
+        excerpt: fallback.excerpt || '',
+        featured_image_url: fallback.featured_image_url || null,
+        category: fallback.category,
+        district: fallback.district || null,
+        published_at: fallback.published_at,
+        updated_at: fallback.published_at,
+        author_display_name: fallback.author_display_name || 'KJCPL Bureau',
+        article_translations: [],
+      };
+    }
+  }
 
   if (!article) {
     return {
@@ -49,18 +96,28 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
       title = translation.title;
       excerpt = translation.excerpt || undefined;
     }
+  } else {
+    if (hasNonLatinScript(title)) {
+      title = ensureEnglishTitle(title, excerpt, null);
+    }
+    if (hasNonLatinScript(excerpt)) {
+      excerpt = ensureEnglishText(excerpt, undefined);
+    }
   }
 
   const categorySlug = getCategorySlug(article.category);
   const canonicalRoutePrefix = resolvedParams.lang ? `/${resolvedParams.lang}` : '/en';
   const canonicalUrl = `${SITE_URL}${canonicalRoutePrefix}/${categorySlug}/${resolvedParams.slug}`;
-  const authorCleanName = (article.author_display_name || `${brandSettings.name} Bureau`).replace(/\bKJIN\b/gi, 'KJCPL');
+  const journalist = getJournalistByName(article.author_display_name) || resolveAuthorForArticle(article.district, article.category);
+  const authorCleanName = (article.author_display_name && !article.author_display_name.includes('Bureau') && !article.author_display_name.includes('Desk') && !article.author_display_name.includes('Discovery'))
+    ? article.author_display_name
+    : journalist.name;
 
   return {
     metadataBase: new URL(SITE_URL),
     title: `${title} | ${brandSettings.name}`,
     description: excerpt,
-    authors: [{ name: authorCleanName, url: `${SITE_URL}/en` }],
+    authors: [{ name: authorCleanName, url: `${SITE_URL}/en/author/${journalist.slug}` }],
     creator: `${brandSettings.name} Newsroom`,
     publisher: brandSettings.full_name,
     alternates: {
@@ -126,11 +183,50 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   const supabase = createServerAnonClient();
 
   // Note: RLS ensures we only get rows where status = 'published'
-  const { data: article, error } = await supabase
+  let { data: article, error } = await supabase
     .from('articles')
     .select('*, article_translations(title, excerpt, content, language_code)')
     .eq('slug', resolvedParams.slug)
     .maybeSingle();
+
+  if (!article) {
+    try {
+      const serviceClient = createServerServiceClient();
+      if (serviceClient) {
+        const { data: serviceArticle } = await serviceClient
+          .from('articles')
+          .select('*, article_translations(title, excerpt, content, language_code)')
+          .eq('slug', resolvedParams.slug)
+          .maybeSingle();
+        if (serviceArticle) {
+          article = serviceArticle;
+        }
+      }
+    } catch {}
+  }
+
+  if (!article) {
+    const fallback = FALLBACK_BROADSHEET_ARTICLES.find((a) => a.slug === resolvedParams.slug);
+    if (fallback) {
+      article = {
+        id: fallback.id,
+        slug: fallback.slug,
+        title: fallback.title,
+        excerpt: fallback.excerpt || '',
+        content: fallback.content || '',
+        category: fallback.category,
+        district: fallback.district || null,
+        author_display_name: fallback.author_display_name || 'KJCPL Bureau',
+        published_at: fallback.published_at,
+        updated_at: fallback.published_at,
+        featured_image_url: fallback.featured_image_url || null,
+        view_count: fallback.view_count || 120,
+        status: 'published',
+        article_translations: [],
+      };
+      error = null;
+    }
+  }
 
   if (error || !article) {
     notFound();
@@ -161,6 +257,50 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
       displayArticle.title = translation.title;
       displayArticle.excerpt = translation.excerpt;
       displayArticle.content = translation.content;
+    }
+  } else {
+    // English edition (/en/...): strictly English headlines and excerpts
+    if (hasNonLatinScript(displayArticle.title)) {
+      const englishTitle = ensureEnglishTitle(displayArticle.title, displayArticle.excerpt, displayArticle.content);
+      const originalHindiTitle = displayArticle.title;
+      displayArticle.title = englishTitle;
+
+      // Self-healing: if Supabase service role is available, update the database record in background
+      // so future fetches have the clean English title and preserve Hindi translation!
+      try {
+        const serviceClient = createServerServiceClient();
+        if (serviceClient && article.id) {
+          (async () => {
+            try {
+              await serviceClient
+                .from('articles')
+                .update({ title: englishTitle })
+                .eq('id', article.id);
+
+              // Also ensure Hindi translation exists with original Hindi title
+              const existingHi = article.article_translations?.find((t: { language_code: string }) => t.language_code === 'hi');
+              if (!existingHi) {
+                await serviceClient.from('article_translations').upsert(
+                  {
+                    article_id: article.id,
+                    language_code: 'hi',
+                    title: originalHindiTitle,
+                    excerpt: article.excerpt || null,
+                    content: article.content,
+                    status: 'published',
+                  },
+                  { onConflict: 'article_id,language_code' }
+                );
+              }
+            } catch (healErr) {
+              console.warn('[SelfHealing] Could not auto-repair article title:', healErr);
+            }
+          })();
+        }
+      } catch {}
+    }
+    if (hasNonLatinScript(displayArticle.excerpt)) {
+      displayArticle.excerpt = ensureEnglishText(displayArticle.excerpt, '');
     }
   }
 
@@ -200,7 +340,10 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   const parsedModified = rawModified ? new Date(rawModified) : parsedPublished;
   const dateModified = !isNaN(parsedModified.getTime()) ? parsedModified.toISOString() : datePublished;
 
-  const authorCleanName = (article.author_display_name || `${brandSettings.name} Bureau`).replace(/\bKJIN\b/gi, 'KJCPL');
+  const journalist = getJournalistByName(article.author_display_name) || resolveAuthorForArticle(article.district, article.category);
+  const authorCleanName = (article.author_display_name && !article.author_display_name.includes('Bureau') && !article.author_display_name.includes('Desk') && !article.author_display_name.includes('Discovery'))
+    ? article.author_display_name
+    : journalist.name;
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -229,8 +372,8 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
       {
         '@type': 'Person',
         name: authorCleanName,
-        url: `${SITE_URL}/en`,
-        jobTitle: 'Senior Bureau Correspondent',
+        url: `${SITE_URL}/en/author/${journalist.slug}`,
+        jobTitle: journalist.designation,
       },
     ],
     publisher: {

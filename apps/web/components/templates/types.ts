@@ -18,6 +18,7 @@ export interface ArticleItem {
   slug: string;
   title: string;
   excerpt?: string | null;
+  content?: string;
   category: string;
   district?: string | null;
   author_display_name?: string | null;

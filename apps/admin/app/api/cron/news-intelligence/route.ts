@@ -50,6 +50,31 @@ async function handleCronExecution(request: Request) {
     // 3. Process any pending auto-publishes whose 5-min grace window has completed
     const autoPublishResult = await processPendingAutoPublishes(service).catch(() => ({ processed: 0, publishedIds: [] }));
 
+    // Record persistent scan execution in site_settings
+    try {
+      const { data: currentSettings } = await service
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'newsroom_auto_pilot')
+        .maybeSingle();
+
+      const intervalMinutes = Number(currentSettings?.value?.interval_minutes) || 3;
+      const now = new Date();
+      const nextScanAt = new Date(now.getTime() + intervalMinutes * 60 * 1000).toISOString();
+
+      await service.from('site_settings').upsert({
+        key: 'newsroom_auto_pilot',
+        value: {
+          ...(currentSettings?.value || {}),
+          last_scan_at: now.toISOString(),
+          next_scan_at: nextScanAt,
+        },
+        updated_at: now.toISOString(),
+      });
+    } catch {
+      // Non-fatal
+    }
+
     return Response.json({
       success: true,
       timestamp: new Date().toISOString(),

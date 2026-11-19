@@ -83,6 +83,21 @@ export async function POST(request: Request) {
       );
     }
 
+    // Check if an application from this email has already been submitted
+    const existing = currentSettings.applications.find(
+      (app) => app.email && app.email.toLowerCase() === email.toLowerCase()
+    );
+    if (existing) {
+      return NextResponse.json(
+        {
+          error: 'You have already submitted an application. Our team will contact you for further procedure if you are qualified.',
+          already_submitted: true,
+          application_id: existing.id,
+        },
+        { status: 409 }
+      );
+    }
+
     const newApplication: JobApplication = {
       id: `app-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       job_id: jobId,
@@ -123,7 +138,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: 'Thank you! Your application has been submitted to the KJCPL editorial desk.',
+      message: 'Our team will contact you for further procedure if you are qualified.',
       application_id: newApplication.id,
     });
   } catch (err) {

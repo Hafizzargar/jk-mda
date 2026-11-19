@@ -59,6 +59,16 @@ export interface DynamicCategoryItem {
 
 export function getCategorySlug(category?: string | null): string {
   if (!category) return 'news';
+  const norm = category.toLowerCase().trim();
+  if (norm === 'science & technology' || norm === 'science & tech' || norm === 'science and technology' || norm === 'science-technology') {
+    return 'science';
+  }
+  if (norm === 'local news' || norm === 'local-news') {
+    return 'local';
+  }
+  if (norm === 'problems & grievances' || norm === 'problems and grievances') {
+    return 'problems';
+  }
   const clean = category
     .toLowerCase()
     .trim()

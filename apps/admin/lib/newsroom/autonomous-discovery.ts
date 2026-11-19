@@ -1501,8 +1501,23 @@ export async function runAutonomousNewsDiscovery(
     };
   }
 
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY;
-  if (!apiKey) {
+  const candidateApiKeys: string[] = [];
+  const rawKeySources = [
+    process.env.GEMINI_API_KEY,
+    process.env.GEMINI_API_KEY_2,
+    process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+  ];
+  for (const src of rawKeySources) {
+    if (!src) continue;
+    for (const part of src.split(',')) {
+      const k = part.trim();
+      if (k && !candidateApiKeys.includes(k)) {
+        candidateApiKeys.push(k);
+      }
+    }
+  }
+
+  if (candidateApiKeys.length === 0) {
     return { success: false, reason: 'Gemini API key is not configured.' };
   }
 
@@ -1714,71 +1729,73 @@ Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with k
   "isBreakingPriority": boolean
 }`;
 
-  // 4. Call Gemini 2.5 Flash API with Google Search Grounding tool & resilient retry handling
+  // 4. Call Gemini API with Google Search Grounding tool & resilient multi-key / multi-model rotation
+  // Prefer gemini-2.0-flash (1,500 req/day free tier) -> gemini-1.5-flash (1,500 req/day) -> gemini-2.5-flash
+  const candidateModels = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash'];
   let json: any = null;
   let candidate: any = null;
   let rawText: string | null = null;
-  const maxRetries = 3;
+  let lastQuotaError = '';
 
   try {
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            tools: [{ googleSearch: {} }],
-            generationConfig: {
-              temperature: 0.2,
-              maxOutputTokens: 8192,
-            },
-          }),
-        });
-
-        if (res.ok) {
-          json = await res.json();
-          candidate = json.candidates?.[0];
-          rawText = candidate?.content?.parts?.[0]?.text;
-          if (rawText) {
-            // Success! Reset circuit breaker to healthy state
-            await resetCircuitBreaker(service);
-            break;
-          }
-        } else if (res.status === 429 || res.status === 503) {
-          const errText = await res.text();
-          console.warn(`[AutonomousDiscovery] Gemini API quota limit/spike (${res.status}): ${errText}`);
-
-          // Trip 1-hour circuit breaker and checkpoint the exact current beat so we resume seamlessly!
-          await tripCircuitBreaker(service, {
-            beatId: beat.id,
-            reason: `HTTP ${res.status}: Quota limit reached on beat "${beat.name}"`,
-            cooldownHours: 1,
+    modelLoop: for (const model of candidateModels) {
+      for (let keyIdx = 0; keyIdx < candidateApiKeys.length; keyIdx++) {
+        const key = candidateApiKeys[keyIdx];
+        try {
+          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              tools: [{ googleSearch: {} }],
+              generationConfig: {
+                temperature: 0.2,
+                maxOutputTokens: 8192,
+              },
+            }),
           });
 
-          return {
-            success: false,
-            inCooldown: true,
-            reason: `Gemini quota limit reached (HTTP ${res.status}). Entered 1-hour cooldown. Will resume beat "${beat.name}" automatically once quota recovers.`,
-            beat: beat.id,
-          };
-        } else {
-          const errText = await res.text();
-          console.error(`[AutonomousDiscovery] Gemini API error (${res.status}):`, errText);
-          return { success: false, reason: `Gemini API returned status ${res.status}` };
-        }
-      } catch (netErr: any) {
-        if (attempt < maxRetries) {
-          console.warn(`[AutonomousDiscovery] Connection error on attempt ${attempt}/${maxRetries}. Retrying...`);
-          await new Promise((resolve) => setTimeout(resolve, attempt * 2000));
+          if (res.ok) {
+            json = await res.json();
+            candidate = json.candidates?.[0];
+            rawText = candidate?.content?.parts?.[0]?.text;
+            if (rawText) {
+              // Success! Reset circuit breaker to healthy state
+              await resetCircuitBreaker(service);
+              console.log(`[AutonomousDiscovery] ✅ Discovery succeeded using model ${model} (Key ${keyIdx + 1}/${candidateApiKeys.length}).`);
+              break modelLoop;
+            }
+          } else if (res.status === 429 || res.status === 503) {
+            const errText = await res.text();
+            lastQuotaError = `HTTP ${res.status} on model ${model} (Key ${keyIdx + 1}/${candidateApiKeys.length})`;
+            console.warn(`[AutonomousDiscovery] ⚠️ ${lastQuotaError}: ${errText.slice(0, 160)}. Rotating to next key/model...`);
+            continue;
+          } else {
+            const errText = await res.text();
+            console.error(`[AutonomousDiscovery] Gemini API error (${res.status}) on model ${model}:`, errText.slice(0, 160));
+            continue;
+          }
+        } catch (netErr: any) {
+          console.warn(`[AutonomousDiscovery] Network issue on ${model} (Key ${keyIdx + 1}):`, netErr.message);
           continue;
         }
-        return { success: false, reason: `Connection to Gemini service failed: ${netErr.message}` };
       }
     }
 
     if (!rawText) {
-      return { success: false, reason: 'Gemini returned an empty response.' };
+      console.warn(`[AutonomousDiscovery] ⚠️ All Gemini models and keys exhausted quota. Tripping circuit breaker for 1 hour.`);
+      await tripCircuitBreaker(service, {
+        beatId: beat.id,
+        reason: lastQuotaError || `All Gemini keys and models exhausted on beat "${beat.name}"`,
+        cooldownHours: 1,
+      });
+
+      return {
+        success: false,
+        inCooldown: true,
+        reason: `Gemini quota limit reached across all models and keys. Entered 1-hour cooldown. Will resume beat "${beat.name}" automatically once quota recovers.`,
+        beat: beat.id,
+      };
     }
 
     // Extract grounding source URLs if returned by Google Search Grounding metadata

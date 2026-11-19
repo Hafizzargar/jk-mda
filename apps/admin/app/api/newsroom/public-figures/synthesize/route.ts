@@ -107,7 +107,7 @@ Return your synthesis strictly as valid JSON inside \`\`\`json ... \`\`\` with s
       return Response.json({ error: 'No Gemini API keys are configured.' }, { status: 500 });
     }
 
-    const models = ['gemini-2.5-flash', 'gemini-3.5-flash', 'gemini-flash-lite-latest'];
+    const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash'];
     let generatedStory: any = null;
     let lastError: string | null = null;
 

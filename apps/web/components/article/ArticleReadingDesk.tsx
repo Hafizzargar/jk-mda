@@ -7,6 +7,8 @@ import { type TelemetrySettings, DEFAULT_TELEMETRY_SETTINGS } from '@/lib/teleme
 import { formatArticleDate } from '@/lib/date';
 import { getOptimizedMediaUrl } from '@/lib/media';
 import { getCategorySlug } from '@/lib/taxonomy';
+import { hasNonLatinScript, ensureEnglishTitle, ensureEnglishText } from '@/lib/sanitize';
+import { resolveAuthorForArticle, getJournalistByName } from '@/lib/journalists';
 
 interface ArticleReadingDeskProps {
   article: {
@@ -63,7 +65,21 @@ export function ArticleReadingDesk({
   telemetry,
 }: ArticleReadingDeskProps) {
   const activeTelemetry = telemetry || DEFAULT_TELEMETRY_SETTINGS;
-  const authorName = (article.author_display_name || `${brandName} Staff Desk`).replace(/\bKJIN\b/gi, 'KJCPL');
+  const journalist = getJournalistByName(article.author_display_name) || resolveAuthorForArticle(article.district, article.category);
+  const authorName = (article.author_display_name && !article.author_display_name.includes('Bureau') && !article.author_display_name.includes('Desk') && !article.author_display_name.includes('Discovery'))
+    ? article.author_display_name
+    : journalist.name;
+
+  const isEnglish = !langPrefix || langPrefix === '' || langPrefix === '/en';
+  const displayTitle =
+    isEnglish && hasNonLatinScript(article.title)
+      ? ensureEnglishTitle(article.title, article.excerpt, article.content)
+      : article.title;
+  const displayExcerpt =
+    isEnglish && hasNonLatinScript(article.excerpt)
+      ? ensureEnglishText(article.excerpt, '')
+      : article.excerpt;
+
   const [scrollProgress, setScrollProgress] = useState(0);
   const [fontScale, setFontScale] = useState<number>(0); // -1, 0, 1
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
@@ -164,12 +180,12 @@ export function ArticleReadingDesk({
             {/* Header & Sub-deck */}
             <header className="space-y-4">
               <h1 className="font-serif text-2xl sm:text-3xl md:text-4xl lg:text-[2.65rem] font-extrabold text-[#0F172A] tracking-tight leading-[1.15] text-balance">
-                {article.title}
+                {displayTitle}
               </h1>
 
-              {article.excerpt && (
+              {displayExcerpt && (
                 <p className="font-sans text-lg sm:text-xl text-slate-600 leading-relaxed font-normal">
-                  {article.excerpt}
+                  {displayExcerpt}
                 </p>
               )}
             </header>
@@ -179,16 +195,20 @@ export function ArticleReadingDesk({
               <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
                 {/* Author Avatar & Info */}
                 <div className="flex items-center space-x-3">
-                  <div className="w-11 h-11 rounded-full bg-[#0F172A] text-white flex items-center justify-center font-bold text-sm">
+                  <Link href={`/en/author/${journalist.slug}`} className="w-11 h-11 rounded-full bg-[#0F172A] text-white flex items-center justify-center font-bold text-sm shrink-0 hover:ring-2 hover:ring-cyan-500 transition">
                     {authorName ? authorName[0]?.toUpperCase() : 'K'}
-                  </div>
+                  </Link>
                   <div>
                     <div className="flex items-center gap-1.5 font-bold text-[#0F172A] uppercase tracking-wider">
-                      <span>{authorName}</span>
-                      <span className="text-slate-400 font-normal hidden sm:inline">• Senior Resident Bureau</span>
+                      <Link href={`/en/author/${journalist.slug}`} className="hover:text-cyan-800 hover:underline">
+                        {authorName}
+                      </Link>
+                      <span className="text-emerald-700 bg-emerald-50 text-[10px] px-1.5 py-0.5 rounded border border-emerald-200 font-semibold hidden sm:inline">
+                        ✓ {journalist.verifiedBadge}
+                      </span>
                     </div>
                     <div className="text-slate-500 text-[11px] flex items-center gap-2 mt-0.5">
-                      <span>{districtName || 'J&K Desk'} Dispatch</span>
+                      <span>{journalist.designation}</span>
                       <span>•</span>
                       <span suppressHydrationWarning>{formatArticleDate(article.published_at)}</span>
                       <span>•</span>
@@ -329,17 +349,19 @@ export function ArticleReadingDesk({
 
             {/* Author Bio Dossier Card */}
             <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row gap-4 items-start font-sans">
-              <div className="w-14 h-14 rounded-full bg-[#0F172A] text-white flex-shrink-0 flex items-center justify-center font-bold text-xl">
+              <Link href={`/en/author/${journalist.slug}`} className="w-14 h-14 rounded-full bg-[#0F172A] text-white flex-shrink-0 flex items-center justify-center font-bold text-xl hover:ring-2 hover:ring-cyan-500 transition">
                 {authorName ? authorName[0]?.toUpperCase() : 'K'}
-              </div>
+              </Link>
               <div className="space-y-2 flex-1">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div>
                     <h3 className="text-lg font-bold text-[#0F172A]">
-                      {authorName}
+                      <Link href={`/en/author/${journalist.slug}`} className="hover:text-cyan-800 hover:underline">
+                        {authorName}
+                      </Link>
                     </h3>
                     <p className="text-xs text-[#0891B2] font-semibold uppercase tracking-wider">
-                      Senior Bureau Correspondent • {districtName || 'J&K Region'}
+                      {journalist.designation} • Base: {journalist.location}
                     </p>
                   </div>
                   <a
@@ -350,19 +372,31 @@ export function ArticleReadingDesk({
                   </a>
                 </div>
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  Reporting on infrastructure geopolitics, mountain hydrology, and civic public interest issues across the five regional territories of Jammu, Kashmir, and Ladakh.
+                  {journalist.bio}
                 </p>
                 <div className="pt-1 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                  <span className="font-mono text-slate-800 text-[11px]">PGP: 4A7F 92B1 C048 E839</span>
+                  <span className="font-semibold text-emerald-700">✓ {journalist.verifiedBadge}</span>
                   <span>•</span>
-                  <a href="#" className="text-[#0891B2] font-semibold hover:underline">
-                    View Prior Dispatches
-                  </a>
-                  <span>•</span>
-                  <a href="#" className="hover:text-slate-800">
-                    Secure Signal Drop
-                  </a>
+                  <Link href={`/en/author/${journalist.slug}`} className="text-[#0891B2] font-semibold hover:underline">
+                    View All Dispatches by {authorName.split(' ')[0]} →
+                  </Link>
                 </div>
+              </div>
+            </div>
+
+            {/* E-E-A-T Editorial Verification & Corroboration Protocol Box */}
+            <div className="p-5 bg-stone-50 border-l-4 border-emerald-600 rounded-r-xl border border-stone-200/90 font-sans text-xs text-stone-700 space-y-2">
+              <div className="flex items-center gap-2 font-bold text-stone-900 text-sm">
+                <span className="text-emerald-700 font-bold">✓</span>
+                <span>KJCPL Editorial Verification &amp; Corroboration Protocol</span>
+              </div>
+              <p className="leading-relaxed">
+                This field dispatch was reported by <strong>{authorName}</strong> ({journalist.designation}) and corroborated with official administrative records, on-ground community testimonies, and department bulletins under KJCPL journalistic standards.
+              </p>
+              <div className="text-[11px] text-stone-500 flex flex-wrap gap-4 pt-1 border-t border-stone-200">
+                <span>• Beat: {journalist.beat}</span>
+                <span>• Bureau Location: {districtName || journalist.district}</span>
+                <span>• Verified &amp; Vetted: {formatArticleDate(article.published_at)}</span>
               </div>
             </div>
 

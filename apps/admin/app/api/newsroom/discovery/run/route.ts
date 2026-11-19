@@ -32,7 +32,36 @@ export async function POST(request: Request) {
 
     const result = await runAutonomousNewsDiscovery(auth.service, { beatId, districtId, topic, force });
 
-    return Response.json(result);
+    // Update backend scan schedule timestamps in site_settings
+    let nextScanAt: string | undefined;
+    try {
+      const { data: currentSettings } = await auth.service
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'newsroom_auto_pilot')
+        .maybeSingle();
+
+      const intervalMinutes = Number(currentSettings?.value?.interval_minutes) || 3;
+      const now = new Date();
+      nextScanAt = new Date(now.getTime() + intervalMinutes * 60 * 1000).toISOString();
+
+      await auth.service.from('site_settings').upsert({
+        key: 'newsroom_auto_pilot',
+        value: {
+          ...(currentSettings?.value || {}),
+          last_scan_at: now.toISOString(),
+          next_scan_at: nextScanAt,
+        },
+        updated_at: now.toISOString(),
+      });
+    } catch (settErr) {
+      console.warn('Failed to update next_scan_at in site_settings:', settErr);
+    }
+
+    return Response.json({
+      ...result,
+      next_scan_at: nextScanAt,
+    });
   } catch (error: any) {
     console.error('Error triggering autonomous news discovery:', error);
     return Response.json({ success: false, error: error.message || 'Discovery run failed.' }, { status: 500 });

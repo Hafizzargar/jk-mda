@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import type { CareersSettings, JobPosting } from '@/lib/careers';
+import type { CareersSettings } from '@/lib/careers';
 
 interface CareersPortalProps {
   careersSettings: CareersSettings;
@@ -11,511 +11,512 @@ interface CareersPortalProps {
   langPrefix: string;
 }
 
+const JK_DISTRICT_SUGGESTIONS = [
+  'Srinagar',
+  'Jammu',
+  'Doda',
+  'Bhaderwah',
+  'Kishtwar',
+  'Ramban',
+  'Poonch',
+  'Rajouri',
+  'Leh',
+  'Kargil',
+  'Baramulla',
+  'Anantnag',
+  'Kupwara',
+  'Pulwama',
+  'Shopian',
+  'Budgam',
+  'Kulgam',
+  'Bandipora',
+  'Ganderbal',
+  'Udhampur',
+  'Kathua',
+  'Samba',
+  'Reasi',
+  'New Delhi / National Bureau',
+  'Remote / Other',
+];
+
+const BEAT_OPTIONS = [
+  'Ground Field Reporting & Investigations',
+  'Chenab Valley Correspondent (Doda, Kishtwar, Bhaderwah, Ramban)',
+  'Pir Panjal Border Affairs (Poonch & Rajouri)',
+  'Kashmir Valley Civic & Environmental Reporter',
+  'Jammu Plains Bureau Correspondent',
+  'Civic Infrastructure & Public Grievances Reporter',
+  'Copy Editing & Fact-Checking Desk',
+  'Photojournalism, Video Wire & Multimedia',
+  'Opinion Essayist, Academic & Long-Form Author',
+  'General Newsroom Contributor / Expression of Interest',
+];
+
+const STORAGE_KEY = 'kjcpl_careers_application_submitted';
+
+interface SubmittedRecord {
+  submittedAt: string;
+  email: string;
+  fullName: string;
+  refId: string;
+  beat: string;
+  city: string;
+}
+
 export function CareersPortal({
   careersSettings,
   brandName,
   brandFullName,
   langPrefix,
 }: CareersPortalProps) {
-  const [selectedDepartment, setSelectedDepartment] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState<string>('');
-  const [activeJobForModal, setActiveJobForModal] = useState<JobPosting | null>(null);
-  const [isGeneralModalOpen, setIsGeneralModalOpen] = useState(false);
-  const [copiedEmail, setCopiedEmail] = useState(false);
+  // Submission result state (session-only, does NOT persist across refresh)
+  const [submittedRecord, setSubmittedRecord] = useState<SubmittedRecord | null>(null);
 
-  const departments = useMemo(() => {
-    return [
-      'all',
-      ...Array.from(new Set(careersSettings.jobs.map((j) => j.department))),
-    ];
-  }, [careersSettings.jobs]);
+  // Form input state
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [city, setCity] = useState('Srinagar');
+  const [beat, setBeat] = useState(BEAT_OPTIONS[0]);
+  const [experienceYears, setExperienceYears] = useState('1-3 Years');
+  const [currentRole, setCurrentRole] = useState('');
+  const [portfolioUrl, setPortfolioUrl] = useState('');
+  const [coverLetter, setCoverLetter] = useState('');
 
-  const filteredJobs = useMemo(() => {
-    return careersSettings.jobs.filter((job) => {
-      if (job.status !== 'active') return false;
-      const matchDept =
-        selectedDepartment === 'all' ||
-        job.department.toLowerCase() === selectedDepartment.toLowerCase();
-      const matchSearch =
-        searchQuery.trim() === '' ||
-        job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        job.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        job.description.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchDept && matchSearch;
-    });
-  }, [careersSettings.jobs, selectedDepartment, searchQuery]);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleCopyEmail = async () => {
+  // Automatically clear any legacy stuck localStorage flags on mount
+  useEffect(() => {
     try {
-      await navigator.clipboard.writeText(careersSettings.contact_email);
-      setCopiedEmail(true);
-      setTimeout(() => setCopiedEmail(false), 2500);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem('kjcpl_careers_application_submitted');
+      }
     } catch {
-      // Fallback
+      // Ignore
+    }
+  }, []);
+
+  const handleResetForm = () => {
+    setSubmittedRecord(null);
+    setFullName('');
+    setEmail('');
+    setPhone('');
+    setCity('Srinagar');
+    setBeat(BEAT_OPTIONS[0]);
+    setExperienceYears('1-3 Years');
+    setCurrentRole('');
+    setPortfolioUrl('');
+    setCoverLetter('');
+    setErrorMessage(null);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMessage(null);
+
+    const trimmedName = fullName.trim();
+    if (!trimmedName || trimmedName.length < 2) {
+      setErrorMessage('Please provide your full legal name (minimum 2 characters).');
+      return;
+    }
+
+    const trimmedEmail = email.trim().toLowerCase();
+    if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setErrorMessage('Please enter a valid email address.');
+      return;
+    }
+
+    const trimmedPhone = phone.trim();
+    if (!trimmedPhone || trimmedPhone.length < 7) {
+      setErrorMessage('Please enter a valid contact/WhatsApp phone number.');
+      return;
+    }
+
+    const trimmedCity = city.trim();
+    if (!trimmedCity || trimmedCity.length < 2) {
+      setErrorMessage('Please select or specify your district / town of residence.');
+      return;
+    }
+
+    const trimmedPortfolio = portfolioUrl.trim();
+    if (trimmedPortfolio && !/^https?:\/\//i.test(trimmedPortfolio)) {
+      setErrorMessage('Portfolio / CV link must start with http:// or https://');
+      return;
+    }
+
+    const trimmedPitch = coverLetter.trim();
+    if (!trimmedPitch || trimmedPitch.length < 20) {
+      setErrorMessage('Please provide a brief statement of interest or background summary (minimum 20 characters).');
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      const response = await fetch('/api/careers/apply', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          full_name: trimmedName,
+          email: trimmedEmail,
+          phone: trimmedPhone,
+          city: trimmedCity,
+          job_id: beat.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 50),
+          job_title: beat,
+          experience_years: experienceYears,
+          current_role: currentRole.trim() || undefined,
+          portfolio_url: trimmedPortfolio || undefined,
+          cover_letter: trimmedPitch,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 409 || data.already_submitted) {
+          const rec: SubmittedRecord = {
+            submittedAt: new Date().toISOString(),
+            email: trimmedEmail,
+            fullName: trimmedName,
+            refId: data.application_id || 'REGISTERED',
+            beat,
+            city: trimmedCity,
+          };
+          setSubmittedRecord(rec);
+          return;
+        }
+        throw new Error(data.error || 'Failed to submit application. Please verify your details.');
+      }
+
+      // Success: show confirmation card for this session
+      const submissionRecord: SubmittedRecord = {
+        submittedAt: new Date().toISOString(),
+        email: trimmedEmail,
+        fullName: trimmedName,
+        refId: data.application_id || `app-${Date.now()}`,
+        beat,
+        city: trimmedCity,
+      };
+
+      setSubmittedRecord(submissionRecord);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'An error occurred while submitting your application.';
+      setErrorMessage(msg);
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const getMailtoUrl = (job?: JobPosting | null) => {
-    const subject = job
-      ? `Job Application: ${job.title} - [Your Full Name]`
-      : `Newsroom Application & Contributor Pitch - [Your Full Name]`;
-    const body = `Dear ${brandName} Editorial Board,\n\nI am writing to submit my application for the role of "${
-      job ? job.title : 'Newsroom Contributor / Author'
-    }".\n\nPlease find attached my updated Resume / CV and links to my published work.\n\nFull Name: \nContact Number / WhatsApp: \nCurrent Location (City/District): \nYears of Experience: \nPortfolio / Publication Links: \nEarliest Available Start Date: \n\nThank you for considering my application.\n\nBest regards,\n`;
-
-    return `mailto:${careersSettings.contact_email}?subject=${encodeURIComponent(
-      subject
-    )}&body=${encodeURIComponent(body)}`;
-  };
-
-  const openApplyModal = (job: JobPosting) => {
-    setActiveJobForModal(job);
-    setIsGeneralModalOpen(false);
-  };
-
-  const openGeneralApply = () => {
-    setActiveJobForModal(null);
-    setIsGeneralModalOpen(true);
-  };
-
-  const closeModal = () => {
-    setActiveJobForModal(null);
-    setIsGeneralModalOpen(false);
-  };
-
-  const isModalOpen = Boolean(activeJobForModal || isGeneralModalOpen);
-
   return (
-    <div className="min-h-screen bg-[#0B0F19] text-slate-100 font-sans selection:bg-amber-500/30 selection:text-amber-200 relative overflow-hidden">
-      {/* Dynamic Animated Ambient Glow Orbs */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-600/15 rounded-full blur-[128px] pointer-events-none animate-pulse" style={{ animationDuration: '8s' }} />
-      <div className="absolute top-48 right-1/4 w-96 h-96 bg-amber-500/15 rounded-full blur-[140px] pointer-events-none animate-pulse" style={{ animationDuration: '10s' }} />
-      <div className="absolute top-[600px] left-1/3 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[160px] pointer-events-none animate-pulse" style={{ animationDuration: '12s' }} />
+    <div className="min-h-screen bg-[#0B0F19] text-slate-100 font-sans selection:bg-amber-500/30 selection:text-amber-200 relative overflow-hidden py-8 sm:py-10 px-4 sm:px-6 lg:px-8">
+      {/* Dynamic Ambient Background Glows */}
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-600/15 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute top-64 right-1/4 w-96 h-96 bg-amber-500/15 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute top-[650px] left-1/3 w-96 h-96 bg-purple-600/10 rounded-full blur-[160px] pointer-events-none" />
 
-      {/* 1. HERO SECTION WITH MODERN ANIMATIONS */}
-      <section className="relative pt-16 pb-20 px-4 sm:px-6 lg:px-8 border-b border-slate-800/80">
-        <div className="max-w-5xl mx-auto text-center space-y-6">
-          {/* Animated Hiring Status Badge */}
-          <div className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest bg-gradient-to-r from-emerald-500/10 via-emerald-500/20 to-emerald-500/10 text-emerald-400 border border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.15)] animate-in fade-in zoom-in-95 duration-500">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+      <div className="max-w-2xl mx-auto relative z-10 space-y-5 sm:space-y-6">
+        {/* Header Bar */}
+        <div className="text-center space-y-2.5">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.12)]">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500" />
             </span>
-            <span>
-              {careersSettings.hiring_status === 'open'
-                ? 'We Are Hiring • 2026 Newsroom Recruitment'
-                : 'Applications Paused'}
-            </span>
+            <span>2026 Newsroom Application Desk</span>
           </div>
 
-          {/* Impact Headline */}
-          <h1 className="font-serif text-4xl sm:text-6xl font-black tracking-tight text-white leading-[1.1] max-w-4xl mx-auto">
-            Shape the Future of Ground Journalism at{' '}
+          <h1 className="font-serif text-2xl sm:text-3xl font-bold tracking-tight text-white leading-snug">
+            Apply to Join{' '}
             <span className="bg-gradient-to-r from-amber-400 via-orange-300 to-amber-500 bg-clip-text text-transparent">
               {brandName}
             </span>
           </h1>
 
-          <p className="text-lg sm:text-xl text-slate-300 font-sans max-w-3xl mx-auto leading-relaxed">
-            {careersSettings.page_subtitle || 'Join Jammu & Kashmir’s Premier Independent Journal of Record'}
-          </p>
-
-          <p className="text-sm text-slate-400 max-w-2xl mx-auto leading-relaxed font-serif italic">
-            "{careersSettings.culture_statement}"
-          </p>
-
-          {/* Quick Action Buttons */}
-          <div className="pt-4 flex flex-wrap items-center justify-center gap-3">
-            <a
-              href="#openings"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-sm shadow-[0_0_25px_rgba(245,158,11,0.25)] hover:shadow-[0_0_35px_rgba(245,158,11,0.4)] transition-all transform hover:-translate-y-0.5 cursor-pointer"
-            >
-              <span>Explore Active Vacancies ({filteredJobs.length})</span>
-              <span>↓</span>
-            </a>
-            <button
-              type="button"
-              onClick={openGeneralApply}
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-200 border border-slate-700/80 hover:border-slate-500 font-bold text-sm transition-all transform hover:-translate-y-0.5 cursor-pointer backdrop-blur-sm"
-            >
-              <span>General Pitch &amp; Bylines</span>
-              <span>✍️</span>
-            </button>
-          </div>
-        </div>
-
-        {/* 2. NEWSROOM STATS COUNTER BAR */}
-        <div className="max-w-5xl mx-auto mt-14 grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-sm hover:border-slate-700 transition group text-center">
-            <div className="text-3xl font-black text-amber-400 font-mono tracking-tight group-hover:scale-105 transition-transform">
-              5
-            </div>
-            <div className="text-xs font-bold text-slate-200 mt-1 uppercase tracking-wider">
-              Regional Bureaus
-            </div>
-            <p className="text-[11px] text-slate-400 mt-0.5">Kashmir, Chenab, Pir Panjal, Jammu, Ladakh</p>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-sm hover:border-slate-700 transition group text-center">
-            <div className="text-3xl font-black text-cyan-400 font-mono tracking-tight group-hover:scale-105 transition-transform">
-              22
-            </div>
-            <div className="text-xs font-bold text-slate-200 mt-1 uppercase tracking-wider">
-              Districts Covered
-            </div>
-            <p className="text-[11px] text-slate-400 mt-0.5">Highland valleys &amp; remote ground corridors</p>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-sm hover:border-slate-700 transition group text-center">
-            <div className="text-3xl font-black text-emerald-400 font-mono tracking-tight group-hover:scale-105 transition-transform">
-              100%
-            </div>
-            <div className="text-xs font-bold text-slate-200 mt-1 uppercase tracking-wider">
-              Editorial Freedom
-            </div>
-            <p className="text-[11px] text-slate-400 mt-0.5">Zero political or corporate influence</p>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-sm hover:border-slate-700 transition group text-center">
-            <div className="text-3xl font-black text-purple-400 font-mono tracking-tight group-hover:scale-105 transition-transform">
-              48h
-            </div>
-            <div className="text-xs font-bold text-slate-200 mt-1 uppercase tracking-wider">
-              Fast-Track Review
-            </div>
-            <p className="text-[11px] text-slate-400 mt-0.5">Direct editor review for every CV</p>
-          </div>
-        </div>
-      </section>
-
-      {/* 3. DIRECT FAST-TRACK APPLICATION CARD */}
-      <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
-        <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-slate-900/90 to-amber-950/20 border border-amber-500/20 shadow-xl relative overflow-hidden group">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-amber-500/5 rounded-full blur-3xl group-hover:bg-amber-500/10 transition-all pointer-events-none" />
-          <div className="relative flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-            <div className="space-y-2 max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-[11px] font-bold text-amber-400 uppercase tracking-wider">
-                <span>⚡ Direct Fast-Track Application</span>
-              </div>
-              <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-                No complex portals or tedious forms. Email your CV directly.
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                Send your resume, links to your best stories or ground clips, and preferred district/corridor directly to our editorial board:
-              </p>
-              <div className="pt-2 flex items-center gap-3">
-                <span className="font-mono text-xs sm:text-sm font-bold text-amber-300 bg-black/40 px-3.5 py-1.5 rounded-xl border border-amber-500/30 shadow-inner">
-                  {careersSettings.contact_email}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row lg:flex-col gap-3 shrink-0">
-              <a
-                href={getMailtoUrl()}
-                className="px-6 py-3 rounded-xl font-bold text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-lg shadow-amber-500/20 transition-all text-center flex items-center justify-center gap-2 cursor-pointer transform hover:scale-[1.02]"
-              >
-                <span>✉️ Email Your Resume</span>
-              </a>
-              <button
-                type="button"
-                onClick={handleCopyEmail}
-                className="px-5 py-2.5 rounded-xl font-semibold text-xs border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 transition text-center cursor-pointer"
-              >
-                {copiedEmail ? '✓ Copied to Clipboard!' : '📋 Copy Newsroom Email'}
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 4. WHY WORK WITH US (INTERACTIVE PILLARS) */}
-      <section className="py-12 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto border-t border-slate-800/60">
-        <div className="text-center max-w-2xl mx-auto mb-10">
-          <h2 className="font-serif text-2xl sm:text-3xl font-bold text-white">
-            Why Practice Journalism at {brandName}?
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-400 mt-2">
-            Built for reporters who care about verifiable truth, deep field reporting, and public accountability.
+          <p className="text-xs sm:text-[13px] text-slate-300/90 max-w-lg mx-auto leading-relaxed">
+            {brandFullName} invites ground correspondents, investigative journalists, editors, and photographers across Jammu &amp; Kashmir to submit their application dossier.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800/80 hover:border-amber-500/40 hover:-translate-y-1 transition-all duration-300 group">
-            <div className="w-12 h-12 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">
-              🛡️
+        {/* SUBMISSION CONFIRMATION: SHOWN IMMEDIATELY AFTER SUBMITTING */}
+        {submittedRecord ? (
+          <div className="p-6 sm:p-8 rounded-2xl sm:rounded-3xl bg-slate-900/90 border-2 border-emerald-500/40 shadow-2xl backdrop-blur-md text-center space-y-5 animate-in fade-in zoom-in-95 duration-300">
+            <div className="w-12 h-12 mx-auto rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center text-2xl font-bold shadow-lg shadow-emerald-500/20">
+              ✓
             </div>
-            <h3 className="font-bold text-base text-white mb-2">Uncompromised Editorial Independence</h3>
-            <p className="text-xs text-slate-400 leading-relaxed font-sans">
-              We operate strictly under the Press Council of India code of ethics. Our correspondents investigate civic failures, environmental concerns, and administrative delays without commercial interference.
-            </p>
-          </div>
 
-          <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800/80 hover:border-cyan-500/40 hover:-translate-y-1 transition-all duration-300 group">
-            <div className="w-12 h-12 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">
-              🏔️
-            </div>
-            <h3 className="font-bold text-base text-white mb-2">Granular 22-District Presence</h3>
-            <p className="text-xs text-slate-400 leading-relaxed font-sans">
-              From Srinagar and the Tawi valley to the rugged gorges of Doda, Kishtwar, Ramban, Poonch, and the Ladakh cold deserts — your work brings real voices to light from every pocket of the region.
-            </p>
-          </div>
-
-          <div className="p-6 rounded-2xl bg-slate-900/50 border border-slate-800/80 hover:border-purple-500/40 hover:-translate-y-1 transition-all duration-300 group">
-            <div className="w-12 h-12 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform">
-              📜
-            </div>
-            <h3 className="font-bold text-base text-white mb-2">Permanent Digital Archive &amp; Bylines</h3>
-            <p className="text-xs text-slate-400 leading-relaxed font-sans">
-              Every story, ground investigation, and civic dispatch is permanently archived with cryptographic and verified author credentials, syndication metadata, and global reach.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* 5. CURRENT OPEN VACANCIES WITH INTERACTIVE FILTERS */}
-      <section id="openings" className="py-16 px-4 sm:px-6 lg:px-8 max-w-6xl mx-auto border-t border-slate-800/60">
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="font-serif text-2xl sm:text-3xl font-bold text-white">
-                Current Newsroom Vacancies ({filteredJobs.length})
-              </h2>
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                Active Listings
+            <div className="space-y-2">
+              <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+                Application Submitted &amp; Logged
               </span>
+              <h2 className="font-serif text-lg sm:text-xl font-bold text-white tracking-tight">
+                Our team will contact you for further procedure if u qualified
+              </h2>
+              <p className="text-xs text-slate-300/80 max-w-md mx-auto leading-relaxed font-sans">
+                Your dossier has been transmitted directly to the KJCPL Editorial Board in our Newsroom Admin Portal. Each submission is carefully reviewed against our regional reporting beats.
+              </p>
             </div>
-            <p className="text-xs sm:text-sm text-slate-400 mt-1">
-              Filter by department or search keywords to view criteria and apply directly.
-            </p>
-          </div>
 
-          {/* Search Box */}
-          <div className="w-full md:w-72">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search roles, locations, skills..."
-              className="w-full bg-slate-900 border border-slate-800 focus:border-amber-500 text-xs text-white px-3.5 py-2.5 rounded-xl outline-none placeholder-slate-500 transition"
-            />
-          </div>
-        </div>
-
-        {/* Department Filter Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-8 scrollbar-none">
-          {departments.map((dept) => {
-            const isSelected = selectedDepartment === dept;
-            const count =
-              dept === 'all'
-                ? careersSettings.jobs.filter((j) => j.status === 'active').length
-                : careersSettings.jobs.filter(
-                    (j) => j.status === 'active' && j.department.toLowerCase() === dept.toLowerCase()
-                  ).length;
-
-            return (
-              <button
-                key={dept}
-                type="button"
-                onClick={() => setSelectedDepartment(dept)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer flex items-center gap-2 ${
-                  isSelected
-                    ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-                    : 'bg-slate-900/80 text-slate-400 hover:text-white border border-slate-800 hover:border-slate-700'
-                }`}
-              >
-                <span className="capitalize">{dept === 'all' ? 'All Openings' : dept}</span>
-                <span
-                  className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
-                    isSelected ? 'bg-slate-950/20 text-slate-950' : 'bg-slate-800 text-slate-400'
-                  }`}
-                >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Jobs Grid */}
-        {filteredJobs.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {filteredJobs.map((job) => (
-              <div
-                key={job.id}
-                className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-amber-500/50 hover:bg-slate-900 transition-all duration-300 flex flex-col justify-between group shadow-sm hover:shadow-xl hover:-translate-y-1 relative"
-              >
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-800 text-slate-300 border border-slate-700">
-                      {job.department}
-                    </span>
-                    <span className="text-[11px] font-mono text-emerald-400 font-bold flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      {job.role_type}
-                    </span>
-                  </div>
-
-                  <h3 className="font-serif text-lg font-bold text-white group-hover:text-amber-400 transition-colors leading-snug mb-2">
-                    {job.title}
-                  </h3>
-
-                  <div className="flex items-center gap-3 text-xs text-slate-400 mb-3 flex-wrap">
-                    <span className="flex items-center gap-1">
-                      <span>📍</span>
-                      <span>{job.location}</span>
-                    </span>
-                    <span>•</span>
-                    <span className="flex items-center gap-1 font-mono text-[11px]">
-                      <span>💼</span>
-                      <span>{job.experience_level}</span>
-                    </span>
-                    {job.salary_range && (
-                      <>
-                        <span>•</span>
-                        <span className="text-amber-400 font-mono text-[11px] font-semibold">
-                          {job.salary_range}
-                        </span>
-                      </>
-                    )}
-                  </div>
-
-                  <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed mb-4">
-                    {job.description}
-                  </p>
-                </div>
-
-                <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between gap-3">
-                  <button
-                    type="button"
-                    onClick={() => openApplyModal(job)}
-                    className="text-xs font-bold text-slate-300 hover:text-white transition flex items-center gap-1 cursor-pointer"
-                  >
-                    <span>View Requirements</span>
-                    <span className="group-hover:translate-x-0.5 transition-transform">→</span>
-                  </button>
-
-                  <a
-                    href={getMailtoUrl(job)}
-                    className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition cursor-pointer flex items-center gap-1.5"
-                  >
-                    <span>Apply via Email</span>
-                    <span>✉️</span>
-                  </a>
-                </div>
+            {/* Submission Dossier Summary Card */}
+            <div className="p-5 rounded-2xl bg-black/50 border border-slate-800 text-left max-w-md mx-auto space-y-2.5 text-xs">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                <span className="text-slate-400">Applicant:</span>
+                <span className="font-bold text-white">{submittedRecord.fullName}</span>
               </div>
-            ))}
+              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                <span className="text-slate-400">Registered Email:</span>
+                <span className="font-mono text-cyan-300">{submittedRecord.email}</span>
+              </div>
+              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                <span className="text-slate-400">Location:</span>
+                <span className="font-bold text-slate-200">{submittedRecord.city}</span>
+              </div>
+              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                <span className="text-slate-400">Beat / Interest:</span>
+                <span className="font-bold text-amber-300 truncate max-w-[200px]">{submittedRecord.beat}</span>
+              </div>
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-slate-400">Submission ID:</span>
+                <span className="font-mono text-slate-400 text-[11px]">{submittedRecord.refId}</span>
+              </div>
+            </div>
+
+            <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={handleResetForm}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 transition cursor-pointer shadow-md shadow-amber-500/20"
+              >
+                <span>Fill New Application</span>
+                <span>✍️</span>
+              </button>
+
+              <Link
+                href={langPrefix || '/'}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 transition border border-slate-700"
+              >
+                <span>Return to Homepage</span>
+                <span>→</span>
+              </Link>
+            </div>
           </div>
         ) : (
-          <div className="p-12 text-center rounded-2xl bg-slate-900/40 border border-dashed border-slate-800">
-            <span className="text-3xl block mb-2">🔍</span>
-            <p className="text-base font-bold text-slate-300">No active positions match your criteria.</p>
-            <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
-              We always welcome talented investigative reporters, editors, and photographers across J&amp;K. Submit a general pitch below.
-            </p>
-            <button
-              type="button"
-              onClick={openGeneralApply}
-              className="mt-4 px-5 py-2.5 rounded-xl bg-amber-500 text-slate-950 font-bold text-xs hover:bg-amber-400 transition cursor-pointer"
-            >
-              Submit General Contributor Pitch
-            </button>
+          /* APPLICATION FORM */
+          <div className="p-5 sm:p-7 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl backdrop-blur-md">
+            <div className="pb-4 mb-5 border-b border-slate-800">
+              <h2 className="font-serif text-base sm:text-lg font-bold text-white">
+                Official Newsroom Application Form
+              </h2>
+              <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">
+                Please complete all required fields accurately. Once submitted, your profile will be sent directly to the editorial administration desk for evaluation.
+              </p>
+            </div>
+
+            {errorMessage && (
+              <div className="mb-4 p-3 rounded-xl bg-red-950/60 border border-red-500/40 text-red-200 text-xs flex items-start gap-2 animate-in fade-in">
+                <span className="text-sm leading-none">⚠️</span>
+                <span>{errorMessage}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Full Name */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                    Full Legal Name <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="e.g. Tariq Ahmad Lone"
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-950/70 border border-slate-800 focus:border-amber-500 text-xs text-white outline-none transition placeholder-slate-500"
+                  />
+                </div>
+
+                {/* Email Address */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                    Email Address <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="tariq@example.com"
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-950/70 border border-slate-800 focus:border-amber-500 text-xs text-white outline-none transition placeholder-slate-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Phone / WhatsApp */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                    Phone / WhatsApp Number <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    required
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    placeholder="+91 98765 43210"
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-950/70 border border-slate-800 focus:border-amber-500 text-xs text-white outline-none transition placeholder-slate-500"
+                  />
+                </div>
+
+                {/* City / District */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                    District / Town of Residence <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    list="jk-districts-list"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    placeholder="e.g. Doda, Bhaderwah, Kishtwar, Poonch..."
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-950/70 border border-slate-800 focus:border-amber-500 text-xs text-white outline-none transition placeholder-slate-500"
+                  />
+                  <datalist id="jk-districts-list">
+                    {JK_DISTRICT_SUGGESTIONS.map((d) => (
+                      <option key={d} value={d} />
+                    ))}
+                  </datalist>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Preferred Beat */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                    Preferred Beat / Position <span className="text-red-400">*</span>
+                  </label>
+                  <select
+                    value={beat}
+                    onChange={(e) => setBeat(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-950/70 border border-slate-800 focus:border-amber-500 text-xs text-white outline-none transition"
+                  >
+                    {BEAT_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Years of Experience */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                    Journalism / Writing Experience
+                  </label>
+                  <select
+                    value={experienceYears}
+                    onChange={(e) => setExperienceYears(e.target.value)}
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-950/70 border border-slate-800 focus:border-amber-500 text-xs text-white outline-none transition"
+                  >
+                    <option value="Fresher / Student">Fresher / Student Journalist</option>
+                    <option value="1-3 Years">1–3 Years Experience</option>
+                    <option value="3-5 Years">3–5 Years Experience</option>
+                    <option value="5-10 Years">5–10 Years Experience</option>
+                    <option value="Veteran (10+ Years)">Veteran Journalist (10+ Years)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Current Role */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                    Current Role / Organization (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={currentRole}
+                    onChange={(e) => setCurrentRole(e.target.value)}
+                    placeholder="e.g. Freelance Reporter, Sub-Editor, Student"
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-950/70 border border-slate-800 focus:border-amber-500 text-xs text-white outline-none transition placeholder-slate-500"
+                  />
+                </div>
+
+                {/* Portfolio / CV Link */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                    CV / Portfolio / Story Link (Optional)
+                  </label>
+                  <input
+                    type="url"
+                    value={portfolioUrl}
+                    onChange={(e) => setPortfolioUrl(e.target.value)}
+                    placeholder="https://drive.google.com/... or portfolio link"
+                    className="w-full px-3.5 py-2 rounded-xl bg-slate-950/70 border border-slate-800 focus:border-amber-500 text-xs text-white outline-none transition placeholder-slate-500"
+                  />
+                </div>
+              </div>
+
+              {/* Statement of Interest & Story Pitches */}
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                  Statement of Interest &amp; Story Pitches <span className="text-red-400">*</span>
+                </label>
+                <textarea
+                  required
+                  rows={4}
+                  value={coverLetter}
+                  onChange={(e) => setCoverLetter(e.target.value)}
+                  placeholder="Describe your journalistic background, ground beats you cover, and 2-3 specific local stories or investigations you would like to report for KJCPL..."
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/70 border border-slate-800 focus:border-amber-500 text-xs text-white outline-none transition resize-y placeholder-slate-500"
+                />
+                <div className="flex justify-between items-center text-[10px] text-slate-500 mt-1">
+                  <span>Minimum 20 characters required</span>
+                  <span>{coverLetter.length} chars</span>
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <div className="pt-3 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-3">
+                <p className="text-[10px] sm:text-[11px] text-slate-400">
+                  🔒 Submissions are delivered directly to the Chief Editorial Desk in the Newsroom Admin Portal.
+                </p>
+
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-bold text-xs bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 transition shadow-lg shadow-amber-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer transform hover:-translate-y-0.5"
+                >
+                  {submitting ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                      <span>Transmitting Dossier...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>Submit Application</span>
+                      <span>🚀</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         )}
-      </section>
 
-      {/* 6. MODAL: JOB REQUIREMENTS & DIRECT APPLY */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-150">
-          <div className="bg-[#0F172A] border border-slate-800 rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-150">
-            <div className="flex items-start justify-between pb-4 border-b border-slate-800">
-              <div>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                  {activeJobForModal ? activeJobForModal.department : 'General Application'}
-                </span>
-                <h3 className="font-serif text-xl sm:text-2xl font-bold text-white mt-2 leading-snug">
-                  {activeJobForModal ? activeJobForModal.title : 'General Newsroom Contributor / Author Pitch'}
-                </h3>
-                {activeJobForModal && (
-                  <div className="flex items-center gap-3 text-xs text-slate-400 mt-1">
-                    <span>📍 {activeJobForModal.location}</span>
-                    <span>•</span>
-                    <span>💼 {activeJobForModal.experience_level}</span>
-                  </div>
-                )}
-              </div>
-              <button
-                type="button"
-                onClick={closeModal}
-                className="text-slate-400 hover:text-white text-xl font-bold p-1 cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="space-y-4 text-xs text-slate-300 leading-relaxed">
-              <div>
-                <h4 className="font-bold text-white text-sm mb-1.5">Overview</h4>
-                <p>
-                  {activeJobForModal
-                    ? activeJobForModal.description
-                    : 'We are looking for passionate journalists, grassroots field correspondents, translators, and investigators across Kashmir, Jammu, Chenab Valley, Pir Panjal, and Ladakh to join our expanding team.'}
-                </p>
-              </div>
-
-              {activeJobForModal && activeJobForModal.responsibilities.length > 0 && (
-                <div>
-                  <h4 className="font-bold text-white text-sm mb-2">Key Responsibilities</h4>
-                  <ul className="space-y-1.5 list-disc list-inside text-slate-400">
-                    {activeJobForModal.responsibilities.map((r, i) => (
-                      <li key={i}>{r}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {activeJobForModal && activeJobForModal.requirements.length > 0 && (
-                <div>
-                  <h4 className="font-bold text-white text-sm mb-2">Qualifications &amp; Criteria</h4>
-                  <ul className="space-y-1.5 list-disc list-inside text-slate-400">
-                    {activeJobForModal.requirements.map((r, i) => (
-                      <li key={i}>{r}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Application Details */}
-              <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-2">
-                <div className="font-bold text-amber-400 text-xs">How to Apply:</div>
-                <p className="text-[11px] text-slate-400">
-                  Email your CV / Resume along with 2-3 links to your published work, district of residence, and earliest start date to:
-                </p>
-                <div className="font-mono text-xs font-bold text-white bg-black/40 px-3 py-1.5 rounded-lg border border-slate-700">
-                  {careersSettings.contact_email}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pt-4 border-t border-slate-800">
-              <button
-                type="button"
-                onClick={closeModal}
-                className="w-full sm:w-auto px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition cursor-pointer"
-              >
-                Close
-              </button>
-              <a
-                href={getMailtoUrl(activeJobForModal)}
-                className="w-full sm:w-auto px-6 py-2.5 rounded-xl font-bold text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 transition cursor-pointer text-center flex items-center justify-center gap-1.5 shadow-md shadow-amber-500/20"
-              >
-                <span>Send Application via Email</span>
-                <span>✉️</span>
-              </a>
-            </div>
-          </div>
+        {/* Minimal Footer Info */}
+        <div className="text-center pt-4 text-xs text-slate-500">
+          <p>© 2026 {brandFullName} • Directorate of Editorial &amp; Field Operations</p>
+          <p className="mt-1">
+            General Inquiries:{' '}
+            <span className="text-slate-400 font-mono">{careersSettings.contact_email}</span>
+          </p>
         </div>
-      )}
+      </div>
     </div>
   );
 }

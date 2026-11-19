@@ -95,7 +95,7 @@ Strict Editorial Rules:
 6. Set article_id to the exact ID of the primary story referenced.`;
 
     const result = await generateObject({
-      model: google('gemini-2.5-flash'),
+      model: google('gemini-2.0-flash'),
       prompt,
       schema: DevelopingWireSchema,
     });

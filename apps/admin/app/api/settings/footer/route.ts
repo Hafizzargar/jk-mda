@@ -66,6 +66,79 @@ export async function POST(request: Request) {
     return Response.json({ error: 'Database update failed.' }, { status: 500 });
   }
 
+  // Cross-portal synchronization: synchronize contact emails across technical support, careers, and navbar tip submission
+  try {
+    const primaryContactEmail = sanitized.email_editorial || sanitized.email_grievance || 'h26412301@gmail.com';
+
+    // 1. Sync developer_support support_email
+    const { data: devSetting } = await authorization.service
+      .from('site_settings')
+      .select('value')
+      .eq('key', 'developer_support')
+      .maybeSingle();
+
+    if (devSetting?.value) {
+      const devVal = devSetting.value as Record<string, unknown>;
+      await authorization.service.from('site_settings').upsert({
+        key: 'developer_support',
+        value: {
+          ...devVal,
+          support_email: primaryContactEmail,
+        },
+        description: 'Developer Attribution and Technical Support Settings',
+        updated_at: new Date().toISOString(),
+        updated_by: authorization.user.id,
+      });
+    }
+
+    // 2. Sync careers_settings contact_email
+    const { data: careersSetting } = await authorization.service
+      .from('site_settings')
+      .select('value')
+      .eq('key', 'careers_settings')
+      .maybeSingle();
+
+    if (careersSetting?.value) {
+      const careersVal = careersSetting.value as Record<string, unknown>;
+      await authorization.service.from('site_settings').upsert({
+        key: 'careers_settings',
+        value: {
+          ...careersVal,
+          contact_email: sanitized.email_careers || primaryContactEmail,
+        },
+        description: 'Careers portal configuration and job openings',
+        updated_at: new Date().toISOString(),
+        updated_by: authorization.user.id,
+      });
+    }
+
+    // 3. Sync navbar_settings submit_tip_url
+    const { data: navSetting } = await authorization.service
+      .from('site_settings')
+      .select('value')
+      .eq('key', 'navbar_settings')
+      .maybeSingle();
+
+    if (navSetting?.value) {
+      const navVal = navSetting.value as { actions?: Record<string, unknown> };
+      await authorization.service.from('site_settings').upsert({
+        key: 'navbar_settings',
+        value: {
+          ...navVal,
+          actions: {
+            ...(navVal.actions || {}),
+            submit_tip_url: `mailto:${primaryContactEmail}?subject=News%20Tip%20Dispatch`,
+          },
+        },
+        description: 'Header masthead navigation, brand, and actions configuration',
+        updated_at: new Date().toISOString(),
+        updated_by: authorization.user.id,
+      });
+    }
+  } catch (syncErr) {
+    console.warn('[Footer Settings API] Cross-portal email sync non-fatal warning:', syncErr);
+  }
+
   await authorization.service.from('audit_logs').insert({
     actor_profile_id: authorization.user.id,
     action: 'site_settings.footer_contact_updated',

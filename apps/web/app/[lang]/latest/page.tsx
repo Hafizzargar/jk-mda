@@ -26,8 +26,7 @@ export async function generateMetadata({ params, searchParams }: LatestPageProps
   const resolvedSearchParams = await searchParams;
   const page = parsePageParam(resolvedSearchParams.page);
   const pageSuffix = page > 1 ? ` - Page ${page}` : '';
-  const langPrefix = lang === 'en' ? '' : `/${lang}`;
-  const canonicalUrl = `${SITE_URL}${langPrefix}/latest${page > 1 ? `?page=${page}` : ''}`;
+  const canonicalUrl = `${SITE_URL}/en/latest${page > 1 ? `?page=${page}` : ''}`;
   const supabase = createServerAnonClient();
   const brandSettings = await getBrandSettings(supabase);
 

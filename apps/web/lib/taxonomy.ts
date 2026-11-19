@@ -95,8 +95,9 @@ export const JK_DISTRICTS: Record<string, { name: string; region: KJINRegionName
   samba: { name: 'Samba', region: 'Jammu', regionKey: 'jammu' },
   udhampur: { name: 'Udhampur', region: 'Jammu', regionKey: 'jammu' },
 
-  // Chenab Valley (3)
+  // Chenab Valley (3 + Bhaderwah valley sub-district hub)
   doda: { name: 'Doda', region: 'Chenab Valley', regionKey: 'chenab-valley' },
+  bhaderwah: { name: 'Bhaderwah', region: 'Chenab Valley', regionKey: 'chenab-valley' },
   kishtwar: { name: 'Kishtwar', region: 'Chenab Valley', regionKey: 'chenab-valley' },
   ramban: { name: 'Ramban', region: 'Chenab Valley', regionKey: 'chenab-valley' },
 
@@ -128,6 +129,7 @@ export const NEWS_CATEGORIES: Record<string, { name: string; description: string
   india: { name: 'National', description: 'National affairs, union governance, Supreme Court rulings, and pan-India developments.' },
   health: { name: 'Health & Science', description: 'Public healthcare, medical research, clinical care, and scientific innovation.' },
   science: { name: 'Science & Technology', description: 'Science, digital technology, innovation, and scientific developments.' },
+  'science-technology': { name: 'Science & Technology', description: 'Science, digital technology, innovation, and scientific developments.' },
   environment: { name: 'Environment', description: 'Ecology, climate, glaciers, rivers, and environmental conservation across J&K.' },
 };
 
@@ -138,6 +140,16 @@ export function isValidCategory(slug: string): boolean {
 
 export function getCategorySlug(category?: string | null): string {
   if (!category) return 'news';
+  const norm = category.toLowerCase().trim();
+  if (norm === 'science & technology' || norm === 'science & tech' || norm === 'science and technology' || norm === 'science-technology') {
+    return 'science';
+  }
+  if (norm === 'local news' || norm === 'local-news') {
+    return 'local';
+  }
+  if (norm === 'problems & grievances' || norm === 'problems and grievances') {
+    return 'problems';
+  }
   const clean = category
     .toLowerCase()
     .trim()

@@ -18,7 +18,7 @@ test('P1: Developer & Technical Support — Defaults & Structure', () => {
   assert.equal(DEFAULT_DEVELOPER_SUPPORT.developer_website, 'https://kjcpl.site');
   assert.equal(DEFAULT_DEVELOPER_SUPPORT.support_email, 'h26412301@gmail.com');
   assert.equal(DEFAULT_DEVELOPER_SUPPORT.show_mail_us, true);
-  assert.equal(DEFAULT_DEVELOPER_SUPPORT.show_call_us, true);
+  assert.equal(DEFAULT_DEVELOPER_SUPPORT.show_call_us, false);
   assert.equal(DEFAULT_DEVELOPER_SUPPORT.footer_position, 'bottom');
   assert.equal(DEFAULT_DEVELOPER_SUPPORT.show_on_mobile, true);
 });
@@ -32,7 +32,7 @@ test('P1: Developer & Technical Support — Field Validation Helpers', () => {
   assert.equal(validateEmail('@missinguser.com'), false);
 
   // Phone validation
-  assert.equal(validatePhone('+91 6005950197'), true);
+  assert.equal(validatePhone('+91 9876543210'), true);
   assert.equal(validatePhone('0194-2456789'), true);
   assert.equal(validatePhone(''), true, 'Empty phone is valid (optional field)');
   assert.equal(validatePhone('abc-phone'), false);

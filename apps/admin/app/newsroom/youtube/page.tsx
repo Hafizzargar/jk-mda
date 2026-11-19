@@ -308,18 +308,27 @@ export default function YouTubeMonitorPage() {
       const saved = localStorage.getItem('kjin_autopilot_interval');
       if (saved && !isNaN(Number(saved))) return Number(saved);
     }
-    return 1;
+    return 3;
   });
   const [countdown, setCountdown] = useState<number>(() => {
     if (typeof window !== 'undefined') {
+      const savedNext = localStorage.getItem('kjin_autopilot_next_scan_timestamp');
+      if (savedNext && !isNaN(Number(savedNext))) {
+        const diff = Math.ceil((Number(savedNext) - Date.now()) / 1000);
+        if (diff > 0) return diff;
+      }
       const saved = localStorage.getItem('kjin_autopilot_interval');
       if (saved && !isNaN(Number(saved))) return Number(saved) * 60;
     }
-    return 60;
+    return 180;
   });
   const isSyncingRef = useRef(false);
   const isDiscoveringRef = useRef(false);
-  const nextScanTimestampRef = useRef<number>(0);
+  const nextScanTimestampRef = useRef<number>(
+    typeof window !== 'undefined' && localStorage.getItem('kjin_autopilot_next_scan_timestamp')
+      ? Number(localStorage.getItem('kjin_autopilot_next_scan_timestamp')) || 0
+      : 0
+  );
 
   // Dynamic Beat & District Target Quotas State (Min / Max per region and per district)
   const [beatQuotas, setBeatQuotas] = useState<Record<string, BeatQuotaConfig>>({
@@ -418,23 +427,30 @@ export default function YouTubeMonitorPage() {
 
   useEffect(() => {
     loadData();
-    // Immediate background auto-discovery & auto-sync on page mount
-    handleDiscoverNow(true);
-    handleSyncNow(true);
+    // Do not trigger immediate discovery on mount; let the server-driven schedule and timer tick down smoothly without resetting on page refresh
   }, []);
 
   useEffect(() => {
-    // If nextScanTimestamp is not initialized or expired, start from interval
-    if (!nextScanTimestampRef.current || nextScanTimestampRef.current <= Date.now()) {
-      nextScanTimestampRef.current = Date.now() + autoPilotIntervalMinutes * 60 * 1000;
+    // If nextScanTimestamp is not initialized or expired, check localStorage then fallback
+    const now = Date.now();
+    if (!nextScanTimestampRef.current || nextScanTimestampRef.current <= now) {
+      const saved = typeof window !== 'undefined' ? localStorage.getItem('kjin_autopilot_next_scan_timestamp') : null;
+      if (saved && !isNaN(Number(saved)) && Number(saved) > now) {
+        nextScanTimestampRef.current = Number(saved);
+      } else {
+        nextScanTimestampRef.current = now + autoPilotIntervalMinutes * 60 * 1000;
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('kjin_autopilot_next_scan_timestamp', String(nextScanTimestampRef.current));
+        }
+      }
     }
 
     const ticker = setInterval(() => {
-      const now = Date.now();
-      setNowTimestamp(now);
+      const current = Date.now();
+      setNowTimestamp(current);
 
       if (autoPilot) {
-        if (!nextScanTimestampRef.current || nextScanTimestampRef.current <= now) {
+        if (!nextScanTimestampRef.current || nextScanTimestampRef.current <= current) {
           // Time to trigger autonomous scan
           if (!isDiscoveringRef.current) {
             handleDiscoverNow(true);
@@ -442,10 +458,14 @@ export default function YouTubeMonitorPage() {
           if (!isSyncingRef.current) {
             handleSyncNow(true);
           }
-          nextScanTimestampRef.current = now + autoPilotIntervalMinutes * 60 * 1000;
+          const nextTarget = current + autoPilotIntervalMinutes * 60 * 1000;
+          nextScanTimestampRef.current = nextTarget;
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('kjin_autopilot_next_scan_timestamp', String(nextTarget));
+          }
         }
 
-        const remainingSecs = Math.max(0, Math.ceil((nextScanTimestampRef.current - now) / 1000));
+        const remainingSecs = Math.max(0, Math.ceil((nextScanTimestampRef.current - current) / 1000));
         setCountdown(remainingSecs);
       }
     }, 1000);
@@ -470,11 +490,13 @@ export default function YouTubeMonitorPage() {
   async function handleUpdateAutoPilotSettings(newInterval: number, newEnabled: boolean) {
     setAutoPilotIntervalMinutes(newInterval);
     setAutoPilot(newEnabled);
-    nextScanTimestampRef.current = Date.now() + newInterval * 60 * 1000;
+    const newNextMs = Date.now() + newInterval * 60 * 1000;
+    nextScanTimestampRef.current = newNextMs;
     setCountdown(newInterval * 60);
     if (typeof window !== 'undefined') {
       localStorage.setItem('kjin_autopilot_interval', String(newInterval));
       localStorage.setItem('kjin_autopilot_enabled', String(newEnabled));
+      localStorage.setItem('kjin_autopilot_next_scan_timestamp', String(newNextMs));
     }
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -488,6 +510,7 @@ export default function YouTubeMonitorPage() {
         body: JSON.stringify({
           interval_minutes: newInterval,
           auto_pilot_enabled: newEnabled,
+          next_scan_at: new Date(newNextMs).toISOString(),
           beat_quotas: beatQuotas,
         }),
       });
@@ -590,6 +613,16 @@ export default function YouTubeMonitorPage() {
         body: JSON.stringify({ beat_id: beatId, district_id: districtId, force: true }),
       });
       const data = await res.json();
+
+      if (data.next_scan_at) {
+        const parsed = new Date(data.next_scan_at).getTime();
+        if (!isNaN(parsed) && parsed > Date.now()) {
+          nextScanTimestampRef.current = parsed;
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('kjin_autopilot_next_scan_timestamp', String(parsed));
+          }
+        }
+      }
       if (res.ok && data.success && data.discovered) {
         setFeedback({
           text: `✨ Discovered breaking story for ${districtId.toUpperCase()}: "${data.headline}"! Sent to Pending Approval queue.`,
@@ -630,6 +663,16 @@ export default function YouTubeMonitorPage() {
         body: JSON.stringify({ topic: 'civic_problems', district_id: districtId, force: true }),
       });
       const data = await res.json();
+
+      if (data.next_scan_at) {
+        const parsed = new Date(data.next_scan_at).getTime();
+        if (!isNaN(parsed) && parsed > Date.now()) {
+          nextScanTimestampRef.current = parsed;
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('kjin_autopilot_next_scan_timestamp', String(parsed));
+          }
+        }
+      }
       if (data?.civicProblemsStatus) {
         setCivicProblems(data.civicProblemsStatus);
       }
@@ -669,6 +712,16 @@ export default function YouTubeMonitorPage() {
         },
       });
       const data = await res.json();
+
+      if (data.next_scan_at) {
+        const parsed = new Date(data.next_scan_at).getTime();
+        if (!isNaN(parsed) && parsed > Date.now()) {
+          nextScanTimestampRef.current = parsed;
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('kjin_autopilot_next_scan_timestamp', String(parsed));
+          }
+        }
+      }
       if (!res.ok || !data.success) {
         setFeedback({
           text: `Email alert failed: ${data.error || 'Google rejected credentials. Please update SMTP_PASS with a fresh App Password.'}`,
@@ -715,6 +768,16 @@ export default function YouTubeMonitorPage() {
       }
 
       const data = await res.json();
+
+      if (data.next_scan_at) {
+        const parsed = new Date(data.next_scan_at).getTime();
+        if (!isNaN(parsed) && parsed > Date.now()) {
+          nextScanTimestampRef.current = parsed;
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('kjin_autopilot_next_scan_timestamp', String(parsed));
+          }
+        }
+      }
       setAutoPublishEnabled(Boolean(data.enabled));
       if (data.delay_minutes) {
         setAutoPublishDelayMinutes(Number(data.delay_minutes));
@@ -764,6 +827,16 @@ export default function YouTubeMonitorPage() {
       });
 
       const data = await res.json();
+
+      if (data.next_scan_at) {
+        const parsed = new Date(data.next_scan_at).getTime();
+        if (!isNaN(parsed) && parsed > Date.now()) {
+          nextScanTimestampRef.current = parsed;
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('kjin_autopilot_next_scan_timestamp', String(parsed));
+          }
+        }
+      }
       if (!res.ok || !data.success) {
         throw new Error(data.error || 'Failed to publish story.');
       }
@@ -810,6 +883,16 @@ export default function YouTubeMonitorPage() {
       });
 
       const data = await res.json();
+
+      if (data.next_scan_at) {
+        const parsed = new Date(data.next_scan_at).getTime();
+        if (!isNaN(parsed) && parsed > Date.now()) {
+          nextScanTimestampRef.current = parsed;
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('kjin_autopilot_next_scan_timestamp', String(parsed));
+          }
+        }
+      }
       if (!res.ok || !data.success) {
         throw new Error(data.error || 'Failed to cancel auto-publish.');
       }
@@ -894,17 +977,42 @@ export default function YouTubeMonitorPage() {
         const sData = await settingsRes.json();
         const mins = sData.interval_minutes !== undefined && !isNaN(Number(sData.interval_minutes))
           ? Number(sData.interval_minutes)
-          : 1;
+          : 3;
         const enabled = sData.auto_pilot_enabled !== false;
         setAutoPilotIntervalMinutes(mins);
         setAutoPilot(enabled);
-        if (!nextScanTimestampRef.current || nextScanTimestampRef.current <= Date.now()) {
-          nextScanTimestampRef.current = Date.now() + mins * 60 * 1000;
-          setCountdown(mins * 60);
+
+        // Synchronize with backend-persisted scan timestamp
+        let targetNextMs = 0;
+        if (sData.next_scan_at) {
+          const parsed = new Date(sData.next_scan_at).getTime();
+          if (!isNaN(parsed) && parsed > Date.now()) {
+            targetNextMs = parsed;
+          }
         }
+
+        if (!targetNextMs) {
+          const localSaved = typeof window !== 'undefined' ? localStorage.getItem('kjin_autopilot_next_scan_timestamp') : null;
+          if (localSaved && !isNaN(Number(localSaved)) && Number(localSaved) > Date.now()) {
+            targetNextMs = Number(localSaved);
+          }
+        }
+
+        if (!targetNextMs) {
+          const remainingSecs = sData.remaining_seconds && Number(sData.remaining_seconds) > 0
+            ? Number(sData.remaining_seconds)
+            : mins * 60;
+          targetNextMs = Date.now() + remainingSecs * 1000;
+        }
+
+        nextScanTimestampRef.current = targetNextMs;
+        const remainingSecs = Math.max(0, Math.ceil((targetNextMs - Date.now()) / 1000));
+        setCountdown(remainingSecs);
+
         if (typeof window !== 'undefined') {
           localStorage.setItem('kjin_autopilot_interval', String(mins));
           localStorage.setItem('kjin_autopilot_enabled', String(enabled));
+          localStorage.setItem('kjin_autopilot_next_scan_timestamp', String(targetNextMs));
         }
         if (sData.beat_quotas) {
           setBeatQuotas((prev) => ({ ...prev, ...sData.beat_quotas }));
@@ -963,6 +1071,16 @@ export default function YouTubeMonitorPage() {
       });
 
       const data = await res.json();
+
+      if (data.next_scan_at) {
+        const parsed = new Date(data.next_scan_at).getTime();
+        if (!isNaN(parsed) && parsed > Date.now()) {
+          nextScanTimestampRef.current = parsed;
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('kjin_autopilot_next_scan_timestamp', String(parsed));
+          }
+        }
+      }
       if (res.ok) {
         if (!silent || (data.newVideosFound && data.newVideosFound > 0)) {
           setFeedback({
@@ -1005,6 +1123,16 @@ export default function YouTubeMonitorPage() {
       });
 
       const data = await res.json();
+
+      if (data.next_scan_at) {
+        const parsed = new Date(data.next_scan_at).getTime();
+        if (!isNaN(parsed) && parsed > Date.now()) {
+          nextScanTimestampRef.current = parsed;
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('kjin_autopilot_next_scan_timestamp', String(parsed));
+          }
+        }
+      }
       if (res.ok && data.success && data.discovered) {
         setFeedback({
           text: `✨ Discovered breaking story: "${data.headline}" (${data.scope} • ${data.beat})! Sent to Pending Approval queue.`,
@@ -1056,6 +1184,16 @@ export default function YouTubeMonitorPage() {
       });
 
       const data = await res.json();
+
+      if (data.next_scan_at) {
+        const parsed = new Date(data.next_scan_at).getTime();
+        if (!isNaN(parsed) && parsed > Date.now()) {
+          nextScanTimestampRef.current = parsed;
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('kjin_autopilot_next_scan_timestamp', String(parsed));
+          }
+        }
+      }
       if (res.ok) {
         setFeedback({
           text: `Channel "${data.channel.channel_name}" successfully registered for surveillance!`,
@@ -1146,6 +1284,16 @@ export default function YouTubeMonitorPage() {
       });
 
       const data = await res.json();
+
+      if (data.next_scan_at) {
+        const parsed = new Date(data.next_scan_at).getTime();
+        if (!isNaN(parsed) && parsed > Date.now()) {
+          nextScanTimestampRef.current = parsed;
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('kjin_autopilot_next_scan_timestamp', String(parsed));
+          }
+        }
+      }
       if (res.ok && data.draft) {
         let synthScope: 'Local News (J&K)' | 'National' | 'International' = 'National';
         const rawScope = (data.draft.scope || '').toLowerCase();
@@ -1229,6 +1377,16 @@ export default function YouTubeMonitorPage() {
         }),
       });
       const data = await res.json();
+
+      if (data.next_scan_at) {
+        const parsed = new Date(data.next_scan_at).getTime();
+        if (!isNaN(parsed) && parsed > Date.now()) {
+          nextScanTimestampRef.current = parsed;
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('kjin_autopilot_next_scan_timestamp', String(parsed));
+          }
+        }
+      }
       if (!res.ok) throw new Error(data.error || 'Failed to synthesize social post.');
 
       // Open the synthesized draft directly in the review modal!
@@ -1373,6 +1531,16 @@ export default function YouTubeMonitorPage() {
       });
 
       const data = await res.json();
+
+      if (data.next_scan_at) {
+        const parsed = new Date(data.next_scan_at).getTime();
+        if (!isNaN(parsed) && parsed > Date.now()) {
+          nextScanTimestampRef.current = parsed;
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('kjin_autopilot_next_scan_timestamp', String(parsed));
+          }
+        }
+      }
       if (!res.ok) {
         throw new Error(data.error || 'Failed to upload image.');
       }
@@ -1422,6 +1590,16 @@ export default function YouTubeMonitorPage() {
       });
 
       const data = await res.json();
+
+      if (data.next_scan_at) {
+        const parsed = new Date(data.next_scan_at).getTime();
+        if (!isNaN(parsed) && parsed > Date.now()) {
+          nextScanTimestampRef.current = parsed;
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('kjin_autopilot_next_scan_timestamp', String(parsed));
+          }
+        }
+      }
       if (res.ok) {
         setFeedback({
           text: `Draft approved into official articles (${targetStatus === 'review' ? 'Awaiting Editorial Approval' : 'Saved as Draft'})!`,

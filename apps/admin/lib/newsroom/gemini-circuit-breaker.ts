@@ -106,6 +106,22 @@ export async function isGeminiInCooldown(supabase?: SupabaseClient): Promise<{
     };
   }
 
+  // Auto-heal if the breaker was tripped by legacy gemini-2.5-flash (which was capped at 20 requests/day)
+  if (state.failure_reason && (state.failure_reason.includes('gemini-2.5-flash') || state.failure_reason.includes('limit: 20'))) {
+    console.log('[GeminiCircuitBreaker] 🔄 Auto-resetting legacy gemini-2.5-flash quota lock to resume with gemini-2.0-flash (1,500 req/day).');
+    if (supabase) {
+      void resetCircuitBreaker(supabase);
+    }
+    return {
+      inCooldown: false,
+      cooldownUntil: null,
+      remainingMinutes: 0,
+      pendingBeatId: state.pending_beat_id,
+      failureReason: null,
+      retryCount: 0,
+    };
+  }
+
   const cooldownTime = new Date(state.cooldown_until).getTime();
   const now = Date.now();
 

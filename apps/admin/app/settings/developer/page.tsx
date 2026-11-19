@@ -124,7 +124,7 @@ export default function DeveloperSettingsPage() {
     }
 
     if (form.support_phone && !validatePhone(form.support_phone)) {
-      setErrorMsg('Please enter a valid telephone number (e.g. +91 6005950197).');
+      setErrorMsg('Please enter a valid telephone number (e.g. +91 194 2450000).');
       return;
     }
 
@@ -408,7 +408,7 @@ export default function DeveloperSettingsPage() {
                     value={form.support_phone}
                     onChange={(e) => handleChange('support_phone', e.target.value)}
                     className="w-full rounded-xl border border-slate-800 bg-slate-900 px-4 py-2 text-sm text-white placeholder-slate-600 focus:border-cyan-500 focus:outline-none font-mono"
-                    placeholder="+91 6005950197"
+                    placeholder="+91 194 2450000"
                   />
                   <p className="text-[11px] text-slate-500">
                     Clicking &quot;Call Us&quot; triggers phone dialler with a <code className="text-slate-400">tel:</code> link.
@@ -569,7 +569,7 @@ export default function DeveloperSettingsPage() {
                             className="text-sm font-bold text-current hover:underline inline-flex items-center gap-1"
                           >
                             <span>{form.developer_name || 'KJCPL Development Team'}</span>
-                            <span className="text-xs text-slate-400">&nearr;</span>
+                            <span className="text-xs text-slate-400">↗</span>
                           </a>
                         ) : (
                           <span className="text-sm font-bold text-current">

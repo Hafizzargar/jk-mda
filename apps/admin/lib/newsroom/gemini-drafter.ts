@@ -246,17 +246,24 @@ ${govSection}
 }
 
 /**
- * Generate a URL-friendly slug from title (strictly enforces single hyphens)
+ * Generate a clean, human-readable, and SEO-friendly slug from title
+ * Avoids random hashes, preserves full words, and appends the year.
  */
 export function generateSlug(title: string): string {
-  const base = title
+  const clean = title
     .toLowerCase()
     .trim()
     .replace(/[^\w\s-]/g, '')
     .replace(/[\s_-]+/g, '-')
     .replace(/^-+|-+$/g, '');
 
-  const suffix = Math.random().toString(36).substring(2, 6);
-  const cleanBase = base.slice(0, 60).replace(/-+$/, '');
-  return `${cleanBase || 'news'}-${suffix}`;
+  // Truncate at word boundary up to ~70 characters
+  let base = clean.slice(0, 70);
+  const lastHyphen = base.lastIndexOf('-');
+  if (lastHyphen > 35) {
+    base = base.slice(0, lastHyphen);
+  }
+  base = base.replace(/-+$/, '') || 'dispatch';
+
+  return `${base}-2026`;
 }

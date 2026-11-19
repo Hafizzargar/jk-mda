@@ -18,6 +18,7 @@ export default function FooterSettingsPage() {
   const [form, setForm] = useState<FooterContactSettings>(DEFAULT_FOOTER_CONTACT);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [masterEmail, setMasterEmail] = useState('h26412301@gmail.com');
   const [activeTab, setActiveTab] = useState<'emails' | 'bureaus' | 'phones' | 'statutory' | 'social'>('emails');
 
   useEffect(() => {
@@ -67,7 +68,11 @@ export default function FooterSettingsPage() {
           .maybeSingle();
 
         if (settingRow?.value) {
-          setForm({ ...DEFAULT_FOOTER_CONTACT, ...(settingRow.value as Partial<FooterContactSettings>) });
+          const val = settingRow.value as Partial<FooterContactSettings>;
+          setForm({ ...DEFAULT_FOOTER_CONTACT, ...val });
+          if (val.email_editorial || val.email_grievance) {
+            setMasterEmail(val.email_editorial || val.email_grievance || 'h26412301@gmail.com');
+          }
         }
 
         // Also fetch brand from navbar_settings to keep organization_name synced
@@ -101,6 +106,9 @@ export default function FooterSettingsPage() {
           const json = await res.json();
           if (json.footer_contact) {
             setForm({ ...DEFAULT_FOOTER_CONTACT, ...json.footer_contact });
+            if (json.footer_contact.email_editorial || json.footer_contact.email_grievance) {
+              setMasterEmail(json.footer_contact.email_editorial || json.footer_contact.email_grievance);
+            }
           }
           setCanManage(Boolean(json.can_manage));
         } else {
@@ -536,33 +544,45 @@ export default function FooterSettingsPage() {
                   <p className="text-xs text-slate-400">Configure newsdesk inboxes across Editorial, Careers, Grievances, and Press communications. Changes saved here reflect immediately on the live website and footer.</p>
                 </div>
 
-                {/* Quick 1-Click Default Preset */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl bg-cyan-950/40 border border-cyan-500/30">
-                  <div className="space-y-0.5">
-                    <span className="text-xs font-bold text-cyan-300 flex items-center gap-1.5">
-                      <span>⚡</span> Primary Newsdesk Mailbox Preset
-                    </span>
-                    <p className="text-[11px] text-slate-400">
-                      Reset all public contact inboxes to the official newsdesk email (<strong>h26412301@gmail.com</strong>).
-                    </p>
+                {/* Master Newsdesk Mailbox Controller */}
+                <div className="p-4 rounded-xl bg-cyan-950/40 border border-cyan-500/30 space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="space-y-0.5">
+                      <span className="text-xs font-bold text-cyan-300 flex items-center gap-1.5">
+                        <span>⚡</span> Master Newsdesk Email Controller
+                      </span>
+                      <p className="text-[11px] text-slate-400">
+                        Quickly control and broadcast one central contact email across Editorial, Careers, Grievances, Press, and all platform channels.
+                      </p>
+                    </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setForm((prev) => ({
-                        ...prev,
-                        email_editorial: 'h26412301@gmail.com',
-                        email_careers: 'h26412301@gmail.com',
-                        email_grievance: 'h26412301@gmail.com',
-                        email_press: 'h26412301@gmail.com',
-                      }));
-                      setSuccessMsg('Set official h26412301@gmail.com address to all email fields. Click "Save & Publish Footer Info" to broadcast.');
-                    }}
-                    className="shrink-0 px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm"
-                  >
-                    <span>⚡</span>
-                    <span>Set All to h26412301@gmail.com</span>
-                  </button>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="email"
+                      value={masterEmail}
+                      onChange={(e) => setMasterEmail(e.target.value)}
+                      placeholder="h26412301@gmail.com"
+                      className="flex-1 rounded-xl border border-slate-700 bg-slate-950 px-4 py-2 text-sm text-white placeholder-slate-500 focus:border-cyan-500 focus:outline-none font-mono"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const target = masterEmail.trim() || 'h26412301@gmail.com';
+                        setForm((prev) => ({
+                          ...prev,
+                          email_editorial: target,
+                          email_careers: target,
+                          email_grievance: target,
+                          email_press: target,
+                        }));
+                        setSuccessMsg(`Applied "${target}" to Editorial, Careers, Grievances, and Press. Click "Save & Publish Footer Info" below to broadcast live.`);
+                      }}
+                      className="px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                    >
+                      <span>⚡</span>
+                      <span>Apply to All Inboxes</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="space-y-4">

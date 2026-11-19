@@ -2,6 +2,7 @@ import { MetadataRoute } from 'next';
 import { createServerAnonClient } from '@/lib/supabase-server';
 import { SITE_URL } from '@/lib/config';
 import { NEWS_CATEGORIES, JK_DISTRICTS, REGIONAL_DIVISIONS, getCategorySlug } from '@/lib/taxonomy';
+import { KJIN_JOURNALISTS } from '@/lib/journalists';
 
 // Limit per sitemap file to comply with search engine standards and memory bounds
 const SITEMAP_MAX_ARTICLES = 10000;
@@ -88,11 +89,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
+  // 6. Accredited Author & Journalist Profile URLs
+  const authorUrls: MetadataRoute.Sitemap = Object.keys(KJIN_JOURNALISTS).map((slug) => ({
+    url: `${SITE_URL}/en/author/${slug}`,
+    lastModified: new Date(),
+    changeFrequency: 'weekly',
+    priority: 0.85,
+  }));
+
   return [
     ...coreUrls,
     ...regionUrls,
     ...categoryUrls,
     ...districtUrls,
+    ...authorUrls,
     ...articleUrls,
   ];
 }

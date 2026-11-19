@@ -86,6 +86,58 @@ export const DEFAULT_CAREERS_SETTINGS: CareersSettings = {
       created_at: '2026-10-20T08:00:00.000Z',
     },
     {
+      id: 'job-chenab-correspondent',
+      title: 'Chenab Valley Senior Ground Correspondent',
+      department: 'Reporting',
+      role_type: 'Full-time',
+      location: 'Doda, Bhaderwah, Kishtwar & Ramban',
+      experience_level: '2-5 Years',
+      salary_range: '₹42,000 - ₹62,000 / month',
+      description:
+        'Lead field journalist for the Chenab Valley corridor. Responsible for rigorous investigative reporting on NH-244 transit safety, hydro-electric project displacement, saffron/lavender agriculture, and rural civic infrastructure.',
+      requirements: [
+        '2+ years of verified reporting experience based in Doda, Kishtwar, Bhaderwah, or Ramban',
+        'Demonstrated portfolio of civic investigative journalism and grassroots video documentation',
+        'Fluency in English, Urdu, and regional dialects (Kashmiri, Sarazi, or Bhaderwahi)',
+        'Personal mobility and ability to travel across mountain passes and rural tehsils',
+      ],
+      responsibilities: [
+        'Produce 4-5 verified field dispatches weekly with named official sources and citizen interviews',
+        'Cover NH-244 Sinthan Top and highway telemetry during weather emergencies',
+        'Document public grievance redressals and rural health/education scheme implementation',
+        'Cultivate local community contacts across Chenab Valley tehsils',
+      ],
+      status: 'active',
+      featured: true,
+      created_at: '2026-10-21T08:00:00.000Z',
+    },
+    {
+      id: 'job-pir-panjal-reporter',
+      title: 'Pir Panjal Border Affairs & Civic Reporter',
+      department: 'Reporting',
+      role_type: 'Full-time',
+      location: 'Poonch & Rajouri Bureau',
+      experience_level: '2-4 Years',
+      salary_range: '₹40,000 - ₹58,000 / month',
+      description:
+        'Field correspondent covering Mughal Road transit, Line of Control border welfare schemes, tribal community livelihoods (Gujjars & Bakarwals), and developmental oversight across Poonch and Rajouri districts.',
+      requirements: [
+        'Demonstrated track record of reporting from Pir Panjal border tehsils (Mendhar, Surankote, Haveli, Nowshera)',
+        'Fluency in English, Urdu, and Gojri/Pahari',
+        'Deep commitment to factual neutrality, border-safety ethics, and rigorous official corroboration',
+        'Reliable field mobility across remote mountain valleys',
+      ],
+      responsibilities: [
+        'File daily field dispatches on civic infrastructure, water schemes, and transit conditions',
+        'Document transhumance migratory challenges and pastoralist community grievances',
+        'Coordinate with border district administrations and emergency response desks',
+        'Provide high-resolution field photography and audio-visual recordings',
+      ],
+      status: 'active',
+      featured: true,
+      created_at: '2026-10-21T09:00:00.000Z',
+    },
+    {
       id: 'job-kashmir-reporter',
       title: 'Kashmir Valley Investigative Field Reporter',
       department: 'Reporting',
@@ -195,8 +247,11 @@ export function sanitizeCareersSettings(raw: unknown): CareersSettings {
 
   const obj = raw as Record<string, unknown>;
 
-  const jobs: JobPosting[] = Array.isArray(obj.jobs)
-    ? obj.jobs.map((item) => {
+  const rawJobs = Array.isArray(obj.jobs) && obj.jobs.length > 0
+    ? obj.jobs
+    : DEFAULT_CAREERS_SETTINGS.jobs;
+
+  const jobs: JobPosting[] = rawJobs.map((item) => {
         const j = (item && typeof item === 'object' ? item : {}) as Record<string, unknown>;
         const validStatus = ['active', 'closed', 'draft'].includes(String(j.status))
           ? (j.status as 'active' | 'closed' | 'draft')
@@ -221,8 +276,7 @@ export function sanitizeCareersSettings(raw: unknown): CareersSettings {
           featured: Boolean(j.featured),
           created_at: typeof j.created_at === 'string' && j.created_at ? j.created_at : new Date().toISOString(),
         };
-      })
-    : DEFAULT_CAREERS_SETTINGS.jobs;
+      });
 
   const applications: JobApplication[] = Array.isArray(obj.applications)
     ? obj.applications.map((item) => {
@@ -256,7 +310,11 @@ export function sanitizeCareersSettings(raw: unknown): CareersSettings {
     page_title: typeof obj.page_title === 'string' && obj.page_title.trim() ? obj.page_title.trim().slice(0, 150) : DEFAULT_CAREERS_SETTINGS.page_title,
     page_subtitle: typeof obj.page_subtitle === 'string' && obj.page_subtitle.trim() ? obj.page_subtitle.trim().slice(0, 200) : DEFAULT_CAREERS_SETTINGS.page_subtitle,
     hiring_status,
-    contact_email: typeof obj.contact_email === 'string' && obj.contact_email.trim() && obj.contact_email.trim() !== 'careers@kjin.org'
+    contact_email: typeof obj.contact_email === 'string' &&
+      obj.contact_email.trim() &&
+      !obj.contact_email.toLowerCase().includes('@kjcpl.site') &&
+      !obj.contact_email.toLowerCase().includes('@kjin.org') &&
+      !obj.contact_email.toLowerCase().includes('@kjin.in')
       ? obj.contact_email.trim().slice(0, 150)
       : 'h26412301@gmail.com',
     culture_statement: typeof obj.culture_statement === 'string' && obj.culture_statement.trim() ? obj.culture_statement.trim().slice(0, 1500) : DEFAULT_CAREERS_SETTINGS.culture_statement,

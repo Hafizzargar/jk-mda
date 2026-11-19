@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState, FormEvent } from 'react';
+import { useEffect, useState, useCallback, FormEvent } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { requiresMfa } from '@/lib/mfa';
 import {
   DEFAULT_CAREERS_SETTINGS,
+  sanitizeCareersSettings,
   type CareersSettings,
   type JobPosting,
   type JobApplication,
@@ -20,7 +21,7 @@ export default function CareersAdminPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [canManage, setCanManage] = useState(false);
-  const [activeTab, setActiveTab] = useState<'jobs' | 'applications' | 'settings'>('jobs');
+  const [activeTab, setActiveTab] = useState<'jobs' | 'applications' | 'settings'>('applications');
   const [careers, setCareers] = useState<CareersSettings>(DEFAULT_CAREERS_SETTINGS);
 
   // Filter state for Applications
@@ -51,41 +52,61 @@ export default function CareersAdminPage() {
   const [quickEmail, setQuickEmail] = useState<string>('h26412301@gmail.com');
   const [jobVisibilityFilter, setJobVisibilityFilter] = useState<'all' | 'active' | 'paused'>('all');
 
-  useEffect(() => {
-    async function loadCareers() {
+  const loadCareers = useCallback(async () => {
+    try {
+      setLoading(true);
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError || !sessionData.session) {
+        router.push('/login');
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role_key, status')
+        .eq('id', sessionData.session.user.id)
+        .single();
+
+      if (!profile || profile.status !== 'active') {
+        router.push('/login');
+        return;
+      }
+
+      const role = profile.role_key;
+      if (!['owner', 'superadmin', 'admin'].includes(role)) {
+        router.push('/');
+        return;
+      }
+
+      if (requiresMfa(role)) {
+        const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (aalData?.currentLevel !== 'aal2') {
+          router.push('/mfa/challenge');
+          return;
+        }
+      }
+
+      // 1. Direct load from site_settings table as primary for immediate real-time sync
       try {
-        setLoading(true);
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError || !sessionData.session) {
-          router.push('/login');
-          return;
-        }
+        const { data: settingRow } = await supabase
+          .from('site_settings')
+          .select('value')
+          .eq('key', 'careers_settings')
+          .maybeSingle();
 
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role_key, status')
-          .eq('id', sessionData.session.user.id)
-          .single();
-
-        if (!profile || profile.status !== 'active') {
-          router.push('/login');
-          return;
-        }
-
-        const role = profile.role_key;
-        if (!['owner', 'superadmin', 'admin'].includes(role)) {
-          router.push('/');
-          return;
-        }
-
-        if (requiresMfa(role)) {
-          const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-          if (aalData?.currentLevel !== 'aal2') {
-            router.push('/mfa/challenge');
-            return;
+        if (settingRow?.value) {
+          const sanitized = sanitizeCareersSettings(settingRow.value);
+          setCareers(sanitized);
+          if (sanitized.contact_email) {
+            setQuickEmail(sanitized.contact_email);
           }
         }
+      } catch (sbErr) {
+        console.warn('Direct load of careers_settings from site_settings failed:', sbErr);
+      }
 
+      // 2. Also call /api/careers for staff authorization parity
+      try {
         const token = sessionData.session.access_token;
         const res = await fetch('/api/careers', {
           headers: {
@@ -104,16 +125,20 @@ export default function CareersAdminPage() {
         } else {
           setCanManage(['owner', 'superadmin', 'admin'].includes(role));
         }
-      } catch (err) {
-        console.error('Failed to load careers configuration:', err);
-        toast.error('Failed to load careers settings from server.');
-      } finally {
-        setLoading(false);
+      } catch {
+        setCanManage(['owner', 'superadmin', 'admin'].includes(role));
       }
+    } catch (err) {
+      console.error('Failed to load careers configuration:', err);
+      toast.error('Failed to load careers settings from server.');
+    } finally {
+      setLoading(false);
     }
-
-    loadCareers();
   }, [router]);
+
+  useEffect(() => {
+    loadCareers();
+  }, [loadCareers]);
 
   // Persist careers configuration to server
   const saveCareersToServer = async (
@@ -125,21 +150,40 @@ export default function CareersAdminPage() {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData.session?.access_token;
 
-      const res = await fetch('/api/careers', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify(updated),
-      });
+      let apiSuccess = false;
+      try {
+        const res = await fetch('/api/careers', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify(updated),
+        });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to update careers.');
+        if (res.ok) {
+          const data = await res.json();
+          setCareers(data.careers_settings || updated);
+          apiSuccess = true;
+        }
+      } catch (apiErr) {
+        console.warn('API /api/careers POST failed, attempting direct Supabase upsert:', apiErr);
       }
 
-      setCareers(data.careers_settings);
+      if (!apiSuccess) {
+        const { error: sbError } = await supabase
+          .from('site_settings')
+          .upsert({
+            key: 'careers_settings',
+            value: updated,
+            updated_at: new Date().toISOString(),
+          });
+        if (sbError) {
+          throw new Error(sbError.message || 'Failed to update careers.');
+        }
+        setCareers(updated);
+      }
+
       toast.success(successMessage);
       return true;
     } catch (err: unknown) {
@@ -301,6 +345,61 @@ export default function CareersAdminPage() {
     );
     if (success && selectedApp && selectedApp.id === appId) {
       setSelectedApp({ ...selectedApp, status: nextStatus });
+    }
+  };
+
+  // Delete Candidate Application
+  const handleDeleteApp = async (appId: string) => {
+    const target = careers.applications.find((a) => a.id === appId);
+    const candidateName = target?.full_name || 'this candidate';
+    if (!window.confirm(`Are you sure you want to delete the application from "${candidateName}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+
+      let deleted = false;
+      try {
+        const res = await fetch(`/api/careers?id=${encodeURIComponent(appId)}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.careers_settings) {
+            setCareers(json.careers_settings);
+            deleted = true;
+          }
+        }
+      } catch {
+        // Fallback to client-side save below
+      }
+
+      if (!deleted) {
+        const updatedApps = careers.applications.filter((a) => a.id !== appId);
+        const updatedSettings = { ...careers, applications: updatedApps };
+        await saveCareersToServer(
+          updatedSettings,
+          `Application from ${candidateName} has been deleted.`
+        );
+      } else {
+        toast.success(`Application from ${candidateName} has been deleted.`);
+      }
+
+      if (selectedApp?.id === appId) {
+        setSelectedApp(null);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to delete application.';
+      toast.error(msg);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -752,6 +851,20 @@ export default function CareersAdminPage() {
                     {j.title}
                   </option>
                 ))}
+                {Array.from(
+                  new Set(
+                    careers.applications
+                      .map((a) => a.job_id)
+                      .filter((id) => id && id !== 'general' && !careers.jobs.some((j) => j.id === id))
+                  )
+                ).map((extraId) => {
+                  const sample = careers.applications.find((a) => a.job_id === extraId);
+                  return (
+                    <option key={extraId} value={extraId}>
+                      {sample?.job_title || extraId}
+                    </option>
+                  );
+                })}
               </select>
 
               <input
@@ -761,6 +874,16 @@ export default function CareersAdminPage() {
                 onChange={(e) => setAppSearch(e.target.value)}
                 className="px-3 py-1.5 rounded-xl text-xs bg-stone-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 focus:outline-none w-48"
               />
+
+              <button
+                type="button"
+                onClick={() => loadCareers()}
+                className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-stone-100 hover:bg-stone-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center gap-1 transition"
+                title="Refresh candidates"
+              >
+                <span>🔄</span>
+                <span className="hidden sm:inline">Refresh</span>
+              </button>
             </div>
           </div>
 
@@ -827,7 +950,7 @@ export default function CareersAdminPage() {
                       </p>
                     </div>
 
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                       {app.portfolio_url && (
                         <a
                           href={app.portfolio_url}
@@ -841,14 +964,28 @@ export default function CareersAdminPage() {
                         </a>
                       )}
                       <button
+                        type="button"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleOpenAppDetails(app);
                         }}
-                        className="px-4 py-1.5 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950"
+                        className="px-4 py-1.5 rounded-xl text-xs font-bold bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 transition"
                       >
                         Review
                       </button>
+                      {canManage && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteApp(app.id);
+                          }}
+                          className="px-3 py-1.5 rounded-xl text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-500/10 border border-rose-200 dark:border-rose-900/40 transition flex items-center gap-1"
+                          title="Delete candidate application"
+                        >
+                          <span>🗑️ Delete</span>
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -1168,22 +1305,35 @@ export default function CareersAdminPage() {
             </button>
 
             {/* Candidate Header */}
-            <div>
-              <div className="flex flex-wrap items-center gap-2 mb-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400">
-                  Candidate Dossier
-                </span>
-                <span>•</span>
-                <span className="text-xs text-slate-400">
-                  Applied {new Date(selectedApp.applied_at).toLocaleString()}
-                </span>
+            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pr-8">
+              <div>
+                <div className="flex flex-wrap items-center gap-2 mb-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400">
+                    Candidate Dossier
+                  </span>
+                  <span>•</span>
+                  <span className="text-xs text-slate-400">
+                    Applied {new Date(selectedApp.applied_at).toLocaleString()}
+                  </span>
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
+                  {selectedApp.full_name}
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Role Applied: <span className="font-semibold text-slate-700 dark:text-slate-200">{selectedApp.job_title}</span>
+                </p>
               </div>
-              <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
-                {selectedApp.full_name}
-              </h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                Role Applied: <span className="font-semibold text-slate-700 dark:text-slate-200">{selectedApp.job_title}</span>
-              </p>
+
+              {canManage && (
+                <button
+                  type="button"
+                  onClick={() => handleDeleteApp(selectedApp.id)}
+                  className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-500/10 border border-rose-200 dark:border-rose-900/40 transition flex items-center gap-1.5 self-start"
+                  title="Delete this candidate application"
+                >
+                  <span>🗑️ Delete Dossier</span>
+                </button>
+              )}
             </div>
 
             {/* Status Selector Bar */}
@@ -1293,6 +1443,20 @@ export default function CareersAdminPage() {
                 className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-stone-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 focus:outline-none leading-relaxed"
               />
             </div>
+
+            {/* Delete Candidate Option */}
+            {canManage && (
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <span className="text-xs text-slate-400">Permanently delete this candidate application:</span>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteApp(selectedApp.id)}
+                  className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-500/10 border border-rose-200 dark:border-rose-900/40 transition flex items-center gap-1.5"
+                >
+                  <span>🗑️ Delete Candidate</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

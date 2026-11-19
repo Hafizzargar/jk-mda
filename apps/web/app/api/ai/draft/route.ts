@@ -139,7 +139,7 @@ export async function POST(request: Request) {
       generatedObject = await customDraftGenerator({ rawFacts: parsed.data.rawFacts });
     } else {
       const result = await generateObject({
-        model: google('gemini-2.5-flash'),
+        model: google('gemini-2.0-flash'),
         system: `You are an expert news editor and journalist for KJCPL (KJCPL News Network). 
 Your task is to take raw notes, facts, or press releases and draft a professional, objective, and clear news article.
 - Output MUST be structured as a JSON object with title, excerpt, content, slug, category, and district.

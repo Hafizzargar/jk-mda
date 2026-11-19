@@ -12,6 +12,7 @@ import { getDistrictDisplayName } from '@/lib/taxonomy';
 import { DEFAULT_TELEMETRY_SETTINGS } from '@/lib/telemetry';
 import { formatArticleDate } from '@/lib/date';
 import { getOptimizedMediaUrl } from '@/lib/media';
+import { FALLBACK_BROADSHEET_ARTICLES } from '@/lib/seed-articles';
 import { TerritorialBureauTelemetrySlider } from '@/components/telemetry/TerritorialBureauTelemetrySlider';
 import { SafeEditorialImage } from '@/components/common/SafeEditorialImage';
 import { TodayCenterDispatches } from './TodayCenterDispatches';
@@ -19,6 +20,7 @@ import { CivicProblemsSlider } from './CivicProblemsSlider';
 import { WarConflictTickerSlider } from './WarConflictTickerSlider';
 import { formatArticleTime, formatTimeAgo } from '@/lib/date';
 import { getCorrespondentByBeat } from '@/lib/i18n';
+import { isGenuineConflictArticle, FALLBACK_WAR_NEWS } from '@/lib/external-news';
 
 function decodeHtmlEntities(str?: string | null): string {
   if (!str) return '';
@@ -121,9 +123,9 @@ export function ClassicEditorialTemplate({
     let raw = (author || '').trim();
     if (raw.includes('KJIN')) raw = raw.replace(/\bKJIN\b/g, 'KJCPL');
     if (raw.startsWith('KCPJLN')) raw = raw.replace(/\bKCPJLN\b/g, 'KJCPL');
-    if (!raw || raw === 'Hafeez Zargar' || raw === 'Hafiz Zargar' || raw === 'KJCPL Team' || raw === 'Team') {
+    if (!raw || raw.includes('Bureau') || raw.includes('Desk') || raw.includes('Team') || raw.includes('Discovery') || raw === 'Hafeez Zargar' || raw === 'Hafiz Zargar') {
       if (art) return getCorrespondentByBeat(art);
-      return 'KJCPL Ground Bureau';
+      return 'Tariq Lone';
     }
     return raw;
   };
@@ -173,7 +175,7 @@ export function ClassicEditorialTemplate({
   const getCoreId = (id?: string | null) => (id || '').replace(/^db-(conflict|discover)-/, '');
 
   // 1. Lead Story resolution (used to guarantee 0 duplication across other slots)
-  const leadArticle = heroArticle || recentArticles[0] || allArticles[0] || null;
+  const leadArticle = heroArticle || recentArticles[0] || allArticles[0] || FALLBACK_BROADSHEET_ARTICLES[0] || null;
   const leadId = leadArticle?.id;
   if (leadId) claimedArticleIds.add(leadId);
 
@@ -226,8 +228,18 @@ export function ClassicEditorialTemplate({
     return list;
   })();
 
-  // 7. Deduplicate wire sliders against articles already shown on the page
-  const conflictNews = (propConflictNews || []).filter((item) => !claimedArticleIds.has(getCoreId(item.id)));
+  // 7. Deduplicate wire sliders against articles already shown on the page with strict war verification
+  const rawConflictNews = (propConflictNews || []).filter(
+    (item) => isGenuineConflictArticle(item.title, item.summary) && !claimedArticleIds.has(getCoreId(item.id))
+  );
+  const conflictNews = rawConflictNews.length >= 3
+    ? rawConflictNews
+    : [
+        ...rawConflictNews,
+        ...FALLBACK_WAR_NEWS.filter(
+          (f) => !rawConflictNews.some((r) => r.title.toLowerCase().trim() === f.title.toLowerCase().trim())
+        ),
+      ];
   const discoverNews = (propDiscoverNews || []).filter((item) => !claimedArticleIds.has(getCoreId(item.id)));
   const editorialArticle = propEditorialArticle && !claimedArticleIds.has(propEditorialArticle.id) ? propEditorialArticle : null;
   const civicProblemItems = (problemArticles && problemArticles.length > 0)
@@ -1514,7 +1526,7 @@ export function ClassicEditorialTemplate({
             };
 
             const renderLeadHeroGroup = (key = 'lead_hero_group') => {
-              const leadArticle = heroArticle || recentArticles[0] || allArticles[0] || null;
+              const leadArticle = heroArticle || recentArticles[0] || allArticles[0] || FALLBACK_BROADSHEET_ARTICLES[0] || null;
               return (
               <div key={key} className="space-y-8 font-sans" data-purpose="lead-hero-group">
                 {leadArticle && (

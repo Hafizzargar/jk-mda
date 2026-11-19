@@ -1,0 +1,32 @@
+name: news-intel
+
+on:
+  schedule:
+    # Hourly execution to stay safely under 720 minutes/month on GitHub free tier
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Dependencies
+        run: npm install rss-parser @supabase/supabase-js
+
+      - name: Run Autonomous News Intelligence ($0 Stack)
+        run: node scripts/news-intel.mjs
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY || secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY || secrets.OPENROUTER_API_KEY }}
+          AI_MODELS: ${{ secrets.AI_MODELS || 'google/gemini-2.0-flash-lite-preview:free,meta-llama/llama-3.3-70b-instruct:free,mistralai/mistral-7b-instruct:free,qwen/qwen-2.5-72b-instruct:free,deepseek/deepseek-r1:free' }}
+          NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL || 'https://www.kjcpl.site' }}

@@ -12,7 +12,12 @@ const supabase = createClient(supabaseUrl, serviceKey, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
-const userMail = 'h26412301@gmail.com';
+/**
+ * CLI utility to sync contact email across database site_settings.
+ * Note: You can also manage and control this directly from the Admin Portal at /settings/footer.
+ */
+const userMail = process.argv[2] || process.env.USER_MAIL || 'h26412301@gmail.com';
+console.log(`Setting contact email to: ${userMail}`);
 
 // 1. Update footer_contact
 const { data: current } = await supabase.from('site_settings').select('value').eq('key', 'footer_contact').single();

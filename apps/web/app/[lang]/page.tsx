@@ -34,6 +34,7 @@ import { getBrandSettings } from '@/lib/brand';
 import { DEFAULT_TELEMETRY_SETTINGS } from '@/lib/telemetry';
 import { DEFAULT_CURATION_SETTINGS } from '@/lib/curation';
 import { DEFAULT_HOMEPAGE_LAYOUT } from '@/lib/homepage-layout';
+import { FALLBACK_BROADSHEET_ARTICLES } from '@/lib/seed-articles';
 
 export async function generateMetadata(): Promise<Metadata> {
   let brandName = SITE_SHORT_NAME;
@@ -52,8 +53,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     metadataBase: new URL(SITE_URL),
-    title: `${brandFullName} (${brandName}) | ${tagline}`,
-    description: `Independent, verified reporting, investigations, and ground dispatches from ${brandFullName}.`,
+    title: `J&K News: Doda, Kishtwar, Poonch, Ramban, Bhaderwah, Leh | ${brandName || 'KJCPL'}`,
+    description: `Verified grassroots journalism, daily ground reporting, civic dispatches, and public affairs from Doda, Kishtwar, Poonch, Ramban, Bhaderwah, Leh, and across Jammu & Kashmir.`,
     alternates: {
       canonical: `${SITE_URL}/en`,
       languages: {
@@ -62,10 +63,10 @@ export async function generateMetadata(): Promise<Metadata> {
       },
     },
     openGraph: {
-      title: `${brandFullName} | ${brandName}`,
-      description: tagline,
+      title: `J&K News: Doda, Kishtwar, Poonch, Ramban, Bhaderwah, Leh | ${brandName || 'KJCPL'}`,
+      description: `Verified daily ground reporting, civic dispatches, and public affairs across Jammu & Kashmir.`,
       url: `${SITE_URL}/en`,
-      siteName: `${brandFullName} (${brandName})`,
+      siteName: `${brandFullName || 'Kashmir Jammu Coalition Press Ltd'} (${brandName || 'KJCPL'})`,
       locale: DEFAULT_LOCALE,
       type: 'website',
     },
@@ -231,20 +232,24 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
   const dbLatestArticles = (applyTranslations(rawLatestFiltered, lang) as unknown) as ArticleItem[];
   const dbTrendingArticles = (applyTranslations(rawTrendingFiltered, lang) as unknown) as ArticleItem[];
 
-  // All articles sourced 100% from the verified database (zero static news in code)
-  const latestArticles = dbLatestArticles;
-  const trendingArticles = dbTrendingArticles;
+  // Zero-Downtime Guarantee: If DB returns 0 articles (cold boot / network resilience), fallback to broadsheet seed articles
+  const latestArticles = dbLatestArticles.length > 0 ? dbLatestArticles : FALLBACK_BROADSHEET_ARTICLES;
+  const trendingArticles = dbTrendingArticles.length > 0 ? dbTrendingArticles : FALLBACK_BROADSHEET_ARTICLES.slice(0, 5);
 
   const rawProblemArticles = (problemResult?.data && Array.isArray(problemResult.data))
     ? problemResult.data
     : [];
   const dbProblemArticles = ((applyTranslations(rawProblemArticles, lang) as unknown) as ArticleItem[]) || [];
-  const problemArticles = dbProblemArticles;
+  const problemArticles = dbProblemArticles.length > 0
+    ? dbProblemArticles
+    : FALLBACK_BROADSHEET_ARTICLES.filter((a) => (a.category || '').toLowerCase() === 'investigation').slice(0, 4);
   const problemArticle = problemArticles[0] || null;
 
   const rawInternationalArticles = internationalResult?.data || [];
   const dbInternationalArticles = ((applyTranslations(rawInternationalArticles, lang) as unknown) as ArticleItem[]) || [];
-  const internationalArticles = dbInternationalArticles;
+  const internationalArticles = dbInternationalArticles.length > 0
+    ? dbInternationalArticles
+    : FALLBACK_BROADSHEET_ARTICLES.filter((a) => (a.category || '').toLowerCase() === 'international').slice(0, 4);
   const internationalArticle = internationalArticles[0] || null;
 
   // 6. Fetch specifically curated article IDs if set in curation desk
@@ -283,28 +288,29 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
   const dossierDbArticles = dossierResult.data || [];
   const translatedDossier = (applyTranslations(dossierDbArticles, lang) as unknown) as ArticleItem[];
 
-  // 7. Resolve Curated vs Algorithmic Slots — 100% sourced from DB
+  // 7. Resolve Curated vs Algorithmic Slots — Guaranteed non-null lead story
   const heroArticle: ArticleItem | null =
     (safeCuration.lead_hero_id ? curatedArticlesMap.get(safeCuration.lead_hero_id) : null) ||
     latestArticles[0] ||
+    FALLBACK_BROADSHEET_ARTICLES[0] ||
     null;
 
   const remainingArticles = latestArticles.filter((a) => !heroArticle || a.id !== heroArticle.id);
-  const safeRemaining = remainingArticles;
+  const safeRemaining = remainingArticles.length > 0 ? remainingArticles : FALLBACK_BROADSHEET_ARTICLES.slice(1);
 
   const subArticles: ArticleItem[] =
     safeCuration.sub_lead_ids && safeCuration.sub_lead_ids.length > 0
       ? (safeCuration.sub_lead_ids
           .map((id) => curatedArticlesMap.get(id))
           .filter(Boolean) as ArticleItem[])
-          .filter((a) => a.id !== heroArticle.id)
+          .filter((a) => !heroArticle || a.id !== heroArticle.id)
       : safeRemaining.slice(0, 2);
 
   const subArticleIds = new Set(subArticles.map((a) => a.id));
 
   // Wire candidate pool: strictly exclude heroArticle and subArticles to eliminate duplicate news
   const wireCandidates = translatedWire.filter(
-    (a) => a.id !== heroArticle.id && !subArticleIds.has(a.id)
+    (a) => (!heroArticle || a.id !== heroArticle.id) && !subArticleIds.has(a.id)
   );
 
   const wireArticles: ArticleItem[] =
@@ -312,7 +318,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
       ? (safeCuration.wire_ids
           .map((id) => curatedArticlesMap.get(id))
           .filter(Boolean) as ArticleItem[])
-          .filter((a) => a.id !== heroArticle.id && !subArticleIds.has(a.id))
+          .filter((a) => (!heroArticle || a.id !== heroArticle.id) && !subArticleIds.has(a.id))
       : wireCandidates.length > 0
       ? wireCandidates.slice(0, 5)
       : safeRemaining.filter((a) => !subArticleIds.has(a.id)).slice(0, 5);
@@ -329,7 +335,11 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
     ? uniqueStream
     : safeRemaining.filter((a) => !subArticleIds.has(a.id));
 
-  const usedHomeIds = new Set<string>([heroArticle.id, ...subArticleIds, ...wireArticleIds]);
+  const usedHomeIds = new Set<string>([
+    ...(heroArticle ? [heroArticle.id] : []),
+    ...subArticleIds,
+    ...wireArticleIds,
+  ]);
   const streamArticleIds = new Set(uniqueStream.map((a) => a.id));
   const candidateDossier = translatedDossier.filter((a) => !usedHomeIds.has(a.id));
 
@@ -346,6 +356,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
   const editorialArticle: ArticleItem | null =
     (safeCuration.editorial_id ? curatedArticlesMap.get(safeCuration.editorial_id) : null) ||
     latestArticles.find((a) => (!heroArticle || a.id !== heroArticle.id) && (a.category || '').toLowerCase() === 'opinion') ||
+    FALLBACK_BROADSHEET_ARTICLES.find((a) => (!heroArticle || a.id !== heroArticle.id) && (a.category || '').toLowerCase() === 'opinion') ||
     null;
 
   // 8. Fetch Territorial Corridor Trending News (dynamic real-time stories for all 5 corridors)

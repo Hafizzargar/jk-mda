@@ -26,6 +26,31 @@ async function getSavedIntervalMinutes(service: any): Promise<{ intervalMinutes:
   return { intervalMinutes: 30, enabled: true };
 }
 
+async function recordScanTimestamp(service: any, intervalMinutes: number) {
+  try {
+    const now = new Date();
+    const nextScan = new Date(now.getTime() + intervalMinutes * 60 * 1000);
+    const { data: existing } = await service
+      .from('site_settings')
+      .select('value')
+      .eq('key', 'newsroom_auto_pilot')
+      .maybeSingle();
+
+    await service.from('site_settings').upsert({
+      key: 'newsroom_auto_pilot',
+      value: {
+        ...(existing?.value || {}),
+        last_scan_at: now.toISOString(),
+        next_scan_at: nextScan.toISOString(),
+        interval_minutes: intervalMinutes,
+      },
+      updated_at: now.toISOString(),
+    });
+  } catch (e) {
+    console.warn('[AutoNewsWorker] Failed to record scan timestamp:', e);
+  }
+}
+
 function scheduleNextRun(service: any, delayMs: number) {
   if (timerId) clearTimeout(timerId);
 
@@ -34,6 +59,7 @@ function scheduleNextRun(service: any, delayMs: number) {
       const settings = await getSavedIntervalMinutes(service);
       if (settings.enabled) {
         console.log(`[AutoNewsWorker] Running autonomous news discovery & sync (interval: ${settings.intervalMinutes}m)...`);
+        await recordScanTimestamp(service, settings.intervalMinutes);
         // 1. Run Grounded Google Search Discovery (deposits straight into Pending Approval)
         await runAutonomousNewsDiscovery(service).catch((err) =>
           console.error('[AutoNewsWorker] Autonomous news discovery error:', err)
@@ -86,6 +112,7 @@ export function initBackgroundNewsWorker() {
       const settings = await getSavedIntervalMinutes(service);
       if (settings.enabled) {
         console.log(`[AutoNewsWorker] Running initial discovery & sync (interval: ${settings.intervalMinutes}m)...`);
+        await recordScanTimestamp(service, settings.intervalMinutes);
         await runAutonomousNewsDiscovery(service).catch((err) =>
           console.error('[AutoNewsWorker] Initial news discovery error:', err)
         );

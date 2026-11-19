@@ -31,6 +31,7 @@ export interface DataTableProps<T> {
   pagination?: PaginationConfig;
   className?: string;
   mobileCardRender?: (item: T, index: number) => React.ReactNode;
+  rowClassName?: (item: T, index: number) => string;
 }
 
 export function DataTable<T>({
@@ -42,6 +43,7 @@ export function DataTable<T>({
   pagination,
   className = '',
   mobileCardRender,
+  rowClassName,
 }: DataTableProps<T>) {
   const pageSizeOptions = pagination?.pageSizeOptions || [5, 10, 15, 20];
   const currentPage = pagination?.page || 1;
@@ -173,31 +175,36 @@ export function DataTable<T>({
               </tr>
             ) : (
               // Data Rows
-              data.map((item, rowIdx) => (
-                <tr
-                  key={keyExtractor(item, rowIdx)}
-                  className="align-top hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors"
-                >
-                  {columns.map((col) => (
-                    <td
-                      key={col.key}
-                      className={`px-4 py-3.5 ${
-                        col.align === 'center'
-                          ? 'text-center'
-                          : col.align === 'right'
-                          ? 'text-right'
-                          : 'text-left'
-                      } ${col.className || ''}`}
-                    >
-                      {col.render
-                        ? col.render(item, rowIdx)
-                        : (item as Record<string, unknown>)[col.key] !== undefined
-                        ? String((item as Record<string, unknown>)[col.key])
-                        : null}
-                    </td>
-                  ))}
-                </tr>
-              ))
+              data.map((item, rowIdx) => {
+                const rClass = rowClassName ? rowClassName(item, rowIdx) : '';
+                return (
+                  <tr
+                    key={keyExtractor(item, rowIdx)}
+                    className={`align-top hover:bg-slate-50/80 dark:hover:bg-slate-800/30 transition-colors ${rClass}`}
+                  >
+                    {columns.map((col, cIdx) => (
+                      <td
+                        key={col.key}
+                        className={`px-4 py-3.5 ${
+                          cIdx === 0 && rClass ? rClass : ''
+                        } ${
+                          col.align === 'center'
+                            ? 'text-center'
+                            : col.align === 'right'
+                            ? 'text-right'
+                            : 'text-left'
+                        } ${col.className || ''}`}
+                      >
+                        {col.render
+                          ? col.render(item, rowIdx)
+                          : (item as Record<string, unknown>)[col.key] !== undefined
+                          ? String((item as Record<string, unknown>)[col.key])
+                          : null}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

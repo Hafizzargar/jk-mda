@@ -33,7 +33,7 @@ test('Admin: Developer & Technical Support — Email and Phone Format Validation
   assert.equal(validateEmail('admin-dev@kjcpl.site'), true);
   assert.equal(validateEmail('bad@'), false);
 
-  assert.equal(validatePhone('+91 6005950197'), true);
+  assert.equal(validatePhone('+91 9876543210'), true);
   assert.equal(validatePhone('invalid phone'), false);
 
   assert.equal(validateUrl('https://kjcpl.site'), true);

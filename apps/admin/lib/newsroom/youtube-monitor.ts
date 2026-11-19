@@ -455,7 +455,7 @@ Output your response strictly as valid JSON with keys:
     } else {
       try {
         const response = await generateText({
-          model: google('gemini-2.5-flash'),
+          model: google('gemini-2.0-flash'),
           prompt: contentPrompt,
           temperature: 0.2,
         });

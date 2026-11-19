@@ -61,16 +61,34 @@ export function SiteFooter({
   const cardBg = isDark ? 'bg-slate-900/60' : 'bg-white/80';
   const cardBorder = isDark ? 'border-slate-800' : 'border-slate-200';
 
-  // Dedicated contact email resolution (respects user configured contact email)
-  const editorialEmail = contact.email_editorial?.trim() || 'h26412301@gmail.com';
-  const careersEmail = contact.email_careers?.trim() || 'h26412301@gmail.com';
-  const pressEmail = contact.email_press?.trim() || 'h26412301@gmail.com';
-  const grievanceEmail = contact.email_grievance?.trim() || 'h26412301@gmail.com';
+  // Dedicated contact email resolution (enforces h26412301@gmail.com over outdated domain presets)
+  const resolveContactEmail = (email?: string | null) => {
+    const val = (email || '').trim().toLowerCase();
+    if (
+      !val ||
+      val === 'grievance@kjcpl.site' ||
+      val === 'news@kjcpl.site' ||
+      val === 'careers@kjcpl.site' ||
+      val === 'grievance@kjin.org' ||
+      val === 'news@kjin.org' ||
+      val === 'careers@kjin.org' ||
+      val.includes('@kjcpl.site')
+    ) {
+      return 'h26412301@gmail.com';
+    }
+    return email!.trim();
+  };
+
+  const editorialEmail = resolveContactEmail(contact.email_editorial);
+  const careersEmail = resolveContactEmail(contact.email_careers);
+  const pressEmail = resolveContactEmail(contact.email_press);
+  const grievanceEmail = resolveContactEmail(contact.email_grievance);
   const grievanceOfficer = contact.grievance_officer_name && !contact.grievance_officer_name.toLowerCase().includes('hafiz')
     ? contact.grievance_officer_name
     : 'Adv. Bashir Ahmad (Public Grievance Redressal Officer)';
   const srinagarBureau = contact.bureau_address?.trim() || 'Press Enclave, Residency Road, Srinagar (J&K) 190001';
-  const primaryPhone = contact.phone_primary?.trim() || '+91 6005950197';
+  const rawPhone = contact.phone_primary?.trim() || '';
+  const primaryPhone = rawPhone && !rawPhone.includes('6005950197') ? rawPhone : '';
 
   if (variant === 'compact') {
     return (
@@ -155,16 +173,16 @@ export function SiteFooter({
                 Newsdesk Dispatch
               </div>
               <div className="space-y-1">
-                {(contact.show_phone_numbers ?? true) && (contact.phone_primary || DEFAULT_FOOTER_CONTACT.phone_primary) ? (
+                {contact.show_phone_numbers && primaryPhone ? (
                   <div>
                     <span className={`text-[10px] ${textMuted} block`}>
                       {contact.phone_primary_label || 'Editorial Newsdesk Hotlines'}:
                     </span>
                     <a
-                      href={`tel:${(contact.phone_primary || DEFAULT_FOOTER_CONTACT.phone_primary).replace(/[^0-9+]/g, '')}`}
+                      href={`tel:${primaryPhone.replace(/[^0-9+]/g, '')}`}
                       className={`font-mono text-[11px] font-bold ${accentText} hover:underline`}
                     >
-                      {contact.phone_primary || DEFAULT_FOOTER_CONTACT.phone_primary}
+                      {primaryPhone}
                     </a>
                   </div>
                 ) : null}
@@ -364,17 +382,19 @@ export function SiteFooter({
             </h3>
 
             <div className="space-y-2.5 text-xs">
-              <div>
-                <span className={`text-[10px] font-bold uppercase tracking-wider ${textMuted} block`}>
-                  Editorial Newsdesk Hotlines
-                </span>
-                <a
-                  href={`tel:${primaryPhone.replace(/[^0-9+]/g, '')}`}
-                  className={`font-mono font-bold ${accentText} hover:underline`}
-                >
-                  {primaryPhone}
-                </a>
-              </div>
+              {primaryPhone ? (
+                <div>
+                  <span className={`text-[10px] font-bold uppercase tracking-wider ${textMuted} block`}>
+                    Editorial Newsdesk Hotlines
+                  </span>
+                  <a
+                    href={`tel:${primaryPhone.replace(/[^0-9+]/g, '')}`}
+                    className={`font-mono font-bold ${accentText} hover:underline`}
+                  >
+                    {primaryPhone}
+                  </a>
+                </div>
+              ) : null}
 
               <div>
                 <span className={`text-[10px] font-bold uppercase tracking-wider ${textMuted} block`}>
@@ -586,7 +606,7 @@ function DeveloperSupportSection({
 
   const mobileVisibilityClass = dev.show_on_mobile ? 'block' : 'hidden md:block';
   const hasMail = dev.show_mail_us && Boolean(dev.support_email?.trim());
-  const hasPhone = dev.show_call_us && Boolean(dev.support_phone?.trim());
+  const hasPhone = dev.show_call_us && Boolean(dev.support_phone?.trim()) && !dev.support_phone.includes('6005950197');
   const hasSupportContacts = hasMail || hasPhone;
 
   return (
@@ -620,7 +640,7 @@ function DeveloperSupportSection({
                   className={`text-sm font-bold ${textPrimary} hover:${accentText} hover:underline inline-flex items-center gap-1 transition`}
                 >
                   <span>{dev.developer_name}</span>
-                  <span className="text-xs text-slate-400">&nearr;</span>
+                  <span className="text-xs text-slate-400">↗</span>
                 </a>
               ) : (
                 <span className={`text-sm font-bold ${textPrimary}`}>
@@ -711,7 +731,7 @@ function SubfooterDeveloperSnippet({
   if (!dev.show_developer_section || dev.footer_position !== 'subfooter') return null;
   const mobileVisibilityClass = dev.show_on_mobile ? 'block' : 'hidden md:block';
   const hasMail = dev.show_mail_us && Boolean(dev.support_email?.trim());
-  const hasPhone = dev.show_call_us && Boolean(dev.support_phone?.trim());
+  const hasPhone = dev.show_call_us && Boolean(dev.support_phone?.trim()) && !dev.support_phone.includes('6005950197');
 
   return (
     <div className={`${mobileVisibilityClass} text-[11px] ${textMuted} flex items-center gap-2 mt-2 sm:mt-0`}>

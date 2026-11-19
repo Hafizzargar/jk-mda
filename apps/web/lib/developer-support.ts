@@ -17,9 +17,9 @@ export const DEFAULT_DEVELOPER_SUPPORT: DeveloperSupportSettings = {
   developer_description: 'Website design, development, technology infrastructure and maintenance.',
   developer_website: 'https://kjcpl.site',
   support_email: 'h26412301@gmail.com',
-  support_phone: '+91 6005950197',
+  support_phone: '',
   show_mail_us: true,
-  show_call_us: true,
+  show_call_us: false,
   footer_position: 'bottom',
   show_on_mobile: true,
 };
@@ -69,6 +69,7 @@ export function sanitizeEmail(raw?: string): string {
 export function sanitizePhone(raw?: string): string {
   if (!raw) return '';
   const trimmed = raw.trim();
+  if (trimmed.includes('6005950197')) return '';
   if (validatePhone(trimmed)) {
     return trimmed.slice(0, 50);
   }
@@ -87,6 +88,8 @@ export function sanitizeDeveloperSupportSettings(
     ? (input.footer_position as 'bottom' | 'column' | 'subfooter')
     : DEFAULT_DEVELOPER_SUPPORT.footer_position;
 
+  const phone = sanitizePhone(input.support_phone ?? DEFAULT_DEVELOPER_SUPPORT.support_phone);
+
   return {
     show_developer_section: input.show_developer_section !== false,
     developer_name:
@@ -99,9 +102,9 @@ export function sanitizeDeveloperSupportSettings(
         : DEFAULT_DEVELOPER_SUPPORT.developer_description,
     developer_website: sanitizeUrl(input.developer_website),
     support_email: sanitizeEmail(input.support_email ?? DEFAULT_DEVELOPER_SUPPORT.support_email),
-    support_phone: sanitizePhone(input.support_phone ?? DEFAULT_DEVELOPER_SUPPORT.support_phone),
+    support_phone: phone,
     show_mail_us: input.show_mail_us !== false,
-    show_call_us: input.show_call_us !== false,
+    show_call_us: Boolean(input.show_call_us && phone),
     footer_position: pos,
     show_on_mobile: input.show_on_mobile !== false,
   };

@@ -25,13 +25,13 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Gracefully redirect legacy non-English locales (/ur, /ks, /hi) directly to English (/en)
+  // Gracefully 301 redirect legacy non-English locales (/ur, /ks, /hi) directly to English (/en)
   const legacyMatch = pathname.match(/^\/(?:ur|ks|hi)(?:\/|$)(.*)/);
   if (legacyMatch) {
     const remaining = legacyMatch[1] ? `/${legacyMatch[1]}` : '';
     const redirectUrl = new URL(`/en${remaining}`, request.url);
     redirectUrl.search = request.nextUrl.search;
-    return NextResponse.redirect(redirectUrl);
+    return NextResponse.redirect(redirectUrl, 301);
   }
 
   // Generate a nonce for the Strict CSP
@@ -48,12 +48,12 @@ export function middleware(request: NextRequest) {
     (locale) => !pathname.startsWith(`/${locale}/`) && pathname !== `/${locale}`
   );
 
-  // If missing, redirect to default locale (en) so the App Router [lang] root layout resolves seamlessly
+  // If missing, 301 redirect to default locale (/en) so search engines index ONE canonical copy
   if (pathnameIsMissingLocale) {
     const targetPath = pathname === '/' ? `/${DEFAULT_LOCALE}` : `/${DEFAULT_LOCALE}${pathname}`;
     const redirectUrl = new URL(targetPath, request.url);
     redirectUrl.search = request.nextUrl.search;
-    return NextResponse.redirect(redirectUrl);
+    return NextResponse.redirect(redirectUrl, 301);
   }
 
   const response = NextResponse.next({

@@ -58,8 +58,7 @@ export async function generateMetadata({ params, searchParams }: CategoryPagePro
 
   const page = parsePageParam(resolvedSearchParams.page);
   const pageSuffix = page > 1 ? ` - Page ${page}` : '';
-  const langPrefix = lang === 'en' ? '' : `/${lang}`;
-  const canonicalUrl = `${SITE_URL}${langPrefix}/category/${categorySlug}${page > 1 ? `?page=${page}` : ''}`;
+  const canonicalUrl = `${SITE_URL}/en/category/${categorySlug}${page > 1 ? `?page=${page}` : ''}`;
 
   return {
     metadataBase: new URL(SITE_URL),
