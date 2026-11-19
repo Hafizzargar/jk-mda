@@ -136,6 +136,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to record application. Please try again.' }, { status: 500 });
     }
 
+    // Write audit log so newsroom administrators receive real-time notification
+    try {
+      await supabase.from('audit_logs').insert({
+        action: 'career.application_submitted',
+        target_type: 'career_application',
+        target_id: newApplication.id,
+        result: 'success',
+        reason: `New newsroom candidate application received from ${fullName} (${city})`,
+        details: {
+          full_name: fullName,
+          email,
+          phone,
+          district: city,
+          experience: experienceYears,
+          application_id: newApplication.id,
+        },
+      });
+    } catch (auditErr) {
+      console.warn('[Careers Application] Non-fatal: failed to write audit log notification:', auditErr);
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Our team will contact you for further procedure if you are qualified.',
