@@ -1,6 +1,7 @@
 import '../globals.css';
 import type { Metadata, Viewport } from 'next';
 import { permanentRedirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { SITE_URL, SITE_NAME, SITE_SHORT_NAME } from '@/lib/config';
 import { safeJsonLd } from '@/lib/sanitize';
 
@@ -175,6 +176,14 @@ export default async function RootLayout({
     },
   };
 
+  let nonce: string | undefined;
+  try {
+    const headersList = await headers();
+    nonce = headersList.get('x-nonce') || undefined;
+  } catch {
+    // Nonce unavailable
+  }
+
   return (
     <html
       lang={lang}
@@ -187,6 +196,7 @@ export default async function RootLayout({
       <head>
         <meta charSet="utf-8" />
         <script
+          nonce={nonce}
           dangerouslySetInnerHTML={{
             __html: `(function(){try{window.__KJIN_BRAND__=${JSON.stringify(brandSettings)};localStorage.setItem('kjin_brand_config',JSON.stringify(${JSON.stringify(brandSettings)}));}catch(e){}})();`,
           }}
@@ -209,10 +219,12 @@ export default async function RootLayout({
         className={`min-h-screen w-full max-w-full ${theme.pageBgClass} ${theme.textPrimaryClass} ${theme.fontFamilyClass} ${theme.selectionClass} antialiased transition-colors duration-200`}
       >
         <script
+          nonce={nonce}
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: safeJsonLd(orgJsonLd) }}
         />
         <script
+          nonce={nonce}
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: safeJsonLd(websiteJsonLd) }}
         />

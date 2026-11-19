@@ -72,7 +72,7 @@ export default function Loading() {
   const subtitle = brand.loader_text || brand.tagline || 'ONE REGION, MANY VOICES, TRUSTED NEWS';
 
   return (
-    <div className="min-h-[85vh] flex flex-col items-center justify-center bg-white select-none px-4 transition-colors duration-200 relative overflow-hidden">
+    <div className="min-h-[85vh] flex flex-col items-center justify-center bg-[#FAF8F5] select-none px-4 transition-colors duration-200 relative overflow-hidden">
       {/* Occasion Greeting Pill (Displayed during festive celebrations) */}
       {isFestiveActive && festive && (
         <div

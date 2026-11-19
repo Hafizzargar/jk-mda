@@ -479,7 +479,7 @@ export function ClassicEditorialTemplate({
                               )}
                             </div>
                             <h4 className="font-serif text-sm font-bold text-[#0F172A] leading-snug hover:text-[#0891B2] transition mb-1">
-                              <Link href={getArtHref(art)}>
+                              <Link href={getArtHref(art)} prefetch={false}>
                                 {art.title}
                               </Link>
                             </h4>
@@ -803,7 +803,7 @@ export function ClassicEditorialTemplate({
                           )}
                         </div>
                         <h4 className="font-serif text-sm font-bold text-[#0F172A] leading-snug hover:text-[#0891B2] transition mb-1">
-                          <Link href={getArtHref(art)}>
+                          <Link href={getArtHref(art)} prefetch={false}>
                             {art.title}
                           </Link>
                         </h4>
@@ -1025,7 +1025,7 @@ export function ClassicEditorialTemplate({
                         />
                       )}
                       <h4 className="font-serif text-sm font-bold text-[#0F172A] leading-snug mb-1 hover:text-[#0891B2] transition">
-                        <Link href={getArtHref(internationalArticle)}>
+                        <Link href={getArtHref(internationalArticle)} prefetch={false}>
                           {internationalArticle.title}
                         </Link>
                       </h4>
@@ -1106,7 +1106,7 @@ export function ClassicEditorialTemplate({
                         <span className="shrink-0">{dispatch.time}</span>
                       </div>
                       <h4 className="text-[11.5px] sm:text-[12.5px] font-semibold text-stone-950 leading-snug line-clamp-2">
-                        <Link href={dispatch.href} className="hover:text-stone-700 transition">
+                        <Link href={dispatch.href} prefetch={false} className="hover:text-stone-700 transition">
                           {dispatch.title}
                         </Link>
                       </h4>
@@ -1228,7 +1228,7 @@ export function ClassicEditorialTemplate({
                           )}
                         </div>
                         <h4 className="font-serif text-sm font-bold text-[#0F172A] leading-snug hover:text-[#0891B2] transition mb-1">
-                          <Link href={getArtHref(art)}>
+                          <Link href={getArtHref(art)} prefetch={false}>
                             {art.title}
                           </Link>
                         </h4>
@@ -1281,7 +1281,7 @@ export function ClassicEditorialTemplate({
                         {art.district ? getDistrictDisplayName(art.district) : 'Corridor'} • {art.category}
                       </span>
                       <h4 className="font-serif text-sm font-bold text-stone-900 leading-snug mb-1 hover:text-[#0891B2] transition">
-                        <Link href={getArtHref(art)}>
+                        <Link href={getArtHref(art)} prefetch={false}>
                           {art.title}
                         </Link>
                       </h4>
@@ -1457,7 +1457,7 @@ export function ClassicEditorialTemplate({
                         <span>{formatArticleTime(art.published_at)}</span>
                       </div>
                       <h4 className="text-xs font-bold font-serif text-[#0F172A] leading-snug line-clamp-2 hover:text-[#0891B2] transition">
-                        <Link href={getArtHref(art)}>{art.title}</Link>
+                        <Link href={getArtHref(art)} prefetch={false}>{art.title}</Link>
                       </h4>
                       <div className="mt-1.5 flex items-center justify-between text-[10px] text-slate-400">
                         <span>By {cleanAuthor(art.author_display_name, art)}</span>
@@ -1651,7 +1651,7 @@ export function ClassicEditorialTemplate({
                           {art.category}
                         </span>
                         <h3 className="font-serif text-lg font-bold text-[#0F172A] leading-snug mb-2 hover:text-[#0891B2] transition">
-                          <Link href={getArtHref(art)}>
+                          <Link href={getArtHref(art)} prefetch={false}>
                             {art.title}
                           </Link>
                         </h3>
@@ -1767,7 +1767,7 @@ export function ClassicEditorialTemplate({
                       </div>
 
                       <h3 className="font-serif text-base font-bold text-[#0F172A] leading-snug mb-2 hover:text-[#0891B2] transition">
-                        <Link href={getArtHref(internationalArticle)}>
+                        <Link href={getArtHref(internationalArticle)} prefetch={false}>
                           {internationalArticle.title}
                         </Link>
                       </h3>
@@ -2069,7 +2069,7 @@ export function ClassicEditorialTemplate({
                             {art.category} {art.district ? `• ${getDistrictDisplayName(art.district)}` : ''}
                           </span>
                           <h4 className="text-xs font-bold font-serif text-[#0F172A] leading-snug line-clamp-2">
-                            <Link href={getArtHref(art)}>{art.title}</Link>
+                            <Link href={getArtHref(art)} prefetch={false}>{art.title}</Link>
                           </h4>
                         </article>
                       ))}
@@ -2122,7 +2122,7 @@ export function ClassicEditorialTemplate({
                             )}
                           </div>
                           <h3 className="font-serif text-base font-bold text-[#0F172A] leading-snug mb-2 hover:text-[#0891B2] transition">
-                            <Link href={getArtHref(art)}>{art.title}</Link>
+                            <Link href={getArtHref(art)} prefetch={false}>{art.title}</Link>
                           </h3>
                           {art.excerpt && (
                             <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed mb-3">{art.excerpt}</p>
@@ -2299,7 +2299,7 @@ export function ClassicEditorialTemplate({
                               {art.district ? getDistrictDisplayName(art.district) : 'Territorial Corridor'} • {art.category}
                             </span>
                             <h3 className="font-serif text-lg font-bold text-[#0F172A] leading-snug hover:text-[#0891B2] transition">
-                              <Link href={getArtHref(art)}>{art.title}</Link>
+                              <Link href={getArtHref(art)} prefetch={false}>{art.title}</Link>
                             </h3>
                             {art.excerpt && (
                               <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">{art.excerpt}</p>
