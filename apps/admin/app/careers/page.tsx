@@ -330,6 +330,14 @@ export default function CareersAdminPage() {
     await saveCareersToServer({ ...careers, jobs: updatedJobs }, 'Job posting deleted.');
   };
 
+  // Clear All Job Postings
+  const handleClearAllJobs = async () => {
+    if (!window.confirm(`Are you sure you want to delete all ${careers.jobs.length} vacancies? They will be permanently removed.`)) {
+      return;
+    }
+    await saveCareersToServer({ ...careers, jobs: [] }, 'All vacancies permanently removed.');
+  };
+
   // Update Candidate Application Status
   const handleUpdateAppStatus = async (appId: string, nextStatus: JobApplication['status']) => {
     const updatedApps = careers.applications.map((app) => {
@@ -695,6 +703,16 @@ export default function CareersAdminPage() {
               >
                 Paused / Hidden ({careers.jobs.length - activeJobsCount})
               </button>
+              {canManage && careers.jobs.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleClearAllJobs}
+                  disabled={saving}
+                  className="px-3 py-1 rounded-lg text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/40 border border-rose-200 dark:border-rose-800/50 transition cursor-pointer"
+                >
+                  Clear All ({careers.jobs.length})
+                </button>
+              )}
             </div>
           </div>
 
@@ -812,6 +830,26 @@ export default function CareersAdminPage() {
                   </div>
                 );
               })}
+
+            {careers.jobs.length === 0 && (
+              <div className="p-8 text-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-3">
+                <span className="text-3xl block">📭</span>
+                <h3 className="font-bold text-sm text-slate-800 dark:text-slate-200">No Job Vacancies Currently Posted</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+                  All previous vacancies have been removed. Candidates visiting the careers portal can submit general dossiers, or you can click &quot;+ New Vacancy&quot; above to post a specific position.
+                </p>
+                {canManage && (
+                  <button
+                    type="button"
+                    onClick={handleOpenCreateJob}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-slate-950 bg-amber-400 hover:bg-amber-300 transition cursor-pointer"
+                  >
+                    <span>+</span>
+                    <span>Post New Vacancy</span>
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

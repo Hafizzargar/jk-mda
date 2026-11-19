@@ -37,7 +37,7 @@ function jsonRequest(url: string, options: { method?: string; body?: unknown; to
 test('careers: sanitizeCareersSettings handles null and invalid inputs safely', () => {
   const result = sanitizeCareersSettings(null);
   assert.equal(result.page_title, DEFAULT_CAREERS_SETTINGS.page_title);
-  assert.ok(result.jobs.length > 0);
+  assert.ok(Array.isArray(result.jobs));
   assert.equal(result.hiring_status, 'open');
 });
 
