@@ -285,7 +285,7 @@ export function CareersPortal({
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0F19] text-slate-100 font-sans selection:bg-amber-500/30 selection:text-amber-200 relative overflow-hidden py-8 sm:py-10 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#0B0F19] text-slate-100 font-sans selection:bg-amber-500/30 selection:text-amber-200 relative overflow-hidden py-8 sm:py-12 px-4 sm:px-6 lg:px-8">
       {/* Background Glows */}
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-600/10 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute top-64 right-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-[140px] pointer-events-none" />
@@ -392,264 +392,304 @@ export function CareersPortal({
         </div>
       )}
 
-      {/* Main Container */}
-      <div className="max-w-xl mx-auto relative z-10 space-y-5">
-        {/* Header Bar */}
-        <div className="text-center space-y-2">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.12)]">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500" />
-            </span>
-            <span>2026 Newsroom Application Desk</span>
-          </div>
+      {/* 3. TWO-COLUMN LAYOUT: APPLY TO (LEFT) & APPLICATION FORM (RIGHT) */}
+      <div className="max-w-6xl mx-auto relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+          {/* LEFT COLUMN: Apply to Join & Editorial Desk Info */}
+          <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-8">
+            <div className="space-y-3">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/30 shadow-[0_0_15px_rgba(245,158,11,0.12)]">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-500" />
+                </span>
+                <span>2026 Newsroom Application Desk</span>
+              </div>
 
-          <h1 className="font-serif text-xl sm:text-2xl font-bold tracking-tight text-white leading-tight">
-            Apply to Join{' '}
-            <span className="bg-gradient-to-r from-amber-400 via-orange-300 to-amber-500 bg-clip-text text-transparent">
-              {brandName}
-            </span>
-          </h1>
+              <h1 className="font-serif text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-white leading-tight">
+                Apply to Join{' '}
+                <span className="bg-gradient-to-r from-amber-400 via-orange-300 to-amber-500 bg-clip-text text-transparent">
+                  {brandName}
+                </span>
+              </h1>
 
-          <p className="text-[11px] sm:text-xs text-slate-300/85 max-w-md mx-auto leading-normal px-2">
-            {brandFullName} invites ground correspondents, investigative journalists, editors, and photographers across Jammu &amp; Kashmir to submit their application dossier.
-          </p>
-        </div>
-
-        {/* SUBMISSION CONFIRMATION: SHOWN IMMEDIATELY AT TOP AFTER SUBMITTING */}
-        {submittedRecord ? (
-          <div className="p-6 sm:p-7 rounded-2xl bg-slate-900/90 border-2 border-emerald-500/40 shadow-2xl backdrop-blur-md text-center space-y-5 animate-in fade-in zoom-in-95 duration-300">
-            <div className="w-12 h-12 mx-auto rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center text-xl font-bold shadow-lg shadow-emerald-500/20">
-              ✓
-            </div>
-
-            <div className="space-y-1.5">
-              <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
-                Application Submitted &amp; Logged
-              </span>
-              <h2 className="font-serif text-base sm:text-lg font-bold text-white tracking-tight">
-                Our team will contact you for further procedure if u qualified
-              </h2>
-              <p className="text-xs text-slate-300/80 max-w-md mx-auto leading-relaxed font-sans">
-                Your dossier has been transmitted directly to the KJCPL Editorial Board in our Newsroom Admin Portal. Each submission is carefully reviewed against our regional reporting beats.
+              <p className="text-xs sm:text-sm text-slate-300/85 leading-relaxed">
+                {brandFullName} invites ground correspondents, investigative journalists, editors, and photographers across Jammu &amp; Kashmir to submit their application dossier.
               </p>
             </div>
 
-            {/* Submission Dossier Summary Card */}
-            <div className="p-4 rounded-xl bg-black/50 border border-slate-800 text-left max-w-md mx-auto space-y-2 text-xs">
-              <div className="flex items-center justify-between pb-1.5 border-b border-slate-800">
-                <span className="text-slate-400">Applicant:</span>
-                <span className="font-bold text-white">{submittedRecord.fullName}</span>
+            {/* Editorial Desk Information Badges */}
+            <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-3.5 text-xs">
+              <div className="flex items-start gap-3 text-slate-300">
+                <span className="text-base text-amber-400 shrink-0">📍</span>
+                <div>
+                  <div className="font-bold text-white text-[12px]">Five Regional Corridors</div>
+                  <div className="text-[11px] text-slate-400 leading-normal mt-0.5">
+                    Kashmir Valley • Jammu Plains • Chenab Valley • Pir Panjal • Ladakh
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center justify-between pb-1.5 border-b border-slate-800">
-                <span className="text-slate-400">Email:</span>
-                <span className="font-mono text-cyan-300">{submittedRecord.email}</span>
+
+              <div className="flex items-start gap-3 text-slate-300">
+                <span className="text-base text-cyan-400 shrink-0">🛡️</span>
+                <div>
+                  <div className="font-bold text-white text-[12px]">Direct Editorial Verification</div>
+                  <div className="text-[11px] text-slate-400 leading-normal mt-0.5">
+                    Dossiers are routed directly to the Chief Editorial Desk in the Newsroom Admin Portal.
+                  </div>
+                </div>
               </div>
-              <div className="flex items-center justify-between pb-1.5 border-b border-slate-800">
-                <span className="text-slate-400">Phone:</span>
-                <span className="font-bold text-slate-200">{submittedRecord.phone}</span>
-              </div>
-              <div className="flex items-center justify-between pb-1.5 border-b border-slate-800">
-                <span className="text-slate-400">District:</span>
-                <span className="font-bold text-slate-200">{submittedRecord.district}</span>
-              </div>
-              <div className="flex items-center justify-between pb-1.5 border-b border-slate-800">
-                <span className="text-slate-400">Experience:</span>
-                <span className="font-bold text-amber-300">{submittedRecord.experience}</span>
-              </div>
-              <div className="flex items-center justify-between pt-0.5">
-                <span className="text-slate-400">Submission ID:</span>
-                <span className="font-mono text-slate-400 text-[11px]">{submittedRecord.refId}</span>
+
+              <div className="flex items-start gap-3 text-slate-300">
+                <span className="text-base text-emerald-400 shrink-0">⚖️</span>
+                <div>
+                  <div className="font-bold text-white text-[12px]">Journalistic Integrity</div>
+                  <div className="text-[11px] text-slate-400 leading-normal mt-0.5">
+                    Strictly independent reporting adhering to PCI ethical journalism standards.
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
-              <button
-                type="button"
-                onClick={handleResetForm}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 transition cursor-pointer shadow-md shadow-amber-500/20"
-              >
-                <span>Fill New Application</span>
-                <span>✍️</span>
-              </button>
-
-              <Link
-                href={langPrefix || '/'}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 transition border border-slate-700"
-              >
-                <span>Return to Homepage</span>
-                <span>→</span>
-              </Link>
-            </div>
-          </div>
-        ) : (
-          /* SMALL COMPACT APPLICATION FORM: ONLY THE 6 REQUIRED FIELDS */
-          <div className="p-5 sm:p-6 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl backdrop-blur-md">
-            <div className="pb-3 mb-4 border-b border-slate-800">
-              <h2 className="font-serif text-base sm:text-lg font-bold text-white">
-                Official Newsroom Application Form
-              </h2>
-              <p className="text-[11px] text-slate-400 mt-0.5">
-                Please complete all required fields accurately. Once submitted, your profile will be sent directly to the editorial administration desk for evaluation.
+            {/* Minimal Footer Info */}
+            <div className="pt-2 text-[11px] text-slate-500 space-y-1">
+              <p>© 2026 {brandFullName} • Directorate of Editorial &amp; Field Operations</p>
+              <p>
+                General Inquiries:{' '}
+                <span className="text-slate-400 font-mono">{careersSettings.contact_email}</span>
               </p>
             </div>
+          </div>
 
-            {errorMessage && (
-              <div className="mb-4 p-3 rounded-xl bg-red-950/60 border border-red-500/40 text-red-200 text-xs flex items-start gap-2 animate-in fade-in">
-                <span className="text-sm leading-none">⚠️</span>
-                <span>{errorMessage}</span>
+          {/* RIGHT COLUMN: Official Newsroom Application Form OR Submission Card */}
+          <div className="lg:col-span-7">
+            {submittedRecord ? (
+              /* SUBMISSION CONFIRMATION: SHOWN IMMEDIATELY AFTER SUBMITTING */
+              <div className="p-6 sm:p-7 rounded-2xl bg-slate-900/90 border-2 border-emerald-500/40 shadow-2xl backdrop-blur-md text-center space-y-5 animate-in fade-in zoom-in-95 duration-300">
+                <div className="w-12 h-12 mx-auto rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center text-xl font-bold shadow-lg shadow-emerald-500/20">
+                  ✓
+                </div>
+
+                <div className="space-y-1.5">
+                  <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+                    Application Submitted &amp; Logged
+                  </span>
+                  <h2 className="font-serif text-base sm:text-lg font-bold text-white tracking-tight">
+                    Our team will contact you for further procedure if u qualified
+                  </h2>
+                  <p className="text-xs text-slate-300/80 max-w-md mx-auto leading-relaxed font-sans">
+                    Your dossier has been transmitted directly to the KJCPL Editorial Board in our Newsroom Admin Portal. Each submission is carefully reviewed against our regional reporting beats.
+                  </p>
+                </div>
+
+                {/* Submission Dossier Summary Card */}
+                <div className="p-4 rounded-xl bg-black/50 border border-slate-800 text-left max-w-md mx-auto space-y-2 text-xs">
+                  <div className="flex items-center justify-between pb-1.5 border-b border-slate-800">
+                    <span className="text-slate-400">Applicant:</span>
+                    <span className="font-bold text-white">{submittedRecord.fullName}</span>
+                  </div>
+                  <div className="flex items-center justify-between pb-1.5 border-b border-slate-800">
+                    <span className="text-slate-400">Email:</span>
+                    <span className="font-mono text-cyan-300">{submittedRecord.email}</span>
+                  </div>
+                  <div className="flex items-center justify-between pb-1.5 border-b border-slate-800">
+                    <span className="text-slate-400">Phone:</span>
+                    <span className="font-bold text-slate-200">{submittedRecord.phone}</span>
+                  </div>
+                  <div className="flex items-center justify-between pb-1.5 border-b border-slate-800">
+                    <span className="text-slate-400">District:</span>
+                    <span className="font-bold text-slate-200">{submittedRecord.district}</span>
+                  </div>
+                  <div className="flex items-center justify-between pb-1.5 border-b border-slate-800">
+                    <span className="text-slate-400">Experience:</span>
+                    <span className="font-bold text-amber-300">{submittedRecord.experience}</span>
+                  </div>
+                  <div className="flex items-center justify-between pt-0.5">
+                    <span className="text-slate-400">Submission ID:</span>
+                    <span className="font-mono text-slate-400 text-[11px]">{submittedRecord.refId}</span>
+                  </div>
+                </div>
+
+                <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={handleResetForm}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs bg-amber-500 hover:bg-amber-400 text-slate-950 transition cursor-pointer shadow-md shadow-amber-500/20"
+                  >
+                    <span>Fill New Application</span>
+                    <span>✍️</span>
+                  </button>
+
+                  <Link
+                    href={langPrefix || '/'}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 transition border border-slate-700"
+                  >
+                    <span>Return to Homepage</span>
+                    <span>→</span>
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              /* SMALL COMPACT APPLICATION FORM: ONLY THE 6 REQUIRED FIELDS */
+              <div className="p-5 sm:p-7 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-xl backdrop-blur-md">
+                <div className="pb-3 mb-4 border-b border-slate-800">
+                  <h2 className="font-serif text-base sm:text-lg font-bold text-white">
+                    Official Newsroom Application Form
+                  </h2>
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Please complete all required fields accurately. Once submitted, your profile will be sent directly to the editorial administration desk for evaluation.
+                  </p>
+                </div>
+
+                {errorMessage && (
+                  <div className="mb-4 p-3 rounded-xl bg-red-950/60 border border-red-500/40 text-red-200 text-xs flex items-start gap-2 animate-in fade-in">
+                    <span className="text-sm leading-none">⚠️</span>
+                    <span>{errorMessage}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="space-y-3.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    {/* 1. Full Legal Name */}
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                        Full Legal Name <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        disabled={submitting}
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        placeholder="e.g. Tariq Ahmad Lone"
+                        className="w-full px-3 py-2 rounded-xl bg-slate-950/70 border border-slate-800 focus:border-amber-500 text-xs text-white outline-none transition placeholder-slate-500 disabled:opacity-50"
+                      />
+                    </div>
+
+                    {/* 2. Email Address */}
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                        Email Address <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        disabled={submitting}
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="tariq@example.com"
+                        className="w-full px-3 py-2 rounded-xl bg-slate-950/70 border border-slate-800 focus:border-amber-500 text-xs text-white outline-none transition placeholder-slate-500 disabled:opacity-50"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    {/* 3. Phone / WhatsApp */}
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                        Phone / WhatsApp Number <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        disabled={submitting}
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="+91 98765 43210"
+                        className="w-full px-3 py-2 rounded-xl bg-slate-950/70 border border-slate-800 focus:border-amber-500 text-xs text-white outline-none transition placeholder-slate-500 disabled:opacity-50"
+                      />
+                    </div>
+
+                    {/* 4. District */}
+                    <div>
+                      <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                        District <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        disabled={submitting}
+                        list="jk-districts-list"
+                        value={district}
+                        onChange={(e) => setDistrict(e.target.value)}
+                        placeholder="e.g. Doda, Kishtwar, Bhaderwah..."
+                        className="w-full px-3 py-2 rounded-xl bg-slate-950/70 border border-slate-800 focus:border-amber-500 text-xs text-white outline-none transition placeholder-slate-500 disabled:opacity-50"
+                      />
+                      <datalist id="jk-districts-list">
+                        {JK_DISTRICT_SUGGESTIONS.map((d) => (
+                          <option key={d} value={d} />
+                        ))}
+                      </datalist>
+                    </div>
+                  </div>
+
+                  {/* 5. Experience */}
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                      Experience <span className="text-red-400">*</span>
+                    </label>
+                    <select
+                      disabled={submitting}
+                      value={experience}
+                      onChange={(e) => setExperience(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl bg-slate-950/70 border border-slate-800 focus:border-amber-500 text-xs text-white outline-none transition disabled:opacity-50"
+                    >
+                      {EXPERIENCE_OPTIONS.map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* 6. Statement of Interest */}
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-300 mb-1">
+                      Statement of Interest <span className="text-red-400">*</span>
+                    </label>
+                    <textarea
+                      required
+                      rows={3}
+                      disabled={submitting}
+                      value={statement}
+                      onChange={(e) => setStatement(e.target.value)}
+                      placeholder="Describe your journalistic background, ground beats you cover, and local stories you would like to report for KJCPL..."
+                      className="w-full px-3 py-2 rounded-xl bg-slate-950/70 border border-slate-800 focus:border-amber-500 text-xs text-white outline-none transition resize-y placeholder-slate-500 disabled:opacity-50"
+                    />
+                    <div className="flex justify-between items-center text-[10px] text-slate-500 mt-1">
+                      <span>Minimum 20 characters required</span>
+                      <span>{statement.length} chars</span>
+                    </div>
+                  </div>
+
+                  {/* Submit Action Row */}
+                  <div className="pt-2 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <p className="text-[10px] text-slate-400">
+                      🔒 Dossiers are transmitted directly to the Newsroom Admin Desk.
+                    </p>
+
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="w-full sm:w-auto px-5 py-2.5 rounded-xl font-bold text-xs bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 transition shadow-lg shadow-amber-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer transform hover:-translate-y-0.5"
+                    >
+                      {submitting ? (
+                        <>
+                          <span className="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+                          <span>Transmitting ({Math.round(progress)}%)...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Submit Application</span>
+                          <span>🚀</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
               </div>
             )}
-
-            <form onSubmit={handleSubmit} className="space-y-3.5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                {/* 1. Full Legal Name */}
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                    Full Legal Name <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    disabled={submitting}
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="e.g. Tariq Ahmad Lone"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-950/70 border border-slate-800 focus:border-amber-500 text-xs text-white outline-none transition placeholder-slate-500 disabled:opacity-50"
-                  />
-                </div>
-
-                {/* 2. Email Address */}
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                    Email Address <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    disabled={submitting}
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="tariq@example.com"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-950/70 border border-slate-800 focus:border-amber-500 text-xs text-white outline-none transition placeholder-slate-500 disabled:opacity-50"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                {/* 3. Phone / WhatsApp */}
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                    Phone / WhatsApp Number <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="tel"
-                    required
-                    disabled={submitting}
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="+91 98765 43210"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-950/70 border border-slate-800 focus:border-amber-500 text-xs text-white outline-none transition placeholder-slate-500 disabled:opacity-50"
-                  />
-                </div>
-
-                {/* 4. District */}
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                    District <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    disabled={submitting}
-                    list="jk-districts-list"
-                    value={district}
-                    onChange={(e) => setDistrict(e.target.value)}
-                    placeholder="e.g. Doda, Kishtwar, Bhaderwah..."
-                    className="w-full px-3 py-2 rounded-xl bg-slate-950/70 border border-slate-800 focus:border-amber-500 text-xs text-white outline-none transition placeholder-slate-500 disabled:opacity-50"
-                  />
-                  <datalist id="jk-districts-list">
-                    {JK_DISTRICT_SUGGESTIONS.map((d) => (
-                      <option key={d} value={d} />
-                    ))}
-                  </datalist>
-                </div>
-              </div>
-
-              {/* 5. Experience */}
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                  Experience <span className="text-red-400">*</span>
-                </label>
-                <select
-                  disabled={submitting}
-                  value={experience}
-                  onChange={(e) => setExperience(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-slate-950/70 border border-slate-800 focus:border-amber-500 text-xs text-white outline-none transition disabled:opacity-50"
-                >
-                  {EXPERIENCE_OPTIONS.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* 6. Statement of Interest */}
-              <div>
-                <label className="block text-[11px] font-semibold text-slate-300 mb-1">
-                  Statement of Interest <span className="text-red-400">*</span>
-                </label>
-                <textarea
-                  required
-                  rows={3}
-                  disabled={submitting}
-                  value={statement}
-                  onChange={(e) => setStatement(e.target.value)}
-                  placeholder="Describe your journalistic background, ground beats you cover, and local stories you would like to report for KJCPL..."
-                  className="w-full px-3 py-2 rounded-xl bg-slate-950/70 border border-slate-800 focus:border-amber-500 text-xs text-white outline-none transition resize-y placeholder-slate-500 disabled:opacity-50"
-                />
-                <div className="flex justify-between items-center text-[10px] text-slate-500 mt-1">
-                  <span>Minimum 20 characters required</span>
-                  <span>{statement.length} chars</span>
-                </div>
-              </div>
-
-              {/* Submit Action Row */}
-              <div className="pt-2 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
-                <p className="text-[10px] text-slate-400">
-                  🔒 Dossiers are transmitted directly to the Newsroom Admin Desk.
-                </p>
-
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full sm:w-auto px-5 py-2.5 rounded-xl font-bold text-xs bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 transition shadow-lg shadow-amber-500/20 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer transform hover:-translate-y-0.5"
-                >
-                  {submitting ? (
-                    <>
-                      <span className="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
-                      <span>Transmitting ({Math.round(progress)}%)...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Submit Application</span>
-                      <span>🚀</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
           </div>
-        )}
-
-        {/* Minimal Footer Info */}
-        <div className="text-center pt-2 text-[11px] text-slate-500">
-          <p>© 2026 {brandFullName} • Directorate of Editorial &amp; Field Operations</p>
-          <p className="mt-0.5">
-            General Inquiries:{' '}
-            <span className="text-slate-400 font-mono">{careersSettings.contact_email}</span>
-          </p>
         </div>
       </div>
     </div>
