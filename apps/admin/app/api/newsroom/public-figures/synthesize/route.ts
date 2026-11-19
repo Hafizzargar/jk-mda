@@ -57,11 +57,16 @@ export async function POST(request: Request) {
 """
 ${statementText.trim()}
 """
-Synthesize this raw statement into an objective, magnetic, and thoroughly reported news story. Place ${figure.name}'s statements and demands in accurate ground context, explain the civic stakes for ${figure.district || figure.region}, and include administrative or opposing perspective.`;
+Synthesize this raw statement into an objective, magnetic, and thoroughly reported news story. Place ${figure.name}'s statements and demands in accurate ground context, explain the civic stakes for ${figure.district || figure.region}, and include administrative or opposing perspective. Anchor the story with today's reference date: ${nowIst}.`;
     } else {
-      promptContext = `Search the web for the latest verified news, assembly statements, public speeches, press interventions, or civic inspections made by ${figure.name} (${figure.title}, ${figure.district}, ${figure.region}).
-Search query to ground: ${figure.searchQuery || `${figure.name} ${figure.district} statement OR speech OR assembly OR video`}
-Focus particularly on topics: ${customTopic || figure.topics.join(', ')}.`;
+      promptContext = `Search the web for the MOST RECENT verified news, public statements, speeches, press conferences, or civic inspections made by ${figure.name} (${figure.title}, ${figure.district}, ${figure.region}) within the PAST 24 TO 48 HOURS (relative to current date: ${nowIst}).
+Search query to ground: ${figure.searchQuery ? `${figure.searchQuery} today OR "past 24 hours" OR "latest"` : `"${figure.name}" ${figure.district} latest news statement OR speech OR inspection`}
+Focus particularly on topics: ${customTopic || figure.topics.join(', ')}.
+
+CRITICAL RECENCY RULES:
+- Prioritize fresh statements and developments from TODAY or within the past 24-48 hours.
+- DO NOT present 2-3 month old assembly zero-hour speeches or outdated historical events as breaking news today.
+- If referencing earlier background debates, explicitly frame them as historical context (e.g. "Following earlier assembly discussions months prior...").`;
     }
 
     const systemPrompt = `You are a Senior Political & Regional News Editor for KJCPL News Network (Jammu, Kashmir, Chenab Valley, Pir Panjal, Ladakh).
@@ -74,6 +79,10 @@ PUBLIC FIGURE METADATA:
 - Region: ${figure.region}
 - Mandatory Opening Dateline: "${figure.defaultDateline || 'DODA –'} "
 - Current Reference Date: ${nowIst}
+
+RECENCY & ACCURACY MANDATE:
+- Anchor reporting to the CURRENT date (${nowIst}).
+- Never present old events from 2-3 months ago as today's breaking news. If reporting on an ongoing civic crisis, reflect the latest current situation today.
 
 EDITORIAL INSTRUCTIONS:
 1. HEADLINE: Magnetic, compelling, active voice, 50-85 characters. Highlight the core issue or confrontation (e.g. "Mehraj Malik Confronts Health Officials Over GMC Doda Equipment Deficits").
