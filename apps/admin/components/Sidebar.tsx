@@ -218,7 +218,10 @@ export function Sidebar({
       : 'KJ';
 
   const sidebarContent = (
-    <div className="flex h-full flex-col bg-[#080e1a] text-slate-300 border-r border-slate-800/80 shadow-xl overflow-hidden select-none">
+    <div
+      data-admin-sidebar="true"
+      className="admin-sidebar flex h-full flex-col bg-[#080e1a] text-slate-200 border-r border-slate-800/80 shadow-xl overflow-hidden select-none"
+    >
       {/* Top Header */}
       <div className="shrink-0 border-b border-slate-800/80">
         {isCollapsed ? (
@@ -258,7 +261,7 @@ export function Sidebar({
                 <div className="font-serif font-black text-sm tracking-wide text-white leading-tight">
                   {brandName}
                 </div>
-                <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                <p className="text-[11px] text-cyan-300 font-semibold mt-0.5">
                   Newsroom admin
                 </p>
               </div>
@@ -306,7 +309,7 @@ export function Sidebar({
           return (
             <div key={section.title} className="space-y-1">
               {!isCollapsed && (
-                <p className="px-3 pb-1 text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
+                <p className="px-3 pb-1 text-[11px] font-bold tracking-wider text-slate-300 uppercase">
                   {section.title}
                 </p>
               )}
@@ -324,12 +327,12 @@ export function Sidebar({
                         title={item.name}
                         className={`group relative flex h-10 w-10 items-center justify-center rounded-xl mx-auto transition-all ${
                           active
-                            ? 'bg-slate-800/90 text-cyan-400 shadow-2xs'
-                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+                            ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-xs'
+                            : 'text-slate-300 hover:text-white hover:bg-slate-800/60'
                         }`}
                       >
                         {active && (
-                          <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-cyan-400 rounded-r" />
+                          <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-cyan-400 rounded-r shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
                         )}
                         <span className="transition-transform group-hover:scale-110">
                           {item.icon}
@@ -349,26 +352,26 @@ export function Sidebar({
                       onClick={onCloseMobile}
                       className={`group relative flex items-center gap-3 rounded-xl px-3 py-2 text-xs font-medium transition-all ${
                         active
-                          ? 'bg-slate-800/80 text-white font-semibold shadow-2xs'
-                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+                          ? 'bg-gradient-to-r from-cyan-500/20 to-blue-500/10 border border-cyan-500/40 text-white font-bold shadow-xs'
+                          : 'text-slate-200 hover:text-white hover:bg-slate-800/60'
                       }`}
                     >
                       {active && (
-                        <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-cyan-400 rounded-r" />
+                        <span className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-cyan-400 rounded-r shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
                       )}
 
                       <span
                         className={`shrink-0 transition-colors ${
-                          active ? 'text-cyan-400' : 'text-slate-400 group-hover:text-slate-200'
+                          active ? 'text-cyan-300' : 'text-slate-300 group-hover:text-cyan-300'
                         }`}
                       >
                         {item.icon}
                       </span>
 
-                      <span className="truncate flex-1">{item.name}</span>
+                      <span className="truncate flex-1 font-semibold">{item.name}</span>
 
                       {item.badge && (
-                        <span className={`shrink-0 flex items-center gap-1 text-[10px] ${item.badgeColor || 'text-slate-400'}`}>
+                        <span className={`shrink-0 flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-semibold ${item.badgeColor || 'text-slate-300'}`}>
                           {item.badgeDot && (
                             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
                           )}
@@ -385,7 +388,7 @@ export function Sidebar({
       </nav>
 
       {/* User Footer Section */}
-      <div className={`shrink-0 border-t border-slate-800/80 bg-slate-950/60 ${isCollapsed ? 'p-2' : 'p-3'}`}>
+      <div className={`shrink-0 border-t border-slate-800/80 bg-slate-950/80 ${isCollapsed ? 'p-2' : 'p-3'}`}>
         {isCollapsed ? (
           <div className="flex flex-col items-center gap-2">
             <Link
@@ -402,7 +405,7 @@ export function Sidebar({
               disabled={loggingOut}
               title="Sign out"
               aria-label="Sign out"
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-950/30 transition-colors cursor-pointer"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-slate-300 hover:text-red-400 hover:bg-red-950/30 transition-colors cursor-pointer"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -410,23 +413,23 @@ export function Sidebar({
             </button>
           </div>
         ) : (
-          <div className="flex items-center justify-between gap-2.5 rounded-xl bg-slate-900/80 border border-slate-800/80 p-2">
+          <div className="flex items-center justify-between gap-2.5 rounded-xl bg-slate-900/90 border border-slate-700/80 p-2 shadow-xs">
             <Link
               href="/profile"
               onClick={onCloseMobile}
               title="My Profile"
               className="flex items-center gap-2.5 min-w-0 flex-1 group"
             >
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 text-xs font-bold text-white shadow-2xs">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 text-xs font-bold text-white shadow-xs">
                 {userInitials}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="truncate text-xs font-semibold text-slate-200 group-hover:text-white transition-colors">
+                <p className="truncate text-xs font-semibold text-white group-hover:text-cyan-300 transition-colors">
                   {userEmail ? userEmail.split('@')[0] : 'Editor'}
                 </p>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="truncate text-[10px] font-mono font-medium text-cyan-400 capitalize">
+                  <span className="truncate text-[10px] font-mono font-medium text-cyan-300 capitalize">
                     {userRole || 'Editor'}
                   </span>
                 </div>
@@ -438,7 +441,7 @@ export function Sidebar({
               disabled={loggingOut}
               title="Sign out"
               aria-label="Sign out"
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-950/30 transition-colors cursor-pointer"
+              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-slate-300 hover:text-red-400 hover:bg-red-950/30 transition-colors cursor-pointer"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />

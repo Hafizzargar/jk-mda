@@ -268,6 +268,100 @@ html:not([data-theme='dark']):not(:has(#login-page-root)) {
   [class*="bg-[#0f172a]"] .text-white {
     color: #ffffff !important;
   }
+
+  /* Admin Sidebar Theme Protection: Ensure sidebar text and accents are always crystal clear and high-contrast across all themes */
+  aside,
+  [data-admin-sidebar],
+  .admin-sidebar {
+    background-color: #080e1a !important;
+  }
+
+  aside .text-white,
+  [data-admin-sidebar] .text-white,
+  .admin-sidebar .text-white {
+    color: #ffffff !important;
+  }
+
+  aside .text-slate-100,
+  aside .text-slate-200,
+  [data-admin-sidebar] .text-slate-100,
+  [data-admin-sidebar] .text-slate-200,
+  .admin-sidebar .text-slate-100,
+  .admin-sidebar .text-slate-200 {
+    color: #f1f5f9 !important;
+  }
+
+  aside .text-slate-300,
+  [data-admin-sidebar] .text-slate-300,
+  .admin-sidebar .text-slate-300 {
+    color: #cbd5e1 !important;
+  }
+
+  aside .text-slate-400,
+  [data-admin-sidebar] .text-slate-400,
+  .admin-sidebar .text-slate-400 {
+    color: #94a3b8 !important;
+  }
+
+  aside .text-slate-500,
+  [data-admin-sidebar] .text-slate-500,
+  .admin-sidebar .text-slate-500 {
+    color: #64748b !important;
+  }
+
+  aside .text-cyan-300,
+  aside .text-cyan-400,
+  [data-admin-sidebar] .text-cyan-300,
+  [data-admin-sidebar] .text-cyan-400,
+  .admin-sidebar .text-cyan-300,
+  .admin-sidebar .text-cyan-400 {
+    color: #22d3ee !important;
+  }
+
+  aside .text-emerald-300,
+  aside .text-emerald-400,
+  [data-admin-sidebar] .text-emerald-300,
+  [data-admin-sidebar] .text-emerald-400,
+  .admin-sidebar .text-emerald-300,
+  .admin-sidebar .text-emerald-400 {
+    color: #34d399 !important;
+  }
+
+  aside .text-amber-300,
+  aside .text-amber-400,
+  [data-admin-sidebar] .text-amber-300,
+  [data-admin-sidebar] .text-amber-400,
+  .admin-sidebar .text-amber-300,
+  .admin-sidebar .text-amber-400 {
+    color: #fbbf24 !important;
+  }
+
+  aside .bg-slate-900,
+  aside .bg-slate-900\/80,
+  aside .bg-slate-900\/90,
+  aside .bg-slate-950,
+  aside .bg-slate-950\/60,
+  [data-admin-sidebar] .bg-slate-900,
+  [data-admin-sidebar] .bg-slate-900\/80,
+  [data-admin-sidebar] .bg-slate-900\/90,
+  [data-admin-sidebar] .bg-slate-950,
+  [data-admin-sidebar] .bg-slate-950\/60,
+  .admin-sidebar .bg-slate-900,
+  .admin-sidebar .bg-slate-900\/80,
+  .admin-sidebar .bg-slate-900\/90,
+  .admin-sidebar .bg-slate-950,
+  .admin-sidebar .bg-slate-950\/60 {
+    background-color: #0f172a !important;
+  }
+
+  aside .border-slate-800,
+  aside .border-slate-800\/80,
+  [data-admin-sidebar] .border-slate-800,
+  [data-admin-sidebar] .border-slate-800\/80,
+  .admin-sidebar .border-slate-800,
+  .admin-sidebar .border-slate-800\/80 {
+    border-color: rgba(30, 41, 59, 0.8) !important;
+  }
 }
 
 /* Blocker badge animations & active indicator */
