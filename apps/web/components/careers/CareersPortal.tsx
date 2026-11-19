@@ -94,7 +94,12 @@ export function CareersPortal({
   const [experience, setExperience] = useState(EXPERIENCE_OPTIONS[0]);
   const [statement, setStatement] = useState('');
 
+  // 0 to 100% Loader & Live Timer State
   const [submitting, setSubmitting] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [submissionClock, setSubmissionClock] = useState('');
+
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Clear legacy localStorage flags on mount
@@ -125,6 +130,8 @@ export function CareersPortal({
     setExperience(EXPERIENCE_OPTIONS[0]);
     setStatement('');
     setErrorMessage(null);
+    setProgress(0);
+    setElapsedSeconds(0);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -161,8 +168,32 @@ export function CareersPortal({
       return;
     }
 
-    // Trigger loading state immediately
+    // 1. Lock screen and start 0 to 100% progress & live timer
     setSubmitting(true);
+    setProgress(0);
+    setElapsedSeconds(0);
+    setSubmissionClock(new Date().toLocaleTimeString());
+
+    const startTime = Date.now();
+    let currentProgress = 0;
+
+    const timerInterval = setInterval(() => {
+      const elapsed = (Date.now() - startTime) / 1000;
+      setElapsedSeconds(elapsed);
+      setSubmissionClock(new Date().toLocaleTimeString());
+
+      // Realistic smooth progress pacing toward 92%
+      if (currentProgress < 30) {
+        currentProgress += 3.5;
+      } else if (currentProgress < 65) {
+        currentProgress += 2.2;
+      } else if (currentProgress < 85) {
+        currentProgress += 1.2;
+      } else if (currentProgress < 94) {
+        currentProgress += 0.4;
+      }
+      setProgress(Math.min(94, currentProgress));
+    }, 60);
 
     try {
       const response = await fetch('/api/careers/apply', {
@@ -184,10 +215,19 @@ export function CareersPortal({
 
       const data = await response.json();
 
+      // Jump to 100% immediately when server responds
+      setProgress(100);
+      clearInterval(timerInterval);
+
+      // Brief 400ms pause so user clearly sees 100% complete
+      await new Promise((resolve) => setTimeout(resolve, 400));
+
       // Smooth scroll to top after submit
       if (typeof window !== 'undefined') {
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
+
+      setSubmitting(false);
 
       if (!response.ok) {
         if (response.status === 409 || data.already_submitted) {
@@ -237,10 +277,10 @@ export function CareersPortal({
         isAlreadySubmitted: false,
       });
     } catch (err: unknown) {
+      clearInterval(timerInterval);
+      setSubmitting(false);
       const msg = err instanceof Error ? err.message : 'An error occurred while submitting your application.';
       setErrorMessage(msg);
-    } finally {
-      setSubmitting(false);
     }
   };
 
@@ -250,26 +290,54 @@ export function CareersPortal({
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-600/10 rounded-full blur-[140px] pointer-events-none" />
       <div className="absolute top-64 right-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-[140px] pointer-events-none" />
 
-      {/* 1. LOADING OVERLAY WHEN SUBMITTING */}
+      {/* 1. FULLSCREEN BLOCKING 0 TO 100% LOADER WITH LIVE TIME DISPLAY */}
       {submitting && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-slate-900 border border-amber-500/40 rounded-2xl p-6 sm:p-7 max-w-sm w-full text-center space-y-4 shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="relative w-12 h-12 mx-auto flex items-center justify-center">
-              <div className="w-12 h-12 rounded-full border-3 border-amber-500/20 border-t-amber-500 animate-spin" />
-              <span className="absolute text-base">⏳</span>
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 select-none cursor-wait animate-in fade-in duration-200">
+          <div className="bg-slate-900 border-2 border-amber-500/40 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center space-y-5 shadow-2xl shadow-amber-500/10 animate-in zoom-in-95 duration-200">
+            {/* Top Status Badge */}
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-mono font-bold text-amber-300 bg-amber-500/10 border border-amber-500/30">
+              <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+              <span>TRANSMITTING DOSSIER</span>
             </div>
+
+            {/* Giant 0 to 100% Percentage */}
             <div className="space-y-1">
-              <h3 className="font-serif text-base font-bold text-white">
-                Submitting Application...
-              </h3>
-              <p className="text-xs text-slate-300 leading-relaxed">
-                Please wait while your dossier is being transmitted to the Newsroom Editorial Board.
+              <div className="text-5xl sm:text-6xl font-black font-mono tracking-tight bg-gradient-to-r from-amber-400 via-orange-300 to-emerald-400 bg-clip-text text-transparent">
+                {Math.min(100, Math.round(progress))}%
+              </div>
+              <p className="text-xs text-slate-300 font-medium">
+                {progress < 30 && '🔒 Compiling and encrypting application dossier...'}
+                {progress >= 30 && progress < 70 && '📡 Transmitting to KJCPL Editorial Administration...'}
+                {progress >= 70 && progress < 100 && '📋 Registering dossier with Newsroom Board...'}
+                {progress >= 100 && '✓ Transmission complete! Redirecting...'}
               </p>
             </div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-mono text-amber-300 bg-amber-500/10 border border-amber-500/20">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-              <span>Transmitting Dossier</span>
+
+            {/* 0 to 100% Glowing Progress Bar */}
+            <div className="w-full h-3 rounded-full bg-slate-950 border border-slate-800 p-0.5 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-amber-500 via-orange-400 to-emerald-400 transition-all duration-100 ease-out shadow-[0_0_15px_rgba(245,158,11,0.5)]"
+                style={{ width: `${Math.min(100, Math.max(3, progress))}%` }}
+              />
             </div>
+
+            {/* Live Time Display */}
+            <div className="p-3 rounded-xl bg-black/60 border border-slate-800 flex items-center justify-between text-xs font-mono">
+              <div className="flex items-center gap-1.5 text-slate-300">
+                <span className="text-amber-400">⏱️</span>
+                <span>Time Elapsed:</span>
+                <span className="font-bold text-amber-300">{elapsedSeconds.toFixed(1)}s</span>
+              </div>
+              <div className="text-slate-400 text-[11px]">
+                <span>Clock: </span>
+                <span className="text-slate-200">{submissionClock}</span>
+              </div>
+            </div>
+
+            {/* Security Guarantee Notice */}
+            <p className="text-[11px] text-slate-400 leading-relaxed font-sans">
+              Screen is locked while transmitting. Please do not refresh or close this tab.
+            </p>
           </div>
         </div>
       )}
@@ -561,7 +629,7 @@ export function CareersPortal({
                   {submitting ? (
                     <>
                       <span className="w-3.5 h-3.5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
-                      <span>Submitting dossier, please wait...</span>
+                      <span>Transmitting ({Math.round(progress)}%)...</span>
                     </>
                   ) : (
                     <>
