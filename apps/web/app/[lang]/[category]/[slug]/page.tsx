@@ -42,7 +42,15 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
   const rawSlug = resolvedParams.slug;
   const cleanSlug = getCleanSlug(rawSlug);
   const dbSlug = resolveDbSlug(rawSlug);
-  const candidateSlugs = Array.from(new Set([rawSlug, dbSlug, cleanSlug]));
+  const candidateSlugs = Array.from(new Set([
+    rawSlug,
+    dbSlug,
+    cleanSlug,
+    `${rawSlug}-2026`,
+    `${cleanSlug}-2026`,
+    `${rawSlug}-2025`,
+    `${cleanSlug}-2025`,
+  ]));
 
   const supabase = createServerAnonClient();
   const brandSettings = await getBrandSettings(supabase);
@@ -59,7 +67,7 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
       if (serviceClient) {
         const { data: serviceArticle } = await serviceClient
           .from('articles')
-          .select('*, article_translations(title, excerpt, content, language_code)')
+          .select('title, excerpt, featured_image_url, category, district, published_at, updated_at, author_display_name, article_translations(title, excerpt, language_code)')
           .in('slug', candidateSlugs)
           .maybeSingle();
         if (serviceArticle) {
@@ -69,8 +77,69 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
     } catch {}
   }
 
+  // Resilient fallback: prefix matching for slugs with suffixes (e.g. -2026, -grid-2026, or machine hashes)
   if (!article) {
-    const fallback = FALLBACK_BROADSHEET_ARTICLES.find((a) => candidateSlugs.includes(a.slug));
+    const { data: prefixArticle } = await supabase
+      .from('articles')
+      .select('title, excerpt, featured_image_url, category, district, published_at, updated_at, author_display_name, article_translations(title, excerpt, language_code)')
+      .ilike('slug', `${cleanSlug}%`)
+      .order('published_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (prefixArticle) {
+      article = prefixArticle;
+    } else {
+      try {
+        const serviceClient = createServerServiceClient();
+        if (serviceClient) {
+          const { data: spArticle } = await serviceClient
+            .from('articles')
+            .select('title, excerpt, featured_image_url, category, district, published_at, updated_at, author_display_name, article_translations(title, excerpt, language_code)')
+            .ilike('slug', `${cleanSlug}%`)
+            .order('published_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (spArticle) article = spArticle;
+        }
+      } catch {}
+    }
+  }
+
+  // Broad multi-word prefix fallback
+  if (!article && cleanSlug.includes('-')) {
+    const broadPrefix = cleanSlug.split('-').slice(0, 4).join('-');
+    if (broadPrefix.length >= 8) {
+      const { data: broadArticle } = await supabase
+        .from('articles')
+        .select('title, excerpt, featured_image_url, category, district, published_at, updated_at, author_display_name, article_translations(title, excerpt, language_code)')
+        .ilike('slug', `${broadPrefix}%`)
+        .order('published_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (broadArticle) {
+        article = broadArticle;
+      } else {
+        try {
+          const serviceClient = createServerServiceClient();
+          if (serviceClient) {
+            const { data: spArticle } = await serviceClient
+              .from('articles')
+              .select('title, excerpt, featured_image_url, category, district, published_at, updated_at, author_display_name, article_translations(title, excerpt, language_code)')
+              .ilike('slug', `${broadPrefix}%`)
+              .order('published_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (spArticle) article = spArticle;
+          }
+        } catch {}
+      }
+    }
+  }
+
+  if (!article) {
+    const fallback = FALLBACK_BROADSHEET_ARTICLES.find(
+      (a) => candidateSlugs.includes(a.slug) || a.slug.startsWith(cleanSlug) || cleanSlug.startsWith(a.slug)
+    );
     if (fallback) {
       article = {
         title: fallback.title,
@@ -193,7 +262,15 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   const rawSlug = resolvedParams.slug;
   const cleanSlug = getCleanSlug(rawSlug);
   const dbSlug = resolveDbSlug(rawSlug);
-  const candidateSlugs = Array.from(new Set([rawSlug, dbSlug, cleanSlug]));
+  const candidateSlugs = Array.from(new Set([
+    rawSlug,
+    dbSlug,
+    cleanSlug,
+    `${rawSlug}-2026`,
+    `${cleanSlug}-2026`,
+    `${rawSlug}-2025`,
+    `${cleanSlug}-2025`,
+  ]));
 
   const supabase = createServerAnonClient();
 
@@ -220,8 +297,77 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     } catch {}
   }
 
+  // Resilient fallback: prefix matching for slugs with suffixes (e.g. -2026, -grid-2026, or machine hashes)
   if (!article) {
-    const fallback = FALLBACK_BROADSHEET_ARTICLES.find((a) => candidateSlugs.includes(a.slug));
+    const { data: prefixArticle } = await supabase
+      .from('articles')
+      .select('*, article_translations(title, excerpt, content, language_code)')
+      .ilike('slug', `${cleanSlug}%`)
+      .order('published_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (prefixArticle) {
+      article = prefixArticle;
+      error = null;
+    } else {
+      try {
+        const serviceClient = createServerServiceClient();
+        if (serviceClient) {
+          const { data: spArticle } = await serviceClient
+            .from('articles')
+            .select('*, article_translations(title, excerpt, content, language_code)')
+            .ilike('slug', `${cleanSlug}%`)
+            .order('published_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (spArticle) {
+            article = spArticle;
+            error = null;
+          }
+        }
+      } catch {}
+    }
+  }
+
+  // Broad multi-word prefix fallback
+  if (!article && cleanSlug.includes('-')) {
+    const broadPrefix = cleanSlug.split('-').slice(0, 4).join('-');
+    if (broadPrefix.length >= 8) {
+      const { data: broadArticle } = await supabase
+        .from('articles')
+        .select('*, article_translations(title, excerpt, content, language_code)')
+        .ilike('slug', `${broadPrefix}%`)
+        .order('published_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (broadArticle) {
+        article = broadArticle;
+        error = null;
+      } else {
+        try {
+          const serviceClient = createServerServiceClient();
+          if (serviceClient) {
+            const { data: spArticle } = await serviceClient
+              .from('articles')
+              .select('*, article_translations(title, excerpt, content, language_code)')
+              .ilike('slug', `${broadPrefix}%`)
+              .order('published_at', { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (spArticle) {
+              article = spArticle;
+              error = null;
+            }
+          }
+        } catch {}
+      }
+    }
+  }
+
+  if (!article) {
+    const fallback = FALLBACK_BROADSHEET_ARTICLES.find(
+      (a) => candidateSlugs.includes(a.slug) || a.slug.startsWith(cleanSlug) || cleanSlug.startsWith(a.slug)
+    );
     if (fallback) {
       article = {
         id: fallback.id,
