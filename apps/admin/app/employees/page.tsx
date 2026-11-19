@@ -6,6 +6,7 @@ import { authRoles, type AuthRole } from '@kjin/auth';
 import { supabase } from '@/lib/supabase';
 import { requiresMfa } from '@/lib/mfa';
 import { Button } from '@/components/Button';
+import { toast } from '@/components/Toast';
 
 type Employee = {
   id: string;
@@ -137,7 +138,7 @@ export default function EmployeesPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // In-page feedback and modal state (replaces archaic window.prompt)
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [showContactNotice, setShowContactNotice] = useState(true);
   const [actionModal, setActionModal] = useState<ActionModal>(null);
   const [modalReason, setModalReason] = useState('');
   const [modalName, setModalName] = useState('');
@@ -314,10 +315,7 @@ export default function EmployeesPage() {
   const submitInviteRequest = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (status.includes('Two-Factor Authentication') || status.includes('Employee directory access is required')) {
-      setFeedback({
-        type: 'error',
-        message: 'Please complete Two-Factor Authentication (2FA) verification above before submitting employee invitations.',
-      });
+      toast.error('Please complete Two-Factor Authentication (2FA) verification before submitting employee invitations.');
       return;
     }
     const formElement = event.currentTarget;
@@ -330,9 +328,9 @@ export default function EmployeesPage() {
       reason: String(form.get('reason') ?? ''),
     });
     if (error) {
-      setFeedback({ type: 'error', message: `Request failed: ${error}` });
+      toast.error(`Request failed: ${error}`);
     } else {
-      setFeedback({ type: 'success', message: 'Invitation request submitted for review.' });
+      toast.success('Invitation request submitted for review.');
       formElement.reset();
     }
     setIsSubmitting(false);
@@ -342,10 +340,7 @@ export default function EmployeesPage() {
   const sendInvite = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (status.includes('Two-Factor Authentication') || status.includes('Employee directory access is required')) {
-      setFeedback({
-        type: 'error',
-        message: 'Please complete Two-Factor Authentication (2FA) verification above before sending employee invitations.',
-      });
+      toast.error('Please complete Two-Factor Authentication (2FA) verification before sending employee invitations.');
       return;
     }
     const formElement = event.currentTarget;
@@ -370,16 +365,16 @@ export default function EmployeesPage() {
     if (response.ok) {
       const emailNotice = result.email_sent ? 'Invitation email sent to employee.' : 'Invitation created.';
       const pwdNotice = result.temporary_password ? ` Initial password: ${result.temporary_password}` : '';
-      setFeedback({ type: 'success', message: `${emailNotice}${pwdNotice}` });
+      toast.success(`${emailNotice}${pwdNotice}`);
       setCustomPassword('');
       formElement.reset();
     } else {
       if (response.status === 403 && (result.code === 'reauth_required' || result.error?.includes('Recent authentication'))) {
-        setFeedback({ type: 'error', message: 'Recent authentication required for security. Redirecting to MFA verification...' });
+        toast.error('Recent authentication required for security. Redirecting to MFA verification...');
         window.location.href = '/mfa/challenge?reauth=true&next=/employees';
         return;
       }
-      setFeedback({ type: 'error', message: `Invitation failed: ${result.error ?? 'Unknown error.'}` });
+      toast.error(`Invitation failed: ${result.error ?? 'Unknown error.'}`);
     }
     setIsSubmitting(false);
     await loadWorkspace();
@@ -413,10 +408,7 @@ export default function EmployeesPage() {
           setIsSubmitting(false);
           return;
         }
-        setFeedback({
-          type: 'success',
-          message: `Role for ${actionModal.employee.display_name || actionModal.employee.email} changed to ${actionModal.nextRole}.`,
-        });
+        toast.success(`Role for ${actionModal.employee.display_name || actionModal.employee.email} changed to ${actionModal.nextRole}.`);
       } else if (actionModal.type === 'update-name') {
         const newName = modalName.trim();
         if (!newName) {
@@ -434,10 +426,7 @@ export default function EmployeesPage() {
           setIsSubmitting(false);
           return;
         }
-        setFeedback({
-          type: 'success',
-          message: `Display name updated to "${newName}".`,
-        });
+        toast.success(`Display name updated to "${newName}".`);
       } else if (actionModal.type === 'change-status') {
         const { data } = await supabase.auth.getSession();
         const response = await fetch(`/api/employees/${actionModal.employee.id}/status`, {
@@ -454,10 +443,7 @@ export default function EmployeesPage() {
           setIsSubmitting(false);
           return;
         }
-        setFeedback({
-          type: 'success',
-          message: `Employee ${actionModal.employee.display_name || actionModal.employee.email} ${actionModal.nextStatus === 'active' ? 'enabled (login restored)' : 'disabled (login blocked)'}.`,
-        });
+        toast.success(`Employee ${actionModal.employee.display_name || actionModal.employee.email} ${actionModal.nextStatus === 'active' ? 'enabled (login restored)' : 'disabled (login blocked)'}.`);
       } else if (actionModal.type === 'permanent-delete' || actionModal.type === 'permanent-delete-request') {
         if (confirmDeleteText.trim() !== 'DELETE') {
           setModalError('Please type DELETE in capital letters to confirm permanent deletion.');
@@ -492,10 +478,7 @@ export default function EmployeesPage() {
           setIsSubmitting(false);
           return;
         }
-        setFeedback({
-          type: 'success',
-          message: `Employee ${targetName} permanently deleted from database and authentication system.`,
-        });
+        toast.success(`Employee ${targetName} permanently deleted from database and authentication system.`);
       } else if (actionModal.type === 'request-deletion') {
         const { data: requestResult, error } = await runEmployeeOperation('request-deletion', {
           target_id: actionModal.employee.id,
@@ -524,10 +507,7 @@ export default function EmployeesPage() {
               },
               body: JSON.stringify({ status: 'disabled', reason }),
             });
-            setFeedback({
-              type: 'success',
-              message: `Employee ${actionModal.employee.display_name || actionModal.employee.email} successfully deleted and disabled.`,
-            });
+            toast.success(`Employee ${actionModal.employee.display_name || actionModal.employee.email} successfully deleted and disabled.`);
             closeModal();
             setIsSubmitting(false);
             await loadWorkspace();
@@ -535,10 +515,7 @@ export default function EmployeesPage() {
           }
         }
 
-        setFeedback({
-          type: 'success',
-          message: 'Deprovisioning request submitted for review.',
-        });
+        toast.success('Deprovisioning request submitted for review.');
       } else if (actionModal.type === 'resolve-deletion') {
         const { error } = await runEmployeeOperation('resolve-deletion', {
           request_id: actionModal.request.id,
@@ -562,23 +539,18 @@ export default function EmployeesPage() {
           });
           if (!response.ok) {
             const result = (await response.json()) as { error?: string };
-            setFeedback({
-              type: 'error',
-              message: `Profile deprovisioned, but Auth revocation failed: ${result.error ?? 'Unknown error.'}`,
-            });
+            toast.error(`Profile deprovisioned, but Auth revocation failed: ${result.error ?? 'Unknown error.'}`);
             closeModal();
             setIsSubmitting(false);
             await loadWorkspace();
             return;
           }
         }
-        setFeedback({
-          type: 'success',
-          message:
-            actionModal.decision === 'approved'
-              ? `Employee ${actionModal.request.target_name || 'profile'} successfully deleted and disabled.`
-              : `Deprovisioning request cancelled.`,
-        });
+        toast.success(
+          actionModal.decision === 'approved'
+            ? `Employee ${actionModal.request.target_name || 'profile'} successfully deleted and disabled.`
+            : `Deprovisioning request cancelled.`
+        );
       } else if (actionModal.type === 'approve-invite-request') {
         const { data } = await supabase.auth.getSession();
         const response = await fetch('/api/employees/invite', {
@@ -601,7 +573,7 @@ export default function EmployeesPage() {
         }
         const emailNotice = result.email_sent ? 'Invitation email sent.' : 'Invitation created.';
         const pwdNotice = result.temporary_password ? ` Initial password: ${result.temporary_password}` : '';
-        setFeedback({ type: 'success', message: `${emailNotice}${pwdNotice}` });
+        toast.success(`${emailNotice}${pwdNotice}`);
       } else if (actionModal.type === 'reject-invite-request') {
         const { error } = await runEmployeeOperation('reject-invite-request', {
           request_id: actionModal.request.id,
@@ -612,7 +584,7 @@ export default function EmployeesPage() {
           setIsSubmitting(false);
           return;
         }
-        setFeedback({ type: 'success', message: 'Invitation request declined.' });
+        toast.success('Invitation request declined.');
       } else if (actionModal.type === 'resend-invite') {
         const { data } = await supabase.auth.getSession();
         const response = await fetch('/api/employees/resend-invite', {
@@ -635,7 +607,7 @@ export default function EmployeesPage() {
         }
         const emailNotice = result.email_sent ? 'Invitation email resent.' : 'Invitation credentials refreshed.';
         const pwdNotice = result.temporary_password ? ` Initial password: ${result.temporary_password}` : '';
-        setFeedback({ type: 'success', message: `${emailNotice}${pwdNotice}` });
+        toast.success(`${emailNotice}${pwdNotice}`);
       } else if (actionModal.type === 'reset-mfa') {
         const { data } = await supabase.auth.getSession();
         const response = await fetch('/api/employees/mfa/admin-reset', {
@@ -655,10 +627,7 @@ export default function EmployeesPage() {
           setIsSubmitting(false);
           return;
         }
-        setFeedback({
-          type: 'success',
-          message: result.message || `MFA reset successfully for ${actionModal.employee.display_name}.`,
-        });
+        toast.success(result.message || `MFA reset successfully for ${actionModal.employee.display_name}.`);
       }
 
       closeModal();
@@ -694,7 +663,7 @@ export default function EmployeesPage() {
           <div className="flex items-center gap-2.5">
             <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Employees &amp; Staff</h1>
             <span className="rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-xs font-mono font-medium text-slate-600 dark:text-slate-400">
-              {employees.length} members
+              {employees.length} {employees.length === 1 ? 'member' : 'members'}
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -709,32 +678,6 @@ export default function EmployeesPage() {
             </Button>
           </div>
         </header>
-
-        {feedback && (
-          <div
-            role="status"
-            aria-live="polite"
-            className={`mb-6 flex items-center justify-between rounded-xl border p-4 shadow-lg ${
-              feedback.type === 'success'
-                ? 'border-emerald-500/50 bg-emerald-950/60 text-emerald-200'
-                : 'border-red-500/50 bg-red-950/60 text-red-200'
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <span className={`flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold ${feedback.type === 'success' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-red-500/20 text-red-300'}`}>
-                {feedback.type === 'success' ? '✓' : '!'}
-              </span>
-              <p className="font-medium">{feedback.message}</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setFeedback(null)}
-              className="rounded px-2 py-1 text-xs font-semibold uppercase tracking-wider text-slate-400 hover:text-white"
-            >
-              Dismiss
-            </button>
-          </div>
-        )}
 
         {status.includes('Employee directory access is required') || status.includes('Two-Factor Authentication') ? (
           <div className="mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 rounded-xl border border-amber-500/40 bg-amber-500/10 p-5 text-sm text-amber-200 shadow-lg">
@@ -783,10 +726,23 @@ export default function EmployeesPage() {
 
         {isLoading ? <p className="py-12 text-center text-slate-400">Loading employee records...</p> : null}
 
-        {!isLoading && can('employee.contact.update') ? (
-          <p className="mb-6 rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-            Login email and phone changes are paused until target verification and recent reauthentication are available.
-          </p>
+        {!isLoading && can('employee.contact.update') && showContactNotice ? (
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2.5 text-xs text-amber-200 shadow-xs animate-in fade-in duration-200">
+            <div className="flex items-center gap-2">
+              <span className="text-amber-400 font-bold">🔒</span>
+              <span>
+                <strong className="text-amber-100 font-semibold">Security Policy:</strong> Login email and phone changes are paused until target verification and recent reauthentication are available.
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowContactNotice(false)}
+              className="rounded p-1 text-amber-400/80 hover:bg-amber-500/20 hover:text-amber-100 text-xs font-semibold transition"
+              title="Dismiss notice"
+            >
+              ✕
+            </button>
+          </div>
         ) : null}
 
         {!isLoading && activeTab === 'add' ? (
@@ -1212,23 +1168,35 @@ export default function EmployeesPage() {
             </div>
 
             {/* Desktop Table (hidden md:block) */}
-            <div className="hidden md:block overflow-x-auto">
-              <table className="w-full min-w-[760px] border-collapse text-left text-sm">
-                <thead>
-                  <tr className="border-b border-slate-700 text-xs uppercase text-slate-400">
-                    <th className="px-3 py-3">Employee</th><th className="px-3 py-3">Role</th><th className="px-3 py-3">Status</th><th className="px-3 py-3">Joined</th><th className="px-3 py-3">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {visibleEmployees.map((employee) => (
-                    <tr key={employee.id} className="border-b border-slate-800 align-top">
-                      <td className="px-3 py-4">
-                        <p className="font-medium">{employee.display_name || 'Unnamed employee'}</p>
-                        <p className="mt-1 text-slate-400">{employee.email ?? 'Contact details restricted'}</p>
-                        {employee.phone ? <p className="mt-1 text-slate-500">{employee.phone}</p> : null}
-                      </td>
-                      <td className="px-3 py-4 capitalize">{employee.role_key}</td>
-                      <td className="px-3 py-4">
+            <div className="hidden md:block rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 shadow-xs overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[760px] border-collapse text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/90 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                      <th className="px-4 py-3.5">Employee</th>
+                      <th className="px-4 py-3.5">Role</th>
+                      <th className="px-4 py-3.5">Status</th>
+                      <th className="px-4 py-3.5">Joined</th>
+                      <th className="px-4 py-3.5">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
+                    {visibleEmployees.map((employee) => (
+                      <tr key={employee.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors align-top">
+                        <td className="px-4 py-4">
+                          <div className="flex items-start gap-3">
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-600 dark:text-cyan-400 font-semibold text-xs uppercase shadow-xs select-none">
+                              {(employee.display_name || employee.email || 'U').slice(0, 2)}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-semibold text-slate-900 dark:text-white leading-tight truncate">{employee.display_name || 'Unnamed employee'}</p>
+                              <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 truncate">{employee.email ?? 'Contact details restricted'}</p>
+                              {employee.phone ? <p className="mt-1 text-xs text-slate-400 dark:text-slate-500 truncate">{employee.phone}</p> : null}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4 capitalize font-medium text-slate-700 dark:text-slate-300">{employee.role_key}</td>
+                        <td className="px-4 py-4">
                         <div className="flex items-center gap-2.5">
                           {/* Status Badge */}
                           <span
@@ -1476,7 +1444,8 @@ export default function EmployeesPage() {
                 </tbody>
               </table>
             </div>
-          </section>
+          </div>
+        </section>
         ) : null}
 
         {!isLoading && activeTab === 'deletion' ? (

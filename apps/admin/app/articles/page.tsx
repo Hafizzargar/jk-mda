@@ -70,7 +70,6 @@ function ArticlesPageContent() {
   const [totalCount, setTotalCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   
   // Topic Architecture & Filters State (Default is 'news'!)
   const [categories, setCategories] = useState<DynamicCategoryItem[]>(() => formatCategoryOptions([]));
@@ -288,13 +287,11 @@ function ArticlesPageContent() {
         throw new Error(result.error || 'Failed to reactivate article.');
       }
       const successMsg = `Article "${article.title}" reactivated and published live! ✨`;
-      setFeedback({ type: 'success', message: successMsg });
       toast.success(successMsg, { id: toastId, title: 'Article Reactivated' });
       setReactivateArticleTarget(null);
       await loadArticles();
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err);
-      setFeedback({ type: 'error', message: errorMsg });
       toast.error(errorMsg, { id: toastId });
     } finally {
       setIsSubmitting(false);
@@ -326,17 +323,12 @@ function ArticlesPageContent() {
         throw new Error(result.error || 'Failed to deactivate article.');
       }
       const successMsg = `Article "${retractArticle.title}" deactivated and pulled offline.`;
-      setFeedback({
-        type: 'success',
-        message: `${successMsg} Reason recorded: "${combinedReason}"`,
-      });
       toast.success(successMsg, { id: toastId, title: 'Article Deactivated' });
       setRetractArticle(null);
       setRetractionNotes('');
       await loadArticles();
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err);
-      setFeedback({ type: 'error', message: errorMsg });
       toast.error(errorMsg, { id: toastId });
     } finally {
       setIsSubmitting(false);
@@ -349,7 +341,6 @@ function ArticlesPageContent() {
     if (!deleteArticle) return;
     if (confirmDeleteInput.trim() !== 'DELETE') {
       const msg = 'Please type DELETE in capital letters to confirm permanent deletion.';
-      setFeedback({ type: 'error', message: msg });
       toast.warning(msg);
       return;
     }
@@ -370,17 +361,12 @@ function ArticlesPageContent() {
         throw new Error(result.error || 'Failed to delete article.');
       }
       const successMsg = `Article "${deleteArticle.title}" and revision history permanently deleted.`;
-      setFeedback({
-        type: 'success',
-        message: successMsg,
-      });
       toast.success(successMsg, { id: toastId, title: 'Article Deleted' });
       setDeleteArticle(null);
       setConfirmDeleteInput('');
       await loadArticles();
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err);
-      setFeedback({ type: 'error', message: errorMsg });
       toast.error(errorMsg, { id: toastId });
     } finally {
       setIsSubmitting(false);
@@ -1020,38 +1006,6 @@ function ArticlesPageContent() {
             </select>
           </div>
         </div>
-
-        {/* Feedback Message */}
-        {feedback && (
-          <div
-            role="status"
-            className={`mb-4 flex items-center justify-between rounded-xl border p-3.5 shadow-2xs ${
-              feedback.type === 'success'
-                ? 'border-emerald-300 bg-emerald-50 text-emerald-950 dark:border-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-200'
-                : 'border-red-300 bg-red-50 text-red-950 dark:border-red-700 dark:bg-red-950/60 dark:text-red-200'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <span
-                className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-bold ${
-                  feedback.type === 'success'
-                    ? 'bg-emerald-200 text-emerald-900'
-                    : 'bg-red-200 text-red-900'
-                }`}
-              >
-                {feedback.type === 'success' ? '✓' : '!'}
-              </span>
-              <p className="font-semibold text-xs">{feedback.message}</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setFeedback(null)}
-              className="text-xs font-bold uppercase text-slate-500 hover:text-slate-800"
-            >
-              Dismiss
-            </button>
-          </div>
-        )}
 
         {/* Error notification if query fails */}
         {error ? (
