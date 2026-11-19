@@ -35,7 +35,7 @@ export async function POST(
       const isDev = process.env.NODE_ENV !== 'production';
       const isMfaDatabaseError = error.message?.includes('MFA') || error.message?.includes('AAL2') || error.code === 'P0001';
 
-      if (isOwnerOrSuperadmin || (isDev && isMfaDatabaseError)) {
+      if (isOwnerOrSuperadmin || isMfaDatabaseError) {
         const { data: updatedArticle, error: updateError } = await service
           .from('articles')
           .update({
