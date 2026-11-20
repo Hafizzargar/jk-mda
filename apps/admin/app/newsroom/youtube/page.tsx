@@ -1138,7 +1138,7 @@ export default function YouTubeMonitorPage() {
         setAutoPilot(enabled);
 
         if (sData.freshness_hours !== undefined && !isNaN(Number(sData.freshness_hours))) {
-          const hours = Math.max(1, Math.min(72, Number(sData.freshness_hours)));
+          const hours = Math.max(0.08, Math.min(72, Number(sData.freshness_hours)));
           setFreshnessHours(hours);
           if (typeof window !== 'undefined') {
             localStorage.setItem('kjin_freshness_hours', String(hours));

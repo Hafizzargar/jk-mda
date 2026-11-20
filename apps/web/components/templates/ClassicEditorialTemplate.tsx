@@ -2170,7 +2170,7 @@ export function ClassicEditorialTemplate({
                       </div>
                       <div className="flex items-center space-x-2 text-[11px] text-slate-500">
                         <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        <span>Live 5-Min Verified Satellite Stream</span>
+                        <span>Open-Meteo Regional Weather Data</span>
                       </div>
                     </div>
 

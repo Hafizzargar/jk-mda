@@ -250,20 +250,15 @@ ${govSection}
  * Avoids random hashes, preserves full words, and appends the year.
  */
 export function generateSlug(title: string): string {
-  const clean = title
+  // Split on word boundaries — never cut mid-word
+  const words = title
     .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')   // strip punctuation & special chars
     .trim()
-    .replace(/[^\w\s-]/g, '')
-    .replace(/[\s_-]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 9);                   // max 9 words, always complete words
 
-  // Truncate at word boundary up to ~70 characters
-  let base = clean.slice(0, 70);
-  const lastHyphen = base.lastIndexOf('-');
-  if (lastHyphen > 35) {
-    base = base.slice(0, lastHyphen);
-  }
-  base = base.replace(/-+$/, '') || 'dispatch';
-
+  const base = words.join('-') || 'dispatch';
   return `${base}-2026`;
 }

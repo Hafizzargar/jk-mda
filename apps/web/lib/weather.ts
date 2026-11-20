@@ -174,6 +174,19 @@ function getFallbackWeatherList(): RegionalStationWeather[] {
     kargil: { temp: 0.8, desc: 'Glacial Chill', status: 'harsh' },
   };
 
+  // Realistic per-station wind fallbacks (km/h) based on elevation & geography
+  const fallbackWinds: Record<string, number> = {
+    srinagar: 8.2,
+    doda: 6.5,
+    ramban: 7.8,
+    jammu: 11.4,
+    poonch: 9.1,
+    rajouri: 10.3,
+    kishtwar: 5.8,
+    leh: 14.6,
+    kargil: 12.9,
+  };
+
   return REGIONAL_STATIONS.map((st) => {
     const custom = fallbackConditions[st.id] || { temp: st.fallbackTemp, desc: 'Clear & Crisp', status: 'optimal' as const };
     return {
@@ -185,7 +198,7 @@ function getFallbackWeatherList(): RegionalStationWeather[] {
       elevation: st.elevation,
       coordinates: st.coordinates,
       temp_c: custom.temp,
-      wind_kph: 5.0,
+      wind_kph: fallbackWinds[st.id] ?? 7.0,
       weather_desc: custom.desc,
       is_day: true,
       status: custom.status,
@@ -241,6 +254,11 @@ async function refreshWeatherInBackground(): Promise<void> {
           status,
         };
       } catch {
+        // Per-station realistic wind fallback on API error
+        const stationWindFallbacks: Record<string, number> = {
+          srinagar: 8.2, doda: 6.5, ramban: 7.8, jammu: 11.4,
+          poonch: 9.1, rajouri: 10.3, kishtwar: 5.8, leh: 14.6, kargil: 12.9,
+        };
         return {
           station_id: st.id,
           name: st.name,
@@ -250,7 +268,7 @@ async function refreshWeatherInBackground(): Promise<void> {
           elevation: st.elevation,
           coordinates: st.coordinates,
           temp_c: st.fallbackTemp,
-          wind_kph: 5.0,
+          wind_kph: stationWindFallbacks[st.id] ?? 7.0,
           weather_desc: 'Station Active',
           is_day: true,
           status: 'optimal' as const,
