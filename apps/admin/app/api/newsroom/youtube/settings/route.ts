@@ -31,7 +31,7 @@ export async function GET(request: Request) {
       ? Math.max(1, Math.min(24, Number(data.value.civic_interval_hours)))
       : 6;
     const freshnessHours = data?.value?.freshness_hours !== undefined && !isNaN(Number(data.value.freshness_hours))
-      ? Math.max(1, Math.min(72, Number(data.value.freshness_hours)))
+      ? Math.max(0.08, Math.min(72, Number(data.value.freshness_hours)))
       : 6;
 
     const nowMs = Date.now();
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
     const autoPublishDelayMinutes = body.auto_publish_delay_minutes !== undefined ? Math.max(1, Number(body.auto_publish_delay_minutes) || 5) : undefined;
     const civicMaxDaily = body.civic_max_daily !== undefined ? Math.max(1, Math.min(10, Number(body.civic_max_daily))) : undefined;
     const civicIntervalHours = body.civic_interval_hours !== undefined ? Math.max(1, Math.min(24, Number(body.civic_interval_hours))) : undefined;
-    const freshnessHours = body.freshness_hours !== undefined && !isNaN(Number(body.freshness_hours)) ? Math.max(1, Math.min(72, Number(body.freshness_hours))) : undefined;
+    const freshnessHours = body.freshness_hours !== undefined && !isNaN(Number(body.freshness_hours)) ? Math.max(0.08, Math.min(72, Number(body.freshness_hours))) : undefined;
     const nextScanAt = body.next_scan_at !== undefined ? body.next_scan_at : undefined;
     const lastScanAt = body.last_scan_at !== undefined ? body.last_scan_at : undefined;
 

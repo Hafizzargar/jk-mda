@@ -789,7 +789,7 @@ export async function runYouTubeHourlySync(
         .eq('key', 'newsroom_auto_pilot')
         .maybeSingle();
       if (pilotSett?.value?.freshness_hours !== undefined && !isNaN(Number(pilotSett.value.freshness_hours))) {
-        freshnessHours = Math.max(1, Math.min(72, Number(pilotSett.value.freshness_hours)));
+        freshnessHours = Math.max(0.08, Math.min(72, Number(pilotSett.value.freshness_hours)));
       }
     } catch {
       // fallback to default

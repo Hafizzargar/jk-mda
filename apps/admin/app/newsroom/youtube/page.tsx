@@ -614,8 +614,16 @@ export default function YouTubeMonitorPage() {
     }
   }
 
+  function formatFreshnessBadgeText(hours: number): string {
+    if (hours < 1) {
+      const mins = Math.round(hours * 60);
+      return `< ${mins}m`;
+    }
+    return `< ${hours}h`;
+  }
+
   async function handleUpdateFreshnessHours(newHours: number) {
-    const clamped = Math.max(1, Math.min(72, Number(newHours) || 6));
+    const clamped = Math.max(0.08, Math.min(72, Number(newHours) || 6));
     setFreshnessHours(clamped);
     if (typeof window !== 'undefined') {
       localStorage.setItem('kjin_freshness_hours', String(clamped));
@@ -633,8 +641,10 @@ export default function YouTubeMonitorPage() {
           freshness_hours: clamped,
         }),
       });
+      const badge = formatFreshnessBadgeText(clamped);
+      const label = clamped < 1 ? `${Math.round(clamped * 60)} minute(s)` : `${clamped} hour(s)`;
       setFeedback({
-        text: `Freshness Window updated to < ${clamped}h. News older than ${clamped} hour(s) will be strictly rejected.`,
+        text: `Freshness Window updated to ${badge}. News older than ${label} will be strictly rejected.`,
         type: 'success',
       });
     } catch (err) {
@@ -2011,33 +2021,54 @@ export default function YouTubeMonitorPage() {
                   onChange={(e) => handleUpdateFreshnessHours(Number(e.target.value))}
                   className="rounded-lg border border-purple-300 dark:border-purple-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold text-xs px-2.5 py-1 outline-none cursor-pointer focus:ring-2 focus:ring-purple-500 hover:border-purple-400 transition [color-scheme:light] dark:[color-scheme:dark]"
                 >
-                  <option value={1} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 1h (Breaking)</option>
-                  <option value={2} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 2h (Ultra Fresh)</option>
-                  <option value={3} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 3h (Fast Track)</option>
-                  <option value={4} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 4h</option>
-                  <option value={5} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 5h</option>
-                  <option value={6} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 6h (Strict)</option>
-                  <option value={8} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 8h</option>
-                  <option value={12} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 12h</option>
-                  <option value={24} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 24h</option>
-                  <option value={48} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 48h</option>
+                  <option value={0.167} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 10 Minutes (Hyper Breaking)</option>
+                  <option value={0.333} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 20 Minutes (Flash Realtime)</option>
+                  <option value={0.5} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 30 Minutes (Half-Hour)</option>
+                  <option value={0.75} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 45 Minutes</option>
+                  <option value={1} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 1 Hour (Breaking)</option>
+                  <option value={2} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 2 Hours (Ultra Fresh)</option>
+                  <option value={3} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 3 Hours (Fast Track)</option>
+                  <option value={4} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 4 Hours</option>
+                  <option value={5} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 5 Hours</option>
+                  <option value={6} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 6 Hours (Strict Standard)</option>
+                  <option value={8} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 8 Hours (Work Shift)</option>
+                  <option value={12} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 12 Hours (Half-Day)</option>
+                  <option value={24} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 24 Hours (Full Day)</option>
+                  <option value={48} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 48 Hours (2 Days)</option>
                 </select>
                 <div className="flex items-center gap-1 bg-white dark:bg-slate-900 rounded-lg px-2 py-1 border border-purple-300 dark:border-purple-700">
                   <input
                     type="number"
-                    min={1}
-                    max={72}
-                    value={freshnessHours}
+                    min={freshnessHours < 1 ? 5 : 1}
+                    max={freshnessHours < 1 ? 120 : 72}
+                    value={freshnessHours < 1 ? Math.round(freshnessHours * 60) : freshnessHours}
                     onChange={(e) => {
                       const val = Number(e.target.value);
-                      if (!isNaN(val) && val >= 1 && val <= 72) {
-                        handleUpdateFreshnessHours(val);
+                      if (!isNaN(val) && val > 0) {
+                        if (freshnessHours < 1) {
+                          handleUpdateFreshnessHours(Number((val / 60).toFixed(3)));
+                        } else {
+                          handleUpdateFreshnessHours(val);
+                        }
                       }
                     }}
-                    title="Custom freshness window in hours (1-72)"
-                    className="w-7 bg-transparent text-slate-900 dark:text-white font-bold text-xs text-center outline-none"
+                    title={freshnessHours < 1 ? "Enter custom minutes (e.g. 10, 20, 30)" : "Enter custom hours (1-72)"}
+                    className="w-8 bg-transparent text-slate-900 dark:text-white font-bold text-xs text-center outline-none"
                   />
-                  <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300">h</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (freshnessHours < 1) {
+                        handleUpdateFreshnessHours(1);
+                      } else {
+                        handleUpdateFreshnessHours(Number((20 / 60).toFixed(3)));
+                      }
+                    }}
+                    className="text-[11px] font-bold text-purple-700 dark:text-purple-300 hover:underline cursor-pointer"
+                    title="Click to toggle between minutes and hours"
+                  >
+                    {freshnessHours < 1 ? 'min' : 'hrs'}
+                  </button>
                 </div>
               </div>
 
@@ -2264,7 +2295,7 @@ export default function YouTubeMonitorPage() {
                             </span>
                           )}
                           <span className="font-bold text-[9.5px] px-1.5 py-0.5 rounded bg-cyan-100 text-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800">
-                            ⚡ &lt; {freshnessHours}h Fresh
+                            ⚡ {formatFreshnessBadgeText(freshnessHours)} Fresh
                           </span>
                         </div>
                         {art.status === 'published' ? (
@@ -2408,7 +2439,7 @@ export default function YouTubeMonitorPage() {
                 </h3>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Live trail of background news scanner. Shows generated drafts or reasons for skips (freshness &gt;{freshnessHours}h, duplicates, or quota cooldown).
+                Live trail of background news scanner. Shows generated drafts or reasons for skips (freshness &gt;{formatFreshnessBadgeText(freshnessHours).replace('< ', '')}, duplicates, or quota cooldown).
               </p>
             </div>
 
@@ -2471,7 +2502,7 @@ export default function YouTubeMonitorPage() {
                         ) : isStale ? (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-200 dark:border-amber-800 flex items-center gap-1">
                             <span>⚠️</span>
-                            <span>Stale (&gt;{log.ageHours ? `${log.ageHours}h` : `${freshnessHours}h`}) Rejected</span>
+                            <span>Stale (&gt;{log.ageHours ? (log.ageHours < 1 ? `${Math.round(log.ageHours * 60)}m` : `${log.ageHours}h`) : formatFreshnessBadgeText(freshnessHours).replace('< ', '')}) Rejected</span>
                           </span>
                         ) : isDuplicate ? (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-800 dark:bg-purple-950/50 dark:text-purple-300 border border-purple-200 dark:border-purple-800 flex items-center gap-1">
@@ -2917,12 +2948,12 @@ export default function YouTubeMonitorPage() {
                           {(Date.now() - new Date(video.published_at).getTime()) <= freshnessHours * 60 * 60 * 1000 ? (
                             <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 flex items-center gap-0.5">
                               <span>⚡</span>
-                              <span>&lt; {freshnessHours}h</span>
+                              <span>{formatFreshnessBadgeText(freshnessHours)}</span>
                             </span>
                           ) : (
-                            <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-rose-100 text-rose-800 border border-rose-300 dark:bg-rose-950/60 dark:text-rose-300 flex items-center gap-0.5" title={`Published more than ${freshnessHours} hours ago`}>
+                            <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-rose-100 text-rose-800 border border-rose-300 dark:bg-rose-950/60 dark:text-rose-300 flex items-center gap-0.5" title={`Published more than ${freshnessHours < 1 ? `${Math.round(freshnessHours * 60)} minutes` : `${freshnessHours} hours`} ago`}>
                               <span>⚠️</span>
-                              <span>&gt; {freshnessHours}h Stale</span>
+                              <span>&gt; {formatFreshnessBadgeText(freshnessHours).replace('< ', '')} Stale</span>
                             </span>
                           )}
                         </div>

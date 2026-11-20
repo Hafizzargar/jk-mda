@@ -645,8 +645,24 @@ describe('P0: KJIN Autonomous News Discovery & Regional Quotas', () => {
     assert.strictEqual(beyondCheck.isFresh, false);
   });
 
-  it('dynamically adapts freshness window when custom maxAgeHours is provided (e.g. 1h, 2h, 3h, 12h)', () => {
+  it('dynamically adapts freshness window when custom maxAgeHours is provided (e.g. 10m, 20m, 1h, 2h, 3h, 12h)', () => {
     const reference = new Date('2026-11-15T15:00:00.000Z');
+
+    // Test 10-minute freshness limit (10 / 60h)
+    const fifteenMinsAgo = evaluateNewsFreshness({ publishedAt: new Date(reference.getTime() - 15 * 60 * 1000).toISOString() }, reference, 10 / 60);
+    assert.strictEqual(fifteenMinsAgo.isFresh, false);
+    assert.ok(fifteenMinsAgo.reason?.includes('10-minute'));
+
+    const fiveMinsAgo = evaluateNewsFreshness({ publishedAt: new Date(reference.getTime() - 5 * 60 * 1000).toISOString() }, reference, 10 / 60);
+    assert.strictEqual(fiveMinsAgo.isFresh, true);
+
+    // Test 20-minute freshness limit (20 / 60h)
+    const twentyFiveMinsAgo = evaluateNewsFreshness({ publishedAt: new Date(reference.getTime() - 25 * 60 * 1000).toISOString() }, reference, 20 / 60);
+    assert.strictEqual(twentyFiveMinsAgo.isFresh, false);
+    assert.ok(twentyFiveMinsAgo.reason?.includes('20-minute'));
+
+    const twelveMinsAgo = evaluateNewsFreshness({ publishedAt: new Date(reference.getTime() - 12 * 60 * 1000).toISOString() }, reference, 20 / 60);
+    assert.strictEqual(twelveMinsAgo.isFresh, true);
 
     // Test 1-hour freshness limit
     const twoHoursAgo = evaluateNewsFreshness({ hoursAgo: 2 }, reference, 1);
