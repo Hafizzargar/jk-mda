@@ -1983,46 +1983,46 @@ export default function YouTubeMonitorPage() {
               </button>
 
               {/* Scan Cadence */}
-              <div className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 font-semibold text-slate-700 dark:text-slate-300">
-                <span className="text-[11px] text-slate-500 dark:text-slate-400">Cadence:</span>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700/80 bg-slate-100 dark:bg-slate-800/90 text-slate-700 dark:text-slate-200 shadow-2xs">
+                <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">⏱️ Cadence:</span>
                 <select
                   id="radar-schedule-select"
                   value={autoPilotIntervalMinutes}
                   onChange={(e) => handleUpdateAutoPilotSettings(Number(e.target.value), autoPilot)}
-                  className="bg-transparent text-slate-900 dark:text-white font-bold text-xs outline-none cursor-pointer"
+                  className="rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold text-xs px-2.5 py-1 outline-none cursor-pointer focus:ring-2 focus:ring-purple-500 hover:border-slate-400 dark:hover:border-slate-500 transition [color-scheme:light] dark:[color-scheme:dark]"
                 >
-                  <option value={1}>Every 1 Min</option>
-                  <option value={2}>Every 2 Min</option>
-                  <option value={3}>Every 3 Min (Fast)</option>
-                  <option value={5}>Every 5 Min (Standard)</option>
-                  <option value={10}>Every 10 Min</option>
-                  <option value={15}>Every 15 Min</option>
-                  <option value={30}>Every 30 Min</option>
-                  <option value={60}>Every 1 Hour</option>
+                  <option value={1} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">Every 1 Min</option>
+                  <option value={2} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">Every 2 Min</option>
+                  <option value={3} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">Every 3 Min (Fast)</option>
+                  <option value={5} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">Every 5 Min (Standard)</option>
+                  <option value={10} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">Every 10 Min</option>
+                  <option value={15} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">Every 15 Min</option>
+                  <option value={30} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">Every 30 Min</option>
+                  <option value={60} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">Every 1 Hour</option>
                 </select>
               </div>
 
               {/* Freshness Window Selector */}
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-purple-200 dark:border-purple-800/80 bg-purple-50/70 dark:bg-purple-950/30 text-purple-900 dark:text-purple-200">
-                <span className="text-[11px] text-purple-600 dark:text-purple-400 font-medium">Freshness:</span>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-purple-300 dark:border-purple-800/80 bg-purple-50 dark:bg-purple-950/40 text-purple-900 dark:text-purple-200 shadow-2xs">
+                <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300">⏰ Freshness:</span>
                 <select
                   id="radar-freshness-select"
                   value={freshnessHours}
                   onChange={(e) => handleUpdateFreshnessHours(Number(e.target.value))}
-                  className="bg-transparent text-purple-950 dark:text-purple-100 font-bold text-xs outline-none cursor-pointer"
+                  className="rounded-lg border border-purple-300 dark:border-purple-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold text-xs px-2.5 py-1 outline-none cursor-pointer focus:ring-2 focus:ring-purple-500 hover:border-purple-400 transition [color-scheme:light] dark:[color-scheme:dark]"
                 >
-                  <option value={1}>&lt; 1h (Breaking)</option>
-                  <option value={2}>&lt; 2h (Ultra Fresh)</option>
-                  <option value={3}>&lt; 3h (Fast Track)</option>
-                  <option value={4}>&lt; 4h</option>
-                  <option value={5}>&lt; 5h</option>
-                  <option value={6}>&lt; 6h (Strict)</option>
-                  <option value={8}>&lt; 8h</option>
-                  <option value={12}>&lt; 12h</option>
-                  <option value={24}>&lt; 24h</option>
-                  <option value={48}>&lt; 48h</option>
+                  <option value={1} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 1h (Breaking)</option>
+                  <option value={2} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 2h (Ultra Fresh)</option>
+                  <option value={3} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 3h (Fast Track)</option>
+                  <option value={4} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 4h</option>
+                  <option value={5} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 5h</option>
+                  <option value={6} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 6h (Strict)</option>
+                  <option value={8} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 8h</option>
+                  <option value={12} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 12h</option>
+                  <option value={24} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 24h</option>
+                  <option value={48} className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white py-1">&lt; 48h</option>
                 </select>
-                <div className="flex items-center gap-0.5 bg-white/80 dark:bg-slate-800 rounded px-1.5 py-0.5 border border-purple-200 dark:border-purple-800">
+                <div className="flex items-center gap-1 bg-white dark:bg-slate-900 rounded-lg px-2 py-1 border border-purple-300 dark:border-purple-700">
                   <input
                     type="number"
                     min={1}
@@ -2035,9 +2035,9 @@ export default function YouTubeMonitorPage() {
                       }
                     }}
                     title="Custom freshness window in hours (1-72)"
-                    className="w-7 bg-transparent text-slate-900 dark:text-white font-bold text-[11px] text-center outline-none"
+                    className="w-7 bg-transparent text-slate-900 dark:text-white font-bold text-xs text-center outline-none"
                   />
-                  <span className="text-[10px] text-purple-700 dark:text-purple-300 font-semibold">h</span>
+                  <span className="text-[11px] font-bold text-purple-700 dark:text-purple-300">h</span>
                 </div>
               </div>
 
