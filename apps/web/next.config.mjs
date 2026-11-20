@@ -1,5 +1,3 @@
-import { withSentryConfig } from '@sentry/nextjs/config';
-
 export const PRODUCTION_SUPABASE_PROJECT_ID = 'ptvfidufwlswbjgsjvzl';
 
 /** @type {string} */
@@ -187,9 +185,6 @@ export const nextConfig = {
   serverExternalPackages: [
     '@supabase/supabase-js',
     '@supabase/ssr',
-    '@sentry/nextjs',
-    '@sentry/node',
-    '@sentry/core',
   ],
   eslint: {
     ignoreDuringBuilds: true,
@@ -231,21 +226,5 @@ export const nextConfig = {
   },
 };
 
-export default isProd
-  ? withSentryConfig(nextConfig, {
-      org: "education-29y",
-      project: "kjin-web",
-      silent: !process.env.CI,
-      widenClientFileUpload: true,
-      tunnelRoute: "/monitoring",
-      autoInstrumentMiddleware: false,
-      autoInstrumentServerFunctions: false,
-      webpack: {
-        automaticVercelMonitors: true,
-        treeshake: {
-          removeDebugLogging: true,
-        },
-      },
-    })
-  : nextConfig;
+export default nextConfig;
 

@@ -5,7 +5,6 @@ import { z } from 'zod';
 import { createClient } from '@supabase/supabase-js';
 import { readBoundedStream } from '../../../../lib/request-utils';
 import sanitizeHtml from 'sanitize-html';
-import * as Sentry from '@sentry/nextjs';
 
 import { getTestSummarizeGenerator } from '../../../../lib/ai-provider';
 
@@ -47,7 +46,6 @@ export async function POST(request: Request) {
     // 2. Authorize user (article.create permission)
     const { data: hasPerm, error: permError } = await supabase.rpc('has_permission', { p_permission_key: 'article.create' });
     if (permError) {
-      Sentry.captureException(permError);
       console.error('Authorization check RPC failure in summarize route:', permError);
       return NextResponse.json({ error: 'Authorization service temporarily unavailable' }, { status: 500 });
     }
@@ -96,7 +94,6 @@ export async function POST(request: Request) {
     
     // Distinguish rate limiter infrastructure errors (500) from quota exhaustion (429)
     if (rateLimitError) {
-      Sentry.captureException(rateLimitError);
       console.error('AI rate limiter RPC failure in summarize:', rateLimitError);
       return NextResponse.json({ error: 'Rate limiter service temporarily unavailable' }, { status: 500 });
     }
@@ -156,7 +153,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json(validatedSummary.data);
   } catch (error) {
-    Sentry.captureException(error);
     console.error('AI Summarize Error:', error);
     return NextResponse.json({ error: 'Failed to generate summary. Please try again later.' }, { status: 500 });
   }

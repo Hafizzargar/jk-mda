@@ -57,7 +57,7 @@ This report catalogs all 40 API and route endpoints across the **Admin Portal** 
 | **37** | Web | `POST` | `/api/articles/[id]/view` | **No Token** | Public (Deduplicated Hash) | Records verified unique reader views with SHA-256 IP/User-Agent hashing. |
 | **38** | Web | `POST` | `/api/careers/apply` | **No Token** | Public (Rate Limited by IP) | Allows public job seekers to submit employment applications and resumes. |
 | **39** | Web | `POST` | `/api/newsletter/subscribe` | **No Token** | Public (Rate Limited by IP) | Enrolls readers in email newsletter editions with rate limiting. |
-| **40** | Web | `GET` | `/api/sentry-example-api` | **No Token** | Diagnostic / Monitoring | Health probe to verify error tracking integration. |
+| **40** | Web | `GET` | `/api/health` | **No Token** | Diagnostic / Monitoring | Health probe to verify system availability. |
 
 ---
 

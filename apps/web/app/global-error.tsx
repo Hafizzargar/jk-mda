@@ -11,13 +11,6 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
-    import('@sentry/nextjs')
-      .then((Sentry) => {
-        Sentry?.captureException?.(error);
-      })
-      .catch(() => {
-        // safe fallback
-      });
     console.error('Global Error Caught:', error);
   }, [error]);
 
