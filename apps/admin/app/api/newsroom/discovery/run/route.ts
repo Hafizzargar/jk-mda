@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic';
 
+import { createClient } from '@supabase/supabase-js';
 import { authorizeEmployeeRequest, isEmployeeAuthorization } from '@/lib/employee-server';
 import {
   runAutonomousNewsDiscovery,
@@ -12,12 +13,36 @@ import {
   KJIN_REGIONAL_TARGETS,
 } from '@/lib/newsroom/autonomous-discovery';
 
+function isCronAuthorized(request: Request): boolean {
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) return false;
+  const cronHeader = request.headers.get('x-cron-secret');
+  const authHeader = request.headers.get('Authorization');
+  if (cronHeader === cronSecret) return true;
+  if (authHeader && authHeader.replace(/^Bearer\s+/i, '').trim() === cronSecret) return true;
+  return false;
+}
+
+async function resolveService(request: Request) {
+  if (isCronAuthorized(request)) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    if (!url || !key) {
+      return { error: Response.json({ error: 'Supabase credentials missing.' }, { status: 500 }) };
+    }
+    return { service: createClient(url, key, { auth: { persistSession: false } }) };
+  }
+  const auth = await authorizeEmployeeRequest(request, 'article.review');
+  if (!isEmployeeAuthorization(auth)) {
+    return { error: auth };
+  }
+  return { service: auth.service };
+}
+
 export async function POST(request: Request) {
   try {
-    const auth = await authorizeEmployeeRequest(request, 'article.review');
-    if (!isEmployeeAuthorization(auth)) {
-      return auth;
-    }
+    const { service, error } = await resolveService(request);
+    if (error) return error;
 
     let beatId: string | undefined;
     let districtId: string | undefined;
@@ -39,16 +64,16 @@ export async function POST(request: Request) {
     }
 
     if (action === 'clear_logs') {
-      await clearScanLogs(auth.service);
+      await clearScanLogs(service);
       return Response.json({ success: true, scanLogs: [] });
     }
 
-    const result = await runAutonomousNewsDiscovery(auth.service, { beatId, districtId, topic, force, freshnessHours });
+    const result = await runAutonomousNewsDiscovery(service, { beatId, districtId, topic, force, freshnessHours });
 
     // Update backend scan schedule timestamps in site_settings
     let nextScanAt: string | undefined;
     try {
-      const { data: currentSettings } = await auth.service
+      const { data: currentSettings } = await service
         .from('site_settings')
         .select('value')
         .eq('key', 'newsroom_auto_pilot')
@@ -58,7 +83,7 @@ export async function POST(request: Request) {
       const now = new Date();
       nextScanAt = new Date(now.getTime() + intervalMinutes * 60 * 1000).toISOString();
 
-      await auth.service.from('site_settings').upsert({
+      await service.from('site_settings').upsert({
         key: 'newsroom_auto_pilot',
         value: {
           ...(currentSettings?.value || {}),
@@ -83,25 +108,23 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
-    const auth = await authorizeEmployeeRequest(request, 'article.review');
-    if (!isEmployeeAuthorization(auth)) {
-      return auth;
-    }
+    const { service, error } = await resolveService(request);
+    if (error) return error;
 
     // Proactively process any pending auto-publishes whose 5-min grace window elapsed
-    await processPendingAutoPublishes(auth.service).catch(() => null);
+    await processPendingAutoPublishes(service).catch(() => null);
 
     const [dailyStats, recentResult, autoPublishConfig, civicProblems, scanLogs] = await Promise.all([
-      getDailyRegionalStats(auth.service),
-      auth.service
+      getDailyRegionalStats(service),
+      service
         .from('articles')
         .select('id, title, slug, status, category, district, created_at, source_name, source_url')
         .or('author_display_name.eq.KJCPL AI Discovery,author_display_name.eq.KJIN AI Discovery,status.eq.review')
         .order('created_at', { ascending: false })
         .limit(12),
-      getAutoPublishConfig(auth.service),
-      getCivicProblemsDailyStatus(auth.service).catch(() => null),
-      getRecentScanLogs(auth.service).catch(() => []),
+      getAutoPublishConfig(service),
+      getCivicProblemsDailyStatus(service).catch(() => null),
+      getRecentScanLogs(service).catch(() => []),
     ]);
 
     return Response.json({
@@ -156,11 +179,9 @@ export async function GET(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const auth = await authorizeEmployeeRequest(request, 'article.review');
-    if (!isEmployeeAuthorization(auth)) {
-      return auth;
-    }
-    await clearScanLogs(auth.service);
+    const { service, error } = await resolveService(request);
+    if (error) return error;
+    await clearScanLogs(service);
     return Response.json({ success: true, scanLogs: [] });
   } catch (error: any) {
     return Response.json({ success: false, error: error.message || 'Failed to clear logs.' }, { status: 500 });

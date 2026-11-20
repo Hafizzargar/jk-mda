@@ -274,6 +274,7 @@ export default function YouTubeMonitorPage() {
 
   // Top Stats & Overview Collapsible State (mostly hidden by default to keep news list front and center)
   const [showStats, setShowStats] = useState(false);
+  const [isRegionalExpanded, setIsRegionalExpanded] = useState(false);
 
   // Add Channel Modal State
   const [showAddModal, setShowAddModal] = useState(false);
@@ -1955,92 +1956,73 @@ export default function YouTubeMonitorPage() {
 
       {/* Tab 1: Autonomous News Discovery Radar & Queue */}
       {activeTab === 'radar' && (
-      <>
-        {/* 1. Radar Control Deck: 3 Clear Strategy Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Card 1: Radar Automation & Schedule */}
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 p-4 shadow-2xs flex flex-col justify-between space-y-3">
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                  <span>⏱️</span>
-                  <span>Autonomous News Scanner</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => handleUpdateAutoPilotSettings(autoPilotIntervalMinutes, !autoPilot)}
-                  className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border transition cursor-pointer ${
-                    autoPilot
-                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-700'
-                      : 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700'
-                  }`}
-                  title="Click to toggle automatic background discovery"
-                >
-                  {autoPilot ? '● Scanner Active' : '○ Scanner Paused'}
-                </button>
-              </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                {autoPilot
-                  ? `Scanning online news sources every ${autoPilotIntervalMinutes >= 60 ? `${autoPilotIntervalMinutes / 60} hour(s)` : `${autoPilotIntervalMinutes} min(s)`}. Next run in ${formatCountdownTime(countdown)}.`
-                  : 'Automatic background scanning is paused. Click Resume to activate automatic news hunting.'}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
-              <label htmlFor="radar-schedule-select" className="text-xs font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                Scan Cadence:
-              </label>
-              <select
-                id="radar-schedule-select"
-                value={autoPilotIntervalMinutes}
-                onChange={(e) => handleUpdateAutoPilotSettings(Number(e.target.value), autoPilot)}
-                className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-semibold text-xs px-2.5 py-1.5 outline-none cursor-pointer focus:ring-2 focus:ring-purple-500"
+      <div className="space-y-4">
+        {/* 1. Sleek Command & Action Header */}
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 p-3.5 sm:p-4 shadow-2xs space-y-3">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+            {/* Left Controls Strip */}
+            <div className="flex items-center gap-2 flex-wrap text-xs">
+              {/* Scanner Status Toggle */}
+              <button
+                type="button"
+                onClick={() => handleUpdateAutoPilotSettings(autoPilotIntervalMinutes, !autoPilot)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold border transition cursor-pointer shadow-2xs ${
+                  autoPilot
+                    ? 'bg-emerald-50 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-700'
+                    : 'bg-amber-50 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700'
+                }`}
+                title="Toggle automated background news scanning"
               >
-                <option value={1}>Every 1 Min (Rapid Realtime)</option>
-                <option value={2}>Every 2 Min (Ultra Fast)</option>
-                <option value={3}>Every 3 Min (Fast Track)</option>
-                <option value={5}>Every 5 Min (Recommended)</option>
-                <option value={10}>Every 10 Min</option>
-                <option value={15}>Every 15 Min</option>
-                <option value={30}>Every 30 Min</option>
-                <option value={60}>Every 1 Hour (Standard)</option>
-                <option value={120}>Every 2 Hours</option>
-                <option value={360}>Every 6 Hours</option>
-              </select>
-            </div>
-
-            <div className="rounded-lg border border-purple-200/80 dark:border-purple-900/50 bg-purple-50/70 dark:bg-purple-950/40 p-2.5 flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-[11px] font-bold text-purple-700 dark:text-purple-300">
-                  <span>⏰</span>
-                  <span>Freshness Window:</span>
-                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-purple-200/60 dark:bg-purple-900/80 text-purple-800 dark:text-purple-200 font-bold border border-purple-300 dark:border-purple-700">
-                    &lt; {freshnessHours}h
+                <span className={`w-2 h-2 rounded-full ${autoPilot ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
+                <span>{autoPilot ? 'Scanner Active' : 'Scanner Paused'}</span>
+                {autoPilot && (
+                  <span className="text-[11px] font-mono text-emerald-700 dark:text-emerald-400 font-semibold">
+                    ({formatCountdownTime(countdown)})
                   </span>
-                </div>
-                <span className="text-[10px] text-purple-600/80 dark:text-purple-400 font-medium">
-                  Stale News Blocked
-                </span>
+                )}
+              </button>
+
+              {/* Scan Cadence */}
+              <div className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 font-semibold text-slate-700 dark:text-slate-300">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">Cadence:</span>
+                <select
+                  id="radar-schedule-select"
+                  value={autoPilotIntervalMinutes}
+                  onChange={(e) => handleUpdateAutoPilotSettings(Number(e.target.value), autoPilot)}
+                  className="bg-transparent text-slate-900 dark:text-white font-bold text-xs outline-none cursor-pointer"
+                >
+                  <option value={1}>Every 1 Min</option>
+                  <option value={2}>Every 2 Min</option>
+                  <option value={3}>Every 3 Min (Fast)</option>
+                  <option value={5}>Every 5 Min (Standard)</option>
+                  <option value={10}>Every 10 Min</option>
+                  <option value={15}>Every 15 Min</option>
+                  <option value={30}>Every 30 Min</option>
+                  <option value={60}>Every 1 Hour</option>
+                </select>
               </div>
-              <div className="flex items-center gap-2">
+
+              {/* Freshness Window Selector */}
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-purple-200 dark:border-purple-800/80 bg-purple-50/70 dark:bg-purple-950/30 text-purple-900 dark:text-purple-200">
+                <span className="text-[11px] text-purple-600 dark:text-purple-400 font-medium">Freshness:</span>
                 <select
                   id="radar-freshness-select"
                   value={freshnessHours}
                   onChange={(e) => handleUpdateFreshnessHours(Number(e.target.value))}
-                  className="flex-1 rounded-lg border border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-semibold text-xs px-2.5 py-1.5 outline-none cursor-pointer focus:ring-2 focus:ring-purple-500"
+                  className="bg-transparent text-purple-950 dark:text-purple-100 font-bold text-xs outline-none cursor-pointer"
                 >
-                  <option value={1}>&lt; 1 Hour (Breaking &amp; Urgent Only)</option>
-                  <option value={2}>&lt; 2 Hours (Ultra Fresh)</option>
-                  <option value={3}>&lt; 3 Hours (Fast Track Immediacy)</option>
-                  <option value={4}>&lt; 4 Hours (Recent Updates)</option>
-                  <option value={5}>&lt; 5 Hours</option>
-                  <option value={6}>&lt; 6 Hours (Strict Standard)</option>
-                  <option value={8}>&lt; 8 Hours (Work Shift)</option>
-                  <option value={12}>&lt; 12 Hours (Half-Day)</option>
-                  <option value={24}>&lt; 24 Hours (Full Day / Daily Cycle)</option>
-                  <option value={48}>&lt; 48 Hours (2 Days Extended)</option>
+                  <option value={1}>&lt; 1h (Breaking)</option>
+                  <option value={2}>&lt; 2h (Ultra Fresh)</option>
+                  <option value={3}>&lt; 3h (Fast Track)</option>
+                  <option value={4}>&lt; 4h</option>
+                  <option value={5}>&lt; 5h</option>
+                  <option value={6}>&lt; 6h (Strict)</option>
+                  <option value={8}>&lt; 8h</option>
+                  <option value={12}>&lt; 12h</option>
+                  <option value={24}>&lt; 24h</option>
+                  <option value={48}>&lt; 48h</option>
                 </select>
-                <div className="flex items-center gap-1 bg-white dark:bg-slate-800 rounded-lg border border-purple-200 dark:border-purple-800 px-2 py-1">
+                <div className="flex items-center gap-0.5 bg-white/80 dark:bg-slate-800 rounded px-1.5 py-0.5 border border-purple-200 dark:border-purple-800">
                   <input
                     type="number"
                     min={1}
@@ -2052,261 +2034,59 @@ export default function YouTubeMonitorPage() {
                         handleUpdateFreshnessHours(val);
                       }
                     }}
-                    title="Enter custom hours (1 to 72)"
-                    className="w-8 bg-transparent text-slate-900 dark:text-white font-bold text-xs text-center outline-none"
+                    title="Custom freshness window in hours (1-72)"
+                    className="w-7 bg-transparent text-slate-900 dark:text-white font-bold text-[11px] text-center outline-none"
                   />
-                  <span className="text-[10px] font-bold text-purple-700 dark:text-purple-300">hrs</span>
+                  <span className="text-[10px] text-purple-700 dark:text-purple-300 font-semibold">h</span>
                 </div>
               </div>
-              <p className="text-[10px] text-purple-600/90 dark:text-purple-400">
-                Any story older than {freshnessHours}h from scan time is automatically rejected as stale.
-              </p>
-            </div>
 
-            {scanLogs.length > 0 && (
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] gap-1.5">
-                <span className="text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">
-                  Latest Scan:
-                </span>
-                <span
-                  className="truncate font-semibold text-slate-800 dark:text-slate-200"
-                  title={scanLogs[0].reason}
-                >
-                  {scanLogs[0].status === 'generated'
-                    ? '✅ Draft Created'
-                    : scanLogs[0].status === 'cooldown'
-                    ? '⏳ 429 Cooldown'
-                    : scanLogs[0].status === 'error'
-                    ? '❌ Scan Error'
-                    : 'ℹ️ ' + (scanLogs[0].headline ? 'Stale/Duplicate' : 'No Fresh Story')}
-                </span>
-                <span className="text-[10px] text-slate-400 font-mono whitespace-nowrap">
-                  {formatScanRelativeTime(scanLogs[0].timestamp)}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Card 2: Publishing & Approval Strategy */}
-          <div
-            className={`rounded-2xl border p-4 shadow-2xs flex flex-col justify-between space-y-3 transition-all ${
-              autoPublishEnabled
-                ? 'border-emerald-300 dark:border-emerald-800/80 bg-gradient-to-br from-emerald-50/50 via-white to-white dark:from-emerald-950/20 dark:via-slate-900/90 dark:to-slate-900/90'
-                : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90'
-            }`}
-          >
-            <div className="space-y-2.5">
-              {/* Header with Title, Guide Trigger, and Status Badge */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                    <span>{autoPublishEnabled ? '⚡' : '🛡️'}</span>
-                    <span>Approval &amp; Publishing</span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setIsApprovalGuideOpen(true)}
-                    className="text-[11px] text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-bold inline-flex items-center gap-0.5 ml-1 transition cursor-pointer"
-                    title="Click to view full comparison of Auto vs Manual Approval"
-                  >
-                    <span>ℹ️</span>
-                    <span className="underline">Guide</span>
-                  </button>
-                </div>
-                <span
-                  className={`text-[11px] font-bold px-2 py-0.5 rounded-full border inline-flex items-center gap-1 ${
-                    autoPublishEnabled
-                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-700'
-                      : 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800'
-                  }`}
-                >
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      autoPublishEnabled ? 'bg-emerald-500 animate-pulse' : 'bg-blue-500'
-                    }`}
-                  />
-                  {autoPublishEnabled ? 'Auto-Approval' : 'Manual Review'}
-                </span>
-              </div>
-
-              {/* Segmented Mode Selector: Manual Review vs Auto-Publish */}
-              <div className="grid grid-cols-2 p-1 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 gap-1">
+              {/* Mode Selector: Manual Review vs Auto-Publish */}
+              <div className="inline-flex items-center p-0.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/90">
                 <button
                   type="button"
                   onClick={() => autoPublishEnabled && handleToggleAutoPublish(false)}
                   disabled={isTogglingAutoPublish}
-                  className={`py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 ${
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer disabled:opacity-50 ${
                     !autoPublishEnabled
-                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs border border-slate-200 dark:border-slate-700'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs'
+                      : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
                   }`}
                 >
-                  <span>✋</span>
-                  <span>Manual Review</span>
+                  ✋ Manual Review
                 </button>
-
                 <button
                   type="button"
                   onClick={() => !autoPublishEnabled && handleToggleAutoPublish(true)}
                   disabled={isTogglingAutoPublish}
-                  className={`py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 ${
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer disabled:opacity-50 ${
                     autoPublishEnabled
-                      ? 'bg-emerald-600 text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                      ? 'bg-emerald-600 text-white shadow-2xs'
+                      : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white'
                   }`}
                 >
-                  <span>⚡</span>
-                  <span>Auto-Publish</span>
+                  ⚡ Auto ({autoPublishDelayMinutes}m)
                 </button>
               </div>
 
-              {/* Dynamic Description & Micro-Pipeline Flow */}
-              <div className="space-y-1.5 text-xs">
-                <p className="text-slate-600 dark:text-slate-300 leading-snug">
-                  {autoPublishEnabled ? (
-                    <>
-                      <strong className="text-emerald-700 dark:text-emerald-300 font-semibold">Autonomous publishing:</strong> Stories auto-publish after a <strong>{autoPublishDelayMinutes}-min buffer</strong>. Advance email alert sent with 1-click cancel link.
-                    </>
-                  ) : (
-                    <>
-                      <strong className="text-blue-700 dark:text-blue-300 font-semibold">Human safety check:</strong> Stories wait in your pending queue. <strong>Zero stories go live</strong> until an editor reviews and approves.
-                    </>
-                  )}
-                </p>
-
-                {/* Visual Pipeline Flow Stepper */}
-                <div className="py-1 px-2 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 text-[10px] font-medium text-slate-600 dark:text-slate-300 flex items-center justify-between gap-1 overflow-x-auto">
-                  {autoPublishEnabled ? (
-                    <>
-                      <span className="flex items-center gap-0.5 whitespace-nowrap">🤖 AI Draft</span>
-                      <span className="text-slate-400">→</span>
-                      <span className="flex items-center gap-0.5 whitespace-nowrap text-amber-600 dark:text-amber-400 font-semibold">📧 Alert Sent</span>
-                      <span className="text-slate-400">→</span>
-                      <span className="flex items-center gap-0.5 whitespace-nowrap text-emerald-600 dark:text-emerald-400 font-semibold">⏳ {autoPublishDelayMinutes}m Buffer</span>
-                      <span className="text-slate-400">→</span>
-                      <span className="flex items-center gap-0.5 whitespace-nowrap text-emerald-700 dark:text-emerald-300 font-bold">🚀 Live</span>
-                    </>
-                  ) : (
-                    <>
-                      <span className="flex items-center gap-0.5 whitespace-nowrap">🤖 AI Draft</span>
-                      <span className="text-slate-400">→</span>
-                      <span className="flex items-center gap-0.5 whitespace-nowrap text-blue-600 dark:text-blue-400 font-semibold">📋 Review Queue</span>
-                      <span className="text-slate-400">→</span>
-                      <span className="flex items-center gap-0.5 whitespace-nowrap text-purple-600 dark:text-purple-400 font-semibold">👤 Editor Approves</span>
-                      <span className="text-slate-400">→</span>
-                      <span className="flex items-center gap-0.5 whitespace-nowrap text-emerald-700 dark:text-emerald-300 font-bold">🚀 Live</span>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom Controls */}
-            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
-              {autoPublishEnabled ? (
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 flex items-center gap-1.5">
-                    <label
-                      htmlFor="auto-publish-buffer-select"
-                      className="text-[11px] font-bold text-slate-600 dark:text-slate-400 whitespace-nowrap"
-                    >
-                      Grace Buffer:
-                    </label>
-                    <select
-                      id="auto-publish-buffer-select"
-                      value={autoPublishDelayMinutes}
-                      onChange={(e) => handleUpdateAutoPublishDelay(Number(e.target.value))}
-                      className="flex-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-semibold text-xs px-2 py-1 outline-none cursor-pointer focus:ring-2 focus:ring-emerald-500"
-                    >
-                      <option value={2}>2 Min (Rapid Live)</option>
-                      <option value={3}>3 Min (Fast)</option>
-                      <option value={5}>5 Min (Recommended)</option>
-                      <option value={10}>10 Min (Standard)</option>
-                      <option value={15}>15 Min (Extended Safety)</option>
-                    </select>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={handleTestEmail}
-                    disabled={isTestingEmail}
-                    className="px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer"
-                    title="Send a sample email alert with cancellation link to test your setup"
-                  >
-                    {isTestingEmail ? '...' : '📧 Test Alert'}
-                  </button>
-                </div>
-              ) : (
-                <div className="flex items-center justify-between gap-2">
-                  <Link
-                    href="/articles?status=review"
-                    className="flex-1 py-1 px-2.5 rounded-lg border border-blue-200 dark:border-blue-900 bg-blue-50/70 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 text-xs font-bold hover:bg-blue-100 dark:hover:bg-blue-900/60 transition flex items-center justify-center gap-1.5"
-                  >
-                    <span>📋</span>
-                    <span>Review Pending ({discoveredArticles.filter((a) => a.status !== 'published').length})</span>
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={handleTestEmail}
-                    disabled={isTestingEmail}
-                    className="px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer"
-                    title="Send a sample email alert"
-                  >
-                    {isTestingEmail ? '...' : '📧 Test Alert'}
-                  </button>
-                </div>
-              )}
-
-              {/* Strict text-only badge */}
-              <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/40 px-2.5 py-1 rounded-lg border border-slate-200/60 dark:border-slate-800">
-                <span className="flex items-center gap-1 text-slate-700 dark:text-slate-300">
-                  <span>📝</span>
-                  <span>100% Text-Only News</span>
-                </span>
-                <span className="text-[10px] text-slate-400 font-normal">Clean Broadsheet</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 3: Instant On-Demand Triggers */}
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 p-4 shadow-2xs flex flex-col justify-between space-y-3">
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                  <span>🚀</span>
-                  <span>Instant Discovery</span>
-                </span>
-                <Link
-                  href="/articles?status=review"
-                  className="text-[11px] font-bold text-purple-600 dark:text-purple-400 hover:underline"
-                >
-                  Review Pending ({discoveredArticles.length}) →
-                </Link>
-              </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Trigger an immediate multi-source search across Google News, local J&K publications, and official portals right now.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800/80">
-              <Button
+              <button
                 type="button"
-                variant="primary"
-                size="sm"
-                icon="🔍"
-                disabled={isDiscovering}
-                isLoading={isDiscovering}
-                onClick={() => handleDiscoverNow(false)}
-                className="w-full justify-center bg-purple-600 hover:bg-purple-700 text-white font-bold cursor-pointer"
+                onClick={() => setIsApprovalGuideOpen(true)}
+                className="text-[11px] text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 font-semibold underline cursor-pointer"
+                title="View comparison between Manual Review and Auto-Publish"
               >
-                {isDiscovering ? 'Searching...' : 'Discover Now'}
-              </Button>
+                Guide
+              </button>
+            </div>
 
+            {/* Right Action Triggers */}
+            <div className="flex items-center gap-2">
               <button
                 type="button"
                 disabled={isDiscoveringCivic}
                 onClick={() => handleDiscoverCivicProblem()}
-                className="w-full justify-center inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold rounded-lg border border-amber-500/60 bg-amber-500/10 hover:bg-amber-500/20 text-amber-800 dark:text-amber-400 transition cursor-pointer disabled:opacity-50"
-                title="Search grassroots water, power, and road problems across districts"
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-amber-800 dark:text-amber-400 transition cursor-pointer disabled:opacity-50 shadow-2xs"
+                title="Search grassroots water, power, and road problems"
               >
                 <span>🚨</span>
                 <span>Civic Issue</span>
@@ -2314,44 +2094,63 @@ export default function YouTubeMonitorPage() {
                   {civicProblems ? `${civicProblems.currentToday}/${civicProblems.maxDaily}` : '2/d'}
                 </span>
               </button>
+
+              <button
+                type="button"
+                disabled={isDiscovering}
+                onClick={() => handleDiscoverNow(false)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl bg-purple-600 hover:bg-purple-700 text-white transition cursor-pointer shadow-xs disabled:opacity-50"
+              >
+                {isDiscovering ? (
+                  <>
+                    <span className="animate-spin">⏳</span>
+                    <span>Discovering...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>⚡</span>
+                    <span>Discover News Now</span>
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>
 
-        {/* 2. Today's Editorial Pulse: 4 Clear KPI Metric Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-          <div className="rounded-2xl border border-emerald-200 dark:border-emerald-900/50 bg-gradient-to-br from-emerald-50/60 to-white dark:from-emerald-950/20 dark:to-slate-900 p-4 shadow-2xs">
-            <span className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-300 block mb-1">
+        {/* 2. Editorial Metrics Snapshot (4 Clean Cards) */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 shadow-2xs">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1">
               📰 Published Today
             </span>
             <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
               {discoveryStats?.publishedToday ?? 0}
             </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
               Live on broadsheet website
             </p>
           </div>
 
-          <div className="rounded-2xl border border-purple-200 dark:border-purple-900/50 bg-gradient-to-br from-purple-50/60 to-white dark:from-purple-950/20 dark:to-slate-900 p-4 shadow-2xs">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 shadow-2xs">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-bold uppercase tracking-wider text-purple-800 dark:text-purple-300">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300">
                 🎯 Discovered Today
               </span>
-              <span className="text-[10px] font-mono font-bold text-purple-700 dark:text-purple-300">
+              <span className="text-[10px] font-mono font-bold text-purple-600 dark:text-purple-400">
                 Goal: {discoveryStats?.dailyTarget ?? 25}
               </span>
             </div>
             <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
               {discoveryStats?.discoveredToday ?? 0} <span className="text-sm font-semibold text-slate-400">/ {discoveryStats?.dailyTarget ?? 25}</span>
             </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-              Daily Target Range: {discoveryStats?.minDailyTotal ?? 17}–{discoveryStats?.maxDailyTotal ?? 32}
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+              Daily Target: {discoveryStats?.minDailyTotal ?? 17}–{discoveryStats?.maxDailyTotal ?? 32}
             </p>
           </div>
 
-          <div className="rounded-2xl border border-cyan-200 dark:border-cyan-900/50 bg-gradient-to-br from-cyan-50/60 to-white dark:from-cyan-950/20 dark:to-slate-900 p-4 shadow-2xs">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 shadow-2xs">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-bold uppercase tracking-wider text-cyan-800 dark:text-cyan-300">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-cyan-700 dark:text-cyan-300">
                 ⛰️ Regional J&amp;K Share
               </span>
               <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
@@ -2361,174 +2160,255 @@ export default function YouTubeMonitorPage() {
             <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
               {discoveryStats?.regionalSharePercent ?? 65}%
             </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-              {discoveryStats?.regionalCount ?? 0} stories from J&amp;K &amp; Ladakh beats (65% min)
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+              {discoveryStats?.regionalCount ?? 0} stories from J&amp;K &amp; Ladakh
             </p>
           </div>
 
-          <div className="rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-gradient-to-br from-amber-50/60 to-white dark:from-amber-950/20 dark:to-slate-900 p-4 shadow-2xs">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 shadow-2xs">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
                 🚨 Ground Grievances
               </span>
               <button
                 type="button"
                 onClick={() => setIsCivicModalOpen(true)}
-                className="text-[10px] font-mono font-bold text-amber-700 dark:text-amber-400 hover:underline flex items-center gap-1 cursor-pointer"
+                className="text-[10px] font-bold text-amber-700 dark:text-amber-400 hover:underline cursor-pointer"
                 title="Configure daily quota and automated interval sliders"
               >
-                <span>⚙️ Sliders</span>
-                <span>{civicProblems ? (civicProblems.canDiscoverNow ? 'Ready' : `Next in ${civicProblems.hoursUntilNextAllowed}h`) : `${civicIntervalHours}h Shift`}</span>
+                ⚙️ Sliders
               </button>
             </div>
             <div className="flex items-baseline justify-between">
               <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
                 {civicProblems?.currentToday ?? 0} <span className="text-sm font-semibold text-slate-400">/ {civicMaxDaily}</span>
               </div>
-              <button
-                type="button"
-                onClick={() => setIsCivicModalOpen(true)}
-                className="text-[10px] font-bold text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-md bg-amber-100 dark:bg-amber-950/80 hover:bg-amber-200 transition cursor-pointer"
-              >
-                Pacing Sliders →
-              </button>
+              <span className="text-[11px] font-mono font-medium text-slate-500 dark:text-slate-400">
+                {civicProblems?.canDiscoverNow ? 'Ready' : `Next in ${civicProblems?.hoursUntilNextAllowed ?? civicIntervalHours}h`}
+              </span>
             </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
               Grassroots water, power &amp; road issues
             </p>
           </div>
         </div>
 
-        {/* 3. Regional Coverage & Story Quotas */}
+        {/* 3. HERO SECTION: Discovered Stories & Pending Review Queue */}
         <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-2xs space-y-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-100 dark:border-slate-800">
-            <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <span>🎯 Regional Coverage &amp; Story Quotas</span>
-                <span className="text-[11px] font-normal text-slate-500">
-                  Target distribution to prevent news desert in remote districts
-                </span>
-              </h3>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div className="flex items-center gap-2">
+              <span className="text-base">🛰️</span>
+              <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+                Discovered Stories Queue ({discoveredArticles.length})
+              </h2>
+              <span className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:inline">
+                • Researched independently across Google News, local newspapers, PIB &amp; disaster portals
+              </span>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setEditingQuotas(JSON.parse(JSON.stringify(beatQuotas)));
-                setIsQuotasModalOpen(true);
-              }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-xs transition cursor-pointer self-start sm:self-auto"
+            <Link
+              href="/articles?status=review"
+              className="text-xs font-bold text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1 self-start sm:self-auto"
             >
-              <span>⚙️ Adjust Quotas (Min / Max)</span>
-            </button>
+              <span>Review Full Pending Queue ({discoveredArticles.length})</span>
+              <span>→</span>
+            </Link>
           </div>
 
-          {/* 7 Regional Beat Cards with Progress Indicators */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-3">
-            {Object.entries(DEFAULT_BEAT_QUOTAS).map(([beatId, base]) => {
-              const live = discoveryRegions.find((r) => r.id === beatId);
-              const current = live?.current ?? 0;
-              const published = live?.published ?? 0;
-              const quota = beatQuotas[beatId] || { min: base.min, max: base.max };
-              const minVal = quota?.min ?? live?.min ?? base.min;
-              const maxVal = quota?.max ?? live?.max ?? base.max;
-              const isMet = current >= minVal;
-              const isMax = current >= maxVal;
-              const percent = Math.min(100, Math.round((current / (maxVal || 1)) * 100));
-
-              return (
-                <div
-                  key={beatId}
-                  className={`p-3 rounded-xl border text-xs transition flex flex-col justify-between hover:shadow-sm ${
-                    base.priority
-                      ? 'border-cyan-300 dark:border-cyan-800/80 bg-cyan-50/50 dark:bg-cyan-950/20'
-                      : isMet
-                      ? 'border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/30 dark:bg-emerald-950/10'
-                      : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60'
-                  }`}
+          {discoveredArticles.length === 0 ? (
+            <div className="py-10 text-center text-xs text-slate-500 space-y-2">
+              <span className="text-3xl block">📰</span>
+              <p className="font-semibold text-slate-700 dark:text-slate-300 text-sm">No stories in queue yet today.</p>
+              <p className="text-[11px] text-slate-400 max-w-md mx-auto">
+                The scanner runs automatically every {autoPilotIntervalMinutes >= 60 ? `${autoPilotIntervalMinutes / 60} hour(s)` : `${autoPilotIntervalMinutes} minute(s)`}. You can also trigger an immediate research cycle across the internet right now.
+              </p>
+              <div className="pt-2">
+                <button
+                  type="button"
+                  disabled={isDiscovering}
+                  onClick={() => handleDiscoverNow(false)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold rounded-xl bg-purple-600 hover:bg-purple-700 text-white transition cursor-pointer shadow-xs disabled:opacity-50"
                 >
-                  <div>
-                    <div className="flex items-center justify-between gap-1 mb-1">
-                      <span className="font-bold text-xs text-slate-900 dark:text-white truncate" title={base.name}>
-                        {base.name}
-                      </span>
-                      {base.priority ? (
-                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-200 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-300 font-extrabold uppercase">
-                          Top
-                        </span>
-                      ) : published > 0 ? (
-                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-extrabold">
-                          {published} Live
-                        </span>
-                      ) : null}
-                    </div>
+                  {isDiscovering ? 'Searching Internet...' : '⚡ Run Discovery Scan Now'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {discoveredArticles.map((art) => {
+                const scheduledItem = scheduledQueue.find((item) => item.articleId === art.id);
+                const isScheduledPending = scheduledItem && scheduledItem.status === 'pending';
+                const remainingSec = isScheduledPending
+                  ? Math.max(0, Math.floor((new Date(scheduledItem.scheduledFor).getTime() - nowTimestamp) / 1000))
+                  : 0;
+                const isAutoPublished = art.status === 'published' || scheduledItem?.status === 'published';
+                const isCancelled = scheduledItem?.status === 'cancelled';
 
-                    <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate mb-2" title={base.subtitle}>
-                      {base.subtitle}
-                    </div>
-
-                    <div className="flex items-baseline justify-between mb-1.5">
-                      <div className="text-lg font-black text-slate-900 dark:text-white">
-                        {current} <span className="text-[10px] font-normal text-slate-400">/ {minVal}–{maxVal}</span>
+                return (
+                  <div
+                    key={art.id}
+                    className={`rounded-xl border p-3.5 flex flex-col justify-between transition ${
+                      isScheduledPending && remainingSec > 0
+                        ? 'border-emerald-500/50 dark:border-emerald-600/50 bg-emerald-50/20 dark:bg-emerald-950/20 shadow-xs'
+                        : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 hover:border-purple-300 dark:hover:border-purple-800'
+                    }`}
+                  >
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px] gap-2 flex-wrap">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-bold px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300 text-[10px]">
+                            {art.category}
+                          </span>
+                          {art.district && (
+                            <span className="font-semibold text-slate-600 dark:text-slate-400 text-[10px]">
+                              📍 {art.district}
+                            </span>
+                          )}
+                          <span className="font-bold text-[9.5px] px-1.5 py-0.5 rounded bg-cyan-100 text-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800">
+                            ⚡ &lt; {freshnessHours}h Fresh
+                          </span>
+                        </div>
+                        {art.status === 'published' ? (
+                          <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
+                            ● LIVE
+                          </span>
+                        ) : isScheduledPending && remainingSec > 0 ? (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 animate-pulse">
+                            ⏳ Auto-Queued
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
+                            ✋ Pending Approval
+                          </span>
+                        )}
                       </div>
-                      <span className={`text-[10px] font-bold ${isMet ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
-                        {published > 0 ? `${published} live` : isMax ? 'Maxed' : isMet ? '✓ Met' : `${minVal - current} needed`}
-                      </span>
+
+                      <Link
+                        href={`/articles/${art.id}`}
+                        className="font-bold text-xs text-slate-900 dark:text-slate-100 hover:text-purple-600 dark:hover:text-purple-300 line-clamp-2 leading-snug"
+                      >
+                        {art.title}
+                      </Link>
+
+                      {/* Auto-Publish Grace Period Active Countdown Banner */}
+                      {isScheduledPending && remainingSec > 0 && (
+                        <div className="p-2 rounded-lg bg-emerald-950/40 border border-emerald-800/60 my-2 flex items-center justify-between text-[11px]">
+                          <div className="flex items-center gap-1.5 font-bold text-emerald-400">
+                            <span className="animate-spin">⏳</span>
+                            <span>Auto-Publishing in {Math.floor(remainingSec / 60)}m {remainingSec % 60}s</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handlePublishNow(art.id)}
+                              className="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold cursor-pointer"
+                              title="Publish immediately without waiting for timer"
+                            >
+                              Publish Now
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleCancelAutoPublish(art.id)}
+                              className="px-2 py-0.5 rounded bg-red-950/80 hover:bg-red-900 border border-red-800 text-red-300 text-[10px] font-bold cursor-pointer"
+                              title="Cancel automatic publishing and keep in review queue"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {isAutoPublished && (
+                        <div className="px-2 py-1 rounded-lg bg-emerald-900/20 border border-emerald-800/30 my-1 flex items-center gap-1.5 text-[11px] text-emerald-500 font-semibold">
+                          <span>✓</span>
+                          <span>Auto-Approved &amp; Published Live</span>
+                        </div>
+                      )}
+
+                      {isCancelled && (
+                        <div className="px-2 py-1 rounded-lg bg-slate-800/60 border border-slate-700/50 my-1 flex items-center gap-1.5 text-[11px] text-slate-400 font-medium">
+                          <span>🛑</span>
+                          <span>Auto-Publish Cancelled (Manual Review)</span>
+                        </div>
+                      )}
                     </div>
 
-                    {/* Progress Bar */}
-                    <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden mb-2.5">
-                      <div
-                        className={`h-full rounded-full transition-all duration-500 ${
-                          base.priority ? 'bg-cyan-500' : isMet ? 'bg-emerald-500' : 'bg-amber-500'
-                        }`}
-                        style={{ width: `${percent}%` }}
-                      />
+                    <div className="pt-2 mt-2 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between text-[11px]">
+                      <div className="truncate max-w-[160px] text-slate-500 dark:text-slate-400">
+                        {art.source_url ? (
+                          <a
+                            href={art.source_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:underline text-indigo-600 dark:text-indigo-400 font-medium"
+                            title={art.source_name || art.source_url}
+                          >
+                            🌐 {art.source_name || 'Source Link'} ↗
+                          </a>
+                        ) : (
+                          <span>{art.source_name || 'Web Intelligence'}</span>
+                        )}
+                      </div>
+                      {art.status === 'published' ? (
+                        <Link
+                          href={`/articles/${art.id}`}
+                          className="px-2.5 py-1 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] transition shrink-0 inline-flex items-center gap-1"
+                        >
+                          <span>View Live</span>
+                          <span>↗</span>
+                        </Link>
+                      ) : (
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => handlePublishNow(art.id)}
+                            disabled={publishingArticleId === art.id}
+                            className="px-2.5 py-1 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] transition shrink-0 cursor-pointer disabled:opacity-50 inline-flex items-center gap-1 shadow-2xs"
+                            title="Instantly approve and publish live on the website"
+                          >
+                            {publishingArticleId === art.id ? (
+                              <span className="inline-flex items-center gap-1">
+                                <span className="animate-spin text-xs">⏳</span>
+                                <span>Publishing...</span>
+                              </span>
+                            ) : (
+                              <>
+                                <span>✓</span>
+                                <span>Approve</span>
+                              </>
+                            )}
+                          </button>
+                          <Link
+                            href={`/articles/${art.id}/edit`}
+                            className="px-2 py-1 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-[11px] transition shrink-0"
+                            title="Open editor to review or edit text before publishing"
+                          >
+                            ✏️ Edit
+                          </Link>
+                        </div>
+                      )}
                     </div>
                   </div>
-
-                  {/* District Quick Search Chips */}
-                  {live?.districts && live.districts.length > 0 && (
-                    <div className="flex flex-wrap gap-1 pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
-                      {live.districts.map((dist) => (
-                        <button
-                          key={dist.id}
-                          type="button"
-                          onClick={() => handleDiscoverDistrict(beatId, dist.id)}
-                          className={`px-1.5 py-0.5 rounded text-[9.5px] font-bold flex items-center gap-1 transition cursor-pointer ${
-                            dist.isMet
-                              ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-200'
-                              : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 hover:bg-purple-100 dark:hover:bg-purple-900/60'
-                          }`}
-                          title={`Click to search news specifically for ${dist.name}`}
-                        >
-                          <span className={`w-1 h-1 rounded-full ${dist.isMet ? 'bg-emerald-500' : 'bg-amber-500'}`} />
-                          <span>{dist.name}</span>
-                          <span className="opacity-70 font-mono">({dist.current})</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
-        {/* 4. Autonomous Scan Diagnostics & Issue Logs (Top 10 Cycles) */}
+        {/* 4. Autonomous Scan Activity Feed (Top 10 Cycles) */}
         <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-2xs space-y-3">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
             <div className="space-y-0.5">
               <div className="flex items-center gap-2">
                 <span className="text-base">📡</span>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <span>Autonomous Scan Diagnostics &amp; Issues</span>
+                  <span>Recent Scan Activity</span>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 font-bold border border-purple-200 dark:border-purple-800">
                     Last {scanLogs.length} of 10
                   </span>
                 </h3>
               </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Live surveillance trail of every {autoPilotIntervalMinutes}-minute scan cycle. If news was not generated or was blocked by quota/freshness, the exact issue is reported below (max 10 items).
+                Live trail of background news scanner. Shows generated drafts or reasons for skips (freshness &gt;{freshnessHours}h, duplicates, or quota cooldown).
               </p>
             </div>
 
@@ -2561,7 +2441,7 @@ export default function YouTubeMonitorPage() {
               <span className="text-xl block mb-1">⏱️</span>
               <p className="font-semibold text-slate-700 dark:text-slate-300">No scan activity recorded yet.</p>
               <p className="mt-1 text-[11px] text-slate-400">
-                The scanner runs every {autoPilotIntervalMinutes >= 60 ? `${autoPilotIntervalMinutes / 60} hour(s)` : `${autoPilotIntervalMinutes} minute(s)`} (Next scan in {formatCountdownTime(countdown)}). Click &quot;Discover Now&quot; above to trigger an immediate test scan.
+                Next automatic scan in {formatCountdownTime(countdown)}. Click &quot;Discover News Now&quot; above to trigger an immediate scan.
               </p>
             </div>
           ) : (
@@ -2661,300 +2541,124 @@ export default function YouTubeMonitorPage() {
           )}
         </div>
 
-      {/* Live Discovered Stories Queue from Autonomous Intelligence */}
-      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800 mb-3">
-          <div className="flex items-center gap-2">
-            <span className="text-base">🛰️</span>
-            <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-              Autonomous Discovered Stories Queue ({discoveredArticles.length})
-            </h2>
-            <span className="text-[11px] text-slate-500 dark:text-slate-400">
-              • Researched independently across Google News, local newspapers, PIB & disaster portals
-            </span>
+        {/* 5. Regional Distribution & Quotas (Collapsible Clean Section) */}
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-2xs space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-slate-100 dark:border-slate-800">
+            <div>
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <span>🎯 Regional Distribution &amp; Beat Quotas</span>
+                <span className="text-[11px] font-normal text-slate-500">
+                  Target distribution across 7 beats
+                </span>
+              </h3>
+            </div>
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={() => setIsRegionalExpanded(!isRegionalExpanded)}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer"
+              >
+                <span>{isRegionalExpanded ? 'Hide Districts ▲' : 'Show 22 Districts ▼'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingQuotas(JSON.parse(JSON.stringify(beatQuotas)));
+                  setIsQuotasModalOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold shadow-xs transition cursor-pointer"
+              >
+                <span>⚙️ Adjust Quotas</span>
+              </button>
+            </div>
           </div>
-          <Link
-            href="/articles?status=review"
-            className="text-xs font-bold text-purple-600 dark:text-purple-400 hover:underline flex items-center gap-1"
-          >
-            <span>Review Full Pending Queue ({discoveredArticles.length})</span>
-            <span>→</span>
-          </Link>
-        </div>
 
-        {discoveredArticles.length === 0 ? (
-          <div className="py-8 text-center text-xs text-slate-500">
-            <span className="text-2xl block mb-2">🔍</span>
-            <p className="font-semibold text-slate-700 dark:text-slate-300">No autonomous stories in queue yet today.</p>
-            <p className="mt-1 text-[11px] text-slate-400">
-              Click &quot;Discover News Now&quot; above to trigger an immediate multi-source research cycle across the internet.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-            {discoveredArticles.map((art) => {
-              const scheduledItem = scheduledQueue.find((item) => item.articleId === art.id);
-              const isScheduledPending = scheduledItem && scheduledItem.status === 'pending';
-              const remainingSec = isScheduledPending
-                ? Math.max(0, Math.floor((new Date(scheduledItem.scheduledFor).getTime() - nowTimestamp) / 1000))
-                : 0;
-              const isAutoPublished = art.status === 'published' || scheduledItem?.status === 'published';
-              const isCancelled = scheduledItem?.status === 'cancelled';
+          {/* 7 Beats Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-2.5">
+            {Object.entries(DEFAULT_BEAT_QUOTAS).map(([beatId, base]) => {
+              const live = discoveryRegions.find((r) => r.id === beatId);
+              const current = live?.current ?? 0;
+              const published = live?.published ?? 0;
+              const quota = beatQuotas[beatId] || { min: base.min, max: base.max };
+              const minVal = quota?.min ?? live?.min ?? base.min;
+              const maxVal = quota?.max ?? live?.max ?? base.max;
+              const isMet = current >= minVal;
+              const percent = Math.min(100, Math.round((current / (maxVal || 1)) * 100));
 
               return (
                 <div
-                  key={art.id}
-                  className={`rounded-xl border p-3.5 flex flex-col justify-between transition ${
-                    isScheduledPending && remainingSec > 0
-                      ? 'border-emerald-500/50 dark:border-emerald-600/50 bg-emerald-50/20 dark:bg-emerald-950/20 shadow-xs'
-                      : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 hover:border-purple-300 dark:hover:border-purple-800'
+                  key={beatId}
+                  className={`p-2.5 rounded-xl border text-xs flex flex-col justify-between transition ${
+                    base.priority
+                      ? 'border-cyan-300 dark:border-cyan-800/80 bg-cyan-50/40 dark:bg-cyan-950/20'
+                      : isMet
+                      ? 'border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/20 dark:bg-emerald-950/10'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/60'
                   }`}
                 >
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between text-[11px] gap-2 flex-wrap">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-bold px-2 py-0.5 rounded bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-300">
-                          {art.category}
+                  <div>
+                    <div className="flex items-center justify-between gap-1 mb-1">
+                      <span className="font-bold text-[11px] text-slate-900 dark:text-white truncate" title={base.name}>
+                        {base.name}
+                      </span>
+                      {base.priority ? (
+                        <span className="text-[8.5px] px-1 py-0.2 rounded bg-cyan-200 dark:bg-cyan-900 text-cyan-800 dark:text-cyan-300 font-extrabold uppercase">
+                          Top
                         </span>
-                        {art.district && (
-                          <span className="font-semibold text-slate-600 dark:text-slate-400">
-                            📍 {art.district}
-                          </span>
-                        )}
-                        <span className="font-bold text-[9.5px] px-1.5 py-0.5 rounded bg-cyan-100 text-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800">
-                          ⚡ &lt; {freshnessHours}h Fresh
+                      ) : published > 0 ? (
+                        <span className="text-[8.5px] px-1 py-0.2 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 font-extrabold">
+                          {published} Live
                         </span>
-                        <span className="font-bold text-[9.5px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                          📝 Text-Only
-                        </span>
-                      </div>
-                      {art.status === 'published' ? (
-                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700">
-                          ● LIVE
-                        </span>
-                      ) : isScheduledPending && remainingSec > 0 ? (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-950/70 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-700 animate-pulse">
-                          ⏳ Auto-Queued
-                        </span>
-                      ) : (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
-                          ✋ Pending Approval
-                        </span>
-                      )}
+                      ) : null}
                     </div>
-                    <Link
-                      href={`/articles/${art.id}`}
-                      className="font-bold text-xs text-slate-900 dark:text-slate-100 hover:text-purple-600 dark:hover:text-purple-300 line-clamp-2 leading-snug"
-                    >
-                      {art.title}
-                    </Link>
 
-                    {/* Auto-Publish Grace Period Active Countdown Banner */}
-                    {isScheduledPending && remainingSec > 0 && (
-                      <div className="p-2 rounded-lg bg-emerald-950/40 border border-emerald-800/60 my-2 flex items-center justify-between text-[11px]">
-                        <div className="flex items-center gap-1.5 font-bold text-emerald-400">
-                          <span className="animate-spin">⏳</span>
-                          <span>Auto-Publishing in {Math.floor(remainingSec / 60)}m {remainingSec % 60}s</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => handlePublishNow(art.id)}
-                            className="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold cursor-pointer"
-                            title="Publish immediately without waiting for remaining timer"
-                          >
-                            Publish Now
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleCancelAutoPublish(art.id)}
-                            className="px-2 py-0.5 rounded bg-red-950/80 hover:bg-red-900 border border-red-800 text-red-300 text-[10px] font-bold cursor-pointer"
-                            title="Cancel automatic publishing and keep in review queue"
-                          >
-                            Cancel
-                          </button>
-                        </div>
+                    <div className="flex items-baseline justify-between mb-1">
+                      <div className="text-base font-black text-slate-900 dark:text-white">
+                        {current} <span className="text-[10px] font-normal text-slate-400">/ {minVal}–{maxVal}</span>
                       </div>
-                    )}
+                      <span className={`text-[10px] font-bold ${isMet ? 'text-emerald-600 dark:text-emerald-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                        {isMet ? '✓ Met' : `${minVal - current} req`}
+                      </span>
+                    </div>
 
-                    {isAutoPublished && (
-                      <div className="px-2 py-1 rounded-lg bg-emerald-900/20 border border-emerald-800/30 my-1.5 flex items-center gap-1.5 text-[11px] text-emerald-500 font-semibold">
-                        <span>✓</span>
-                        <span>Auto-Approved &amp; Published Live</span>
-                      </div>
-                    )}
-
-                    {isCancelled && (
-                      <div className="px-2 py-1 rounded-lg bg-slate-800/60 border border-slate-700/50 my-1.5 flex items-center gap-1.5 text-[11px] text-slate-400 font-medium">
-                        <span>🛑</span>
-                        <span>Auto-Publish Cancelled (Manual Review)</span>
-                      </div>
-                    )}
+                    <div className="w-full bg-slate-200 dark:bg-slate-800 h-1 rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          base.priority ? 'bg-cyan-500' : isMet ? 'bg-emerald-500' : 'bg-amber-500'
+                        }`}
+                        style={{ width: `${percent}%` }}
+                      />
+                    </div>
                   </div>
 
-                  <div className="pt-2 mt-2 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between text-[11px]">
-                    <div className="truncate max-w-[160px] text-slate-500 dark:text-slate-400">
-                      {art.source_url ? (
-                        <a
-                          href={art.source_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="hover:underline text-indigo-600 dark:text-indigo-400 font-medium"
-                          title={art.source_name || art.source_url}
-                        >
-                          🌐 {art.source_name || 'Source Link'} ↗
-                        </a>
-                      ) : (
-                        <span>{art.source_name || 'Web Intelligence'}</span>
-                      )}
-                    </div>
-                    {art.status === 'published' ? (
-                      <Link
-                        href={`/articles/${art.id}`}
-                        className="px-2.5 py-1 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] transition shrink-0 inline-flex items-center gap-1"
-                      >
-                        <span>View Live</span>
-                        <span>↗</span>
-                      </Link>
-                    ) : (
-                      <div className="flex items-center gap-1.5 shrink-0">
+                  {/* District Chips (Only shown when expanded) */}
+                  {isRegionalExpanded && live?.districts && live.districts.length > 0 && (
+                    <div className="flex flex-wrap gap-1 pt-2 mt-2 border-t border-slate-200/60 dark:border-slate-800/60">
+                      {live.districts.map((dist) => (
                         <button
+                          key={dist.id}
                           type="button"
-                          onClick={() => handlePublishNow(art.id)}
-                          disabled={publishingArticleId === art.id}
-                          className="px-2.5 py-1 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-[11px] transition shrink-0 cursor-pointer disabled:opacity-50 inline-flex items-center gap-1 shadow-2xs"
-                          title="Instantly approve and publish live on the website"
+                          onClick={() => handleDiscoverDistrict(beatId, dist.id)}
+                          className={`px-1.5 py-0.5 rounded text-[9px] font-bold flex items-center gap-0.5 transition cursor-pointer ${
+                            dist.isMet
+                              ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-200'
+                              : 'bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 hover:bg-purple-100 dark:hover:bg-purple-900/60'
+                          }`}
+                          title={`Click to search news specifically for ${dist.name}`}
                         >
-                          {publishingArticleId === art.id ? (
-                            <span className="inline-flex items-center gap-1">
-                              <span className="animate-spin text-xs">⏳</span>
-                              <span>Publishing...</span>
-                            </span>
-                          ) : (
-                            <>
-                              <span>✓</span>
-                              <span>Approve</span>
-                            </>
-                          )}
+                          <span className={`w-1 h-1 rounded-full ${dist.isMet ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                          <span>{dist.name}</span>
+                          <span className="opacity-70 font-mono">({dist.current})</span>
                         </button>
-                        <Link
-                          href={`/articles/${art.id}/edit`}
-                          className="px-2 py-1 rounded-md bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold text-[11px] transition shrink-0"
-                          title="Open editor to review or edit text before publishing"
-                        >
-                          ✏️ Edit
-                        </Link>
-                      </div>
-                    )}
-                  </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })}
           </div>
-        )}
+        </div>
       </div>
-
-      {/* 4 Metric Cards - Collapsible / Mostly Hidden */}
-      {!showStats ? (
-        <div className="flex items-center justify-between gap-3 px-3.5 py-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xs text-xs">
-          <div className="flex items-center gap-3 sm:gap-4 flex-wrap text-slate-600 dark:text-slate-300">
-            <span className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-cyan-500 animate-pulse" />
-              <strong className="text-slate-900 dark:text-white font-bold">{channels.length}</strong> Sources
-              <span className="text-[11px] text-slate-400">({activeChannelsCount} active)</span>
-            </span>
-            <span className="text-slate-300 dark:text-slate-700">·</span>
-            <span className="flex items-center gap-1.5">
-              <strong className="text-slate-900 dark:text-white font-bold">{videos.length}</strong> Ingested
-            </span>
-            <span className="text-slate-300 dark:text-slate-700">·</span>
-            <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-semibold">
-              <span className="h-2 w-2 rounded-full bg-amber-500" />
-              <strong>{pendingDraftsCount}</strong> Awaiting Approval
-            </span>
-            <span className="text-slate-300 dark:text-slate-700 hidden sm:inline">·</span>
-            <span className="hidden sm:inline-flex items-center gap-1 font-mono text-[11px] text-emerald-600 dark:text-emerald-400">
-              0 * * * * (Hourly Sync)
-            </span>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setShowStats(true)}
-            className="flex items-center gap-1 text-[11px] font-medium text-slate-500 hover:text-cyan-600 dark:hover:text-cyan-400 shrink-0 transition"
-          >
-            <span>Expand Stats</span>
-            <svg className="h-3.5 w-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </button>
-        </div>
-      ) : (
-        <div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
-            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 shadow-2xs">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-                Monitored Sources
-              </p>
-              <p className="mt-1 text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
-                {channels.length}
-              </p>
-              <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
-                {activeChannelsCount} active surveillance channels
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 shadow-2xs">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400">
-                Discovered Videos
-              </p>
-              <p className="mt-1 text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
-                {videos.length}
-              </p>
-              <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
-                Ingested & deduplicated by ID
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 shadow-2xs">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
-                Proposed Gemini Drafts
-              </p>
-              <p className="mt-1 text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
-                {pendingDraftsCount}
-              </p>
-              <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
-                Awaiting editorial approval
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 shadow-2xs">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
-                Railway Schedule
-              </p>
-              <p className="mt-1 text-base sm:text-lg font-black text-slate-900 dark:text-white font-mono">
-                0 * * * *
-              </p>
-              <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
-                Hourly background worker
-              </p>
-            </div>
-          </div>
-          <div className="mt-1 flex justify-end">
-            <button
-              type="button"
-              onClick={() => setShowStats(false)}
-              className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition"
-            >
-              <span>Hide Stats</span>
-              <svg className="h-3 w-3 rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
-      </>
       )}
 
       {/* Tab 2: Video & Social Broadcasts (FB, Insta, YT) */}
