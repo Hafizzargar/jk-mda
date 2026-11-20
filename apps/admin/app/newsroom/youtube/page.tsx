@@ -20,7 +20,19 @@ import {
   NEWS_SCOPES,
   NEWS_TOPICS,
 } from '@/lib/taxonomy-options';
-import { AutonomousScanLog } from '@/lib/newsroom/autonomous-discovery';
+
+export interface AutonomousScanLog {
+  id: string;
+  timestamp: string;
+  status: 'generated' | 'skipped' | 'cooldown' | 'error';
+  beat?: string;
+  district?: string;
+  headline?: string;
+  reason: string;
+  ageHours?: number | null;
+  articleId?: string;
+  sourceUrl?: string;
+}
 
 interface YouTubeSource {
   id: string;
