@@ -166,7 +166,7 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
           'id, slug, title, excerpt, category, district, author_display_name, published_at, featured_image_url, view_count, article_translations(title, excerpt, language_code)'
         )
         .eq('status', 'published')
-        .ilike('category', 'problems')
+        .or('category.ilike.problems,category.ilike.problem,category.ilike.%civic%,category.ilike.%grievance%')
         .order('published_at', { ascending: false, nullsFirst: false })
         .limit(6)
     ).catch(() => ({ data: [], error: null })),
@@ -233,7 +233,14 @@ export default async function HomePage({ params, searchParams }: HomePageProps) 
   const isExcludedFromHome = (cat?: string | null) => {
     if (!cat) return false;
     const lower = cat.toLowerCase().trim();
-    return lower === 'international' || lower === 'national' || lower === 'problems';
+    return (
+      lower === 'international' ||
+      lower === 'national' ||
+      lower === 'problems' ||
+      lower === 'problem' ||
+      lower.includes('civic') ||
+      lower.includes('grievance')
+    );
   };
 
   const rawLatestFiltered = (latestArticlesRaw || []).filter((a) => !isExcludedFromHome(a.category));

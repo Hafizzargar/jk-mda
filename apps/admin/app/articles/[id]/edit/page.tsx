@@ -626,7 +626,7 @@ export default function EditArticlePage() {
                   ) : selectedCategory.toLowerCase() === 'national' ? (
                     <span>🇮🇳 <strong>National Wire:</strong> Union policy &amp; pan-India governance (No J&amp;K district).</span>
                   ) : selectedCategory.toLowerCase() === 'problems' ? (
-                    <span>⚠️ <strong>Editorial Civic Investigations:</strong> In-depth articles on issues raised by you (roads, hospitals, water, electricity &amp; citizen grievances).</span>
+                    <span className="text-red-600 dark:text-red-400 font-medium">⚠️ <strong>Problems • Civic Issues:</strong> In-depth articles on public grievances (roads, water crisis, power cuts, hospital shortages). Automatically featured in the red &quot;Problems • Civic Issues&quot; radar on the homepage.</span>
                   ) : (
                     <span>⭐ <strong>J&amp;K Local News:</strong> Daily ground reporting, district events &amp; regional headlines.</span>
                   )}

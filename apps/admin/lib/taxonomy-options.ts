@@ -8,7 +8,7 @@ export interface CategoryOption {
 
 export const CATEGORY_OPTIONS: CategoryOption[] = [
   { value: 'Local News', label: 'Local News — J&K Daily Ground Dispatches & Regional Events', description: 'Daily district news, local developments, community bulletins, and grassroots reporting across J&K' },
-  { value: 'Problems', label: 'Problems — Editorial Investigations & Civic Grievances (By Editor)', description: 'In-depth citizen issues, road/water/power breakdowns, hospital shortages, and ground grievances raised on J&K issues' },
+  { value: 'Problems', label: 'Problems • Civic Issues — In-Depth Grievances, Public Breakdown & Infrastructure', description: 'In-depth citizen issues, road/water/power breakdowns, hospital shortages, and ground grievances raised on J&K issues' },
   { value: 'National', label: 'National — Union Affairs & Pan-India Policy', description: 'National governance, union ministry directives, Supreme Court rulings, and national security' },
   { value: 'International', label: 'International — Global & Diaspora Relations', description: 'Global developments, diaspora connections, trade diplomacy, and cross-border relations' },
   { value: 'Investigation', label: 'Investigation — In-Depth & Accountability', description: 'Investigative reporting, policy audits, and environmental/public funds investigations' },
@@ -40,7 +40,7 @@ export const NEWS_TOPICS = [
   { value: 'Sports', label: 'Sports — Athletics & Youth Affairs' },
   { value: 'Education', label: 'Education — Schools & Academia' },
   { value: 'Culture', label: 'Culture — Heritage, Arts & Traditions' },
-  { value: 'Problems', label: 'Problems — Civic Grievances & Public Issues' },
+  { value: 'Problems', label: '⚠️ Problems • Civic Issues — Grievances & Infrastructure Breakdowns' },
   { value: 'Investigation', label: 'Investigation — Accountability & In-Depth' },
   { value: 'Opinion', label: 'Opinion — Columns & Perspectives' },
   { value: 'General', label: 'General — News Bulletins & Breaking' },
@@ -66,7 +66,16 @@ export function getCategorySlug(category?: string | null): string {
   if (norm === 'local news' || norm === 'local-news') {
     return 'local';
   }
-  if (norm === 'problems & grievances' || norm === 'problems and grievances') {
+  if (
+    norm === 'problems' ||
+    norm === 'problem' ||
+    norm === 'problems & grievances' ||
+    norm === 'problems and grievances' ||
+    norm === 'problems • civic issues' ||
+    norm === 'problems & civic issues' ||
+    norm === 'civic issues' ||
+    norm === 'civic'
+  ) {
     return 'problems';
   }
   const clean = category
@@ -91,13 +100,14 @@ export function formatCategoryOptions(
     }));
   }
 
-  return dbCategories.map((c) => {
+  const mapped: DynamicCategoryItem[] = dbCategories.map((c) => {
     const name = (c.name_en || c.slug || 'General').trim();
     const existing = CATEGORY_OPTIONS.find(
       (o) =>
         o.value.toLowerCase() === (c.slug || '').toLowerCase() ||
         o.value.toLowerCase() === name.toLowerCase() ||
-        (c.slug === 'local' && (o.value.toLowerCase() === 'local news' || o.value.toLowerCase() === 'local'))
+        (c.slug === 'local' && (o.value.toLowerCase() === 'local news' || o.value.toLowerCase() === 'local')) ||
+        (c.slug === 'problems' && (o.value.toLowerCase() === 'problems' || o.value.toLowerCase().includes('civic')))
     );
     return {
       id: c.id,
@@ -108,6 +118,42 @@ export function formatCategoryOptions(
       is_active: c.is_active ?? true,
     };
   });
+
+  // Ensure mandatory editorial desks (especially Problems • Civic Issues) are ALWAYS present
+  for (const canonical of CATEGORY_OPTIONS) {
+    const normCanonical = canonical.value.toLowerCase();
+    const exists = mapped.some(
+      (m) =>
+        m.value.toLowerCase() === normCanonical ||
+        m.slug.toLowerCase() === normCanonical ||
+        (normCanonical === 'local news' && (m.slug === 'local' || m.value.toLowerCase() === 'local')) ||
+        (normCanonical === 'problems' && (m.slug === 'problems' || m.value.toLowerCase() === 'problems' || m.value.toLowerCase().includes('civic')))
+    );
+    if (!exists) {
+      const canonicalItem: DynamicCategoryItem = {
+        value: canonical.value,
+        label: canonical.label,
+        slug: canonical.value.toLowerCase().replace(/\s+/g, '-'),
+        description: canonical.description,
+        is_active: true,
+      };
+      if (normCanonical === 'problems') {
+        // Place Problems right after Local News for maximum prominence
+        const localIdx = mapped.findIndex(
+          (m) => m.slug === 'local' || m.value.toLowerCase() === 'local news' || m.value.toLowerCase() === 'local'
+        );
+        if (localIdx >= 0) {
+          mapped.splice(localIdx + 1, 0, canonicalItem);
+        } else {
+          mapped.unshift(canonicalItem);
+        }
+      } else {
+        mapped.push(canonicalItem);
+      }
+    }
+  }
+
+  return mapped;
 }
 
 export async function fetchDynamicCategories(

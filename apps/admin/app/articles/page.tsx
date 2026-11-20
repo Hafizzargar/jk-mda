@@ -56,7 +56,7 @@ function ArticlesPageContent() {
   const initialCategory = searchParams?.get('category');
   const initialStatus = searchParams?.get('status') || 'all';
   const initialTopic: TopicMode =
-    initialCategory === 'Local' ? 'civic' : (searchParams?.get('topic') as TopicMode) || 'news';
+    initialCategory === 'Local' ? 'civic' : (searchParams?.get('topic') as TopicMode) || 'all';
   
   // Auth & Permissions State
   const [permissions, setPermissions] = useState<string[]>([]);
@@ -213,14 +213,8 @@ function ArticlesPageContent() {
     }
 
     // Apply Topic segregation
-    if (topicFilter === 'news') {
-      if (categoryFilter !== 'all') {
-        query = query.eq('category', categoryFilter);
-      } else {
-        query = query.neq('category', 'Local');
-      }
-    } else if (topicFilter === 'civic') {
-      query = query.eq('category', 'Local');
+    if (topicFilter === 'civic') {
+      query = query.or('category.eq.Local,category.eq.Problems,category.ilike.%civic%');
     } else if (categoryFilter !== 'all') {
       query = query.eq('category', categoryFilter);
     }

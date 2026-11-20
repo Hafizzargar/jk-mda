@@ -88,18 +88,22 @@ export function CivicProblemsSlider({ articles, langPrefix }: CivicProblemsSlide
 
   if (count === 0) {
     return (
-      <div className="bg-white p-5 rounded-2xl border border-amber-200/90 shadow-sm bg-gradient-to-br from-white via-amber-50/25 to-orange-50/30 font-sans" data-purpose="civic-problems">
-        <div className="flex items-center justify-between mb-3 pb-2 border-b border-amber-100">
-          <span className="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded bg-amber-600/10 text-amber-700 border border-amber-600/20 flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-pulse inline-block" />
+      <div className="relative overflow-hidden bg-white p-5 rounded-2xl border-2 border-red-500/35 shadow-md shadow-red-500/5 bg-gradient-to-br from-white via-red-50/25 to-rose-50/20 font-sans" data-purpose="civic-problems">
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-600 via-rose-500 to-red-600" />
+        <div className="flex items-center justify-between mb-3 pb-2 border-b border-red-100">
+          <span className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded-md bg-red-600/10 text-red-700 border border-red-600/25 flex items-center gap-2 shadow-2xs">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600" />
+            </span>
             Problems • Civic Issues
           </span>
         </div>
-        <div className="py-2.5 text-center text-xs text-slate-500">
-          <p className="italic">Monitoring drinking water, electricity, internet blackouts &amp; transit issues across J&amp;K.</p>
+        <div className="py-2.5 text-center text-xs text-slate-600">
+          <p className="italic font-serif">Monitoring drinking water, electricity, road cutoffs &amp; transit issues across J&amp;K districts.</p>
           <Link
             href={`${langPrefix}/category/problems`}
-            className="mt-2 inline-block text-[11px] font-bold text-amber-700 hover:underline"
+            className="mt-2 inline-block text-[11px] font-bold text-red-700 hover:text-red-800 hover:underline"
           >
             View Problems Archive →
           </Link>
@@ -113,28 +117,34 @@ export function CivicProblemsSlider({ articles, langPrefix }: CivicProblemsSlide
 
   return (
     <div
-      className="bg-white p-5 rounded-2xl border border-amber-200/90 shadow-sm bg-gradient-to-br from-white via-amber-50/25 to-orange-50/30 font-sans transition-all"
+      className="relative overflow-hidden bg-white p-5 rounded-2xl border-2 border-red-500/35 shadow-md shadow-red-500/5 bg-gradient-to-br from-white via-red-50/30 to-rose-50/25 font-sans transition-all group"
       data-purpose="civic-problems-slider"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
+      {/* Red Alert Emergency Strip */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-red-600 via-rose-500 to-red-600" />
+
       {/* Header with Slider Controls */}
-      <div className="flex items-center justify-between mb-3 pb-2 border-b border-amber-100">
-        <span className="px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded bg-amber-600/10 text-amber-700 border border-amber-600/20 flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-amber-600 animate-pulse inline-block" />
+      <div className="flex items-center justify-between mb-3.5 pb-2.5 border-b border-red-100/80">
+        <span className="px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded-md bg-red-600/10 text-red-700 border border-red-600/25 flex items-center gap-2 shadow-2xs">
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-600" />
+          </span>
           Problems • Civic Issues
         </span>
 
         {count > 1 ? (
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-mono text-amber-800/80 font-bold">
+            <span className="text-[10px] font-mono text-red-950 font-bold bg-red-100/80 border border-red-200/80 px-2 py-0.5 rounded">
               {currentIndex + 1} / {count}
             </span>
             <div className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={prevSlide}
-                className="w-5 h-5 rounded flex items-center justify-center bg-amber-100/80 hover:bg-amber-200 text-amber-900 text-xs font-bold transition cursor-pointer"
+                className="w-5 h-5 rounded flex items-center justify-center bg-red-100/90 hover:bg-red-200 text-red-900 text-xs font-bold transition cursor-pointer border border-red-200/60"
                 aria-label="Previous civic problem"
                 title="Previous problem"
               >
@@ -143,7 +153,7 @@ export function CivicProblemsSlider({ articles, langPrefix }: CivicProblemsSlide
               <button
                 type="button"
                 onClick={nextSlide}
-                className="w-5 h-5 rounded flex items-center justify-center bg-amber-100/80 hover:bg-amber-200 text-amber-900 text-xs font-bold transition cursor-pointer"
+                className="w-5 h-5 rounded flex items-center justify-center bg-red-100/90 hover:bg-red-200 text-red-900 text-xs font-bold transition cursor-pointer border border-red-200/60"
                 aria-label="Next civic problem"
                 title="Next problem"
               >
@@ -152,7 +162,7 @@ export function CivicProblemsSlider({ articles, langPrefix }: CivicProblemsSlide
             </div>
           </div>
         ) : (
-          <span className="text-[10px] font-mono text-slate-400 font-medium">Ground Radar</span>
+          <span className="text-[10px] font-mono text-red-700/80 font-bold bg-red-50 px-2 py-0.5 rounded border border-red-200/50">Ground Radar</span>
         )}
       </div>
 
@@ -170,7 +180,7 @@ export function CivicProblemsSlider({ articles, langPrefix }: CivicProblemsSlide
             )}
           </div>
 
-          <h3 className="font-serif text-sm font-bold text-[#0F172A] leading-snug mb-1.5 hover:text-[#0891B2] transition">
+          <h3 className="font-serif text-sm font-bold text-[#0F172A] leading-snug mb-1.5 hover:text-red-700 transition">
             <Link href={getArtHref(activeArticle)}>
               {activeArticle.title}
             </Link>
@@ -198,7 +208,7 @@ export function CivicProblemsSlider({ articles, langPrefix }: CivicProblemsSlide
               type="button"
               onClick={() => setCurrentIndex(idx)}
               className={`h-1.5 rounded-full transition-all cursor-pointer ${
-                idx === currentIndex ? 'w-5 bg-amber-600' : 'w-1.5 bg-amber-200 hover:bg-amber-400'
+                idx === currentIndex ? 'w-5 bg-red-600 shadow-sm shadow-red-500/30' : 'w-1.5 bg-red-200 hover:bg-red-300'
               }`}
               aria-label={`Go to problem ${idx + 1}`}
             />
@@ -207,13 +217,13 @@ export function CivicProblemsSlider({ articles, langPrefix }: CivicProblemsSlide
       )}
 
       {/* Footer link to Archive */}
-      <div className="pt-2.5 mt-2 border-t border-amber-100 flex items-center justify-between text-[10px]">
-        <span className="text-[9px] text-amber-800/70 font-mono">
+      <div className="pt-2.5 mt-2 border-t border-red-100/90 flex items-center justify-between text-[10px]">
+        <span className="text-[9px] text-red-900/80 font-mono font-semibold">
           {count} Active Grievance{count === 1 ? '' : 's'}
         </span>
         <Link
           href={`${langPrefix}/category/problems`}
-          className="font-bold text-amber-700 hover:text-amber-800 transition flex items-center gap-1"
+          className="font-bold text-red-700 hover:text-red-800 transition flex items-center gap-1 group-hover:underline"
         >
           All J&amp;K Ground Grievances →
         </Link>

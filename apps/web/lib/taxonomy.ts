@@ -147,7 +147,16 @@ export function getCategorySlug(category?: string | null): string {
   if (norm === 'local news' || norm === 'local-news') {
     return 'local';
   }
-  if (norm === 'problems & grievances' || norm === 'problems and grievances') {
+  if (
+    norm === 'problems & grievances' ||
+    norm === 'problems and grievances' ||
+    norm === 'problems • civic issues' ||
+    norm === 'problems & civic issues' ||
+    norm === 'civic issues' ||
+    norm === 'civic' ||
+    norm === 'problem' ||
+    norm === 'problems'
+  ) {
     return 'problems';
   }
   const clean = category
