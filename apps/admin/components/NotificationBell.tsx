@@ -267,124 +267,142 @@ export function NotificationBell({ userRole }: NotificationBellProps) {
 
       {/* Floating Dropdown */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-88 sm:w-[420px] rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150 max-h-[85vh] flex flex-col">
-          {/* Header */}
-          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-950/80 px-4 py-3 shrink-0">
-            <div className="flex items-center gap-2">
-              <span className="text-base">🔔</span>
-              <span className="font-extrabold text-xs text-slate-900 dark:text-white uppercase tracking-wider">
-                Newsroom Dispatch Center
-              </span>
+        <>
+          {/* Backdrop on mobile */}
+          <div
+            className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs z-40 sm:hidden"
+            onClick={() => setIsOpen(false)}
+            aria-hidden="true"
+          />
+
+          <div className="fixed inset-x-2 top-14 sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[420px] rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150 max-h-[85vh] flex flex-col">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-950/80 px-4 py-3 shrink-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-base shrink-0">🔔</span>
+                <span className="font-extrabold text-xs text-slate-900 dark:text-white uppercase tracking-wider truncate">
+                  Newsroom Dispatch Center
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => loadNotifications()}
+                  disabled={isLoading}
+                  className="text-[10px] font-bold text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition cursor-pointer px-1 py-0.5 rounded"
+                  title="Refresh Alerts"
+                >
+                  {isLoading ? 'Refreshing...' : '↻ Refresh'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="flex sm:hidden items-center justify-center h-6 w-6 rounded-md text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-800 text-xs font-bold transition"
+                  aria-label="Close notification panel"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={() => loadNotifications()}
-              disabled={isLoading}
-              className="text-[10px] font-bold text-slate-400 hover:text-slate-200 transition cursor-pointer"
-              title="Refresh Alerts"
-            >
-              {isLoading ? 'Refreshing...' : '↻ Refresh'}
-            </button>
-          </div>
 
-          {/* Segmented Tab Switcher with 4 Tabs */}
-          <div className="grid grid-cols-4 border-b border-slate-100 dark:border-slate-800 bg-slate-100/70 dark:bg-slate-950/40 p-1.5 gap-1 shrink-0">
-            {/* Tab 1: AI Drafts */}
-            <button
-              type="button"
-              onClick={() => setActiveTab('ai_drafts')}
-              className={`flex items-center justify-center gap-1 py-1.5 px-1.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
-                activeTab === 'ai_drafts'
-                  ? 'bg-purple-600 text-white shadow-sm'
-                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50'
-              }`}
-            >
-              <span className="truncate">🤖 AI</span>
-              {pendingAiDrafts.length > 0 && (
-                <span
-                  className={`px-1.5 py-0.2 rounded-full text-[9px] font-mono font-black ${
-                    activeTab === 'ai_drafts'
-                      ? 'bg-purple-800 text-purple-100'
-                      : 'bg-purple-100 text-purple-800 dark:bg-purple-900/60 dark:text-purple-300'
-                  }`}
-                >
-                  {pendingAiDrafts.length}
-                </span>
-              )}
-            </button>
+            {/* Segmented Tab Switcher with 4 Tabs */}
+            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar scrollbar-none border-b border-slate-100 dark:border-slate-800 bg-slate-100/70 dark:bg-slate-950/40 p-1.5 shrink-0">
+              {/* Tab 1: AI Drafts */}
+              <button
+                type="button"
+                onClick={() => setActiveTab('ai_drafts')}
+                className={`flex-1 min-w-[65px] sm:min-w-0 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-[11px] font-bold whitespace-nowrap transition cursor-pointer ${
+                  activeTab === 'ai_drafts'
+                    ? 'bg-purple-600 text-white shadow-sm'
+                    : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50'
+                }`}
+              >
+                <span>🤖 AI</span>
+                {pendingAiDrafts.length > 0 && (
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[9px] font-mono font-black ${
+                      activeTab === 'ai_drafts'
+                        ? 'bg-purple-800 text-purple-100'
+                        : 'bg-purple-100 text-purple-800 dark:bg-purple-900/60 dark:text-purple-300'
+                    }`}
+                  >
+                    {pendingAiDrafts.length}
+                  </span>
+                )}
+              </button>
 
-            {/* Tab 2: Review */}
-            <button
-              type="button"
-              onClick={() => setActiveTab('review')}
-              className={`flex items-center justify-center gap-1 py-1.5 px-1.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
-                activeTab === 'review'
-                  ? 'bg-amber-600 text-white shadow-sm'
-                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50'
-              }`}
-            >
-              <span className="truncate">⏳ Review</span>
-              {pendingArticles.length > 0 && (
-                <span
-                  className={`px-1.5 py-0.2 rounded-full text-[9px] font-mono font-black ${
-                    activeTab === 'review'
-                      ? 'bg-amber-800 text-amber-100'
-                      : 'bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300'
-                  }`}
-                >
-                  {pendingArticles.length}
-                </span>
-              )}
-            </button>
+              {/* Tab 2: Review */}
+              <button
+                type="button"
+                onClick={() => setActiveTab('review')}
+                className={`flex-1 min-w-[75px] sm:min-w-0 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-[11px] font-bold whitespace-nowrap transition cursor-pointer ${
+                  activeTab === 'review'
+                    ? 'bg-amber-600 text-white shadow-sm'
+                    : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50'
+                }`}
+              >
+                <span>⏳ Review</span>
+                {pendingArticles.length > 0 && (
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[9px] font-mono font-black ${
+                      activeTab === 'review'
+                        ? 'bg-amber-800 text-amber-100'
+                        : 'bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300'
+                    }`}
+                  >
+                    {pendingArticles.length}
+                  </span>
+                )}
+              </button>
 
-            {/* Tab 3: Candidates (Career Applications) */}
-            <button
-              type="button"
-              onClick={() => setActiveTab('candidates')}
-              className={`flex items-center justify-center gap-1 py-1.5 px-1.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
-                activeTab === 'candidates'
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50'
-              }`}
-            >
-              <span className="truncate">📋 Careers</span>
-              {pendingApplications.length > 0 && (
-                <span
-                  className={`px-1.5 py-0.2 rounded-full text-[9px] font-mono font-black ${
-                    activeTab === 'candidates'
-                      ? 'bg-emerald-800 text-emerald-100'
-                      : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300'
-                  }`}
-                >
-                  {pendingApplications.length}
-                </span>
-              )}
-            </button>
+              {/* Tab 3: Candidates (Career Applications) */}
+              <button
+                type="button"
+                onClick={() => setActiveTab('candidates')}
+                className={`flex-1 min-w-[75px] sm:min-w-0 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-[11px] font-bold whitespace-nowrap transition cursor-pointer ${
+                  activeTab === 'candidates'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50'
+                }`}
+              >
+                <span>📋 Careers</span>
+                {pendingApplications.length > 0 && (
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[9px] font-mono font-black ${
+                      activeTab === 'candidates'
+                        ? 'bg-emerald-800 text-emerald-100'
+                        : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300'
+                    }`}
+                  >
+                    {pendingApplications.length}
+                  </span>
+                )}
+              </button>
 
-            {/* Tab 4: Activity */}
-            <button
-              type="button"
-              onClick={() => setActiveTab('activity')}
-              className={`flex items-center justify-center gap-1 py-1.5 px-1.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
-                activeTab === 'activity'
-                  ? 'bg-slate-700 text-white shadow-sm'
-                  : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50'
-              }`}
-            >
-              <span className="truncate">🛡️ Activity</span>
-              {notifications.length > 0 && (
-                <span
-                  className={`px-1.5 py-0.2 rounded-full text-[9px] font-mono font-black ${
-                    activeTab === 'activity'
-                      ? 'bg-slate-800 text-slate-200'
-                      : 'bg-slate-200 text-slate-700 dark:bg-slate-800/80 dark:text-slate-400'
-                  }`}
-                >
-                  {notifications.length}
-                </span>
-              )}
-            </button>
-          </div>
+              {/* Tab 4: Activity */}
+              <button
+                type="button"
+                onClick={() => setActiveTab('activity')}
+                className={`flex-1 min-w-[75px] sm:min-w-0 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg text-[11px] font-bold whitespace-nowrap transition cursor-pointer ${
+                  activeTab === 'activity'
+                    ? 'bg-slate-700 text-white shadow-sm'
+                    : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50'
+                }`}
+              >
+                <span>🛡️ Activity</span>
+                {notifications.length > 0 && (
+                  <span
+                    className={`px-1.5 py-0.2 rounded-full text-[9px] font-mono font-black ${
+                      activeTab === 'activity'
+                        ? 'bg-slate-800 text-slate-200'
+                        : 'bg-slate-200 text-slate-700 dark:bg-slate-800/80 dark:text-slate-400'
+                    }`}
+                  >
+                    {notifications.length}
+                  </span>
+                )}
+              </button>
+            </div>
 
           {/* Active Tab Feed Container */}
           <div className="flex-1 overflow-y-auto max-h-[380px] p-2 space-y-1.5 divide-y divide-slate-100 dark:divide-slate-800/60 pr-1">
@@ -583,6 +601,7 @@ export function NotificationBell({ userRole }: NotificationBellProps) {
             )}
           </div>
         </div>
+        </>
       )}
     </div>
   );
