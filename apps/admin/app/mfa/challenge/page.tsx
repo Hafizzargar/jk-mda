@@ -251,6 +251,21 @@ function MFAChallengeForm() {
 
       if (otpVerifyRes.ok) {
         setStatus('Verification successful! Redirecting to dashboard...');
+
+        // Dispatch security notification email for completing OTP login verification
+        const token = session?.access_token;
+        fetch('/api/auth/notify-login', {
+          method: 'POST',
+          keepalive: true,
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            email: userEmail,
+          }),
+        }).catch(() => {});
+
         const nextUrl = searchParams.get('next');
         const target = nextUrl && nextUrl.startsWith('/') && !nextUrl.startsWith('//') && !nextUrl.startsWith('/auth') && nextUrl !== '/login' ? nextUrl : '/';
         setTimeout(() => {
@@ -293,6 +308,21 @@ function MFAChallengeForm() {
         }
 
         setStatus('Verification successful! Redirecting to dashboard...');
+
+        // Dispatch security notification email for completing TOTP MFA verification
+        const token = newSession?.access_token || session?.access_token;
+        fetch('/api/auth/notify-login', {
+          method: 'POST',
+          keepalive: true,
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({
+            email: userEmail,
+          }),
+        }).catch(() => {});
+
         const nextUrl = searchParams.get('next');
         const target = nextUrl && nextUrl.startsWith('/') && !nextUrl.startsWith('//') && !nextUrl.startsWith('/auth') && nextUrl !== '/login' ? nextUrl : '/';
         setTimeout(() => {
