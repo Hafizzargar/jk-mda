@@ -1,7 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildImageRemotePatterns, PRODUCTION_SUPABASE_PROJECT_ID, AUTHORIZED_SUPABASE_HOST } from '../next.config.mjs';
+import { buildImageRemotePatterns, PRODUCTION_SUPABASE_PROJECT_ID, LEGACY_SUPABASE_PROJECT_ID, AUTHORIZED_SUPABASE_HOST } from '../next.config.mjs';
 import { buildCspHeader } from '@/lib/csp';
 import { isAllowedImageSrc } from '@/lib/sanitize';
 
@@ -22,10 +22,14 @@ describe('P0: Next.js Image Optimization Host Restrictions', () => {
     assert.strictEqual(hasWildcard, false, 'Must NOT contain any wildcard hostnames');
 
     // Must NOT contain unapproved Supabase projects
+    const approvedHosts = new Set([
+      `${PRODUCTION_SUPABASE_PROJECT_ID}.supabase.co`,
+      `${LEGACY_SUPABASE_PROJECT_ID}.supabase.co`,
+    ]);
     const hasUnapprovedProject = patterns.some(
       (p) =>
         p.hostname.endsWith('.supabase.co') &&
-        p.hostname !== `${PRODUCTION_SUPABASE_PROJECT_ID}.supabase.co`
+        !approvedHosts.has(p.hostname)
     );
     assert.strictEqual(
       hasUnapprovedProject,

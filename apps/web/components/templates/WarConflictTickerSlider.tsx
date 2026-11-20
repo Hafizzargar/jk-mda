@@ -270,7 +270,7 @@ export function WarConflictTickerSlider({
                   >
                     {item.title}
                   </Link>
-                  <span className="text-[10px] text-slate-400 font-mono whitespace-nowrap">
+                  <span suppressHydrationWarning className="text-[10px] text-slate-400 font-mono whitespace-nowrap">
                     &bull; {getTimeAgo(item.publishedAt)}
                   </span>
                   <span className="text-red-500/60 font-bold select-none ml-2">&bull;</span>

@@ -1,4 +1,5 @@
-export const PRODUCTION_SUPABASE_PROJECT_ID = 'ptvfidufwlswbjgsjvzl';
+export const PRODUCTION_SUPABASE_PROJECT_ID = 'uaaajvcmjivszrkzdmvu';
+export const LEGACY_SUPABASE_PROJECT_ID = 'ptvfidufwlswbjgsjvzl';
 export const AUTHORIZED_SUPABASE_HOST = `${PRODUCTION_SUPABASE_PROJECT_ID}.supabase.co`;
 
 export interface CspOptions {
@@ -23,6 +24,7 @@ export function buildCspHeader(options: CspOptions): string {
 
   const trustedImageHosts = [
     `https://${PRODUCTION_SUPABASE_PROJECT_ID}.supabase.co`,
+    `https://${LEGACY_SUPABASE_PROJECT_ID}.supabase.co`,
     'https://kjin.in',
     'https://media.kjin.in',
     'https://kjin.org',
@@ -46,6 +48,8 @@ export function buildCspHeader(options: CspOptions): string {
   const trustedConnectHosts = [
     `https://${PRODUCTION_SUPABASE_PROJECT_ID}.supabase.co`,
     `wss://${PRODUCTION_SUPABASE_PROJECT_ID}.supabase.co`,
+    `https://${LEGACY_SUPABASE_PROJECT_ID}.supabase.co`,
+    `wss://${LEGACY_SUPABASE_PROJECT_ID}.supabase.co`,
     'https://tiles.openfreemap.org',
     'https://earthquake.usgs.gov',
     'https://api.open-meteo.com',

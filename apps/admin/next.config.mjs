@@ -1,4 +1,5 @@
-export const PRODUCTION_SUPABASE_PROJECT_ID = 'ptvfidufwlswbjgsjvzl';
+export const PRODUCTION_SUPABASE_PROJECT_ID = 'uaaajvcmjivszrkzdmvu';
+export const LEGACY_SUPABASE_PROJECT_ID = 'ptvfidufwlswbjgsjvzl';
 export const AUTHORIZED_SUPABASE_HOST = `${PRODUCTION_SUPABASE_PROJECT_ID}.supabase.co`;
 
 let configuredSupabaseHost = AUTHORIZED_SUPABASE_HOST;
@@ -24,6 +25,8 @@ const nextConfig = {
     unoptimized: process.env.NODE_ENV !== 'production',
     remotePatterns: [
       { protocol: 'https', hostname: configuredSupabaseHost },
+      { protocol: 'https', hostname: `${PRODUCTION_SUPABASE_PROJECT_ID}.supabase.co` },
+      { protocol: 'https', hostname: `${LEGACY_SUPABASE_PROJECT_ID}.supabase.co` },
       { protocol: 'https', hostname: 'images.unsplash.com' },
       { protocol: 'https', hostname: 'i.ytimg.com' },
       { protocol: 'https', hostname: 'i1.ytimg.com' },

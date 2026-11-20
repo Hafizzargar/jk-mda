@@ -1,4 +1,5 @@
-export const PRODUCTION_SUPABASE_PROJECT_ID = 'ptvfidufwlswbjgsjvzl';
+export const PRODUCTION_SUPABASE_PROJECT_ID = 'uaaajvcmjivszrkzdmvu';
+export const LEGACY_SUPABASE_PROJECT_ID = 'ptvfidufwlswbjgsjvzl';
 
 /** @type {string} */
 export const AUTHORIZED_SUPABASE_HOST = `${PRODUCTION_SUPABASE_PROJECT_ID}.supabase.co`;
@@ -6,7 +7,7 @@ export const AUTHORIZED_SUPABASE_HOST = `${PRODUCTION_SUPABASE_PROJECT_ID}.supab
 /**
  * Builds the remotePatterns configuration for Next.js image optimization.
  * Enforces strict origin restrictions:
- * - In production: strictly locks Supabase images to the authorized production project (ptvfidufwlswbjgsjvzl).
+ * - In production: strictly locks Supabase images to the authorized production project (uaaajvcmjivszrkzdmvu) and legacy project (ptvfidufwlswbjgsjvzl).
  * - In production: rejects loopback (localhost/127.0.0.1) to prevent SSRF vulnerabilities.
  * - In non-production: allows localhost, 127.0.0.1, and approved staging/isolated Supabase projects.
  * - Allows trusted official media CDNs across all environments.
@@ -26,11 +27,19 @@ export function buildImageRemotePatterns(env = process.env) {
       protocol: 'https',
       hostname: `${PRODUCTION_SUPABASE_PROJECT_ID}.supabase.co`,
     });
+    patterns.push({
+      protocol: 'https',
+      hostname: `${LEGACY_SUPABASE_PROJECT_ID}.supabase.co`,
+    });
   } else {
     // Non-production (dev/test/staging)
     patterns.push({
       protocol: 'https',
       hostname: `${PRODUCTION_SUPABASE_PROJECT_ID}.supabase.co`,
+    });
+    patterns.push({
+      protocol: 'https',
+      hostname: `${LEGACY_SUPABASE_PROJECT_ID}.supabase.co`,
     });
     patterns.push({
       protocol: 'https',

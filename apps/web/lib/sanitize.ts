@@ -1,6 +1,7 @@
 import sanitizeHtml from 'sanitize-html';
 
-export const PRODUCTION_SUPABASE_PROJECT_ID = 'ptvfidufwlswbjgsjvzl';
+export const PRODUCTION_SUPABASE_PROJECT_ID = 'uaaajvcmjivszrkzdmvu';
+export const LEGACY_SUPABASE_PROJECT_ID = 'ptvfidufwlswbjgsjvzl';
 
 export interface ImageValidationOptions {
   isProduction?: boolean;
@@ -106,9 +107,11 @@ export function isAllowedImageSrc(
     if (isProduction) {
       // In production, strictly lock down to the authorized production project host
       approvedSupabaseHosts.add(`${PRODUCTION_SUPABASE_PROJECT_ID}.supabase.co`);
+      approvedSupabaseHosts.add(`${LEGACY_SUPABASE_PROJECT_ID}.supabase.co`);
     } else {
       // In non-production (staging/test/preview), allow production storage for read-only fixtures plus staging test projects
       approvedSupabaseHosts.add(`${PRODUCTION_SUPABASE_PROJECT_ID}.supabase.co`);
+      approvedSupabaseHosts.add(`${LEGACY_SUPABASE_PROJECT_ID}.supabase.co`);
       approvedSupabaseHosts.add('kjin-staging-test.supabase.co');
       approvedSupabaseHosts.add('kjin-isolated-test.supabase.co');
 
@@ -208,7 +211,12 @@ export function isAllowedImageSrc(
             }
             // In production, reject any *.supabase.co hostname that is not the
             // exclusively authorized production project to prevent foreign-tenant bypass.
-            if (isProduction && h.endsWith('.supabase.co') && h !== `${PRODUCTION_SUPABASE_PROJECT_ID}.supabase.co`) {
+            if (
+              isProduction &&
+              h.endsWith('.supabase.co') &&
+              h !== `${PRODUCTION_SUPABASE_PROJECT_ID}.supabase.co` &&
+              h !== `${LEGACY_SUPABASE_PROJECT_ID}.supabase.co`
+            ) {
               return false;
             }
             return true;
