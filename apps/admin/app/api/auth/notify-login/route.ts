@@ -85,6 +85,8 @@ export async function POST(request: NextRequest) {
     const validIp = extractClientIp(request);
     const ipDisplay = validIp || '127.0.0.1 (Local)';
     const userAgent = request.headers.get('user-agent') || 'Web Browser';
+    const clientPlatform = request.headers.get('sec-ch-ua-platform')?.replace(/"/g, '') || undefined;
+    const clientMobile = request.headers.get('sec-ch-ua-mobile') === '?1' ? true : undefined;
 
     const recipientEmail = email;
 
@@ -160,6 +162,8 @@ export async function POST(request: NextRequest) {
             loginTime: new Date(),
             ipAddress: ipDisplay,
             userAgent,
+            clientPlatform,
+            clientMobile,
             logoutUrl,
           });
           messageId = mailResult.messageId;

@@ -221,7 +221,180 @@ export interface SendLoginAlertParams {
   loginTime?: Date;
   ipAddress?: string;
   userAgent?: string;
+  clientPlatform?: string;
+  clientMobile?: boolean;
   logoutUrl?: string;
+}
+
+export interface ParsedClientTelemetry {
+  deviceType: 'mobile' | 'tablet' | 'desktop' | 'unknown';
+  deviceName: string;
+  browserName: string;
+  osName: string;
+  deviceIcon: string;
+  friendlySummary: string;
+}
+
+/**
+ * Parses raw HTTP User-Agent strings and Sec-CH-UA client hints into clean,
+ * human-readable device names, operating systems, and browser labels.
+ * E.g. "📱 Android Phone • Google Chrome Mobile" or "💻 Windows PC / Laptop • Google Chrome"
+ */
+export function parseUserAgent(
+  uaString?: string,
+  hints?: { platform?: string; isMobile?: boolean }
+): ParsedClientTelemetry {
+  const ua = (uaString || '').trim();
+  const hintPlatform = (hints?.platform || '').toLowerCase().trim();
+  const hintMobile = hints?.isMobile;
+
+  if (!ua || ua === 'Web Browser' || ua === 'Standard Browser') {
+    if (hintPlatform.includes('android')) {
+      return {
+        deviceType: 'mobile',
+        deviceName: 'Android Phone',
+        browserName: 'Google Chrome Mobile',
+        osName: 'Android',
+        deviceIcon: '📱',
+        friendlySummary: '📱 Android Phone • Google Chrome Mobile',
+      };
+    } else if (hintPlatform.includes('windows')) {
+      return {
+        deviceType: 'desktop',
+        deviceName: 'Windows PC / Laptop',
+        browserName: 'Web Browser',
+        osName: 'Windows 11 / 10',
+        deviceIcon: '💻',
+        friendlySummary: '💻 Windows PC / Laptop • Web Browser',
+      };
+    } else if (hintPlatform.includes('ios') || hintPlatform.includes('iphone')) {
+      return {
+        deviceType: 'mobile',
+        deviceName: 'Apple iPhone',
+        browserName: 'Apple Safari Mobile',
+        osName: 'iOS',
+        deviceIcon: '📱',
+        friendlySummary: '📱 Apple iPhone • Apple Safari Mobile',
+      };
+    }
+    return {
+      deviceType: 'unknown',
+      deviceName: 'Web Browser / Unknown Device',
+      browserName: 'Web Browser',
+      osName: 'Unspecified OS',
+      deviceIcon: '🌐',
+      friendlySummary: 'Web Browser on Unknown Device',
+    };
+  }
+
+  // 1. Detect Operating System & Version
+  let osName = 'Unknown Operating System';
+  if (/Android\s*([0-9]+(?:\.[0-9]+)*)?/i.test(ua) || hintPlatform === 'android') {
+    const match = ua.match(/Android\s*([0-9]+(?:\.[0-9]+)*)?/i);
+    osName = match && match[1] ? `Android ${match[1]}` : 'Android';
+  } else if (/iPhone|iPad|iPod/i.test(ua) || hintPlatform === 'ios') {
+    const match = ua.match(/OS\s*([0-9]+(?:[_.][0-9]+)*)/i);
+    const ver = match && match[1] ? match[1].replace(/_/g, '.') : '';
+    osName = ver ? `iOS ${ver}` : 'iOS';
+  } else if (/Windows NT\s*([0-9]+(?:\.[0-9]+)*)/i.test(ua) || hintPlatform === 'windows') {
+    const match = ua.match(/Windows NT\s*([0-9]+(?:\.[0-9]+)*)/i);
+    const ntVer = match ? match[1] : '';
+    if (ntVer === '10.0') osName = 'Windows 11 / 10';
+    else if (ntVer === '6.3') osName = 'Windows 8.1';
+    else if (ntVer === '6.2') osName = 'Windows 8';
+    else if (ntVer === '6.1') osName = 'Windows 7';
+    else osName = 'Windows';
+  } else if (/Mac OS X|macOS/i.test(ua) || hintPlatform === 'macos' || hintPlatform === 'mac os x') {
+    const match = ua.match(/(?:Mac OS X|macOS)\s*([0-9]+(?:[_.][0-9]+)*)?/i);
+    const ver = match && match[1] ? match[1].replace(/_/g, '.') : '';
+    osName = ver ? `macOS ${ver}` : 'macOS';
+  } else if (/CrOS/i.test(ua) || hintPlatform === 'chrome os') {
+    osName = 'ChromeOS';
+  } else if (/Linux/i.test(ua) || hintPlatform === 'linux') {
+    osName = 'Linux';
+  }
+
+  // 2. Detect Device Type and Friendly Device Name
+  let deviceType: 'mobile' | 'tablet' | 'desktop' | 'unknown' = 'unknown';
+  let deviceName = 'Unknown Device';
+  let deviceIcon = '💻';
+
+  if (/iPad/i.test(ua)) {
+    deviceType = 'tablet';
+    deviceName = 'Apple iPad';
+    deviceIcon = '📟';
+  } else if (/iPhone/i.test(ua)) {
+    deviceType = 'mobile';
+    deviceName = 'Apple iPhone';
+    deviceIcon = '📱';
+  } else if (/Android/i.test(ua) || hintPlatform === 'android') {
+    if (/Mobile/i.test(ua) || hintMobile === true || !/Tablet/i.test(ua)) {
+      deviceType = 'mobile';
+      deviceName = 'Android Phone';
+      deviceIcon = '📱';
+    } else {
+      deviceType = 'tablet';
+      deviceName = 'Android Tablet';
+      deviceIcon = '📟';
+    }
+  } else if (/Windows/i.test(ua) || hintPlatform === 'windows') {
+    deviceType = 'desktop';
+    deviceName = 'Windows PC / Laptop';
+    deviceIcon = '💻';
+  } else if (/Macintosh|Mac OS/i.test(ua) || hintPlatform === 'macos') {
+    deviceType = 'desktop';
+    deviceName = 'MacBook / Apple Mac';
+    deviceIcon = '💻';
+  } else if (/CrOS/i.test(ua) || hintPlatform === 'chrome os') {
+    deviceType = 'desktop';
+    deviceName = 'Chromebook Laptop';
+    deviceIcon = '💻';
+  } else if (/Linux/i.test(ua) || hintPlatform === 'linux') {
+    deviceType = 'desktop';
+    deviceName = 'Linux PC / Laptop';
+    deviceIcon = '💻';
+  } else if (/Mobile/i.test(ua) || hintMobile === true) {
+    deviceType = 'mobile';
+    deviceName = 'Mobile Smartphone';
+    deviceIcon = '📱';
+  } else {
+    deviceType = 'desktop';
+    deviceName = 'Desktop / Laptop';
+    deviceIcon = '💻';
+  }
+
+  // 3. Detect Web Browser Name
+  let browserName = 'Web Browser';
+  const isMobile = deviceType === 'mobile' || deviceType === 'tablet';
+
+  if (/(?:Edg|EdgA|EdgiOS)\/([0-9]+)/i.test(ua)) {
+    browserName = isMobile ? 'Microsoft Edge Mobile' : 'Microsoft Edge';
+  } else if (/SamsungBrowser\/([0-9]+)/i.test(ua)) {
+    browserName = 'Samsung Internet';
+  } else if (/(?:OPR|OPT|Opera)\/([0-9]+)/i.test(ua)) {
+    browserName = isMobile ? 'Opera Mobile' : 'Opera Browser';
+  } else if (/Brave/i.test(ua)) {
+    browserName = isMobile ? 'Brave Browser Mobile' : 'Brave Browser';
+  } else if (/(?:Firefox|FxiOS)\/([0-9]+)/i.test(ua)) {
+    browserName = isMobile ? 'Mozilla Firefox Mobile' : 'Mozilla Firefox';
+  } else if (/UCBrowser|UCWEB/i.test(ua)) {
+    browserName = 'UC Browser';
+  } else if (/(?:Chrome|CriOS)\/([0-9]+)/i.test(ua)) {
+    browserName = isMobile ? 'Google Chrome Mobile' : 'Google Chrome';
+  } else if (/Safari/i.test(ua) && !/Chrome|CriOS|Android/i.test(ua)) {
+    browserName = isMobile ? 'Apple Safari Mobile' : 'Apple Safari';
+  }
+
+  const friendlySummary = `${deviceIcon} ${deviceName} • ${browserName}`;
+
+  return {
+    deviceType,
+    deviceName,
+    browserName,
+    osName,
+    deviceIcon,
+    friendlySummary,
+  };
 }
 
 /**
@@ -250,7 +423,12 @@ export async function sendLoginAlertEmail(params: SendLoginAlertParams): Promise
   const timeUTC = now.toUTCString();
   const name = params.displayName || params.to.split('@')[0];
 
-  const subject = `Security Alert: New Sign-in to KJCPL Newsroom (${timeIST})`;
+  const clientInfo = parseUserAgent(params.userAgent, {
+    platform: params.clientPlatform,
+    isMobile: params.clientMobile,
+  });
+
+  const subject = `Security Alert: New Sign-in from ${clientInfo.deviceName} (${timeIST})`;
 
   const textContent = `
 Hello ${name},
@@ -258,10 +436,13 @@ Hello ${name},
 A new sign-in was detected on your KJCPL Newsroom account.
 
 Login Details:
+- Device: ${clientInfo.deviceName} (${clientInfo.deviceType.toUpperCase()})
+- Web Browser: ${clientInfo.browserName}
+- Operating System: ${clientInfo.osName}
+- IP Address: ${params.ipAddress || 'Unavailable'}
 - Time (IST): ${timeIST}
 - Time (UTC): ${timeUTC}
-- IP Address: ${params.ipAddress || 'Unavailable'}
-- Device / Browser: ${params.userAgent || 'Standard Browser'}
+- Raw Browser Data: ${params.userAgent || 'Standard Browser'}
 
 If this was you, you can safely ignore this email.
 
@@ -288,7 +469,7 @@ KJCPL Newsroom Security
     h1 { font-size: 22px; font-weight: 700; color: #ffffff; margin: 16px 0 8px 0; }
     p { font-size: 14px; line-height: 1.6; color: #cbd5e1; margin: 0 0 16px 0; }
     .info-box { background-color: #020617; border: 1px solid #334155; border-radius: 12px; padding: 18px; margin: 20px 0; }
-    .info-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #1e293b; font-size: 13px; }
+    .info-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #1e293b; font-size: 13px; }
     .info-row:last-child { border-bottom: none; }
     .label { color: #94a3b8; font-weight: 500; }
     .value { color: #f8fafc; font-weight: 600; text-align: right; }
@@ -307,6 +488,22 @@ KJCPL Newsroom Security
     
     <div class="info-box">
       <div class="info-row">
+        <span class="label">Device</span>
+        <span class="value" style="color: #38bdf8; font-size: 14px; font-weight: 700;">${clientInfo.deviceIcon} ${clientInfo.deviceName}</span>
+      </div>
+      <div class="info-row">
+        <span class="label">Web Browser</span>
+        <span class="value" style="color: #34d399; font-weight: 600;">🌐 ${clientInfo.browserName}</span>
+      </div>
+      <div class="info-row">
+        <span class="label">Operating System</span>
+        <span class="value" style="color: #f1f5f9;">${clientInfo.osName}</span>
+      </div>
+      <div class="info-row">
+        <span class="label">IP Address</span>
+        <span class="value">${params.ipAddress || 'Unavailable'}</span>
+      </div>
+      <div class="info-row">
         <span class="label">Date & Time (IST)</span>
         <span class="value" style="color: #38bdf8;">${timeIST}</span>
       </div>
@@ -315,18 +512,19 @@ KJCPL Newsroom Security
         <span class="value">${timeUTC}</span>
       </div>
       <div class="info-row">
-        <span class="label">IP Address</span>
-        <span class="value">${params.ipAddress || 'Unavailable'}</span>
-      </div>
-      <div class="info-row">
-        <span class="label">Browser / Device</span>
-        <span class="value" style="font-family: ui-monospace, monospace; font-size: 11px; max-width: 280px; word-break: break-all;">${params.userAgent || 'Web Browser'}</span>
-      </div>
-      <div class="info-row">
         <span class="label">Account Email</span>
         <span class="value">${params.to}</span>
       </div>
     </div>
+
+    ${params.userAgent ? `
+    <details style="margin: 8px 0 16px 0; font-size: 11px; color: #64748b; cursor: pointer;">
+      <summary style="outline: none;">Raw Browser Technical Data</summary>
+      <div style="font-family: ui-monospace, monospace; margin-top: 6px; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 6px; word-break: break-all; color: #94a3b8; font-size: 10px;">
+        ${params.userAgent}
+      </div>
+    </details>
+    ` : ''}
 
     <p style="font-size: 13px; color: #94a3b8;">
       If this was you, you can safely disregard this message.
