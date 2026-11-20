@@ -112,7 +112,8 @@ export default async function RootLayout({
   children: React.ReactNode;
   params: Promise<{ lang: string }>;
 }) {
-  const { lang: paramLang } = await params;
+  const resolvedParams = (await params) || {};
+  const paramLang = resolvedParams.lang;
   if (paramLang && paramLang !== 'en') {
     permanentRedirect(`/en/${paramLang}`);
   }
@@ -183,6 +184,7 @@ export default async function RootLayout({
   } catch {
     // Nonce unavailable
   }
+  const scriptNonce = typeof window === 'undefined' ? nonce : undefined;
 
   return (
     <html
@@ -196,7 +198,7 @@ export default async function RootLayout({
       <head>
         <meta charSet="utf-8" />
         <script
-          nonce={nonce}
+          nonce={scriptNonce}
           suppressHydrationWarning
           dangerouslySetInnerHTML={{
             __html: `(function(){try{window.__KJIN_BRAND__=${JSON.stringify(brandSettings)};localStorage.setItem('kjin_brand_config',JSON.stringify(${JSON.stringify(brandSettings)}));}catch(e){}})();`,
@@ -220,13 +222,13 @@ export default async function RootLayout({
         className={`min-h-screen w-full max-w-full ${theme.pageBgClass} ${theme.textPrimaryClass} ${theme.fontFamilyClass} ${theme.selectionClass} antialiased transition-colors duration-200`}
       >
         <script
-          nonce={nonce}
+          nonce={scriptNonce}
           suppressHydrationWarning
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: safeJsonLd(orgJsonLd) }}
         />
         <script
-          nonce={nonce}
+          nonce={scriptNonce}
           suppressHydrationWarning
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: safeJsonLd(websiteJsonLd) }}
