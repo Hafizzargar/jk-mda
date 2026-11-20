@@ -23,6 +23,7 @@ export async function POST(request: Request) {
     let districtId: string | undefined;
     let topic: 'general' | 'civic_problems' | undefined;
     let force = false;
+    let freshnessHours: number | undefined;
     let action: string | undefined;
 
     try {
@@ -32,6 +33,7 @@ export async function POST(request: Request) {
       if (body?.district_id) districtId = body.district_id;
       if (body?.topic) topic = body.topic;
       if (body?.force) force = Boolean(body.force);
+      if (body?.freshness_hours) freshnessHours = Number(body.freshness_hours);
     } catch {
       // Empty or non-JSON body is allowed
     }
@@ -41,7 +43,7 @@ export async function POST(request: Request) {
       return Response.json({ success: true, scanLogs: [] });
     }
 
-    const result = await runAutonomousNewsDiscovery(auth.service, { beatId, districtId, topic, force });
+    const result = await runAutonomousNewsDiscovery(auth.service, { beatId, districtId, topic, force, freshnessHours });
 
     // Update backend scan schedule timestamps in site_settings
     let nextScanAt: string | undefined;

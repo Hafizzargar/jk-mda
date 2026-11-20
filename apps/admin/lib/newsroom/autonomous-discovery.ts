@@ -40,12 +40,13 @@ import {
   sanitizeDatelineForScope,
 } from './ai-synthesizer';
 
-export const MAX_NEWS_AGE_HOURS = 6;
+export const DEFAULT_MAX_NEWS_AGE_HOURS = 6;
+export const MAX_NEWS_AGE_HOURS = DEFAULT_MAX_NEWS_AGE_HOURS;
 export const MAX_NEWS_AGE_MS = MAX_NEWS_AGE_HOURS * 60 * 60 * 1000;
 
 /**
- * Evaluates whether a discovered news story or broadcast satisfies the 6-hour freshness rule.
- * Logically rejects stories older than 6 hours to guarantee breaking news immediacy.
+ * Evaluates whether a discovered news story or broadcast satisfies the freshness rule.
+ * Logically rejects stories older than maxAgeHours to guarantee breaking news immediacy.
  */
 export function evaluateNewsFreshness(
   input: {
@@ -53,18 +54,25 @@ export function evaluateNewsFreshness(
     reportedTime?: string | null;
     publishedAt?: string | null;
   },
-  referenceTime = new Date()
+  referenceTime = new Date(),
+  maxAgeHours = DEFAULT_MAX_NEWS_AGE_HOURS
 ): { isFresh: boolean; ageHours: number | null; reason?: string } {
   const refMs = referenceTime.getTime();
+  const effectiveMaxAgeHours = typeof maxAgeHours === 'number' && !isNaN(maxAgeHours) && maxAgeHours > 0
+    ? maxAgeHours
+    : DEFAULT_MAX_NEWS_AGE_HOURS;
+  const effectiveMaxAgeMs = effectiveMaxAgeHours * 60 * 60 * 1000;
+  // Dynamic grace period: up to 30 mins, or 10% of window (whichever is smaller) for clock skew/latency
+  const graceMs = Math.min(30 * 60 * 1000, effectiveMaxAgeHours * 0.1 * 60 * 60 * 1000);
+  const graceHours = graceMs / (1000 * 60 * 60);
 
   // 1. Check numeric hoursAgo estimate from Gemini if provided
   if (typeof input.hoursAgo === 'number' && !isNaN(input.hoursAgo)) {
-    // 30-minute grace period for reporting estimation latency (6.5h)
-    if (input.hoursAgo > MAX_NEWS_AGE_HOURS + 0.5) {
+    if (input.hoursAgo > effectiveMaxAgeHours + graceHours) {
       return {
         isFresh: false,
         ageHours: input.hoursAgo,
-        reason: `News reported as ${input.hoursAgo.toFixed(1)} hours ago, which exceeds the strict ${MAX_NEWS_AGE_HOURS}-hour freshness limit.`,
+        reason: `News reported as ${input.hoursAgo.toFixed(1)} hours ago, which exceeds the strict ${effectiveMaxAgeHours}-hour freshness limit.`,
       };
     }
   }
@@ -82,12 +90,12 @@ export function evaluateNewsFreshness(
         return { isFresh: true, ageHours: 0 };
       }
 
-      // 30-minute tolerance for publisher server clock skew
-      if (diffMs > MAX_NEWS_AGE_MS + (30 * 60 * 1000)) {
+      // Tolerance for publisher server clock skew
+      if (diffMs > effectiveMaxAgeMs + graceMs) {
         return {
           isFresh: false,
           ageHours: Number(diffHours.toFixed(1)),
-          reason: `Publication timestamp (${timeStr}) is ${diffHours.toFixed(1)} hours old (exceeds the ${MAX_NEWS_AGE_HOURS}-hour limit).`,
+          reason: `Publication timestamp (${timeStr}) is ${diffHours.toFixed(1)} hours old (exceeds the ${effectiveMaxAgeHours}-hour limit).`,
         };
       }
 
@@ -1558,7 +1566,7 @@ export async function clearScanLogs(service: any): Promise<void> {
  */
 export async function runAutonomousNewsDiscovery(
   service: SupabaseClient,
-  options?: { beatId?: string; districtId?: string; force?: boolean; topic?: 'general' | 'civic_problems' }
+  options?: { beatId?: string; districtId?: string; force?: boolean; topic?: 'general' | 'civic_problems'; freshnessHours?: number }
 ): Promise<{
   success: boolean;
   discovered?: boolean;
@@ -1579,6 +1587,27 @@ export async function runAutonomousNewsDiscovery(
 }> {
   const isCivicTopic = options?.topic === 'civic_problems' || options?.beatId === 'civic_problems';
   let civicStatus: CivicProblemsDailyStatus | null = null;
+
+  // Resolve effective freshness limit (dynamic from options, site_settings, or fallback 6h)
+  let maxNewsAgeHours = options?.freshnessHours;
+  if (typeof maxNewsAgeHours !== 'number' || isNaN(maxNewsAgeHours) || maxNewsAgeHours <= 0) {
+    try {
+      const { data: pilotSett } = await service
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'newsroom_auto_pilot')
+        .maybeSingle();
+      if (pilotSett?.value?.freshness_hours !== undefined && !isNaN(Number(pilotSett.value.freshness_hours))) {
+        maxNewsAgeHours = Math.max(1, Math.min(72, Number(pilotSett.value.freshness_hours)));
+      }
+    } catch {
+      // fallback
+    }
+  }
+  if (typeof maxNewsAgeHours !== 'number' || isNaN(maxNewsAgeHours) || maxNewsAgeHours <= 0) {
+    maxNewsAgeHours = DEFAULT_MAX_NEWS_AGE_HOURS;
+  }
+  const maxNewsAgeMs = maxNewsAgeHours * 60 * 60 * 1000;
 
   const logScanOutcome = async (logInput: {
     status: 'generated' | 'skipped' | 'cooldown' | 'error';
@@ -1755,13 +1784,13 @@ export async function runAutonomousNewsDiscovery(
   const now = new Date();
   const nowIso = now.toISOString();
   const nowIstString = now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'full', timeStyle: 'medium' });
-  const sixHoursAgoMs = now.getTime() - MAX_NEWS_AGE_MS;
-  const cutoffTime = new Date(sixHoursAgoMs);
+  const cutoffMs = now.getTime() - maxNewsAgeMs;
+  const cutoffTime = new Date(cutoffMs);
   const cutoffIstString = cutoffTime.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', dateStyle: 'full', timeStyle: 'medium' });
 
   // 3. Compose grounded research prompt with strict credibility, multi-source discovery, & 6-factor scoring
   const prompt = `You are a Senior Investigative Correspondent and Field Bureau Chief for KJCPL (KJCPL News Network).
-Your mission is to autonomously search the web and discover the latest, verified, high-impact news published strictly within the last 6 HOURS for this regional beat:
+Your mission is to autonomously search the web and discover the latest, verified, high-impact news published strictly within the last ${maxNewsAgeHours} HOUR(S) for this regional beat:
 
 BEAT: ${beat.name}
 ${targetDistrictMeta ? `PRIORITIZED TARGET DISTRICT: ${targetDistrictMeta.name} (Newsroom Priority: ${targetDistrictStat?.priority || 'high'})
@@ -1770,18 +1799,18 @@ MANDATORY DISTRICT ASSIGNMENT: The newsroom editor has specifically prioritized 
 MANDATORY SCOPE: ${beat.scope}
 TARGET DATELINE: ${effectiveDateline}
 
-⏰ CRITICAL TIME CONSTRAINT — MAXIMUM 6 HOURS FRESHNESS (LOGICAL NEWSROOM MANDATE):
+⏰ CRITICAL TIME CONSTRAINT — MAXIMUM ${maxNewsAgeHours} HOURS FRESHNESS (LOGICAL NEWSROOM MANDATE):
 - Current Real-World Reference Time: ${nowIstString} IST (${nowIso})
-- Earliest Permitted Publishing Cutoff: ${cutoffIstString} IST (${cutoffTime.toISOString()}) — EXACTLY 6 HOURS AGO.
+- Earliest Permitted Publishing Cutoff: ${cutoffIstString} IST (${cutoffTime.toISOString()}) — EXACTLY ${maxNewsAgeHours} HOUR(S) AGO.
 - MANDATORY LOGIC:
-  1. KJCPL readers demand hyper-fresh breaking intelligence. The news development, incident, official order, or public reporting MUST have occurred or been published WITHIN THE LAST 6 HOURS from ${nowIstString}.
-  2. STRICTLY REJECT and DO NOT RETURN old news from yesterday, 8, 12, 24, or 48 hours ago.
-  3. If your search results only contain news older than 6 hours (e.g. from yesterday or days ago), you MUST return:
-     { "hasCredibleNews": false, "reason": "No breaking or developing news found within the strict 6-hour freshness window." }
-     NEVER force or fabricate news that is older than 6 hours!
+  1. KJCPL readers demand hyper-fresh breaking intelligence. The news development, incident, official order, or public reporting MUST have occurred or been published WITHIN THE LAST ${maxNewsAgeHours} HOUR(S) from ${nowIstString}.
+  2. STRICTLY REJECT and DO NOT RETURN old news from yesterday, ${maxNewsAgeHours + 2}, 12, 24, or 48 hours ago.
+  3. If your search results only contain news older than ${maxNewsAgeHours} hours (e.g. from yesterday or days ago), you MUST return:
+     { "hasCredibleNews": false, "reason": "No breaking or developing news found within the strict ${maxNewsAgeHours}-hour freshness window." }
+     NEVER force or fabricate news that is older than ${maxNewsAgeHours} hours!
   4. In your JSON output, include:
-     - "hoursAgo": <number between 0 and 6 representing estimated hours elapsed since publication/event>
-     - "reportedTime": "<ISO timestamp or readable IST time of the reporting within the last 6 hours>"
+     - "hoursAgo": <number between 0 and ${maxNewsAgeHours} representing estimated hours elapsed since publication/event>
+     - "reportedTime": "<ISO timestamp or readable IST time of the reporting within the last ${maxNewsAgeHours} hours>"
 
 ${isCivicTopic ? `🚨 CRITICAL MANDATE — GROUND GRIEVANCES & CIVIC PROBLEMS DESK:
 - You are investigating and reporting on real grassroots public problems, suffering, and administrative neglect affecting citizens in Jammu & Kashmir and Ladakh (e.g. Sarthal/Kathua, Chenab Valley, Pir Panjal, Kashmir Valley, or Ladakh).
@@ -1802,7 +1831,7 @@ DISCOVERY DIRECTIVES (MULTI-SOURCE WEB INTELLIGENCE):
    Score the discovered story objectively (1 to 100):
    - Local Public Importance (1-100): Direct relevance to people in Jammu, Kashmir, Chenab Valley, Pir Panjal, or Ladakh.
    - Impact on People's Lives (1-100): High score for real civic issues (e.g. electricity shortages, road cutoffs/NH-244 blackspots, water breakdowns, hospital shortages, apple horticulture crisis > ordinary political party statements).
-   - Urgency & Freshness (1-100): Breaking developing events strictly in the last 6 hours. News older than 6 hours receives a freshness score of 0 and MUST be rejected.
+   - Urgency & Freshness (1-100): Breaking developing events strictly in the last ${maxNewsAgeHours} hours. News older than ${maxNewsAgeHours} hours receives a freshness score of 0 and MUST be rejected.
    - Credibility of Evidence (1-100): Verified facts, named officials, official orders, or corroborating reports.
    - Uniqueness & Ground Ledger (1-100): Non-duplicate, fresh ground reporting.
    - Calculate an overall "editorialScore" (1 to 100). Stories with high civic impact on citizens' lives score 85+.
@@ -2003,7 +2032,7 @@ Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with k
 
     // Principle A: "Don't force news generation"
     if (parsed && parsed.hasCredibleNews === false) {
-      const reason = parsed.reason || `No credible breaking news found for ${beat.shortName} within 6 hours. News generation was not forced.`;
+      const reason = parsed.reason || `No credible breaking news found for ${beat.shortName} within ${maxNewsAgeHours} hours. News generation was not forced.`;
       console.log(`[AutonomousDiscovery] Verification check: No credible news found for ${beat.shortName} (${reason}). Cycle skipped cleanly.`);
       const scanLogs = await logScanOutcome({
         status: 'skipped',
@@ -2032,18 +2061,19 @@ Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with k
       return { success: false, reason, scanLogs };
     }
 
-    // 4b. Strict 6-Hour Freshness Gate (Newsroom Logical Mandate)
+    // 4b. Strict Freshness Gate (Newsroom Logical Mandate)
     const freshness = evaluateNewsFreshness(
       {
         hoursAgo: typeof parsed.hoursAgo === 'number' ? parsed.hoursAgo : null,
         reportedTime: parsed.reportedTime || null,
         publishedAt: parsed.publishedAt || null,
       },
-      now
+      now,
+      maxNewsAgeHours
     );
 
     if (!freshness.isFresh) {
-      const reason = freshness.reason || 'Discovered news exceeds the 6-hour freshness limit.';
+      const reason = freshness.reason || `Discovered news exceeds the ${maxNewsAgeHours}-hour freshness limit.`;
       console.log(`[AutonomousDiscovery] ⏩ Discarding stale news "${parsed.headline}": ${reason}`);
       const scanLogs = await logScanOutcome({
         status: 'skipped',

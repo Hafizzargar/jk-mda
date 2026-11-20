@@ -781,6 +781,20 @@ export async function runYouTubeHourlySync(
 
     syncResults.channelsChecked = channels.length;
 
+    let freshnessHours = 6;
+    try {
+      const { data: pilotSett } = await service
+        .from('site_settings')
+        .select('value')
+        .eq('key', 'newsroom_auto_pilot')
+        .maybeSingle();
+      if (pilotSett?.value?.freshness_hours !== undefined && !isNaN(Number(pilotSett.value.freshness_hours))) {
+        freshnessHours = Math.max(1, Math.min(72, Number(pilotSett.value.freshness_hours)));
+      }
+    } catch {
+      // fallback to default
+    }
+
     for (const channel of channels) {
       try {
         const videos = await fetchChannelLatestVideos(channel.channel_id, 10);
@@ -791,12 +805,11 @@ export async function runYouTubeHourlySync(
             channelLatestPublished = video.publishedAt;
           }
 
-          // Strict 6-Hour Freshness Window: Discard broadcasts older than 6 hours
-          const SIX_HOURS_MS = 6 * 60 * 60 * 1000;
-          const cutoffTimeMs = Date.now() - SIX_HOURS_MS;
+          // Strict Dynamic Freshness Window: Discard broadcasts older than freshness limit
+          const cutoffTimeMs = Date.now() - (freshnessHours * 60 * 60 * 1000);
           const videoPubMs = new Date(video.publishedAt).getTime();
           if (!isNaN(videoPubMs) && videoPubMs < cutoffTimeMs) {
-            console.log(`[YouTubeMonitor] ⏩ Skipping video "${video.title}": Published at ${video.publishedAt}, exceeds strict 6-hour freshness limit.`);
+            console.log(`[YouTubeMonitor] ⏩ Skipping video "${video.title}": Published at ${video.publishedAt}, exceeds strict ${freshnessHours}-hour freshness limit.`);
             continue;
           }
 

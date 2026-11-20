@@ -645,6 +645,41 @@ describe('P0: KJIN Autonomous News Discovery & Regional Quotas', () => {
     assert.strictEqual(beyondCheck.isFresh, false);
   });
 
+  it('dynamically adapts freshness window when custom maxAgeHours is provided (e.g. 1h, 2h, 3h, 12h)', () => {
+    const reference = new Date('2026-11-15T15:00:00.000Z');
+
+    // Test 1-hour freshness limit
+    const twoHoursAgo = evaluateNewsFreshness({ hoursAgo: 2 }, reference, 1);
+    assert.strictEqual(twoHoursAgo.isFresh, false);
+    assert.ok(twoHoursAgo.reason?.includes('exceeds the strict 1-hour freshness limit'));
+
+    const halfHourAgo = evaluateNewsFreshness({ hoursAgo: 0.5 }, reference, 1);
+    assert.strictEqual(halfHourAgo.isFresh, true);
+
+    // Test 2-hour freshness limit
+    const twoPointFiveHoursAgo = evaluateNewsFreshness({ hoursAgo: 2.5 }, reference, 2);
+    assert.strictEqual(twoPointFiveHoursAgo.isFresh, false);
+
+    const onePointFiveHoursAgo = evaluateNewsFreshness({ hoursAgo: 1.5 }, reference, 2);
+    assert.strictEqual(onePointFiveHoursAgo.isFresh, true);
+
+    // Test 3-hour freshness limit
+    const fourHoursAgo = evaluateNewsFreshness({ hoursAgo: 4 }, reference, 3);
+    assert.strictEqual(fourHoursAgo.isFresh, false);
+    assert.ok(fourHoursAgo.reason?.includes('exceeds the strict 3-hour freshness limit'));
+
+    const twoPointEightHoursAgo = evaluateNewsFreshness({ hoursAgo: 2.8 }, reference, 3);
+    assert.strictEqual(twoPointEightHoursAgo.isFresh, true);
+
+    // Test 12-hour freshness limit
+    const tenHoursAgo = evaluateNewsFreshness({ hoursAgo: 10 }, reference, 12);
+    assert.strictEqual(tenHoursAgo.isFresh, true);
+
+    const fourteenHoursAgo = evaluateNewsFreshness({ hoursAgo: 14 }, reference, 12);
+    assert.strictEqual(fourteenHoursAgo.isFresh, false);
+    assert.ok(fourteenHoursAgo.reason?.includes('exceeds the strict 12-hour freshness limit'));
+  });
+
   it('records autonomous scan diagnostics, prepends recent items, and strictly caps at top 10', async () => {
     let mockSettingsValue: any = {
       scan_logs: [],

@@ -323,6 +323,13 @@ export default function YouTubeMonitorPage() {
     }
     return 3;
   });
+  const [freshnessHours, setFreshnessHours] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('kjin_freshness_hours');
+      if (saved && !isNaN(Number(saved))) return Number(saved);
+    }
+    return 6;
+  });
   const [countdown, setCountdown] = useState<number>(() => {
     if (typeof window !== 'undefined') {
       const savedNext = localStorage.getItem('kjin_autopilot_next_scan_timestamp');
@@ -603,6 +610,34 @@ export default function YouTubeMonitorPage() {
       }
     } catch (err) {
       console.error('Failed to save auto-pilot settings:', err);
+    }
+  }
+
+  async function handleUpdateFreshnessHours(newHours: number) {
+    const clamped = Math.max(1, Math.min(72, Number(newHours) || 6));
+    setFreshnessHours(clamped);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('kjin_freshness_hours', String(clamped));
+    }
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) return;
+      await fetch('/api/newsroom/youtube/settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+        body: JSON.stringify({
+          freshness_hours: clamped,
+        }),
+      });
+      setFeedback({
+        text: `Freshness Window updated to < ${clamped}h. News older than ${clamped} hour(s) will be strictly rejected.`,
+        type: 'success',
+      });
+    } catch (err) {
+      console.error('Failed to update freshness window:', err);
     }
   }
 
@@ -1090,6 +1125,14 @@ export default function YouTubeMonitorPage() {
         const enabled = sData.auto_pilot_enabled !== false;
         setAutoPilotIntervalMinutes(mins);
         setAutoPilot(enabled);
+
+        if (sData.freshness_hours !== undefined && !isNaN(Number(sData.freshness_hours))) {
+          const hours = Math.max(1, Math.min(72, Number(sData.freshness_hours)));
+          setFreshnessHours(hours);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('kjin_freshness_hours', String(hours));
+          }
+        }
 
         // Synchronize with backend-persisted scan timestamp
         let targetNextMs = 0;
@@ -1966,9 +2009,58 @@ export default function YouTubeMonitorPage() {
               </select>
             </div>
 
-            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-2.5 py-1.5 rounded-lg border border-purple-200/80 dark:border-purple-900/50">
-              <span>⏰</span>
-              <span>Freshness Window: Strict &lt; 6h (Stale News Blocked)</span>
+            <div className="rounded-lg border border-purple-200/80 dark:border-purple-900/50 bg-purple-50/70 dark:bg-purple-950/40 p-2.5 flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5 text-[11px] font-bold text-purple-700 dark:text-purple-300">
+                  <span>⏰</span>
+                  <span>Freshness Window:</span>
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-purple-200/60 dark:bg-purple-900/80 text-purple-800 dark:text-purple-200 font-bold border border-purple-300 dark:border-purple-700">
+                    &lt; {freshnessHours}h
+                  </span>
+                </div>
+                <span className="text-[10px] text-purple-600/80 dark:text-purple-400 font-medium">
+                  Stale News Blocked
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <select
+                  id="radar-freshness-select"
+                  value={freshnessHours}
+                  onChange={(e) => handleUpdateFreshnessHours(Number(e.target.value))}
+                  className="flex-1 rounded-lg border border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-semibold text-xs px-2.5 py-1.5 outline-none cursor-pointer focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value={1}>&lt; 1 Hour (Breaking &amp; Urgent Only)</option>
+                  <option value={2}>&lt; 2 Hours (Ultra Fresh)</option>
+                  <option value={3}>&lt; 3 Hours (Fast Track Immediacy)</option>
+                  <option value={4}>&lt; 4 Hours (Recent Updates)</option>
+                  <option value={5}>&lt; 5 Hours</option>
+                  <option value={6}>&lt; 6 Hours (Strict Standard)</option>
+                  <option value={8}>&lt; 8 Hours (Work Shift)</option>
+                  <option value={12}>&lt; 12 Hours (Half-Day)</option>
+                  <option value={24}>&lt; 24 Hours (Full Day / Daily Cycle)</option>
+                  <option value={48}>&lt; 48 Hours (2 Days Extended)</option>
+                </select>
+                <div className="flex items-center gap-1 bg-white dark:bg-slate-800 rounded-lg border border-purple-200 dark:border-purple-800 px-2 py-1">
+                  <input
+                    type="number"
+                    min={1}
+                    max={72}
+                    value={freshnessHours}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      if (!isNaN(val) && val >= 1 && val <= 72) {
+                        handleUpdateFreshnessHours(val);
+                      }
+                    }}
+                    title="Enter custom hours (1 to 72)"
+                    className="w-8 bg-transparent text-slate-900 dark:text-white font-bold text-xs text-center outline-none"
+                  />
+                  <span className="text-[10px] font-bold text-purple-700 dark:text-purple-300">hrs</span>
+                </div>
+              </div>
+              <p className="text-[10px] text-purple-600/90 dark:text-purple-400">
+                Any story older than {freshnessHours}h from scan time is automatically rejected as stale.
+              </p>
             </div>
 
             {scanLogs.length > 0 && (
@@ -2479,7 +2571,7 @@ export default function YouTubeMonitorPage() {
                 const isCooldown = log.status === 'cooldown';
                 const isError = log.status === 'error';
                 const reasonLower = (log.reason || '').toLowerCase();
-                const isStale = reasonLower.includes('stale') || reasonLower.includes('6-hour') || reasonLower.includes('freshness');
+                const isStale = reasonLower.includes('stale') || reasonLower.includes('freshness') || reasonLower.includes('hour');
                 const isDuplicate = reasonLower.includes('duplicate') || reasonLower.includes('already covered');
 
                 return (
@@ -2499,7 +2591,7 @@ export default function YouTubeMonitorPage() {
                         ) : isStale ? (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-200 dark:border-amber-800 flex items-center gap-1">
                             <span>⚠️</span>
-                            <span>Stale (&gt;6h) Rejected</span>
+                            <span>Stale (&gt;{log.ageHours ? `${log.ageHours}h` : `${freshnessHours}h`}) Rejected</span>
                           </span>
                         ) : isDuplicate ? (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-800 dark:bg-purple-950/50 dark:text-purple-300 border border-purple-200 dark:border-purple-800 flex items-center gap-1">
@@ -2630,7 +2722,7 @@ export default function YouTubeMonitorPage() {
                           </span>
                         )}
                         <span className="font-bold text-[9.5px] px-1.5 py-0.5 rounded bg-cyan-100 text-cyan-800 dark:bg-cyan-950/60 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800">
-                          ⚡ &lt; 6h Fresh
+                          ⚡ &lt; {freshnessHours}h Fresh
                         </span>
                         <span className="font-bold text-[9.5px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                           📝 Text-Only
@@ -3118,15 +3210,15 @@ export default function YouTubeMonitorPage() {
                           <span className="text-xs text-slate-400">
                             {new Date(video.published_at).toLocaleDateString()}
                           </span>
-                          {(Date.now() - new Date(video.published_at).getTime()) <= 6 * 60 * 60 * 1000 ? (
+                          {(Date.now() - new Date(video.published_at).getTime()) <= freshnessHours * 60 * 60 * 1000 ? (
                             <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 flex items-center gap-0.5">
                               <span>⚡</span>
-                              <span>&lt; 6h</span>
+                              <span>&lt; {freshnessHours}h</span>
                             </span>
                           ) : (
-                            <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-rose-100 text-rose-800 border border-rose-300 dark:bg-rose-950/60 dark:text-rose-300 flex items-center gap-0.5" title="Published more than 6 hours ago">
+                            <span className="px-1.5 py-0.5 text-[9px] font-bold rounded-md bg-rose-100 text-rose-800 border border-rose-300 dark:bg-rose-950/60 dark:text-rose-300 flex items-center gap-0.5" title={`Published more than ${freshnessHours} hours ago`}>
                               <span>⚠️</span>
-                              <span>&gt; 6h Stale</span>
+                              <span>&gt; {freshnessHours}h Stale</span>
                             </span>
                           )}
                         </div>
