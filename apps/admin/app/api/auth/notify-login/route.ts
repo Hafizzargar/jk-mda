@@ -102,12 +102,43 @@ export async function POST(request: NextRequest) {
     recentNotifications.set(recipientKey, now);
     pruneRecentNotifications();
 
+    // Determine the active admin domain dynamically from request headers or environment
+    const forwardedHost = request.headers.get('x-forwarded-host') || request.headers.get('host');
+    const forwardedProto = request.headers.get('x-forwarded-proto') || 'https';
+    const originHeader = request.headers.get('origin') || request.headers.get('referer');
+
+    let effectiveAdminUrl = '';
+    if (originHeader && originHeader.startsWith('http') && !originHeader.includes('localhost')) {
+      try {
+        const u = new URL(originHeader);
+        effectiveAdminUrl = `${u.protocol}//${u.host}`;
+      } catch {
+        effectiveAdminUrl = '';
+      }
+    }
+
+    if (!effectiveAdminUrl && forwardedHost && !forwardedHost.includes('localhost')) {
+      effectiveAdminUrl = `${forwardedProto}://${forwardedHost}`.replace(/\/+$/, '');
+    }
+
+    if (!effectiveAdminUrl && request.nextUrl?.origin && !request.nextUrl.origin.includes('localhost')) {
+      effectiveAdminUrl = request.nextUrl.origin.replace(/\/+$/, '');
+    }
+
+    if (!effectiveAdminUrl) {
+      effectiveAdminUrl = (process.env.NEXT_PUBLIC_ADMIN_URL || 'https://jk-mda-admin.vercel.app').replace(/\/+$/, '');
+    }
+
+    // Safety fallback: if configured with unrouted admin.kjin.in, fallback to live Vercel domain
+    if (effectiveAdminUrl.includes('admin.kjin.in')) {
+      effectiveAdminUrl = 'https://jk-mda-admin.vercel.app';
+    }
+
     // Generate cryptographically signed one-click logout link for all devices
-    const defaultAdminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001';
-    let logoutUrl = `${defaultAdminUrl}/auth/logout-all`;
+    let logoutUrl = `${effectiveAdminUrl}/auth/logout-all`;
     if (userId) {
       const tokenData = createLogoutToken(userId);
-      logoutUrl = `${defaultAdminUrl}/auth/logout-all?uid=${encodeURIComponent(
+      logoutUrl = `${effectiveAdminUrl}/auth/logout-all?uid=${encodeURIComponent(
         tokenData.uid
       )}&sig=${encodeURIComponent(tokenData.sig)}&exp=${tokenData.exp}`;
     }

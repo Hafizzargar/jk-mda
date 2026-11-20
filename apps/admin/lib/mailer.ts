@@ -93,7 +93,8 @@ export async function sendEmployeeInviteEmail(params: SendInviteEmailParams): Pr
     };
   }
 
-  const defaultAdminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001';
+  const rawAdminUrl = (process.env.NEXT_PUBLIC_ADMIN_URL || 'https://jk-mda-admin.vercel.app').replace(/\/+$/, '');
+  const defaultAdminUrl = rawAdminUrl.includes('admin.kjin.in') ? 'https://jk-mda-admin.vercel.app' : rawAdminUrl;
   const loginUrl = params.loginUrl || `${defaultAdminUrl}/login`;
   const fromAddress = process.env.SMTP_FROM?.trim() || `"KJCPL Newsroom" <${process.env.SMTP_USER}>`;
   const mfaRequired = ['owner', 'superadmin', 'admin'].includes(params.roleKey.toLowerCase());
@@ -240,7 +241,8 @@ export async function sendLoginAlertEmail(params: SendLoginAlertParams): Promise
     };
   }
 
-  const defaultAdminUrl = process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001';
+  const rawAdminUrl = (process.env.NEXT_PUBLIC_ADMIN_URL || 'https://jk-mda-admin.vercel.app').replace(/\/+$/, '');
+  const defaultAdminUrl = rawAdminUrl.includes('admin.kjin.in') ? 'https://jk-mda-admin.vercel.app' : rawAdminUrl;
   const logoutUrl = params.logoutUrl || `${defaultAdminUrl}/auth/logout-all`;
   const fromAddress = process.env.SMTP_FROM?.trim() || `"KJCPL Newsroom" <${process.env.SMTP_USER}>`;
   const now = params.loginTime || new Date();
