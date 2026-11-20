@@ -156,8 +156,8 @@ select pg_temp.assume_admin();
 -----------------------------------------------------------------------------
 select extensions.is(
   (select count(*)::int from public.categories),
-  11,
-  'Assertion 1: All 11 categories (9 taxonomy + 2 editorial scopes) exist'
+  12,
+  'Assertion 1: All 12 categories (10 taxonomy + 2 editorial scopes) exist'
 );
 
 select extensions.is(
