@@ -164,9 +164,14 @@ export function buildImageRemotePatterns(env = process.env) {
         continue;
       }
       // In production, reject any *.supabase.co hostname that is not the
-      // exclusively authorized production project. This prevents a foreign
+      // exclusively authorized production or legacy project. This prevents a foreign
       // Supabase tenant from being admitted via ALLOWED_IMAGE_HOSTS.
-      if (isProd && host.endsWith('.supabase.co') && host !== AUTHORIZED_SUPABASE_HOST) {
+      if (
+        isProd &&
+        host.endsWith('.supabase.co') &&
+        host !== AUTHORIZED_SUPABASE_HOST &&
+        host !== `${LEGACY_SUPABASE_PROJECT_ID}.supabase.co`
+      ) {
         continue;
       }
       patterns.push({
