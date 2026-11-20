@@ -1443,6 +1443,116 @@ export async function scheduleArticleAutoPublish(
   return scheduledItem;
 }
 
+export interface AutonomousScanLog {
+  id: string;
+  timestamp: string;
+  status: 'generated' | 'skipped' | 'cooldown' | 'error';
+  beat?: string;
+  district?: string;
+  headline?: string;
+  reason: string;
+  ageHours?: number | null;
+  articleId?: string;
+  sourceUrl?: string;
+}
+
+/**
+ * Retrieves the last 10 autonomous scan cycle diagnostic logs from site_settings.
+ */
+export async function getRecentScanLogs(service: any, limit = 10): Promise<AutonomousScanLog[]> {
+  try {
+    const { data: row } = await service
+      .from('site_settings')
+      .select('value')
+      .eq('key', 'newsroom_auto_pilot')
+      .maybeSingle();
+
+    const logs: AutonomousScanLog[] = Array.isArray(row?.value?.scan_logs)
+      ? row.value.scan_logs
+      : [];
+    return logs.slice(0, Math.min(10, Math.max(1, limit)));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Records an autonomous scan diagnostic event into site_settings, strictly capped at the top 10 items.
+ */
+export async function recordScanLog(
+  service: any,
+  logInput: Omit<AutonomousScanLog, 'id' | 'timestamp'> & { id?: string; timestamp?: string }
+): Promise<AutonomousScanLog[]> {
+  const fullLog: AutonomousScanLog = {
+    id: logInput.id || `scan_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    timestamp: logInput.timestamp || new Date().toISOString(),
+    status: logInput.status,
+    beat: logInput.beat,
+    district: logInput.district,
+    headline: logInput.headline,
+    reason: logInput.reason,
+    ageHours: logInput.ageHours,
+    articleId: logInput.articleId,
+    sourceUrl: logInput.sourceUrl,
+  };
+
+  try {
+    const { data: row } = await service
+      .from('site_settings')
+      .select('value')
+      .eq('key', 'newsroom_auto_pilot')
+      .maybeSingle();
+
+    const existingLogs: AutonomousScanLog[] = Array.isArray(row?.value?.scan_logs)
+      ? row.value.scan_logs
+      : [];
+
+    const updatedLogs = [fullLog, ...existingLogs].slice(0, 10);
+
+    await service.from('site_settings').upsert({
+      key: 'newsroom_auto_pilot',
+      value: {
+        ...(row?.value || {}),
+        scan_logs: updatedLogs,
+      },
+      description: 'Newsroom YouTube Autonomous Surveillance Auto-Pilot schedule configuration, beat quotas and scan diagnostics',
+      updated_at: new Date().toISOString(),
+    });
+
+    return updatedLogs;
+  } catch (err) {
+    console.warn('[AutonomousDiscovery] Could not persist scan log to site_settings:', err);
+    return [fullLog];
+  }
+}
+
+/**
+ * Clears scan logs in site_settings.newsroom_auto_pilot.
+ */
+export async function clearScanLogs(service: any): Promise<void> {
+  try {
+    const { data: row } = await service
+      .from('site_settings')
+      .select('value')
+      .eq('key', 'newsroom_auto_pilot')
+      .maybeSingle();
+
+    if (row?.value) {
+      await service.from('site_settings').upsert({
+        key: 'newsroom_auto_pilot',
+        value: {
+          ...row.value,
+          scan_logs: [],
+        },
+        description: 'Newsroom YouTube Autonomous Surveillance Auto-Pilot schedule configuration, beat quotas and scan diagnostics',
+        updated_at: new Date().toISOString(),
+      });
+    }
+  } catch (err) {
+    console.warn('[AutonomousDiscovery] Error clearing scan logs:', err);
+  }
+}
+
 /**
  * Executes a single grounded autonomous news discovery cycle using Google Search grounding.
  */
@@ -1465,23 +1575,45 @@ export async function runAutonomousNewsDiscovery(
   reason?: string;
   dailyStats?: RegionalDailyStats;
   civicProblemsStatus?: CivicProblemsDailyStatus;
+  scanLogs?: AutonomousScanLog[];
 }> {
   const isCivicTopic = options?.topic === 'civic_problems' || options?.beatId === 'civic_problems';
   let civicStatus: CivicProblemsDailyStatus | null = null;
+
+  const logScanOutcome = async (logInput: {
+    status: 'generated' | 'skipped' | 'cooldown' | 'error';
+    beat?: string;
+    district?: string;
+    headline?: string;
+    reason: string;
+    ageHours?: number | null;
+    articleId?: string;
+    sourceUrl?: string;
+  }) => {
+    return recordScanLog(service, logInput).catch(() => []);
+  };
 
   // Enforce 2 problems per day and 6-hour interval rule
   if (isCivicTopic) {
     civicStatus = await getCivicProblemsDailyStatus(service);
     if (!civicStatus.canDiscoverNow && !options?.force) {
+      const reason = `Civic problems daily target met (${civicStatus.currentToday}/${civicStatus.maxDaily} today, 6-hour interval: ${civicStatus.hoursUntilNextAllowed}h remaining).`;
       console.log(
         `[AutonomousDiscovery] ⏸️ Civic problems desk pace limit reached (${civicStatus.currentToday}/${civicStatus.maxDaily} today, 6h interval: ${civicStatus.hoursUntilNextAllowed}h remaining). Skipping.`
       );
+      const scanLogs = await logScanOutcome({
+        status: 'skipped',
+        beat: 'Ground Grievances (Civic)',
+        district: options?.districtId ? DISTRICT_METADATA[options.districtId]?.name || options.districtId : undefined,
+        reason,
+      });
       return {
         success: true,
         skipped: true,
         discovered: false,
-        reason: `Civic problems daily target met (${civicStatus.currentToday}/${civicStatus.maxDaily} today, 6-hour interval: ${civicStatus.hoursUntilNextAllowed}h remaining).`,
+        reason,
         civicProblemsStatus: civicStatus,
+        scanLogs,
       };
     }
   }
@@ -1489,15 +1621,22 @@ export async function runAutonomousNewsDiscovery(
   // 0. Circuit Breaker Check: if Gemini quota was exhausted, enforce 1-hour backoff
   const breaker = await isGeminiInCooldown(service);
   if (breaker.inCooldown && !options?.force) {
+    const reason = `Gemini quota cooldown active (${breaker.remainingMinutes}m remaining). Backing off to protect quota. Will resume beat "${breaker.pendingBeatId}".`;
     console.warn(
       `[AutonomousDiscovery] ⏸️ Gemini circuit breaker ACTIVE. In cooldown until ${breaker.cooldownUntil} (${breaker.remainingMinutes}m remaining). Preserving pending beat "${breaker.pendingBeatId}". Skipping call to protect quota.`
     );
+    const scanLogs = await logScanOutcome({
+      status: 'cooldown',
+      beat: breaker.pendingBeatId || undefined,
+      reason,
+    });
     return {
       success: false,
       skipped: true,
       inCooldown: true,
-      reason: `Gemini quota cooldown active (${breaker.remainingMinutes}m remaining). Will resume beat "${breaker.pendingBeatId}" once quota recovers.`,
+      reason,
       beat: breaker.pendingBeatId || undefined,
+      scanLogs,
     };
   }
 
@@ -1518,7 +1657,12 @@ export async function runAutonomousNewsDiscovery(
   }
 
   if (candidateApiKeys.length === 0) {
-    return { success: false, reason: 'Gemini API key is not configured.' };
+    const reason = 'Gemini API key is not configured in environment variables.';
+    const scanLogs = await logScanOutcome({
+      status: 'error',
+      reason,
+    });
+    return { success: false, reason, scanLogs };
   }
 
   // 1. Fetch live daily regional coverage statistics
@@ -1556,13 +1700,20 @@ export async function runAutonomousNewsDiscovery(
 
   // If daily ceiling reached (32 stories) and no underrepresented beat remains, skip unless forced
   if (!targetBeat && !options?.force && !isCivicTopic) {
+    const reason = `All regional daily targets fulfilled (${stats.totalDiscoveredToday}/32 stories today). Operating target met.`;
     console.log(`[AutonomousDiscovery] All regional daily targets fulfilled (${stats.totalDiscoveredToday}/32). Desk at full daily capacity.`);
+    const scanLogs = await logScanOutcome({
+      status: 'skipped',
+      beat: 'All Regional Beats',
+      reason,
+    });
     return {
       success: true,
       skipped: true,
       discovered: false,
-      reason: `All regional daily targets fulfilled (${stats.totalDiscoveredToday}/32 stories today). Operating target met.`,
+      reason,
       dailyStats: stats,
+      scanLogs,
     };
   }
 
@@ -1790,11 +1941,20 @@ Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with k
         cooldownHours: 1,
       });
 
+      const reason = `Gemini quota limit reached across all models and keys (HTTP 429). Entered 1-hour cooldown. Will resume beat "${beat.name}" automatically once quota recovers.`;
+      const scanLogs = await logScanOutcome({
+        status: 'cooldown',
+        beat: beat.name,
+        district: targetDistrictMeta?.name,
+        reason,
+      });
+
       return {
         success: false,
         inCooldown: true,
-        reason: `Gemini quota limit reached across all models and keys. Entered 1-hour cooldown. Will resume beat "${beat.name}" automatically once quota recovers.`,
+        reason,
         beat: beat.id,
+        scanLogs,
       };
     }
 
@@ -1843,18 +2003,33 @@ Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with k
 
     // Principle A: "Don't force news generation"
     if (parsed && parsed.hasCredibleNews === false) {
-      console.log(`[AutonomousDiscovery] Verification check: No credible news found for ${beat.shortName} (${parsed.reason || 'Insufficient verified reporting'}). Cycle skipped cleanly.`);
+      const reason = parsed.reason || `No credible breaking news found for ${beat.shortName} within 6 hours. News generation was not forced.`;
+      console.log(`[AutonomousDiscovery] Verification check: No credible news found for ${beat.shortName} (${reason}). Cycle skipped cleanly.`);
+      const scanLogs = await logScanOutcome({
+        status: 'skipped',
+        beat: beat.name,
+        district: targetDistrictMeta?.name,
+        reason,
+      });
       return {
         success: true,
         skipped: true,
         discovered: false,
-        reason: parsed.reason || `No credible breaking news found for ${beat.shortName} today. News generation was not forced.`,
+        reason,
         dailyStats: stats,
+        scanLogs,
       };
     }
 
     if (!parsed || !parsed.headline) {
-      return { success: false, reason: 'Could not extract structured news report from Gemini output.' };
+      const reason = 'Could not extract structured news report from Gemini output.';
+      const scanLogs = await logScanOutcome({
+        status: 'error',
+        beat: beat.name,
+        district: targetDistrictMeta?.name,
+        reason,
+      });
+      return { success: false, reason, scanLogs };
     }
 
     // 4b. Strict 6-Hour Freshness Gate (Newsroom Logical Mandate)
@@ -1868,13 +2043,23 @@ Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with k
     );
 
     if (!freshness.isFresh) {
-      console.log(`[AutonomousDiscovery] ⏩ Discarding stale news "${parsed.headline}": ${freshness.reason}`);
+      const reason = freshness.reason || 'Discovered news exceeds the 6-hour freshness limit.';
+      console.log(`[AutonomousDiscovery] ⏩ Discarding stale news "${parsed.headline}": ${reason}`);
+      const scanLogs = await logScanOutcome({
+        status: 'skipped',
+        beat: beat.name,
+        district: targetDistrictMeta?.name,
+        headline: parsed.headline,
+        ageHours: freshness.ageHours,
+        reason: `Stale news rejected: ${reason}`,
+      });
       return {
         success: true,
         skipped: true,
         discovered: false,
-        reason: freshness.reason || 'Discovered news exceeds the 6-hour freshness limit.',
+        reason,
         dailyStats: stats,
+        scanLogs,
       };
     }
 
@@ -1894,21 +2079,38 @@ Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with k
     const maxQuota = regionStat?.max ?? beat.max;
 
     if (currentRegionCount >= maxQuota && !isBreaking && !options?.force) {
+      const reason = `${beat.shortName} daily quota reached (${currentRegionCount}/${maxQuota}). Skipped non-breaking story.`;
       console.log(`[AutonomousDiscovery] Beat "${beat.shortName}" reached daily maximum (${currentRegionCount}/${maxQuota}) and story is not breaking priority. Skipping.`);
+      const scanLogs = await logScanOutcome({
+        status: 'skipped',
+        beat: beat.name,
+        district: targetDistrictMeta?.name,
+        headline: cleanHeadline,
+        reason,
+      });
       return {
         success: true,
         skipped: true,
         discovered: false,
-        reason: `${beat.shortName} daily quota reached (${currentRegionCount}/${maxQuota}). Skipped non-breaking story.`,
+        reason,
         dailyStats: stats,
+        scanLogs,
       };
     }
 
     // 7. Check Deduplication
     const isDuplicate = await isDuplicateStory(service, cleanHeadline);
     if (isDuplicate) {
+      const reason = `Duplicate story skipped: "${cleanHeadline}" was already reported today.`;
       console.log(`[AutonomousDiscovery] Story already covered or duplicate: "${cleanHeadline}". Skipping.`);
-      return { success: false, skipped: true, reason: `Duplicate story skipped: "${cleanHeadline}".`, dailyStats: stats };
+      const scanLogs = await logScanOutcome({
+        status: 'skipped',
+        beat: beat.name,
+        district: targetDistrictMeta?.name,
+        headline: cleanHeadline,
+        reason,
+      });
+      return { success: false, skipped: true, reason, dailyStats: stats, scanLogs };
     }
 
     // 8. Controlled Regional Taxonomy & Text-Only News Mandate (No Images Needed)
@@ -1962,7 +2164,15 @@ Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with k
 
     if (insertErr || !newArticle) {
       console.error('[AutonomousDiscovery] Database insert error:', insertErr);
-      return { success: false, reason: insertErr?.message || 'Failed to save discovered article.' };
+      const reason = insertErr?.message || 'Failed to save discovered article.';
+      const scanLogs = await logScanOutcome({
+        status: 'error',
+        beat: beat.name,
+        district: targetDistrictMeta?.name,
+        headline: cleanHeadline,
+        reason,
+      });
+      return { success: false, reason, scanLogs };
     }
 
     // Immediately transition draft -> review (Pending Approval Queue)
@@ -2037,6 +2247,17 @@ Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with k
     const updatedStats = await getDailyRegionalStats(service);
     const finalCivicStatus = isCivicTopic ? await getCivicProblemsDailyStatus(service) : undefined;
 
+    const reason = `✨ Draft successfully generated: "${cleanHeadline}" (${effectiveScope} • ${beat.name})! Sent to ${autoPublishConfig.enabled ? 'Auto-Publish queue' : 'Pending Review queue'}.`;
+    const scanLogs = await logScanOutcome({
+      status: 'generated',
+      beat: beat.name,
+      district: finalDistrict || undefined,
+      headline: cleanHeadline,
+      articleId: newArticle.id,
+      sourceUrl,
+      reason,
+    });
+
     return {
       success: true,
       discovered: true,
@@ -2050,9 +2271,15 @@ Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with k
       autoPublishDelayMinutes: autoPublishConfig.delayMinutes,
       dailyStats: updatedStats,
       civicProblemsStatus: finalCivicStatus,
+      scanLogs,
     };
   } catch (err: any) {
     console.error('[AutonomousDiscovery] Unexpected error during news discovery:', err);
-    return { success: false, reason: err.message || 'Discovery engine execution failure.' };
+    const reason = err.message || 'Discovery engine execution failure.';
+    const scanLogs = await logScanOutcome({
+      status: 'error',
+      reason,
+    });
+    return { success: false, reason, scanLogs };
   }
 }

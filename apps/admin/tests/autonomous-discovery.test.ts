@@ -23,6 +23,10 @@ import {
   evaluateNewsFreshness,
   MAX_NEWS_AGE_HOURS,
   type ScheduledAutoPublishItem,
+  recordScanLog,
+  getRecentScanLogs,
+  clearScanLogs,
+  type AutonomousScanLog,
 } from '../lib/newsroom/autonomous-discovery.ts';
 
 describe('P0: KJIN Autonomous News Discovery & Regional Quotas', () => {
@@ -639,5 +643,61 @@ describe('P0: KJIN Autonomous News Discovery & Regional Quotas', () => {
     const beyondGrace = new Date(reference.getTime() - 6.8 * 60 * 60 * 1000).toISOString();
     const beyondCheck = evaluateNewsFreshness({ publishedAt: beyondGrace }, reference);
     assert.strictEqual(beyondCheck.isFresh, false);
+  });
+
+  it('records autonomous scan diagnostics, prepends recent items, and strictly caps at top 10', async () => {
+    let mockSettingsValue: any = {
+      scan_logs: [],
+    };
+
+    const mockService = {
+      from: (table: string) => ({
+        select: (cols?: string) => ({
+          eq: (col: string, val: any) => ({
+            maybeSingle: () => {
+              if (table === 'site_settings' && col === 'key' && val === 'newsroom_auto_pilot') {
+                return Promise.resolve({ data: { value: mockSettingsValue }, error: null });
+              }
+              return Promise.resolve({ data: null, error: null });
+            },
+          }),
+        }),
+        upsert: (payload: any) => {
+          if (table === 'site_settings') {
+            mockSettingsValue = payload.value;
+          }
+          return Promise.resolve({ error: null });
+        },
+      }),
+    };
+
+    // 1. Initial empty state
+    const initialLogs = await getRecentScanLogs(mockService);
+    assert.deepStrictEqual(initialLogs, []);
+
+    // 2. Insert 12 scan events consecutively
+    for (let i = 1; i <= 12; i++) {
+      await recordScanLog(mockService, {
+        id: `scan-${i}`,
+        status: i % 2 === 0 ? 'generated' : 'skipped',
+        beat: i % 2 === 0 ? 'Chenab Valley' : 'Kashmir Valley',
+        reason: `Scan event cycle #${i}`,
+      });
+    }
+
+    // 3. Verify exactly 10 items are retained (capped at top 10)
+    const logs = await getRecentScanLogs(mockService);
+    assert.strictEqual(logs.length, 10, 'Must strictly cap at maximum 10 items');
+
+    // 4. Verify most recent is at index 0 (scan-12) and oldest retained is scan-3 (scan-1 and scan-2 dropped)
+    assert.strictEqual(logs[0].id, 'scan-12');
+    assert.strictEqual(logs[0].reason, 'Scan event cycle #12');
+    assert.strictEqual(logs[9].id, 'scan-3');
+    assert.strictEqual(logs[9].reason, 'Scan event cycle #3');
+
+    // 5. Test clearScanLogs
+    await clearScanLogs(mockService);
+    const cleared = await getRecentScanLogs(mockService);
+    assert.strictEqual(cleared.length, 0, 'Scan logs must be empty after clearing');
   });
 });

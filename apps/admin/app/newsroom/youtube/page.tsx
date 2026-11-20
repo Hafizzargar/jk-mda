@@ -20,6 +20,7 @@ import {
   NEWS_SCOPES,
   NEWS_TOPICS,
 } from '@/lib/taxonomy-options';
+import { AutonomousScanLog } from '@/lib/newsroom/autonomous-discovery';
 
 interface YouTubeSource {
   id: string;
@@ -398,6 +399,72 @@ export default function YouTubeMonitorPage() {
     chenab_valley: true,
   });
   const [isTestingEmail, setIsTestingEmail] = useState(false);
+  const [scanLogs, setScanLogs] = useState<AutonomousScanLog[]>([]);
+  const [isRefreshingLogs, setIsRefreshingLogs] = useState(false);
+  const [isClearingLogs, setIsClearingLogs] = useState(false);
+
+  function formatScanTimestamp(iso: string): string {
+    try {
+      const d = new Date(iso);
+      return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    } catch {
+      return iso;
+    }
+  }
+
+  function formatScanRelativeTime(iso: string): string {
+    try {
+      const diffSec = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+      if (diffSec < 45) return 'Just now';
+      const diffMin = Math.floor(diffSec / 60);
+      if (diffMin < 60) return `${diffMin}m ago`;
+      const diffHours = Math.floor(diffMin / 60);
+      return `${diffHours}h ago`;
+    } catch {
+      return '';
+    }
+  }
+
+  async function handleRefreshScanLogs() {
+    setIsRefreshingLogs(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) return;
+      const res = await fetch('/api/newsroom/discovery/run', {
+        headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data.scanLogs)) {
+          setScanLogs(data.scanLogs.slice(0, 10));
+        }
+      }
+    } catch (err) {
+      console.error('Error refreshing scan logs:', err);
+    } finally {
+      setIsRefreshingLogs(false);
+    }
+  }
+
+  async function handleClearScanLogs() {
+    setIsClearingLogs(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData.session) return;
+      const res = await fetch('/api/newsroom/discovery/run', {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
+      });
+      if (res.ok) {
+        setScanLogs([]);
+        setFeedback({ text: 'Scan diagnostic log cleared.', type: 'success' });
+      }
+    } catch (err: any) {
+      setFeedback({ text: err.message || 'Failed to clear scan logs.', type: 'error' });
+    } finally {
+      setIsClearingLogs(false);
+    }
+  }
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -614,6 +681,10 @@ export default function YouTubeMonitorPage() {
       });
       const data = await res.json();
 
+      if (Array.isArray(data.scanLogs)) {
+        setScanLogs(data.scanLogs.slice(0, 10));
+      }
+
       if (data.next_scan_at) {
         const parsed = new Date(data.next_scan_at).getTime();
         if (!isNaN(parsed) && parsed > Date.now()) {
@@ -664,6 +735,10 @@ export default function YouTubeMonitorPage() {
       });
       const data = await res.json();
 
+      if (Array.isArray(data.scanLogs)) {
+        setScanLogs(data.scanLogs.slice(0, 10));
+      }
+
       if (data.next_scan_at) {
         const parsed = new Date(data.next_scan_at).getTime();
         if (!isNaN(parsed) && parsed > Date.now()) {
@@ -712,6 +787,10 @@ export default function YouTubeMonitorPage() {
         },
       });
       const data = await res.json();
+
+      if (Array.isArray(data.scanLogs)) {
+        setScanLogs(data.scanLogs.slice(0, 10));
+      }
 
       if (data.next_scan_at) {
         const parsed = new Date(data.next_scan_at).getTime();
@@ -768,6 +847,10 @@ export default function YouTubeMonitorPage() {
       }
 
       const data = await res.json();
+
+      if (Array.isArray(data.scanLogs)) {
+        setScanLogs(data.scanLogs.slice(0, 10));
+      }
 
       if (data.next_scan_at) {
         const parsed = new Date(data.next_scan_at).getTime();
@@ -828,6 +911,10 @@ export default function YouTubeMonitorPage() {
 
       const data = await res.json();
 
+      if (Array.isArray(data.scanLogs)) {
+        setScanLogs(data.scanLogs.slice(0, 10));
+      }
+
       if (data.next_scan_at) {
         const parsed = new Date(data.next_scan_at).getTime();
         if (!isNaN(parsed) && parsed > Date.now()) {
@@ -883,6 +970,10 @@ export default function YouTubeMonitorPage() {
       });
 
       const data = await res.json();
+
+      if (Array.isArray(data.scanLogs)) {
+        setScanLogs(data.scanLogs.slice(0, 10));
+      }
 
       if (data.next_scan_at) {
         const parsed = new Date(data.next_scan_at).getTime();
@@ -971,10 +1062,16 @@ export default function YouTubeMonitorPage() {
         if (dData.civicProblems) {
           setCivicProblems(dData.civicProblems);
         }
+        if (Array.isArray(dData.scanLogs)) {
+          setScanLogs(dData.scanLogs.slice(0, 10));
+        }
       }
 
       if (settingsRes.ok) {
         const sData = await settingsRes.json();
+        if (Array.isArray(sData.scan_logs) && sData.scan_logs.length > 0) {
+          setScanLogs((prev) => (prev.length === 0 ? sData.scan_logs.slice(0, 10) : prev));
+        }
         const mins = sData.interval_minutes !== undefined && !isNaN(Number(sData.interval_minutes))
           ? Number(sData.interval_minutes)
           : 3;
@@ -1072,6 +1169,10 @@ export default function YouTubeMonitorPage() {
 
       const data = await res.json();
 
+      if (Array.isArray(data.scanLogs)) {
+        setScanLogs(data.scanLogs.slice(0, 10));
+      }
+
       if (data.next_scan_at) {
         const parsed = new Date(data.next_scan_at).getTime();
         if (!isNaN(parsed) && parsed > Date.now()) {
@@ -1124,6 +1225,10 @@ export default function YouTubeMonitorPage() {
 
       const data = await res.json();
 
+      if (Array.isArray(data.scanLogs)) {
+        setScanLogs(data.scanLogs.slice(0, 10));
+      }
+
       if (data.next_scan_at) {
         const parsed = new Date(data.next_scan_at).getTime();
         if (!isNaN(parsed) && parsed > Date.now()) {
@@ -1145,6 +1250,9 @@ export default function YouTubeMonitorPage() {
         } else {
           setFeedback({ text: data.reason || data.error || 'Discovery cycle finished. No new breaking events detected.', type: 'error' });
         }
+      } else {
+        // Silently refresh discovery pulse counters and logs
+        await loadData();
       }
     } catch (err: any) {
       if (!isSilent) {
@@ -1184,6 +1292,10 @@ export default function YouTubeMonitorPage() {
       });
 
       const data = await res.json();
+
+      if (Array.isArray(data.scanLogs)) {
+        setScanLogs(data.scanLogs.slice(0, 10));
+      }
 
       if (data.next_scan_at) {
         const parsed = new Date(data.next_scan_at).getTime();
@@ -1285,6 +1397,10 @@ export default function YouTubeMonitorPage() {
 
       const data = await res.json();
 
+      if (Array.isArray(data.scanLogs)) {
+        setScanLogs(data.scanLogs.slice(0, 10));
+      }
+
       if (data.next_scan_at) {
         const parsed = new Date(data.next_scan_at).getTime();
         if (!isNaN(parsed) && parsed > Date.now()) {
@@ -1377,6 +1493,10 @@ export default function YouTubeMonitorPage() {
         }),
       });
       const data = await res.json();
+
+      if (Array.isArray(data.scanLogs)) {
+        setScanLogs(data.scanLogs.slice(0, 10));
+      }
 
       if (data.next_scan_at) {
         const parsed = new Date(data.next_scan_at).getTime();
@@ -1532,6 +1652,10 @@ export default function YouTubeMonitorPage() {
 
       const data = await res.json();
 
+      if (Array.isArray(data.scanLogs)) {
+        setScanLogs(data.scanLogs.slice(0, 10));
+      }
+
       if (data.next_scan_at) {
         const parsed = new Date(data.next_scan_at).getTime();
         if (!isNaN(parsed) && parsed > Date.now()) {
@@ -1590,6 +1714,10 @@ export default function YouTubeMonitorPage() {
       });
 
       const data = await res.json();
+
+      if (Array.isArray(data.scanLogs)) {
+        setScanLogs(data.scanLogs.slice(0, 10));
+      }
 
       if (data.next_scan_at) {
         const parsed = new Date(data.next_scan_at).getTime();
@@ -1830,6 +1958,29 @@ export default function YouTubeMonitorPage() {
               <span>⏰</span>
               <span>Freshness Window: Strict &lt; 6h (Stale News Blocked)</span>
             </div>
+
+            {scanLogs.length > 0 && (
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] gap-1.5">
+                <span className="text-slate-500 dark:text-slate-400 font-medium whitespace-nowrap">
+                  Latest Scan:
+                </span>
+                <span
+                  className="truncate font-semibold text-slate-800 dark:text-slate-200"
+                  title={scanLogs[0].reason}
+                >
+                  {scanLogs[0].status === 'generated'
+                    ? '✅ Draft Created'
+                    : scanLogs[0].status === 'cooldown'
+                    ? '⏳ 429 Cooldown'
+                    : scanLogs[0].status === 'error'
+                    ? '❌ Scan Error'
+                    : 'ℹ️ ' + (scanLogs[0].headline ? 'Stale/Duplicate' : 'No Fresh Story')}
+                </span>
+                <span className="text-[10px] text-slate-400 font-mono whitespace-nowrap">
+                  {formatScanRelativeTime(scanLogs[0].timestamp)}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Card 2: Publishing & Approval Strategy */}
@@ -2257,6 +2408,153 @@ export default function YouTubeMonitorPage() {
               );
             })}
           </div>
+        </div>
+
+        {/* 4. Autonomous Scan Diagnostics & Issue Logs (Top 10 Cycles) */}
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-2xs space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <span className="text-base">📡</span>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <span>Autonomous Scan Diagnostics &amp; Issues</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950/70 text-purple-700 dark:text-purple-300 font-bold border border-purple-200 dark:border-purple-800">
+                    Last {scanLogs.length} of 10
+                  </span>
+                </h3>
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                Live surveillance trail of every {autoPilotIntervalMinutes}-minute scan cycle. If news was not generated or was blocked by quota/freshness, the exact issue is reported below (max 10 items).
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={handleRefreshScanLogs}
+                disabled={isRefreshingLogs}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-[11px] font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition cursor-pointer disabled:opacity-50"
+                title="Refresh scan logs from server"
+              >
+                <span>{isRefreshingLogs ? '...' : '🔄 Refresh'}</span>
+              </button>
+              {scanLogs.length > 0 && (
+                <button
+                  type="button"
+                  onClick={handleClearScanLogs}
+                  disabled={isClearingLogs}
+                  className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-slate-200 dark:border-slate-800 text-[11px] font-medium text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition cursor-pointer disabled:opacity-50"
+                  title="Clear scan history"
+                >
+                  <span>🗑️ Clear</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {scanLogs.length === 0 ? (
+            <div className="py-6 text-center text-xs text-slate-500">
+              <span className="text-xl block mb-1">⏱️</span>
+              <p className="font-semibold text-slate-700 dark:text-slate-300">No scan activity recorded yet.</p>
+              <p className="mt-1 text-[11px] text-slate-400">
+                The scanner runs every {autoPilotIntervalMinutes >= 60 ? `${autoPilotIntervalMinutes / 60} hour(s)` : `${autoPilotIntervalMinutes} minute(s)`} (Next scan in {formatCountdownTime(countdown)}). Click &quot;Discover Now&quot; above to trigger an immediate test scan.
+              </p>
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
+              {scanLogs.slice(0, 10).map((log, idx) => {
+                const isGenerated = log.status === 'generated';
+                const isCooldown = log.status === 'cooldown';
+                const isError = log.status === 'error';
+                const reasonLower = (log.reason || '').toLowerCase();
+                const isStale = reasonLower.includes('stale') || reasonLower.includes('6-hour') || reasonLower.includes('freshness');
+                const isDuplicate = reasonLower.includes('duplicate') || reasonLower.includes('already covered');
+
+                return (
+                  <div key={log.id || idx} className="py-2.5 first:pt-1 last:pb-1 flex flex-col sm:flex-row sm:items-start justify-between gap-2 text-xs">
+                    <div className="space-y-1 flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {isGenerated ? (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700 flex items-center gap-1">
+                            <span>✅</span>
+                            <span>Draft Generated</span>
+                          </span>
+                        ) : isCooldown ? (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/70 dark:text-amber-300 border border-amber-300 dark:border-amber-700 flex items-center gap-1">
+                            <span>⏳</span>
+                            <span>Quota 429 Cooldown</span>
+                          </span>
+                        ) : isStale ? (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-200 dark:border-amber-800 flex items-center gap-1">
+                            <span>⚠️</span>
+                            <span>Stale (&gt;6h) Rejected</span>
+                          </span>
+                        ) : isDuplicate ? (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-50 text-purple-800 dark:bg-purple-950/50 dark:text-purple-300 border border-purple-200 dark:border-purple-800 flex items-center gap-1">
+                            <span>🔁</span>
+                            <span>Duplicate Skipped</span>
+                          </span>
+                        ) : isError ? (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 dark:bg-rose-950/70 dark:text-rose-300 border border-rose-300 dark:border-rose-700 flex items-center gap-1">
+                            <span>❌</span>
+                            <span>Scan Error</span>
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 flex items-center gap-1">
+                            <span>ℹ️</span>
+                            <span>No Fresh Story</span>
+                          </span>
+                        )}
+
+                        {log.beat && (
+                          <span className="font-semibold text-slate-700 dark:text-slate-300 text-[11px]">
+                            {log.beat}
+                          </span>
+                        )}
+
+                        {log.district && (
+                          <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-medium">
+                            📍 {log.district}
+                          </span>
+                        )}
+
+                        <span className="text-[10px] font-mono text-slate-400">
+                          {formatScanTimestamp(log.timestamp)} ({formatScanRelativeTime(log.timestamp)})
+                        </span>
+                      </div>
+
+                      {log.headline && (
+                        <div className="font-semibold text-slate-900 dark:text-slate-100 line-clamp-1 text-[11px]">
+                          &quot;{log.headline}&quot;
+                        </div>
+                      )}
+
+                      <p className={`text-[11px] leading-relaxed ${
+                        isGenerated
+                          ? 'text-emerald-700 dark:text-emerald-300 font-medium'
+                          : isCooldown
+                          ? 'text-amber-700 dark:text-amber-300'
+                          : isError
+                          ? 'text-rose-600 dark:text-rose-400 font-medium'
+                          : 'text-slate-600 dark:text-slate-400'
+                      }`}>
+                        {log.reason}
+                      </p>
+                    </div>
+
+                    {log.articleId && (
+                      <Link
+                        href={`/articles/${log.articleId}`}
+                        className="text-[11px] font-bold text-purple-600 dark:text-purple-400 hover:underline whitespace-nowrap self-start sm:self-center"
+                      >
+                        View Draft →
+                      </Link>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
       {/* Live Discovered Stories Queue from Autonomous Intelligence */}

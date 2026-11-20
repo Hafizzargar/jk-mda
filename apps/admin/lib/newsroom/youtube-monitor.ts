@@ -12,6 +12,7 @@ import { getCanonicalCategory } from '../taxonomy-options';
 import { sendNewsApprovalAlert } from './email-notifier';
 import { generateSlug } from './gemini-drafter';
 import { isGeminiInCooldown } from './gemini-circuit-breaker';
+import { recordScanLog } from './autonomous-discovery';
 
 export interface YouTubeChannelMeta {
   channelId: string;
@@ -918,6 +919,20 @@ export async function runYouTubeHourlySync(
 
     // All proposed drafts remain in draft_proposed awaiting explicit human review and approval.
     // Zero auto-publishing.
+    if (syncResults.newVideosFound > 0) {
+      await recordScanLog(service, {
+        status: 'generated',
+        beat: 'YouTube Surveillance',
+        reason: `Discovered ${syncResults.newVideosFound} new broadcast(s) across ${syncResults.channelsChecked} channels (${syncResults.draftsProposed} drafts proposed).`,
+      }).catch(() => null);
+    } else if (syncResults.errors.length > 0) {
+      await recordScanLog(service, {
+        status: 'error',
+        beat: 'YouTube Surveillance',
+        reason: `Channel sync issue: ${syncResults.errors[0]}`,
+      }).catch(() => null);
+    }
+
     return {
       success: true,
       ...syncResults,

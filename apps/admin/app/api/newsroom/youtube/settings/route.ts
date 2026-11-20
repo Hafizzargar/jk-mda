@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { authorizeEmployeeRequest, isEmployeeAuthorization } from '@/lib/employee-server';
 
 export async function GET(request: Request) {
@@ -47,6 +49,8 @@ export async function GET(request: Request) {
 
     const remainingSeconds = Math.max(0, Math.ceil((new Date(nextScanAt).getTime() - nowMs) / 1000));
 
+    const scanLogs = Array.isArray(data?.value?.scan_logs) ? data.value.scan_logs.slice(0, 10) : [];
+
     return Response.json({
       interval_minutes: intervalMinutes,
       auto_pilot_enabled: autoPilotEnabled,
@@ -59,6 +63,7 @@ export async function GET(request: Request) {
       last_scan_at: lastScanAt,
       next_scan_at: nextScanAt,
       remaining_seconds: remainingSeconds,
+      scan_logs: scanLogs,
       server_time: new Date().toISOString(),
     });
   } catch (err: any) {

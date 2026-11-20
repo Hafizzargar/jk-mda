@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { authorizeEmployeeRequest, isEmployeeAuthorization } from '@/lib/employee-server';
 import {
   runAutonomousNewsDiscovery,
@@ -5,6 +7,8 @@ import {
   getAutoPublishConfig,
   processPendingAutoPublishes,
   getCivicProblemsDailyStatus,
+  getRecentScanLogs,
+  clearScanLogs,
   KJIN_REGIONAL_TARGETS,
 } from '@/lib/newsroom/autonomous-discovery';
 
@@ -19,15 +23,22 @@ export async function POST(request: Request) {
     let districtId: string | undefined;
     let topic: 'general' | 'civic_problems' | undefined;
     let force = false;
+    let action: string | undefined;
 
     try {
       const body = await request.json();
+      if (body?.action) action = body.action;
       if (body?.beat_id) beatId = body.beat_id;
       if (body?.district_id) districtId = body.district_id;
       if (body?.topic) topic = body.topic;
       if (body?.force) force = Boolean(body.force);
     } catch {
       // Empty or non-JSON body is allowed
+    }
+
+    if (action === 'clear_logs') {
+      await clearScanLogs(auth.service);
+      return Response.json({ success: true, scanLogs: [] });
     }
 
     const result = await runAutonomousNewsDiscovery(auth.service, { beatId, districtId, topic, force });
@@ -78,7 +89,7 @@ export async function GET(request: Request) {
     // Proactively process any pending auto-publishes whose 5-min grace window elapsed
     await processPendingAutoPublishes(auth.service).catch(() => null);
 
-    const [dailyStats, recentResult, autoPublishConfig, civicProblems] = await Promise.all([
+    const [dailyStats, recentResult, autoPublishConfig, civicProblems, scanLogs] = await Promise.all([
       getDailyRegionalStats(auth.service),
       auth.service
         .from('articles')
@@ -88,6 +99,7 @@ export async function GET(request: Request) {
         .limit(12),
       getAutoPublishConfig(auth.service),
       getCivicProblemsDailyStatus(auth.service).catch(() => null),
+      getRecentScanLogs(auth.service).catch(() => []),
     ]);
 
     return Response.json({
@@ -132,9 +144,23 @@ export async function GET(request: Request) {
         hoursUntilNextAllowed: 0,
       },
       recentDiscoveries: recentResult.data || [],
+      scanLogs: scanLogs || [],
     });
   } catch (error: any) {
     console.error('Error getting discovery status:', error);
     return Response.json({ success: false, error: error.message || 'Failed to fetch status.' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const auth = await authorizeEmployeeRequest(request, 'article.review');
+    if (!isEmployeeAuthorization(auth)) {
+      return auth;
+    }
+    await clearScanLogs(auth.service);
+    return Response.json({ success: true, scanLogs: [] });
+  } catch (error: any) {
+    return Response.json({ success: false, error: error.message || 'Failed to clear logs.' }, { status: 500 });
   }
 }
