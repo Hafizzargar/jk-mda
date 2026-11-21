@@ -22,6 +22,7 @@ import {
   processPendingAutoPublishes,
   getCivicProblemsDailyStatus,
   evaluateNewsFreshness,
+  filterFreshNewsSearchCandidates,
   MAX_NEWS_AGE_HOURS,
   type ScheduledAutoPublishItem,
   recordScanLog,
@@ -725,6 +726,52 @@ describe('P0: KJIN Autonomous News Discovery & Regional Quotas', () => {
     const fourteenHoursAgo = evaluateNewsFreshness({ hoursAgo: 14 }, reference, 12);
     assert.strictEqual(fourteenHoursAgo.isFresh, false);
     assert.ok(fourteenHoursAgo.reason?.includes('exceeds the strict 12-hour freshness limit'));
+  });
+
+  it('only preflights dated Google News results inside the configured freshness window', () => {
+    const reference = new Date('2026-11-15T15:00:00.000Z');
+    const candidates = filterFreshNewsSearchCandidates(
+      [
+        {
+          title: 'Recent report',
+          link: 'https://news.google.com/recent',
+          pubDate: new Date(reference.getTime() - 10 * 60 * 1000).toISOString(),
+          contentSnippet: '  Fresh report  ',
+        },
+        {
+          title: 'Older report',
+          link: 'https://news.google.com/older',
+          isoDate: new Date(reference.getTime() - 2 * 60 * 60 * 1000).toISOString(),
+        },
+        {
+          title: 'Stale report',
+          link: 'https://news.google.com/stale',
+          pubDate: new Date(reference.getTime() - 7 * 60 * 60 * 1000).toISOString(),
+        },
+        {
+          title: 'Undated report',
+          link: 'https://news.google.com/undated',
+        },
+        {
+          title: 'Future-dated report',
+          link: 'https://news.google.com/future',
+          pubDate: new Date(reference.getTime() + 60 * 1000).toISOString(),
+        },
+      ],
+      reference,
+      6
+    );
+
+    assert.deepStrictEqual(candidates.map((candidate) => candidate.title), ['Recent report', 'Older report']);
+    assert.strictEqual(candidates[0].summary, 'Fresh report');
+    assert.deepStrictEqual(
+      filterFreshNewsSearchCandidates(
+        [{ title: 'Only stale', link: 'https://news.google.com/stale', pubDate: '2026-11-14T00:00:00.000Z' }],
+        reference,
+        6
+      ),
+      []
+    );
   });
 
   it('records autonomous scan diagnostics, prepends recent items, and strictly caps at top 10', async () => {
