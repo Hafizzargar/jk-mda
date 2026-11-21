@@ -151,8 +151,8 @@ export function TerritorialBureauTelemetrySlider({
         {/* 10-Second Progress Bar Indicator */}
         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-800/80 overflow-hidden">
           <div
-            className="h-full bg-cyan-400 transition-all duration-100 ease-linear"
-            style={{ width: `${progress}%` }}
+            className="h-full w-full origin-left bg-cyan-400 transition-transform duration-100 ease-linear"
+            style={{ transform: `scaleX(${progress / 100})` }}
           />
         </div>
 
