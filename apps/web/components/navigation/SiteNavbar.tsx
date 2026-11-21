@@ -210,6 +210,9 @@ export function SiteNavbar({
   const subtleBg = theme?.subtleBgClass || (isDark ? 'bg-slate-900' : 'bg-slate-100');
 
   const visibleNavItems = navSettings.nav_items.filter((item) => item.enabled);
+  const logoSrc = logoFailed
+    ? '/kjcpl-emblem.png'
+    : navSettings.brand.logo_url?.trim() || '/kjcpl-emblem.png';
 
   const getNavItemHref = (item: { id: string; slug: string }) => {
     if (item.slug === 'india' || item.id === 'national') return `${langPrefix}/india`;
@@ -287,11 +290,11 @@ export function SiteNavbar({
               }`}>
                 <div className="w-full h-full bg-white rounded-full flex items-center justify-center p-0.5 border border-amber-300/40 relative overflow-hidden shadow-inner">
                   <Image
-                    src={logoFailed ? '/kjcpl-emblem.png' : (navSettings.brand.logo_url?.trim() || '/kjcpl-emblem.png')}
+                    src={logoSrc}
                     alt={navSettings.brand.name || 'KJCPL'}
                     width={44}
                     height={44}
-                    unoptimized
+                    unoptimized={logoSrc !== '/kjcpl-emblem.png'}
                     priority
                     onError={() => setLogoFailed(true)}
                     className="w-full h-full object-contain rounded-full"

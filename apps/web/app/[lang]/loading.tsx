@@ -166,7 +166,7 @@ export default function Loading() {
               width={80}
               height={80}
               priority
-              unoptimized
+              unoptimized={logoSrc !== '/kjcpl-emblem.png'}
               onError={() => setLogoFailed(true)}
               className="w-full h-full object-contain p-0.5"
             />
