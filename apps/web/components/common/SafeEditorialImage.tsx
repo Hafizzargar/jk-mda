@@ -28,8 +28,6 @@ export function SafeEditorialImage({
     return null;
   }
 
-  const isExternal = src.startsWith('http://') || src.startsWith('https://');
-
   return (
     <div className={containerClassName}>
       <Image
@@ -38,7 +36,6 @@ export function SafeEditorialImage({
         fill
         sizes={sizes}
         priority={priority}
-        unoptimized={isExternal}
         className={className}
         onError={() => setHasError(true)}
       />
@@ -50,4 +47,3 @@ export function SafeEditorialImage({
     </div>
   );
 }
-

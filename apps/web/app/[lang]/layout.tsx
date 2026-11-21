@@ -16,6 +16,7 @@ import { createServerAnonClient } from '@/lib/supabase-server';
 import { getTemplateTheme, type TemplateId } from '@/lib/templates';
 import { ScrollToTop } from '@/components/navigation/ScrollToTop';
 import { RouteNavigationFeedback } from '@/components/navigation/RouteNavigationFeedback';
+import { DeferredFontStylesheets } from '@/components/navigation/DeferredFontStylesheets';
 import { FestiveCelebrationOverlay } from '@/components/celebration/FestiveCelebrationOverlay';
 import { getBrandSettings } from '@/lib/brand';
 import { DEFAULT_NAVBAR_SETTINGS, type NavbarBrandConfig } from '@/lib/navbar';
@@ -209,11 +210,15 @@ export default async function RootLayout({
         <link rel="preconnect" href="https://images.unsplash.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://images.unsplash.com" />
         <link
-          rel="stylesheet"
+          rel="preload"
+          as="style"
+          crossOrigin="anonymous"
           href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Playfair+Display:ital,wght@0,600;0,700;0,900;1,600&family=Inter:wght@400;500;600;700&family=Merriweather:ital,wght@0,400;0,700;1,400&display=swap"
         />
         <link
-          rel="stylesheet"
+          rel="preload"
+          as="style"
+          crossOrigin="anonymous"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
         />
       </head>
@@ -235,6 +240,7 @@ export default async function RootLayout({
         />
         <ScrollToTop />
         <RouteNavigationFeedback />
+        <DeferredFontStylesheets />
         <FestiveCelebrationOverlay initialSettings={festiveSettings} />
         {children}
       </body>
