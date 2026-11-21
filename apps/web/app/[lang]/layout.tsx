@@ -15,6 +15,7 @@ export const viewport: Viewport = {
 import { createServerAnonClient } from '@/lib/supabase-server';
 import { getTemplateTheme, type TemplateId } from '@/lib/templates';
 import { ScrollToTop } from '@/components/navigation/ScrollToTop';
+import { RouteNavigationFeedback } from '@/components/navigation/RouteNavigationFeedback';
 import { FestiveCelebrationOverlay } from '@/components/celebration/FestiveCelebrationOverlay';
 import { getBrandSettings } from '@/lib/brand';
 import { DEFAULT_NAVBAR_SETTINGS, type NavbarBrandConfig } from '@/lib/navbar';
@@ -233,6 +234,7 @@ export default async function RootLayout({
           dangerouslySetInnerHTML={{ __html: safeJsonLd(websiteJsonLd) }}
         />
         <ScrollToTop />
+        <RouteNavigationFeedback />
         <FestiveCelebrationOverlay initialSettings={festiveSettings} />
         {children}
       </body>

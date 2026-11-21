@@ -74,6 +74,29 @@ a {
   }
 }
 
+@keyframes route-progress {
+  0% {
+    transform: translateX(-100%);
+  }
+  55% {
+    transform: translateX(120%);
+  }
+  100% {
+    transform: translateX(350%);
+  }
+}
+
+.route-progress-indicator {
+  animation: route-progress 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-progress-indicator {
+    animation: none;
+    width: 100%;
+  }
+}
+
 @keyframes bounce {
   0%, 100% {
     transform: translateY(-25%);

@@ -72,7 +72,13 @@ export default function Loading() {
   const subtitle = brand.loader_text || brand.tagline || 'ONE REGION, MANY VOICES, TRUSTED NEWS';
 
   return (
-    <div className="min-h-[85vh] flex flex-col items-center justify-center bg-[#FAF8F5] select-none px-4 transition-colors duration-200 relative overflow-hidden">
+    <div
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      aria-busy="true"
+      className="fixed inset-0 z-[10000] min-h-screen flex flex-col items-center justify-center bg-[#FAF8F5] select-none px-4 transition-colors duration-200 relative overflow-hidden cursor-wait"
+    >
       {/* Occasion Greeting Pill (Displayed during festive celebrations) */}
       {isFestiveActive && festive && (
         <div
@@ -188,6 +194,10 @@ export default function Loading() {
       {/* Subtitle */}
       <p className="text-xs font-mono text-slate-400 tracking-widest uppercase mb-7 text-center max-w-sm px-2">
         {subtitle}
+      </p>
+
+      <p className="mb-5 text-sm font-semibold text-slate-700 text-center">
+        Opening story — please wait. You do not need to tap again.
       </p>
 
       {/* Staggered Dot Wave */}
