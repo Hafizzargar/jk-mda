@@ -1070,54 +1070,138 @@ export function selectTargetDistrictForBeat(
   return districts[0] || null;
 }
 
-/**
- * Checks if a candidate headline substantially duplicates an existing recent story.
- */
-export function calculateHeadlineSimilarity(headlineA: string, headlineB: string): { similarity: number; matchCount: number; isDuplicate: boolean } {
-  const filterStopwords = (text: string) =>
-    text
-      .toLowerCase()
-      .replace(/[^\w\s]/g, '')
-      .split(/\s+/)
-      .filter((w) => w.length > 3 && !['with', 'from', 'that', 'this', 'have', 'after', 'about', 'over', 'into', 'under', 'their', 'near', 'tragic', 'claims'].includes(w));
+const DUPLICATE_STOPWORDS = new Set([
+  'about', 'after', 'again', 'also', 'among', 'around', 'before', 'being', 'between',
+  'could', 'during', 'from', 'have', 'into', 'just', 'more', 'most', 'near', 'over',
+  'said', 'says', 'some', 'than', 'that', 'their', 'them', 'then', 'there', 'these',
+  'they', 'this', 'those', 'through', 'under', 'very', 'were', 'what', 'when', 'where',
+  'which', 'while', 'with', 'would', 'your', 'after', 'amid', 'following', 'update',
+  'latest', 'news', 'report', 'reports', 'officials', 'authorities', 'district', 'state',
+  'government', 'project', 'announces', 'launches', 'inaugurates', 'reviews', 'holds',
+  'high', 'heavy', 'new', 'major', 'first', 'second', 'record', 'records', 'winter',
+  'north', 'south', 'eastern', 'western', 'northern', 'southern', 'key', 'local',
+  'the', 'and', 'for', 'but', 'not', 'its', 'who', 'how', 'why', 'all', 'any',
+]);
 
-  const wordsA = filterStopwords(headlineA);
-  const wordsB = filterStopwords(headlineB);
+const DUPLICATE_ENTITY_STOPWORDS = new Set([
+  'according', 'amid', 'after', 'authorities', 'officials', 'government', 'district',
+  'project', 'department', 'committee', 'administration', 'residents', 'people',
+  'report', 'reports', 'update', 'latest', 'news', 'launches', 'announces', 'reviews',
+  'holds', 'inaugurates', 'says', 'said', 'the', 'this', 'that', 'with', 'from',
+  'north', 'south', 'northern', 'southern', 'eastern', 'western', 'new', 'first',
+  'second', 'major', 'high', 'heavy', 'winter', 'record', 'accident', 'vehicle',
+  'killed', 'death', 'dies', 'dies', 'road', 'tunnel', 'project', 'hydroelectric',
+  'official', 'suspension', 'meeting', 'power', 'water', 'school', 'college',
+]);
 
-  if (wordsA.length === 0 || wordsB.length === 0) {
-    return { similarity: 0, matchCount: 0, isDuplicate: false };
-  }
-
-  let matches = 0;
-  for (const w of wordsA) {
-    if (wordsB.includes(w)) matches++;
-  }
-
-  const similarity = matches / Math.min(wordsA.length, wordsB.length);
-  // Duplicate if sharing >= 35% of keywords OR 3+ specific proper nouns/locations
-  const isDuplicate = similarity >= 0.35 || matches >= 3;
-
-  return { similarity, matchCount: matches, isDuplicate };
+function getStoryTokens(text: string): Set<string> {
+  return new Set(
+    text.toLowerCase().match(/[a-z0-9]+(?:-[a-z0-9]+)*/g)?.filter(
+      (token) => token.length > 2 && !DUPLICATE_STOPWORDS.has(token),
+    ) || [],
+  );
 }
 
-async function isDuplicateStory(service: SupabaseClient, headline: string): Promise<boolean> {
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-  const { data: recent } = await service
-    .from('articles')
-    .select('title')
-    .gte('created_at', sevenDaysAgo)
-    .limit(160);
+function getNamedEntityTokens(text: string): Set<string> {
+  const properNouns = text.match(/\b(?:[A-Z][a-z]{2,}|[A-Z]{2,}(?:-\d+)?)\b/g) || [];
+  return new Set(
+    properNouns
+      .map((word) => word.toLowerCase())
+      .filter((word) => !DUPLICATE_ENTITY_STOPWORDS.has(word)),
+  );
+}
 
-  if (!recent || recent.length === 0) return false;
+export function calculateHeadlineSimilarity(
+  headlineA: string,
+  headlineB: string,
+  summaryA = '',
+  summaryB = '',
+): { similarity: number; matchCount: number; isDuplicate: boolean; sharedEntities: string[]; sharedTopics: string[] } {
+  const textA = `${headlineA} ${summaryA}`;
+  const textB = `${headlineB} ${summaryB}`;
+  const tokensA = getStoryTokens(textA);
+  const tokensB = getStoryTokens(textB);
+  const entitiesA = getNamedEntityTokens(textA);
+  const entitiesB = getNamedEntityTokens(textB);
+  const sharedEntities = [...entitiesA].filter((entity) => entitiesB.has(entity));
+  const sharedTopics = [...tokensA].filter((token) => tokensB.has(token) && !sharedEntities.includes(token));
+  const similarity = sharedTopics.length / Math.max(1, Math.min(tokensA.size, tokensB.size));
 
-  for (const art of recent) {
-    const { isDuplicate } = calculateHeadlineSimilarity(headline, art.title);
-    if (isDuplicate) {
-      return true;
+  return {
+    similarity,
+    matchCount: sharedEntities.length + sharedTopics.length,
+    isDuplicate: sharedEntities.length > 0 && sharedTopics.length >= 1,
+    sharedEntities,
+    sharedTopics,
+  };
+}
+
+interface DuplicateArticleContext {
+  summary?: string;
+  content?: string;
+  category?: string | null;
+  district?: string | null;
+}
+
+function normalizeDuplicateCategory(category?: string | null): string {
+  return (category || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+function getDuplicateRegion(district?: string | null): string | undefined {
+  const key = (district || '').trim().toLowerCase();
+  return DISTRICT_METADATA[key]?.beatId;
+}
+
+export function findDuplicateArticle<T extends { title: string; excerpt?: string | null; content?: string | null; category?: string | null; district?: string | null }>(
+  headline: string,
+  articles: T[],
+  context: DuplicateArticleContext = {},
+): T | null {
+  let bestMatch: T | null = null;
+  let bestSimilarity = -1;
+
+  for (const article of articles) {
+    const sameCategory = normalizeDuplicateCategory(context.category) !== '' &&
+      normalizeDuplicateCategory(context.category) === normalizeDuplicateCategory(article.category);
+    const candidateRegion = getDuplicateRegion(context.district);
+    const articleRegion = getDuplicateRegion(article.district);
+    const sameRegion = Boolean(candidateRegion && candidateRegion === articleRegion);
+    if (!sameCategory && !sameRegion) continue;
+
+    const result = calculateHeadlineSimilarity(
+      headline,
+      article.title,
+      `${context.summary || ''} ${(context.content || '').slice(0, 1500)}`,
+      `${article.excerpt || ''} ${(article.content || '').slice(0, 1500)}`,
+    );
+    if (result.isDuplicate && result.similarity > bestSimilarity) {
+      bestMatch = article;
+      bestSimilarity = result.similarity;
     }
   }
 
-  return false;
+  return bestMatch;
+}
+
+async function findDuplicateArticleInDatabase(
+  service: SupabaseClient,
+  headline: string,
+  context: DuplicateArticleContext,
+) {
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: recent, error } = await service
+    .from('articles')
+    .select('id, title, slug, excerpt, content, category, district, status, source_name, source_url, author_id')
+    .gte('created_at', sevenDaysAgo)
+    .in('status', ['draft', 'review', 'published'])
+    .order('created_at', { ascending: false })
+    .limit(160);
+
+  if (error) {
+    throw new Error(`Could not check recent articles for duplicates: ${error.message}`);
+  }
+
+  return findDuplicateArticle(headline, recent || [], context);
 }
 
 /**
@@ -1583,6 +1667,9 @@ export async function runAutonomousNewsDiscovery(
   skipped?: boolean;
   inCooldown?: boolean;
   articleId?: string;
+  updated?: boolean;
+  slug?: string;
+  status?: string;
   headline?: string;
   scope?: string;
   beat?: string;
@@ -2133,6 +2220,145 @@ Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with k
 
     const rawReportBody = parsed.bodyMarkdown || parsed.summary || cleanHeadline;
     const cleanReportBody = sanitizeDatelineForScope(rawReportBody, effectiveScope, resolvedDateline);
+    const sourceUrl = groundedUrl || parsed.sourceUrl || 'https://kjin.in';
+    const sourceName = groundedTitle || parsed.sourceName || 'Grounded Web Surveillance';
+    const canonicalCat = isCivicTopic || parsed.category?.toLowerCase() === 'problems'
+      ? { name: 'Problems', slug: 'problems' }
+      : getCanonicalCategory(parsed.category || 'General', effectiveScope);
+    const rawParsedDistrict = (parsed.district || '').toLowerCase().trim();
+    const finalDistrict =
+      effectiveScope === 'National' || effectiveScope === 'International'
+        ? null
+        : (DISTRICT_METADATA[rawParsedDistrict]?.name ||
+           targetDistrictMeta?.name ||
+           parsed.district ||
+           (beat.districts[0] ? DISTRICT_METADATA[beat.districts[0]]?.name || beat.districts[0] : null));
+
+    // Update an existing story before applying new-article quota limits.
+    const duplicateArticle = await findDuplicateArticleInDatabase(service, cleanHeadline, {
+      summary: cleanSummary,
+      content: cleanReportBody,
+      category: canonicalCat.name,
+      district: finalDistrict,
+    });
+    if (duplicateArticle) {
+      const { data: latestVersion, error: versionLookupError } = await service
+        .from('article_versions')
+        .select('version_number')
+        .eq('article_id', duplicateArticle.id)
+        .order('version_number', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (versionLookupError || !duplicateArticle.author_id) {
+        const reason = versionLookupError?.message ||
+          `Existing article ${duplicateArticle.id} has no author to record a safe version before updating.`;
+        console.error('[AutonomousDiscovery] Could not preserve duplicate article version:', reason);
+        const scanLogs = await logScanOutcome({
+          status: 'error',
+          beat: beat.name,
+          district: targetDistrictMeta?.name,
+          headline: cleanHeadline,
+          reason,
+        });
+        return { success: false, reason, scanLogs };
+      }
+
+      const { error: versionInsertError } = await service.from('article_versions').insert({
+        article_id: duplicateArticle.id,
+        version_number: (latestVersion?.version_number || 0) + 1,
+        title: duplicateArticle.title,
+        excerpt: duplicateArticle.excerpt || '',
+        content: duplicateArticle.content || '',
+        edited_by: duplicateArticle.author_id,
+      });
+
+      if (versionInsertError) {
+        const reason = `Could not preserve existing article before update: ${versionInsertError.message}`;
+        console.error('[AutonomousDiscovery] Could not preserve duplicate article version:', versionInsertError);
+        const scanLogs = await logScanOutcome({
+          status: 'error',
+          beat: beat.name,
+          district: targetDistrictMeta?.name,
+          headline: cleanHeadline,
+          reason,
+        });
+        return { success: false, reason, scanLogs };
+      }
+
+      const { data: updatedArticle, error: updateError } = await service
+        .from('articles')
+        .update({
+          title: cleanHeadline,
+          excerpt: cleanSummary,
+          content: cleanReportBody,
+          source_name: sourceName,
+          source_url: sourceUrl,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', duplicateArticle.id)
+        .select('id, title, slug, status, category')
+        .maybeSingle();
+
+      if (updateError || !updatedArticle) {
+        const reason = updateError?.message || `Duplicate article ${duplicateArticle.id} could not be updated.`;
+        console.error('[AutonomousDiscovery] Failed to update duplicate article:', reason);
+        const scanLogs = await logScanOutcome({
+          status: 'error',
+          beat: beat.name,
+          district: targetDistrictMeta?.name,
+          headline: cleanHeadline,
+          reason,
+        });
+        return { success: false, reason, scanLogs };
+      }
+
+      const reason = `Updated existing ${updatedArticle.status} article "${updatedArticle.title}" without changing its URL or publication status.`;
+      console.log(`[AutonomousDiscovery] Updated existing article "${updatedArticle.title}" (ID: ${updatedArticle.id}, status: ${updatedArticle.status}).`);
+      Promise.resolve(
+        sendNewsApprovalAlert({
+          headline: cleanHeadline,
+          summary: cleanSummary,
+          category: updatedArticle.category,
+          scope: effectiveScope,
+          division: beat.name,
+          district: targetDistrictMeta?.name,
+          platform: 'Autonomous Web Intelligence Radar — Story Update',
+          sourceName,
+          sourceUrl,
+          dashboardUrl: `${process.env.ADMIN_URL || process.env.NEXT_PUBLIC_ADMIN_URL || 'http://localhost:3001'}/newsroom/youtube`,
+          storyUpdate: true,
+          articleStatus: updatedArticle.status,
+        })
+      ).catch((mailErr) => {
+        console.warn('[AutonomousDiscovery] Story update alert dispatch error:', mailErr);
+      });
+
+      const scanLogs = await logScanOutcome({
+        status: 'generated',
+        beat: beat.name,
+        district: targetDistrictMeta?.name,
+        headline: cleanHeadline,
+        articleId: updatedArticle.id,
+        sourceUrl,
+        reason,
+      });
+      return {
+        success: true,
+        discovered: true,
+        updated: true,
+        articleId: updatedArticle.id,
+        headline: updatedArticle.title,
+        slug: updatedArticle.slug,
+        status: updatedArticle.status,
+        scope: effectiveScope,
+        beat: beat.name,
+        district: targetDistrictMeta?.name,
+        sourceUrl,
+        dailyStats: stats,
+        scanLogs,
+      };
+    }
 
     // 6. Check Breaking News Override vs Maximum Quota
     const isBreaking = isBreakingNewsEvent(cleanHeadline, cleanSummary, Boolean(parsed.isBreakingPriority));
@@ -2160,30 +2386,9 @@ Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with k
       };
     }
 
-    // 7. Check Deduplication
-    const isDuplicate = await isDuplicateStory(service, cleanHeadline);
-    if (isDuplicate) {
-      const reason = `Duplicate story skipped: "${cleanHeadline}" was already reported today.`;
-      console.log(`[AutonomousDiscovery] Story already covered or duplicate: "${cleanHeadline}". Skipping.`);
-      const scanLogs = await logScanOutcome({
-        status: 'skipped',
-        beat: beat.name,
-        district: targetDistrictMeta?.name,
-        headline: cleanHeadline,
-        reason,
-      });
-      return { success: false, skipped: true, reason, dailyStats: stats, scanLogs };
-    }
-
     // 8. Controlled Regional Taxonomy & Text-Only News Mandate (No Images Needed)
-    const canonicalCat = isCivicTopic || parsed.category?.toLowerCase() === 'problems'
-      ? { name: 'Problems', slug: 'problems' }
-      : getCanonicalCategory(parsed.category || 'General', effectiveScope);
     // User mandate: Any news created needs NO images — 100% text-only news
     const finalFeaturedImage: string | null = null;
-
-    const sourceUrl = groundedUrl || parsed.sourceUrl || 'https://kjin.in';
-    const sourceName = groundedTitle || parsed.sourceName || 'Grounded Web Surveillance';
 
     // 9. Find Author ID
     const { data: authors } = await service
@@ -2193,15 +2398,6 @@ Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with k
     const authorId = authors?.[0]?.id || null;
 
     const finalSlug = `${generateSlug(cleanHeadline)}-${Date.now().toString(36).slice(-4)}`;
-    const rawParsedDistrict = (parsed.district || '').toLowerCase().trim();
-    const finalDistrict =
-      effectiveScope === 'National' || effectiveScope === 'International'
-        ? null
-        : (DISTRICT_METADATA[rawParsedDistrict]?.name ||
-           targetDistrictMeta?.name ||
-           parsed.district ||
-           (beat.districts[0] ? DISTRICT_METADATA[beat.districts[0]]?.name || beat.districts[0] : null));
-
     // 10. Deposit story into Pending Approval queue (`status: 'review'`) — STRICT ZERO AUTO-PUBLISH
     // Note: Database trigger enforces that new articles must initially be created as 'draft'
     // then immediately transitioned to 'review' for pending editorial approval.

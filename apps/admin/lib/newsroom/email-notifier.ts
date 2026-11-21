@@ -11,6 +11,8 @@ export interface NewsApprovalAlertParams {
   sourceName: string;
   sourceUrl?: string | null;
   dashboardUrl?: string;
+  storyUpdate?: boolean;
+  articleStatus?: string;
 }
 
 export interface AutoApprovedAlertParams {
@@ -85,6 +87,14 @@ export async function sendNewsApprovalAlert(params: NewsApprovalAlertParams): Pr
   const divisionBadge = params.division || 'Jammu & Kashmir';
   const scopeBadge = params.scope || 'State';
   const platformName = params.platform || 'Broadcast Surveillance';
+  const isStoryUpdate = params.storyUpdate === true;
+  const storyStatus = params.articleStatus || 'review';
+  const editorialMessage = isStoryUpdate
+    ? `An existing ${escapeHtml(storyStatus)} story was updated from <strong>${escapeHtml(platformName)}</strong>. Its URL and publication status were preserved.`
+    : `A new investigative news story was synthesized from <strong>${escapeHtml(platformName)}</strong> facts and rewritten from scratch into English (zero copyright). It is awaiting your verification before public broadcast:`;
+  const dashboardAction = isStoryUpdate
+    ? 'Open Dashboard to Review Story Update →'
+    : 'Open Dashboard to Verify &amp; Publish →';
 
   const htmlContent = `
 <!DOCTYPE html>
@@ -126,7 +136,7 @@ export async function sendNewsApprovalAlert(params: NewsApprovalAlertParams): Pr
       </div>
 
       <p style="font-size: 13px; color: #94a3b8; margin: 0 0 12px 0;">
-        A new investigative news story was synthesized from <strong>${escapeHtml(platformName)}</strong> facts and rewritten from scratch into English (zero copyright). It is awaiting your verification before public broadcast:
+        ${editorialMessage}
       </p>
 
       <div class="summary-box">
@@ -158,7 +168,7 @@ export async function sendNewsApprovalAlert(params: NewsApprovalAlertParams): Pr
 
       <div class="cta-wrap">
         <a href="${actionUrl}" class="cta-button" target="_blank">
-          Open Dashboard to Verify &amp; Publish →
+          ${dashboardAction}
         </a>
       </div>
 
@@ -180,8 +190,8 @@ export async function sendNewsApprovalAlert(params: NewsApprovalAlertParams): Pr
     const info = await transporter.sendMail({
       from: sender,
       to: editorEmail,
-      subject: `[Approval Required] ${params.headline}`,
-      text: `KJCPL Newsroom Verification Required\n\nHeadline: ${params.headline}\nScope: ${params.scope} | Beat: ${params.category} | Region: ${divisionBadge}\n\nSummary: ${params.summary}\n\nVerify and publish on your dashboard:\n${actionUrl}\n\nTime: ${timeIST} IST`,
+      subject: `${isStoryUpdate ? '[Story Updated]' : '[Approval Required]'} ${params.headline}`,
+      text: `${isStoryUpdate ? 'KJCPL Newsroom Story Update' : 'KJCPL Newsroom Verification Required'}\n\nHeadline: ${params.headline}\nScope: ${params.scope} | Beat: ${params.category} | Region: ${divisionBadge}\n${isStoryUpdate ? `Current status: ${storyStatus}\n` : ''}\nSummary: ${params.summary}\n\n${isStoryUpdate ? 'Review the updated story on your dashboard:' : 'Verify and publish on your dashboard:'}\n${actionUrl}\n\nTime: ${timeIST} IST`,
       html: htmlContent,
     });
 

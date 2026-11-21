@@ -6,6 +6,7 @@ if (typeof (globalThis as unknown as { self: unknown }).self === 'undefined') {
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { buildCspHeader } from './lib/csp';
+import { getArticleRedirectPath } from './lib/article-redirects';
 
 const LOCALES = ['en'];
 const DEFAULT_LOCALE = 'en';
@@ -30,6 +31,13 @@ export function middleware(request: NextRequest) {
   if (legacyMatch) {
     const remaining = legacyMatch[1] ? `/${legacyMatch[1]}` : '';
     const redirectUrl = new URL(`/en${remaining}`, request.url);
+    redirectUrl.search = request.nextUrl.search;
+    return NextResponse.redirect(redirectUrl, 301);
+  }
+
+  const articleRedirectPath = getArticleRedirectPath(pathname);
+  if (articleRedirectPath) {
+    const redirectUrl = new URL(articleRedirectPath, request.url);
     redirectUrl.search = request.nextUrl.search;
     return NextResponse.redirect(redirectUrl, 301);
   }

@@ -196,7 +196,6 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <head>
-        <meta charSet="utf-8" />
         <script
           nonce={scriptNonce}
           suppressHydrationWarning

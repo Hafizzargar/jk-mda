@@ -192,7 +192,7 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
 
   return {
     metadataBase: new URL(SITE_URL),
-    title: `${title} | ${brandSettings.name}`,
+    title,
     description: excerpt,
     authors: [{ name: authorCleanName, url: `${SITE_URL}/en/author/${journalist.slug}` }],
     creator: `${brandSettings.name} Newsroom`,

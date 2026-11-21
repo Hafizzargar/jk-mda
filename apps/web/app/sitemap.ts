@@ -3,6 +3,7 @@ import { createServerAnonClient } from '@/lib/supabase-server';
 import { SITE_URL } from '@/lib/config';
 import { NEWS_CATEGORIES, JK_DISTRICTS, REGIONAL_DIVISIONS, getCategorySlug } from '@/lib/taxonomy';
 import { KJIN_JOURNALISTS } from '@/lib/journalists';
+import { ARTICLE_REDIRECTS } from '@/lib/article-redirects';
 
 // Limit per sitemap file to comply with search engine standards and memory bounds
 const SITEMAP_MAX_ARTICLES = 10000;
@@ -19,11 +20,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .limit(SITEMAP_MAX_ARTICLES);
 
   const articleUrls: MetadataRoute.Sitemap = (articles || []).map((article) => ({
-    url: `${SITE_URL}/en/${getCategorySlug(article.category)}/${article.slug}`,
-    lastModified: new Date(article.updated_at || article.published_at || Date.now()),
-    changeFrequency: 'daily',
-    priority: 0.8,
-  }));
+    article,
+    categorySlug: getCategorySlug(article.category),
+  }))
+    .filter(({ article, categorySlug }) =>
+      !ARTICLE_REDIRECTS.some(
+        (redirect) =>
+          redirect.sourceCategory === categorySlug &&
+          redirect.sourceSlug === article.slug,
+      ),
+    )
+    .map(({ article, categorySlug }) => ({
+      url: `${SITE_URL}/en/${categorySlug}/${article.slug}`,
+      lastModified: new Date(article.updated_at || article.published_at || Date.now()),
+      changeFrequency: 'daily',
+      priority: 0.8,
+    }));
 
   // 2. Controlled Category feeds
   const categoryUrls: MetadataRoute.Sitemap = Object.keys(NEWS_CATEGORIES).map((cat) => ({

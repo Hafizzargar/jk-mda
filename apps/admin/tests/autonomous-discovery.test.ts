@@ -7,6 +7,7 @@ import {
   detectArticleDistrict,
   selectTargetDistrictForBeat,
   calculateHeadlineSimilarity,
+  findDuplicateArticle,
   classifyArticleRegion,
   selectNextPrioritizedBeat,
   isBreakingNewsEvent,
@@ -140,7 +141,7 @@ describe('P0: KJIN Autonomous News Discovery & Regional Quotas', () => {
   });
 
   it('correctly calculates word-vector similarity for deduplication', () => {
-    const headlineA = "Tragic Road Mishap on NH-244 near Assar Claims 4 Lives in Doda";
+    const headlineA = "Doda Accident near Assar on NH-244 Kills Four";
     const headlineB = "Doda Accident: 4 Killed as Vehicle Plunges into Gorge along NH-244 in Assar";
     const headlineC = "Ratle Hydroelectric Project on Chenab River Advances with ₹5,281 Crore Capital Outlay";
 
@@ -150,6 +151,36 @@ describe('P0: KJIN Autonomous News Discovery & Regional Quotas', () => {
 
     const resultAC = calculateHeadlineSimilarity(headlineA, headlineC);
     assert.ok(!resultAC.isDuplicate, 'Different news events must not be identified as duplicate');
+  });
+
+  it('selects the closest matching existing article for in-place updates', () => {
+    const articles = [
+      { id: 'unrelated', title: 'Ratle Hydroelectric Project advances in Kishtwar', category: 'Economy', district: 'Kishtwar' },
+      { id: 'match', title: 'Doda Accident: 4 Killed as Vehicle Plunges into Gorge along NH-244 in Assar', category: 'Local News', district: 'Doda' },
+    ];
+
+    assert.equal(
+      findDuplicateArticle('Doda Accident near Assar on NH-244 Kills Four', articles, {
+        category: 'Local News',
+        district: 'Doda',
+      })?.id,
+      'match',
+    );
+    assert.equal(
+      findDuplicateArticle('New school opens in Leh', articles, {
+        category: 'Education',
+        district: 'Leh',
+      }),
+      null,
+    );
+    assert.equal(
+      findDuplicateArticle('Ratle tunnel workers report different shift schedules', articles, {
+        category: 'Politics',
+        district: 'Kishtwar',
+      }),
+      null,
+      'A shared place name without a shared topic must not merge articles',
+    );
   });
 
   it('maintains backwards-compatible DISCOVERY_BEATS with non-local National and International scopes', () => {
