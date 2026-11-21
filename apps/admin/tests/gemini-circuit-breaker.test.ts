@@ -83,9 +83,30 @@ describe('P0: Gemini AI Circuit Breaker & 1-Hour Cooldown Architecture', () => {
     assert.ok(check.remainingMinutes > 50 && check.remainingMinutes <= 60, 'Remaining minutes should be ~60 mins');
   });
 
+  it('does not clear cooldown when the failure reason mentions the retired Gemini model', async () => {
+    const mockSupabase = createMockSupabase();
+
+    await tripCircuitBreaker(mockSupabase, {
+      beatId: 'chenab_valley',
+      reason: 'HTTP 429 on model gemini-2.5-flash (Key 3/3)',
+      cooldownHours: 1,
+    });
+
+    const check = await isGeminiInCooldown(mockSupabase);
+    assert.strictEqual(check.inCooldown, true);
+    assert.strictEqual(check.pendingBeatId, 'chenab_valley');
+    await resetCircuitBreaker(mockSupabase);
+  });
+
   it('subsequent trips increment retry count and advance cooldown by another 1 hour', async () => {
     const mockSupabase = createMockSupabase();
-    
+
+    await tripCircuitBreaker(mockSupabase, {
+      beatId: 'chenab_valley',
+      reason: 'HTTP 429 Quota Exhausted',
+      cooldownHours: 1,
+    });
+
     // Second consecutive failure on same beat
     const trippedAgain = await tripCircuitBreaker(mockSupabase, {
       beatId: 'chenab_valley',

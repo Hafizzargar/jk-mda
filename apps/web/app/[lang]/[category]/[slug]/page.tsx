@@ -24,7 +24,7 @@ import { getTelemetrySettings } from '@/lib/telemetry';
 import { ArticleReadingDesk } from '@/components/article/ArticleReadingDesk';
 import { FALLBACK_BROADSHEET_ARTICLES } from '@/lib/seed-articles';
 import { resolveAuthorForArticle, getJournalistByName } from '@/lib/journalists';
-import { getCleanSlug, resolveDbSlug, isMessySlug } from '@/lib/slug-aliases';
+import { getCleanSlug, resolveDbSlug } from '@/lib/slug-aliases';
 
 interface ArticlePageProps {
   params: Promise<{
@@ -57,7 +57,7 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
 
   let { data: article } = await supabase
     .from('articles')
-    .select('title, excerpt, featured_image_url, category, district, published_at, updated_at, author_display_name, article_translations(title, excerpt, language_code)')
+    .select('slug, title, excerpt, featured_image_url, category, district, published_at, updated_at, author_display_name, article_translations(title, excerpt, language_code)')
     .in('slug', candidateSlugs)
     .maybeSingle();
 
@@ -67,7 +67,7 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
       if (serviceClient) {
         const { data: serviceArticle } = await serviceClient
           .from('articles')
-          .select('title, excerpt, featured_image_url, category, district, published_at, updated_at, author_display_name, article_translations(title, excerpt, language_code)')
+          .select('slug, title, excerpt, featured_image_url, category, district, published_at, updated_at, author_display_name, article_translations(title, excerpt, language_code)')
           .in('slug', candidateSlugs)
           .maybeSingle();
         if (serviceArticle) {
@@ -81,7 +81,7 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
   if (!article) {
     const { data: prefixArticle } = await supabase
       .from('articles')
-      .select('title, excerpt, featured_image_url, category, district, published_at, updated_at, author_display_name, article_translations(title, excerpt, language_code)')
+      .select('slug, title, excerpt, featured_image_url, category, district, published_at, updated_at, author_display_name, article_translations(title, excerpt, language_code)')
       .ilike('slug', `${cleanSlug}%`)
       .order('published_at', { ascending: false })
       .limit(1)
@@ -94,7 +94,7 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
         if (serviceClient) {
           const { data: spArticle } = await serviceClient
             .from('articles')
-            .select('title, excerpt, featured_image_url, category, district, published_at, updated_at, author_display_name, article_translations(title, excerpt, language_code)')
+            .select('slug, title, excerpt, featured_image_url, category, district, published_at, updated_at, author_display_name, article_translations(title, excerpt, language_code)')
             .ilike('slug', `${cleanSlug}%`)
             .order('published_at', { ascending: false })
             .limit(1)
@@ -111,7 +111,7 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
     if (broadPrefix.length >= 8) {
       const { data: broadArticle } = await supabase
         .from('articles')
-        .select('title, excerpt, featured_image_url, category, district, published_at, updated_at, author_display_name, article_translations(title, excerpt, language_code)')
+        .select('slug, title, excerpt, featured_image_url, category, district, published_at, updated_at, author_display_name, article_translations(title, excerpt, language_code)')
         .ilike('slug', `${broadPrefix}%`)
         .order('published_at', { ascending: false })
         .limit(1)
@@ -124,7 +124,7 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
           if (serviceClient) {
             const { data: spArticle } = await serviceClient
               .from('articles')
-              .select('title, excerpt, featured_image_url, category, district, published_at, updated_at, author_display_name, article_translations(title, excerpt, language_code)')
+              .select('slug, title, excerpt, featured_image_url, category, district, published_at, updated_at, author_display_name, article_translations(title, excerpt, language_code)')
               .ilike('slug', `${broadPrefix}%`)
               .order('published_at', { ascending: false })
               .limit(1)
@@ -142,6 +142,7 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
     );
     if (fallback) {
       article = {
+        slug: fallback.slug,
         title: fallback.title,
         excerpt: fallback.excerpt || '',
         featured_image_url: fallback.featured_image_url || null,
@@ -180,13 +181,10 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
     }
   }
 
-  const articleCategorySlug = getCategorySlug(article.category);
-  const articleDistrictSlug = (article.district || '').toLowerCase().trim();
-  const rawParamCategory = decodeURIComponent(resolvedParams.category || '').toLowerCase().trim();
-  const isDistrictRoute = articleDistrictSlug && rawParamCategory === articleDistrictSlug;
-  const targetCategory = isDistrictRoute ? articleDistrictSlug : articleCategorySlug;
+  const targetCategory = getCategorySlug(article.category);
+  const canonicalSlug = article.slug;
 
-  const canonicalUrl = `${SITE_URL}/en/${targetCategory}/${cleanSlug}`;
+  const canonicalUrl = `${SITE_URL}/en/${targetCategory}/${canonicalSlug}`;
   const journalist = getJournalistByName(article.author_display_name) || resolveAuthorForArticle(article.district, article.category);
   const authorCleanName = (article.author_display_name && !article.author_display_name.includes('Bureau') && !article.author_display_name.includes('Desk') && !article.author_display_name.includes('Discovery'))
     ? article.author_display_name
@@ -395,20 +393,17 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
 
   // Canonical URL redirect if category in path does not match database canonical slug or district alias
   const articleCategorySlug = getCategorySlug(article.category);
-  const articleDistrictSlug = (article.district || '').toLowerCase().trim();
+  const canonicalSlug = article.slug;
   const rawParamCategory = decodeURIComponent(resolvedParams.category || '').toLowerCase().trim();
-  const isDistrictRoute = articleDistrictSlug && rawParamCategory === articleDistrictSlug;
-  const targetCategory = isDistrictRoute ? articleDistrictSlug : articleCategorySlug;
+  const targetCategory = articleCategorySlug;
 
-  // If messy slug or category mismatch or has & (e.g. science-&-technology), issue 301 permanent redirect
+  // Redirect aliases to the exact canonical category and persisted article slug.
   if (
-    isMessySlug(rawSlug) ||
-    rawSlug !== cleanSlug ||
-    rawParamCategory.includes('&') ||
-    (rawParamCategory !== articleCategorySlug && !isDistrictRoute) ||
+    rawSlug !== canonicalSlug ||
+    rawParamCategory !== articleCategorySlug ||
     (resolvedParams.lang && resolvedParams.lang !== 'en')
   ) {
-    permanentRedirect(`/en/${targetCategory}/${cleanSlug}`);
+    permanentRedirect(`/en/${targetCategory}/${canonicalSlug}`);
   }
 
   const [brandSettings, navbarSettings, contactSettings, telemetry] = await Promise.all([

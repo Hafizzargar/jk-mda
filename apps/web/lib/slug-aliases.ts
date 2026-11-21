@@ -1,6 +1,5 @@
 /**
- * Authoritative Slug Aliases & Bidirectional Canonical Mappings
- * Ensures human-readable, plain-word SEO slugs without random machine hashes or trailing UUIDs.
+ * Legacy slug aliases used to resolve old article URLs to their stored records.
  */
 
 export interface SlugMapping {
@@ -95,19 +94,12 @@ export const SLUG_MAPPINGS: Record<string, SlugMapping> = {
 };
 
 /**
- * Returns the clean, plain-words SEO slug for any article slug.
- * Strips machine hashes like -pxid or -7v65-b4zt if present.
+ * Preserves the requested slug. Canonical article URLs use the exact slug stored
+ * in the database; explicit legacy aliases are resolved separately below.
  */
 export function getCleanSlug(slug: string): string {
   if (!slug) return '';
-  const trimmed = slug.trim().toLowerCase();
-  if (SLUG_MAPPINGS[trimmed]) {
-    return SLUG_MAPPINGS[trimmed].cleanSlug;
-  }
-  // Strip trailing machine suffixes like -[a-z0-9]{4}-[a-z0-9]{4} or -[a-z0-9]{4}
-  return trimmed
-    .replace(/-[a-z0-9]{4}-[a-z0-9]{4}$/i, '')
-    .replace(/-[a-z0-9]{4}$/i, '');
+  return slug.trim();
 }
 
 /**

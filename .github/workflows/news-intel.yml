@@ -2,8 +2,8 @@ name: news-intel
 
 on:
   schedule:
-    # Hourly execution to stay safely under 720 minutes/month on GitHub free tier
-    - cron: '0 * * * *'
+    # Stagger away from the top of the hour, when GitHub scheduled runs are busiest.
+    - cron: '23 * * * *'
   workflow_dispatch:
 
 jobs:
@@ -14,13 +14,30 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Validate required secrets
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY || secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          OPENROUTER_KEY: ${{ secrets.OPENROUTER_KEY || secrets.OPENROUTER_API_KEY }}
+        run: |
+          test -n "$SUPABASE_URL" || { echo "Missing Supabase URL repository secret."; exit 1; }
+          test -n "$SUPABASE_SERVICE_KEY" || { echo "Missing Supabase service-role key repository secret."; exit 1; }
+          test -n "$OPENROUTER_KEY" || { echo "Missing OpenRouter API key repository secret."; exit 1; }
 
       - name: Install Dependencies
-        run: npm install rss-parser @supabase/supabase-js
+        run: pnpm install --frozen-lockfile
 
       - name: Run Autonomous News Intelligence ($0 Stack)
         run: node scripts/news-intel.mjs

@@ -3,7 +3,7 @@
  * 
  * Independently discovers, verifies, and drafts breaking news across Jammu, Kashmir,
  * Chenab Valley, Leh/Ladakh, Pir Panjal, and National/International wires using
- * Google Search Grounding with Gemini 2.5.
+ * Google Search Grounding with Gemini.
  * 
  * Editorial Distribution Targets (Daily, not hourly):
  * - Chenab Valley:  Min 3, Max 6  (Doda, Kishtwar, Ramban, Bhaderwah — Top regional priority)
@@ -1927,8 +1927,7 @@ Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with k
 }`;
 
   // 4. Call Gemini API with Google Search Grounding tool & resilient multi-key / multi-model rotation
-  // Prefer gemini-2.5-flash -> gemini-2.0-flash -> gemini-1.5-flash
-  const candidateModels = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+  const candidateModels = ['gemini-3.8-flash', 'gemini-3.6-flash', 'gemini-3.5-flash-lite'];
   let json: any = null;
   let candidate: any = null;
   let rawText: string | null = null;
@@ -1980,6 +1979,22 @@ Return your finding strictly as a JSON block inside \`\`\`json ... \`\`\` with k
     }
 
     if (!rawText) {
+      if (!lastQuotaError) {
+        const reason = 'All configured Gemini models failed without a quota response. Check the API errors above for model or access issues.';
+        const scanLogs = await logScanOutcome({
+          status: 'error',
+          beat: beat.name,
+          district: targetDistrictMeta?.name,
+          reason,
+        });
+        return {
+          success: false,
+          reason,
+          beat: beat.id,
+          scanLogs,
+        };
+      }
+
       console.warn(`[AutonomousDiscovery] ⚠️ All Gemini models and keys exhausted quota. Tripping circuit breaker for 1 hour.`);
       await tripCircuitBreaker(service, {
         beatId: beat.id,

@@ -2,8 +2,8 @@ name: Autonomous News Intelligence Cron
 
 on:
   schedule:
-    # Executes at minute 0 of every hour (24 times a day)
-    - cron: '0 * * * *'
+    # Stagger away from the top of the hour, when GitHub scheduled runs are busiest.
+    - cron: '47 * * * *'
   # Allows triggering manually from the GitHub Actions tab anytime
   workflow_dispatch:
 
@@ -20,7 +20,7 @@ jobs:
           ENDPOINT="${ADMIN_URL}/api/cron/news-intelligence"
           echo "Pinging Autonomous News Intelligence at: ${ENDPOINT}"
 
-          HTTP_CODE=$(curl -s -L -w "%{http_code}" -o response.json -X POST \
+          HTTP_CODE=$(curl --silent --show-error --location --write-out "%{http_code}" --output response.json --request POST \
             -H "Content-Type: application/json" \
             -H "User-Agent: GitHub-Actions-Newsroom-Cron/1.0" \
             -H "x-cron-secret: ${{ secrets.CRON_SECRET }}" \
@@ -31,9 +31,9 @@ jobs:
           cat response.json || true
           echo ""
 
-          if [ "${HTTP_CODE}" -ge 200 ] && [ "${HTTP_CODE}" -lt 300 ]; then
+          if [ "${HTTP_CODE}" -ge 200 ] && [ "${HTTP_CODE}" -lt 300 ] && jq -e '.success == true and .discovery.success == true and .discovery.inCooldown != true' response.json >/dev/null; then
             echo "Autonomous News Intelligence completed successfully."
           else
             echo "Endpoint returned status ${HTTP_CODE}."
-            # Do not fail hard if database is still waking up, but report response
+            exit 1
           fi
